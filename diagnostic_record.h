@@ -1,10 +1,9 @@
 #pragma once
 
+#include "log.h"
+
 #include <sql.h>
 #include <stdexcept>
-
-#include "Log.h"
-
 
 struct DiagnosticRecord
 {

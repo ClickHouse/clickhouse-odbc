@@ -3,9 +3,9 @@
 #include <Poco/NumberParser.h>
 #include <Poco/Net/HTTPClientSession.h>
 
-#include "StringRef.h"
-#include "DiagnosticRecord.h"
-#include "Environment.h"
+#include "diagnostic_record.h"
+#include "environment.h"
+#include "string_ref.h"
 #include "utils.h"
 
 

@@ -1,15 +1,14 @@
 #pragma once
 
-#include <sstream>
-#include <memory>
+#include "connection.h"
+#include "result_set.h"
 
 #include <Poco/Base64Encoder.h>
 #include <Poco/Net/HTTPRequest.h>
 #include <Poco/Net/HTTPResponse.h>
 
-#include "Connection.h"
-#include "ResultSet.h"
-
+#include <sstream>
+#include <memory>
 
 /// Information where and how to add values when reading.
 struct Binding

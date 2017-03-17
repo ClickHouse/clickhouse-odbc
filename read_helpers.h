@@ -4,7 +4,6 @@
 #include <stdexcept>
 #include <Poco/Types.h>
 
-
 /// In the format of VarUInt.
 inline void readSize(Poco::UInt64 & res, std::istream & istr)
 {

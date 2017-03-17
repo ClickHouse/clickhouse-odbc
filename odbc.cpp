@@ -1,3 +1,14 @@
+#include "string_ref.h"
+#include "log.h"
+#include "diagnostic_record.h"
+#include "environment.h"
+#include "connection.h"
+#include "statement.h"
+#include "result_set.h"
+#include "utils.h"
+
+#include <Poco/Types.h>
+
 #include <sql.h>
 #include <sqlext.h>
 
@@ -8,17 +19,6 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-
-#include <Poco/Types.h>
-
-#include "StringRef.h"
-#include "Log.h"
-#include "DiagnosticRecord.h"
-#include "Environment.h"
-#include "Connection.h"
-#include "Statement.h"
-#include "ResultSet.h"
-#include "utils.h"
 
 
 /** Functions from the ODBC interface can not directly call other functions.

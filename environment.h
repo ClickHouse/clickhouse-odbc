@@ -1,5 +1,7 @@
 #pragma once
 
+#include "diagnostic_record.h"
+
 #include <sqlext.h>
 #include <stdio.h>
 
@@ -9,8 +11,6 @@
 /*#include <Poco/UTF8Encoding.h>
 #include <Poco/UTF16Encoding.h>
 #include <Poco/TextConverter.h>*/
-
-#include "DiagnosticRecord.h"
 
 
 struct TypeInfo

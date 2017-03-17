@@ -1,9 +1,8 @@
-#include "ResultSet.h"
-#include "Statement.h"
-#include "Log.h"
+#include "log.h"
+#include "result_set.h"
+#include "statement.h"
 
 #include <Poco/Types.h>
-
 
 void ResultSet::init(Statement & statement_)
 {

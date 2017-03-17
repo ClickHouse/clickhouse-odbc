@@ -1,14 +1,13 @@
+#include "connection.h"
+#include "environment.h"
+#include "log.h"
+#include "statement.h"
+#include "utils.h"
+
 #include <sql.h>
 #include <sqlext.h>
 
 #include <malloc.h>
-
-#include "Log.h"
-#include "Environment.h"
-#include "Connection.h"
-#include "Statement.h"
-#include "utils.h"
-
 
 extern "C"
 {
