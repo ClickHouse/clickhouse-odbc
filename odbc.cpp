@@ -487,7 +487,7 @@ SQLDisconnect(HDBC connection_handle)
 
     return doWith<Connection>(connection_handle, [&](Connection & connection)
     {
-        connection.session.reset();
+        //XXX connection.session.reset();
         return SQL_SUCCESS;
     });
 }
