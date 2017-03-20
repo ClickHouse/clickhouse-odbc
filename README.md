@@ -8,8 +8,9 @@
 
 ## ODBC configuration
 
-~/.odbc.ini:
+vim ~/.odbc.ini:
 
+```(ini)
 [ClickHouse]
 Driver = /home/milovidov/work/ClickHouse/dbms/src/ODBC/odbc.so
 Description = ClickHouse driver
@@ -17,6 +18,7 @@ DATABASE = default
 HOST = localhost
 PORT = 9000
 FRAMED = 0
+```
 
 ## Testing
 Run ```iusql -v ClickHouse```
