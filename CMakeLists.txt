@@ -7,16 +7,9 @@ set (COMMON_WARNING_FLAGS "-Wall")	# -Werror is also added inside directories wi
 set (CXX_WARNING_FLAGS "-Wnon-virtual-dtor")
 
 set (CMAKE_BUILD_COLOR_MAKEFILE          ON)
-set (CMAKE_CXX_FLAGS                     "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS} -std=c++14 ${PLATFORM_EXTRA_CXX_FLAG} -fno-omit-frame-pointer ${COMMON_WARNING_FLAGS} ${CXX_WARNING_FLAGS} ${GLIBC_COMPATIBILITY_COMPILE_FLAGS}")
+set (CMAKE_CXX_FLAGS                     "-std=c++14 -O2 -g -fPIC -fvisibility-inlines-hidden -Wl,-Bstatic,--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
 
-
-set(POCO_PREFIX "/usr/local")
-set(POCO_INCLUDE_DIR"${POCO_PREFIX}/include")
-set(POCO_LIB_DIR "${POCO_PREFIX}/lib")
-set(POCO_LIBS
-        "${POCO_LIB_DIR}/libPocoNet.so"
-        "${POCO_LIB_DIR}/libPocoUtil.so"
-        "${POCO_LIB_DIR}/libPocoFoundation.so")
+find_library(Poco_LIBRARIES NAMES PocoNet PocoFoundation)
 
 message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE}")
 

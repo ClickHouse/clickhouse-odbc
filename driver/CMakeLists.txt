@@ -11,3 +11,8 @@ set_target_properties(clickhouse-odbc
     PROPERTIES PREFIX ""
                OUTPUT_NAME "odbc"
 )
+
+target_link_libraries(clickhouse-odbc
+    PocoNet
+    PocoFoundation
+)
