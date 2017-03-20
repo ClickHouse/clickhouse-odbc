@@ -1,6 +1,12 @@
-Install unixodbc.
+## Building
 
-./build.sh
+1. Install unixodbc.
+2. Download Poco source
+3. Run ```./configure --static --minimal --no-tests --cflags=-fPIC```
+4. Run ```make && make install```
+5. Run ```./build.sh```
+
+## ODBC configuration
 
 ~/.odbc.ini:
 
@@ -12,5 +18,5 @@ HOST = localhost
 PORT = 9000
 FRAMED = 0
 
-Run
-iusql -v ClickHouse
+## Testing
+Run ```iusql -v ClickHouse```
