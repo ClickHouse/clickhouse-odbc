@@ -6,3 +6,8 @@ add_library(clickhouse-odbc SHARED
     result_set.cpp
     statement.cpp
 )
+
+set_target_properties(clickhouse-odbc
+    PROPERTIES PREFIX ""
+               OUTPUT_NAME "odbc"
+)
