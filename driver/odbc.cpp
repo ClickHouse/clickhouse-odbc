@@ -139,10 +139,10 @@ SQLNumResultCols(HSTMT statement_handle,
 
 RETCODE SQL_API
 SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT field_identifier,
-    SQLPOINTER out_string_value, 
-	SQLSMALLINT out_string_value_max_size, SQLSMALLINT * out_string_value_size,
+    SQLPOINTER out_string_value,
+    SQLSMALLINT out_string_value_max_size, SQLSMALLINT * out_string_value_size,
 #if defined (_unix_) || defined(_win64_)
-    SQLLEN * 
+    SQLLEN *
 #else
     SQLPOINTER
 #endif
@@ -240,7 +240,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
         }
 
         if (out_num_value)
-            *static_cast<SQLINTEGER*>(out_num_value) = num_value;
+            *static_cast<SQLLEN*>(out_num_value) = num_value;
 
         return fillOutputString(str_value, out_string_value, out_string_value_max_size, out_string_value_size);
     });
