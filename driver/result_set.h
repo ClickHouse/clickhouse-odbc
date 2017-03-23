@@ -1,15 +1,14 @@
 #pragma once
 
 #include "read_helpers.h"
+#include "platform.h"
 
 #include <Poco/NumberParser.h>
 #include <Poco/Types.h>
 
-#include <sqltypes.h>
 #include <vector>
 
 class Statement;
-
 
 class Field
 {

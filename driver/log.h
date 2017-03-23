@@ -2,7 +2,6 @@
 
 #include <iostream>
 
-
 #define LOG(message) \
     do \
     { \

@@ -6,9 +6,6 @@
 
 #include <Poco/NumberFormatter.h>
 
-#include <sql.h>
-#include <sqlext.h>
-
 #if (ODBCVER >= 0x0380)
 #   define SQL_DRIVER_AWARE_POOLING_CAPABLE     0x00000001L
 #endif /* ODBCVER >= 0x0300 */

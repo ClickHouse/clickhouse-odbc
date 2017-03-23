@@ -4,9 +4,6 @@
 #include "statement.h"
 #include "utils.h"
 
-#include <sql.h>
-#include <sqlext.h>
-
 #include <malloc.h>
 
 extern "C"

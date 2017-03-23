@@ -4,7 +4,6 @@
 #include "string_ref.h"
 
 #include <string.h>
-#include <sql.h>
 
 /** Checks `handle`. Catches exceptions and puts them into the DiagnosticRecord.
   */

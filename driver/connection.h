@@ -8,7 +8,6 @@
 #include "string_ref.h"
 #include "utils.h"
 
-
 struct Connection
 {
     Connection(Environment & env_)

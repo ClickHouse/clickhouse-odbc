@@ -9,9 +9,6 @@
 
 #include <Poco/Types.h>
 
-#include <sql.h>
-#include <sqlext.h>
-
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
@@ -19,7 +16,6 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-
 
 /** Functions from the ODBC interface can not directly call other functions.
   * Because not a function from this library will be called, but a wrapper from the driver manager,
@@ -141,11 +137,16 @@ SQLNumResultCols(HSTMT statement_handle,
     });
 }
 
-
 RETCODE SQL_API
 SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT field_identifier,
-    SQLPOINTER out_string_value, SQLSMALLINT out_string_value_max_size, SQLSMALLINT * out_string_value_size,
-    SQLLEN * out_num_value)
+    SQLPOINTER out_string_value, 
+	SQLSMALLINT out_string_value_max_size, SQLSMALLINT * out_string_value_size,
+#if defined (_unix_) || defined(_win64_)
+    SQLLEN * 
+#else
+    SQLPOINTER
+#endif
+        out_num_value)
 {
     LOG(__FUNCTION__);
 
@@ -239,7 +240,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
         }
 
         if (out_num_value)
-            *out_num_value = num_value;
+            *static_cast<SQLINTEGER*>(out_num_value) = num_value;
 
         return fillOutputString(str_value, out_string_value, out_string_value_max_size, out_string_value_size);
     });
@@ -443,13 +444,13 @@ SQLBindCol(HSTMT statement_handle,
         if (column_number < 1 || column_number > statement.result.getNumColumns())
             throw std::runtime_error("Column number is out of range.");
 
-        statement.bindings[column_number] = Binding
-        {
-            .target_type = target_type,
-            .out_value = out_value,
-            .out_value_max_size = out_value_max_size,
-            .out_value_size_or_indicator = out_value_size_or_indicator
-        };
+		Binding binding;
+		binding.target_type = target_type;
+		binding.out_value = out_value;
+		binding.out_value_max_size = out_value_max_size;
+		binding.out_value_size_or_indicator = out_value_size_or_indicator;
+
+		statement.bindings[column_number] = binding;
 
         return SQL_SUCCESS;
     });

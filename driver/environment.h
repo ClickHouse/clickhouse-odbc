@@ -2,16 +2,10 @@
 
 #include "diagnostic_record.h"
 
-#include <sqlext.h>
 #include <stdio.h>
 
 #include <map>
 #include <stdexcept>
-
-/*#include <Poco/UTF8Encoding.h>
-#include <Poco/UTF16Encoding.h>
-#include <Poco/TextConverter.h>*/
-
 
 struct TypeInfo
 {
@@ -33,21 +27,21 @@ struct Environment
 
     const std::map<std::string, TypeInfo> types_info =
     {
-        {"UInt8",       { .sql_type_name = "TINYINT",   .is_unsigned = true,    .sql_type = SQL_TINYINT,        .column_size = 3, }},
-        {"UInt16",      { .sql_type_name = "SMALLINT",  .is_unsigned = true,    .sql_type = SQL_SMALLINT,       .column_size = 5, }},
-        {"UInt32",      { .sql_type_name = "INT",       .is_unsigned = true,    .sql_type = SQL_INTEGER,        .column_size = 10,}},
-        {"UInt64",      { .sql_type_name = "BIGINT",    .is_unsigned = true,    .sql_type = SQL_BIGINT,         .column_size = 19,}},
-        {"Int8",        { .sql_type_name = "TINYINT",   .is_unsigned = false,   .sql_type = SQL_TINYINT,        .column_size = 3, }},
-        {"Int16",       { .sql_type_name = "SMALLINT",  .is_unsigned = false,   .sql_type = SQL_SMALLINT,       .column_size = 5, }},
-        {"Int32",       { .sql_type_name = "INT",       .is_unsigned = false,   .sql_type = SQL_INTEGER,        .column_size = 10,}},
-        {"Int64",       { .sql_type_name = "BIGINT",    .is_unsigned = false,   .sql_type = SQL_BIGINT,         .column_size = 20,}},
-        {"Float32",     { .sql_type_name = "REAL",      .is_unsigned = false,   .sql_type = SQL_REAL,           .column_size = 7, }},
-        {"Float64",     { .sql_type_name = "DOUBLE",    .is_unsigned = false,   .sql_type = SQL_DOUBLE,         .column_size = 15,}},
-        {"String",      { .sql_type_name = "TEXT",      .is_unsigned = true,    .sql_type = SQL_VARCHAR,    .column_size = 0xFFFFFF,}},
-        {"FixedString", { .sql_type_name = "TEXT",      .is_unsigned = true,    .sql_type = SQL_VARCHAR,    .column_size = 0xFFFFFF,}},
-        {"Date",        { .sql_type_name = "DATE",      .is_unsigned = true,    .sql_type = SQL_TYPE_DATE,      .column_size = 10, }},
-        {"DateTime",    { .sql_type_name = "TIMESTAMP", .is_unsigned = true,    .sql_type = SQL_TYPE_TIMESTAMP, .column_size = 19, }},
-        {"Array",       { .sql_type_name = "TEXT",      .is_unsigned = true,    .sql_type = SQL_VARCHAR,    .column_size = 0xFFFFFF,}},
+		{"UInt8",       TypeInfo{"TINYINT",   true,    SQL_TINYINT,			3}},
+		{"UInt16",      TypeInfo{"SMALLINT",  true,    SQL_SMALLINT,		5}},
+        {"UInt32",      TypeInfo{"INT",       true,    SQL_INTEGER,			10}},
+        {"UInt64",      TypeInfo{"BIGINT",    true,    SQL_BIGINT,			19}},
+        {"Int8",        TypeInfo{"TINYINT",   false,   SQL_TINYINT,			3}},
+        {"Int16",       TypeInfo{"SMALLINT",  false,   SQL_SMALLINT,		5}},
+        {"Int32",       TypeInfo{"INT",       false,   SQL_INTEGER,			10}},
+        {"Int64",       TypeInfo{"BIGINT",    false,   SQL_BIGINT,			20}},
+        {"Float32",     TypeInfo{"REAL",      false,   SQL_REAL,			7}},
+        {"Float64",     TypeInfo{"DOUBLE",    false,   SQL_DOUBLE,			15}},
+        {"String",      TypeInfo{"TEXT",      true,    SQL_VARCHAR,			0xFFFFFF}},
+        {"FixedString", TypeInfo{"TEXT",      true,    SQL_VARCHAR,			0xFFFFFF}},
+        {"Date",        TypeInfo{"DATE",      true,    SQL_TYPE_DATE,		10}},
+        {"DateTime",    TypeInfo{"TIMESTAMP", true,    SQL_TYPE_TIMESTAMP,	19}},
+        {"Array",       TypeInfo{"TEXT",      true,    SQL_VARCHAR,			0xFFFFFF}},
     };
 
 /*  Poco::UTF8Encoding utf8;

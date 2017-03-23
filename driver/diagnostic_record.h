@@ -1,8 +1,8 @@
 #pragma once
 
 #include "log.h"
+#include "platform.h"
 
-#include <sql.h>
 #include <stdexcept>
 
 struct DiagnosticRecord
