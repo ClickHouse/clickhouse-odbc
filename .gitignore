@@ -1,1 +1,8 @@
 build
+*.db
+*.opendb
+vs/.vs
+vs/Debug
+vs/Release
+vs/driver/Debug
+vs/driver/Release
