@@ -149,7 +149,7 @@ SQLNumResultCols(HSTMT statement_handle,
 
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
-        *column_count = statement.result.getNumColumns();
+        *column_count = (SQLSMALLINT)statement.result.getNumColumns();
         LOG(*column_count);
         return SQL_SUCCESS;
     });
@@ -1204,5 +1204,48 @@ SQLTransact(SQLHENV hDrvEnv, SQLHDBC hDrvDbc, UWORD nType)
     return SQL_ERROR;
 }
 
+/*
+ *	This function is used to cause the Driver Manager to
+ *	call functions by number rather than name, which is faster.
+ *	The ordinal value of this function must be 199 to have the
+ *	Driver Manager do this.  Also, the ordinal values of the
+ *	functions must match the value of fFunction in SQLGetFunctions()
+ */
+RETCODE	SQL_API
+SQLDummyOrdinal(void) 
+{
+#if defined (_win_)
+    // TODO (artpaul) implement SQLGetFunctions
+    return SQL_ERROR;
+#else
+    return SQL_ERROR;
+#endif
+}
+
+#if defined (_win_)
+BOOL WINAPI
+DllMain(HANDLE /*hInst*/, ULONG ul_reason_for_call, LPVOID)
+{
+    switch (ul_reason_for_call)
+    {
+        case DLL_PROCESS_ATTACH:
+            break;
+
+        case DLL_THREAD_ATTACH:
+            break;
+
+        case DLL_PROCESS_DETACH:
+            break;
+
+        case DLL_THREAD_DETACH:
+            break;
+
+        default:
+            break;
+    }
+
+    return TRUE;
+}
+#endif 
 
 }

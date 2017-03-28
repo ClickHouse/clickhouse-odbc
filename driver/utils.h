@@ -69,7 +69,7 @@ std::string stringFromSQLChar(SQLCHAR * data, SIZE_TYPE size)
         return {};
 
     if (size < 0)
-        size = strlen(reinterpret_cast<const char *>(data));
+        size = (SIZE_TYPE)strlen(reinterpret_cast<const char *>(data));
 
     return { reinterpret_cast<const char *>(data), static_cast<size_t>(size) };
 }
@@ -80,7 +80,7 @@ RETCODE fillOutputString(const char * value, size_t size_without_zero,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
 {
     if (out_value_length)
-        *out_value_length = size_without_zero;
+        *out_value_length = (LENGTH)size_without_zero;
 
     if (out_value_max_length < 0)
         return SQL_ERROR;

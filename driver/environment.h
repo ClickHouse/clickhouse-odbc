@@ -20,9 +20,11 @@ struct Environment
 {
     Environment()
     {
+#if defined (_unix_)
         std::string stderr_path = "/tmp/clickhouse-odbc-stderr";
         if (!freopen(stderr_path.c_str(), "a+", stderr))
             throw std::logic_error("Cannot freopen stderr.");
+#endif
     }
 
     const std::map<std::string, TypeInfo> types_info =

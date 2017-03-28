@@ -1,6 +1,7 @@
-LIBRARY
+LIBRARY clickhouseodbc
 EXPORTS 
 
+DllMain                 @201
 ConfigDSN               @202
 ConfigDriver            @203
 
