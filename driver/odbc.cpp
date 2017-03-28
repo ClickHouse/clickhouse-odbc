@@ -27,6 +27,24 @@
 extern "C"
 {
 
+BOOL CALLBACK 
+ConfigDSN(HWND hwnd,
+          WORD fRequest,
+          LPCSTR lpszDriver,
+          LPCSTR lpszAttributes) {
+    return TRUE;
+}
+
+BOOL CALLBACK 
+ConfigDriver(HWND hwnd,
+             WORD fRequest,
+             LPCSTR lpszDriver,
+             LPCSTR lpszArgs,
+             LPSTR lpszMsg,
+             WORD cbMsgMax,
+             WORD *pcbMsgOut) {
+    return TRUE;
+}
 
 RETCODE SQL_API
 SQLConnect(HDBC connection_handle,
