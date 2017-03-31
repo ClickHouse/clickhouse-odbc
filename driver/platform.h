@@ -26,9 +26,9 @@
 #   define ssize_t SSIZE_T
 #   define HAVE_SSIZE_T 1
 #
-#   include <Winsock2.h>
+#   include <winsock2.h>
 #   include <ws2tcpip.h>
-#	include <Windows.h>
+#	include <windows.h>
 #endif
 
 #include <sql.h>

@@ -341,5 +341,4 @@ SQLSetStmtOption(SQLHSTMT statement_handle, UWORD attribute, SQLULEN value)
     return impl_SQLSetConnectAttr(statement_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
 }
 
-
 }

@@ -5,6 +5,29 @@ DllMain                 @201
 ConfigDSN               @202
 ConfigDriver            @203
 
+SQLAllocHandle          @1001
+SQLAllocEnv             @2
+SQLAllocConnect         @1
+SQLAllocStmt            @3
+SQLFreeHandle           @1006
+SQLFreeEnv              @15
+SQLFreeConnect          @14
+SQLFreeStmt             @16
+
+SQLSetEnvAttr           @1019
+SQLSetConnectAttr       @1016
+SQLSetStmtAttr          @1020
+SQLGetEnvAttr           @1012
+SQLGetConnectAttr       @1007
+SQLGetStmtAttr          @1014
+SQLGetConnectOption     @42
+SQLGetStmtOption        @46
+SQLSetConnectOption     @50
+SQLSetStmtOption        @51
+
+SQLGetInfo              @45
+
+SQLDriverConnect
 SQLConnect              @7
 SQLPrepare              @19
 SQLExecute              @12

@@ -65,9 +65,12 @@
     <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\statement.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\driver\main.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="exports.def">
+    <None Include="export.def">
       <Filter>Файлы исходного кода</Filter>
     </None>
   </ItemGroup>

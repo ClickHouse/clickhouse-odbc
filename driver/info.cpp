@@ -1,7 +1,5 @@
 #include "connection.h"
-#include "environment.h"
-#include "log.h"
-#include "statement.h"
+#include "log.h""
 #include "utils.h"
 
 #include <Poco/NumberFormatter.h>
@@ -18,7 +16,6 @@
 #   define SQL_ASYNC_NOTIFICATION_NOT_CAPABLE   0x00000000L
 #   define SQL_ASYNC_NOTIFICATION_CAPABLE       0x00000001L
 #endif // ODBCVER >= 0x0380
-
 
 extern "C"
 {
@@ -267,6 +264,8 @@ SQLGetInfo(HDBC connection_handle,
             CASE_FALLTHROUGH(SQL_MAX_INDEX_SIZE)
             CASE_NUM(SQL_MAX_ASYNC_CONCURRENT_STATEMENTS, SQLUINTEGER, 0)
 
+            CASE_NUM(SQL_ASYNC_DBC_FUNCTIONS, SQLUINTEGER, 0)
+            
             default:
                 throw std::runtime_error("Unsupported info type: " + Poco::NumberFormatter::format(info_type));
         }

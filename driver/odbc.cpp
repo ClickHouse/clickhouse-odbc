@@ -27,25 +27,6 @@
 extern "C"
 {
 
-BOOL CALLBACK 
-ConfigDSN(HWND hwnd,
-          WORD fRequest,
-          LPCSTR lpszDriver,
-          LPCSTR lpszAttributes) {
-    return TRUE;
-}
-
-BOOL CALLBACK 
-ConfigDriver(HWND hwnd,
-             WORD fRequest,
-             LPCSTR lpszDriver,
-             LPCSTR lpszArgs,
-             LPSTR lpszMsg,
-             WORD cbMsgMax,
-             WORD *pcbMsgOut) {
-    return TRUE;
-}
-
 RETCODE SQL_API
 SQLConnect(HDBC connection_handle,
            SQLCHAR * server_name, SQLSMALLINT server_name_size,
@@ -76,7 +57,6 @@ SQLDriverConnect(HDBC connection_handle,
                  SQLUSMALLINT driver_completion)
 {
     LOG(__FUNCTION__);
-
     return doWith<Connection>(connection_handle, [&](Connection & connection)
     {
         connection.init(stringFromSQLChar(connection_str_in, connection_str_in_size));
@@ -1221,31 +1201,5 @@ SQLDummyOrdinal(void)
     return SQL_ERROR;
 #endif
 }
-
-#if defined (_win_)
-BOOL WINAPI
-DllMain(HANDLE /*hInst*/, ULONG ul_reason_for_call, LPVOID)
-{
-    switch (ul_reason_for_call)
-    {
-        case DLL_PROCESS_ATTACH:
-            break;
-
-        case DLL_THREAD_ATTACH:
-            break;
-
-        case DLL_PROCESS_DETACH:
-            break;
-
-        case DLL_THREAD_DETACH:
-            break;
-
-        default:
-            break;
-    }
-
-    return TRUE;
-}
-#endif 
 
 }
