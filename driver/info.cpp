@@ -1,5 +1,5 @@
 #include "connection.h"
-#include "log.h""
+#include "log.h"
 #include "utils.h"
 
 #include <Poco/NumberFormatter.h>
@@ -265,7 +265,7 @@ SQLGetInfo(HDBC connection_handle,
             CASE_NUM(SQL_MAX_ASYNC_CONCURRENT_STATEMENTS, SQLUINTEGER, 0)
 
             CASE_NUM(SQL_ASYNC_DBC_FUNCTIONS, SQLUINTEGER, 0)
-            
+
             default:
                 throw std::runtime_error("Unsupported info type: " + Poco::NumberFormatter::format(info_type));
         }
