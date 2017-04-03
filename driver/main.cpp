@@ -1,4 +1,5 @@
 #include "platform.h"
+#include "resource.h"
 
 #if defined (_win_)
 
@@ -17,6 +18,8 @@
 
 namespace
 {
+
+#define LARGE_REGISTRY_LEN			4096		/* used for special cases */
 #define MEDIUM_REGISTRY_LEN			256 /* normal size for * user,database,etc. */
 #define SMALL_REGISTRY_LEN			10	/* for 1/0 settings */
 
@@ -41,6 +44,14 @@ namespace
 
 #define SPEC_SERVER			"server"
 
+#ifndef WIN32
+#define ODBC_INI			".odbc.ini"
+#define ODBCINST_INI		"odbcinst.ini"
+#else
+#define ODBC_INI			"ODBC.INI"
+#define ODBCINST_INI		"ODBCINST.INI"
+
+#endif
 /// Saved module handle.
 HINSTANCE NEAR      s_hModule;		
 
@@ -321,6 +332,45 @@ static void parseAttributes(LPCSTR lpszAttributes, SetupDialogData * lpsetupdlg)
     }
 }
 
+/*	This is for datasource based options only */
+void writeDSNinfo(const ConnInfo * ci)
+{
+    const char * DSN = ci->dsn;
+    //char encoded_item[LARGE_REGISTRY_LEN];
+    //char temp[SMALL_REGISTRY_LEN];
+
+    SQLWritePrivateProfileString(DSN,
+                                 INI_KDESC,
+                                 ci->desc,
+                                 ODBC_INI);
+
+    SQLWritePrivateProfileString(DSN,
+                                 INI_DATABASE,
+                                 ci->database,
+                                 ODBC_INI);
+
+    SQLWritePrivateProfileString(DSN,
+                                 INI_SERVER,
+                                 ci->server,
+                                 ODBC_INI);
+
+    SQLWritePrivateProfileString(DSN,
+                                 INI_PORT,
+                                 ci->port,
+                                 ODBC_INI);
+
+    SQLWritePrivateProfileString(DSN,
+                                 INI_USERNAME,
+                                 ci->username,
+                                 ODBC_INI);
+    SQLWritePrivateProfileString(DSN, INI_UID, ci->username, ODBC_INI);
+
+    SQLWritePrivateProfileString(DSN,
+                                 INI_READONLY,
+                                 ci->onlyread,
+                                 ODBC_INI);
+}
+
 static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWORD * errcode)
 {
     LPCSTR		lpszDSN;		/* Pointer to data source name */
@@ -374,6 +424,80 @@ static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWOR
 extern "C" 
 {
 
+void INTFUNC
+CenterDialog(HWND hdlg)
+{
+    HWND		hwndFrame;
+    RECT		rcDlg,
+        rcScr,
+        rcFrame;
+    int			cx,
+        cy;
+
+    hwndFrame = GetParent(hdlg);
+
+    GetWindowRect(hdlg, &rcDlg);
+    cx = rcDlg.right - rcDlg.left;
+    cy = rcDlg.bottom - rcDlg.top;
+
+    GetClientRect(hwndFrame, &rcFrame);
+    ClientToScreen(hwndFrame, (LPPOINT)(&rcFrame.left));
+    ClientToScreen(hwndFrame, (LPPOINT)(&rcFrame.right));
+    rcDlg.top = rcFrame.top + (((rcFrame.bottom - rcFrame.top) - cy) >> 1);
+    rcDlg.left = rcFrame.left + (((rcFrame.right - rcFrame.left) - cx) >> 1);
+    rcDlg.bottom = rcDlg.top + cy;
+    rcDlg.right = rcDlg.left + cx;
+
+    GetWindowRect(GetDesktopWindow(), &rcScr);
+    if (rcDlg.bottom > rcScr.bottom)
+    {
+        rcDlg.bottom = rcScr.bottom;
+        rcDlg.top = rcDlg.bottom - cy;
+    }
+    if (rcDlg.right > rcScr.right)
+    {
+        rcDlg.right = rcScr.right;
+        rcDlg.left = rcDlg.right - cx;
+    }
+
+    if (rcDlg.left < 0)
+        rcDlg.left = 0;
+    if (rcDlg.top < 0)
+        rcDlg.top = 0;
+
+    MoveWindow(hdlg, rcDlg.left, rcDlg.top, cx, cy, TRUE);
+    return;
+}
+
+LRESULT	CALLBACK
+ConfigDlgProc(HWND hdlg,
+              UINT wMsg,
+              WPARAM wParam,
+              LPARAM lParam)
+{
+    SetupDialogData * lpsetupdlg;
+    ConnInfo * ci;
+    //DWORD cmd;
+    //char strbuf[64];
+
+    switch (wMsg)
+    {
+        case WM_INITDIALOG:
+        {
+            lpsetupdlg = (SetupDialogData *)lParam;
+            ci = &lpsetupdlg->ci;
+
+            CenterDialog(hdlg); /* Center dialog */
+            ShowWindow(hdlg, SW_SHOW);
+
+            return FALSE;		/* Focus was not set */
+        }
+    }
+
+    /* Message not processed */
+    return FALSE;
+}
+
 BOOL CALLBACK
 ConfigDSN(HWND hwnd,
           WORD fRequest,
@@ -419,7 +543,11 @@ ConfigDSN(HWND hwnd,
         lpsetupdlg->is_new_dsn = (ODBC_ADD_DSN == fRequest);
         lpsetupdlg->is_default = true;//!lstrcmpi(lpsetupdlg->ci.dsn, INI_DSN);
 
-        strcpy(lpsetupdlg->ci.dsn, "2");
+        strcpy(lpsetupdlg->ci.dsn, "Test");
+        strcpy(lpsetupdlg->ci.server, "localhost");
+        strcpy(lpsetupdlg->ci.database, "default");
+        strcpy(lpsetupdlg->ci.username, "defaul");
+        strcpy(lpsetupdlg->ci.port, "8123");
 
         /*
         * Display the appropriate dialog (if parent window handle
@@ -430,10 +558,10 @@ ConfigDSN(HWND hwnd,
             /* Display dialog(s) */
             fSuccess = setDSNAttributes(hwnd, lpsetupdlg, NULL);
             /*fSuccess = (IDOK == DialogBoxParam(s_hModule,
-                                               MAKEINTRESOURCE(DLG_CONFIG),
+                                               MAKEINTRESOURCE(IDD_PROPPAGE_MEDIUM),
                                                hwnd,
                                                ConfigDlgProc,
-                                               (LPARAM)lpsetupdlg)); */
+                                               (LPARAM)lpsetupdlg));*/
         }
         else if (lpsetupdlg->ci.dsn[0])
             fSuccess = setDSNAttributes(hwnd, lpsetupdlg, NULL);

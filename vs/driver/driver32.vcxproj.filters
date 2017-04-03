@@ -45,6 +45,9 @@
     <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\platform.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
+    <ClInclude Include="..\driver64\resource.h">
+      <Filter>Файлы ресурсов</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\attr.cpp">
@@ -73,5 +76,10 @@
     <None Include="export.def">
       <Filter>Файлы исходного кода</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\driver64\driver64.rc">
+      <Filter>Файлы ресурсов</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

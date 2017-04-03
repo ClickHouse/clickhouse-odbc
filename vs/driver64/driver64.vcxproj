@@ -104,7 +104,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;DRIVER64_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Net\include;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Foundation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Net\include;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Foundation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -139,7 +139,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;DRIVER64_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Net\include;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Foundation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Net\include;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Foundation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -160,6 +160,7 @@
     <ClInclude Include="..\..\driver\statement.h" />
     <ClInclude Include="..\..\driver\string_ref.h" />
     <ClInclude Include="..\..\driver\utils.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\driver\attr.cpp" />
@@ -180,6 +181,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="export.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="driver64.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

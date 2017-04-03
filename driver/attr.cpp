@@ -169,8 +169,6 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
         {
             case SQL_ATTR_APP_ROW_DESC:
             case SQL_ATTR_APP_PARAM_DESC:
-            case SQL_ATTR_IMP_ROW_DESC:
-            case SQL_ATTR_IMP_PARAM_DESC:
             case SQL_ATTR_CURSOR_SCROLLABLE:
             case SQL_ATTR_CURSOR_SENSITIVITY:
             case SQL_ATTR_ASYNC_ENABLE:
@@ -201,12 +199,33 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_USE_BOOKMARKS:
                 return SQL_SUCCESS;
 
+            case SQL_ATTR_IMP_ROW_DESC:	    /* 10012 (read-only) */
+            case SQL_ATTR_IMP_PARAM_DESC:	/* 10013 (read-only) */
+                return SQL_ERROR;
+
             default:
                 throw std::runtime_error("Unsupported statement attribute.");
         }
     });
 }
 
+
+static SQLHDESC
+descHandleFromStatementHandle(Statement & statement, SQLINTEGER descType) 
+{
+    switch (descType)
+    {
+        case SQL_ATTR_APP_ROW_DESC:		/* 10010 */
+            return (HSTMT)statement.ard.get();
+        case SQL_ATTR_APP_PARAM_DESC:		/* 10011 */
+            return (HSTMT)statement.apd.get();
+        case SQL_ATTR_IMP_ROW_DESC:		/* 10012 */
+            return (HSTMT)statement.ird.get();
+        case SQL_ATTR_IMP_PARAM_DESC:		/* 10013 */
+            return (HSTMT)statement.ipd.get();
+    }
+    return (HSTMT)0;
+}
 
 RETCODE
 impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
@@ -223,9 +242,13 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
         switch (attribute)
         {
             CASE_FALLTHROUGH(SQL_ATTR_APP_ROW_DESC)
-            CASE_FALLTHROUGH(SQL_ATTR_APP_PARAM_DESC)
-            CASE_FALLTHROUGH(SQL_ATTR_IMP_ROW_DESC)
-            CASE_NUM(SQL_ATTR_IMP_PARAM_DESC, SQLPOINTER, (void*)1)
+                CASE_FALLTHROUGH(SQL_ATTR_APP_PARAM_DESC)
+                CASE_FALLTHROUGH(SQL_ATTR_IMP_ROW_DESC)
+                CASE_FALLTHROUGH(SQL_ATTR_IMP_PARAM_DESC)
+                if (out_value_length)
+                    *out_value_length = sizeof(HSTMT *);
+                *((HSTMT *)out_value) = (HSTMT *)descHandleFromStatementHandle(statement, attribute);
+                break;
 
             CASE_NUM(SQL_ATTR_CURSOR_SCROLLABLE, SQLULEN, SQL_NONSCROLLABLE);
             CASE_NUM(SQL_ATTR_CURSOR_SENSITIVITY, SQLULEN, SQL_INSENSITIVE);
@@ -307,7 +330,6 @@ SQLGetStmtAttr(SQLHSTMT handle, SQLINTEGER attribute,
 {
     return impl_SQLGetStmtAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
-
 
 RETCODE SQL_API
 SQLGetConnectOption(SQLHDBC connection_handle, UWORD attribute, PTR out_value)

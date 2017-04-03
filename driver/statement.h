@@ -19,6 +19,9 @@ struct Binding
     SQLLEN * out_value_size_or_indicator;
 };
 
+struct DescriptorClass
+{
+};
 
 class Statement
 {
@@ -37,6 +40,11 @@ public:
     std::istream * in = nullptr;
 
     DiagnosticRecord diagnostic_record;
+
+    std::unique_ptr<DescriptorClass> ard;
+    std::unique_ptr<DescriptorClass> apd;
+    std::unique_ptr<DescriptorClass> ird;
+    std::unique_ptr<DescriptorClass> ipd;
 
     ResultSet result;
     Row current_row;

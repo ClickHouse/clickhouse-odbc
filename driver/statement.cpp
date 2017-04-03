@@ -3,6 +3,10 @@
 Statement::Statement(Connection & conn_)
     : connection(conn_)
 {
+    ard.reset(new DescriptorClass);
+    apd.reset(new DescriptorClass);
+    ird.reset(new DescriptorClass);
+    ipd.reset(new DescriptorClass);
 }
 
 void Statement::sendRequest()
@@ -67,4 +71,9 @@ void Statement::reset()
     //XXX connection.session.reset();
     diagnostic_record.reset();
     result = ResultSet();
+
+    ard.reset(new DescriptorClass);
+    apd.reset(new DescriptorClass);
+    ird.reset(new DescriptorClass);
+    ipd.reset(new DescriptorClass);
 }
