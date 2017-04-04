@@ -50,6 +50,6 @@ struct Environment
     Poco::UTF16Encoding utf16;
     Poco::TextConverter converter_utf8_to_utf16 {utf8, utf16};*/
 
-    int odbc_version = SQL_OV_ODBC3;
+    int odbc_version = SQL_OV_ODBC3_80;
     DiagnosticRecord diagnostic_record;
 };
