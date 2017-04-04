@@ -10,9 +10,15 @@ RETCODE allocEnv(SQLHENV * out_environment)
 {
     if (nullptr == out_environment)
         return SQL_INVALID_HANDLE;
-
-    *out_environment = new Environment;
-    return SQL_SUCCESS;
+    try
+    {
+        *out_environment = new Environment;
+        return SQL_SUCCESS;
+    }
+    catch (...)
+    {
+        return SQL_ERROR;
+    }
 }
 
 RETCODE allocConnect(SQLHENV environment, SQLHDBC * out_connection)
@@ -20,8 +26,15 @@ RETCODE allocConnect(SQLHENV environment, SQLHDBC * out_connection)
     if (nullptr == out_connection)
         return SQL_INVALID_HANDLE;
 
-    *out_connection = new Connection(*reinterpret_cast<Environment *>(environment));
-    return SQL_SUCCESS;
+    try
+    {
+        *out_connection = new Connection(*reinterpret_cast<Environment *>(environment));
+        return SQL_SUCCESS;
+    }
+    catch (...)
+    {
+        return SQL_ERROR;
+    }
 }
 
 RETCODE allocStmt(SQLHDBC connection, SQLHSTMT * out_statement)
@@ -29,8 +42,15 @@ RETCODE allocStmt(SQLHDBC connection, SQLHSTMT * out_statement)
     if (nullptr == out_statement || nullptr == connection)
         return SQL_INVALID_HANDLE;
 
-    *out_statement = new Statement(*reinterpret_cast<Connection *>(connection));
-    return SQL_SUCCESS;
+    try
+    {
+        *out_statement = new Statement(*reinterpret_cast<Connection *>(connection));
+        return SQL_SUCCESS;
+    }
+    catch (...)
+    {
+        return SQL_ERROR;
+    }
 }
 
 template <typename Handle>
@@ -128,14 +148,14 @@ SQLFreeStmt(HSTMT statement_handle,
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE
     {
-        std::cerr << "option: " << option << "\n";
+        LOG("option: " + std::to_string(option));
 
         switch (option)
         {
             case SQL_DROP:
                 return freeHandle<Statement>(statement_handle);
 
-        case SQL_CLOSE:             /// Close the cursor, ignore the remaining results. If there is no cursor, then noop.
+            case SQL_CLOSE:             /// Close the cursor, ignore the remaining results. If there is no cursor, then noop.
                 statement.reset();
 
             case SQL_UNBIND:

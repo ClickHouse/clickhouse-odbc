@@ -26,10 +26,8 @@ impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
             case SQL_ATTR_OUTPUT_NTS:
                 return SQL_SUCCESS;
 
-            default:
-                throw std::runtime_error("Unsupported environment attribute.");
-
             case SQL_ATTR_ODBC_VERSION:
+            {
                 intptr_t int_value = reinterpret_cast<intptr_t>(value);
                 if (int_value != SQL_OV_ODBC2 && int_value != SQL_OV_ODBC3)
                     throw std::runtime_error("Unsupported ODBC version.");
@@ -38,6 +36,10 @@ impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
                 LOG("Set ODBC version to " << int_value);
 
                 return SQL_SUCCESS;
+            }
+
+            default:
+                throw std::runtime_error("Unsupported environment attribute.");
         }
     });
 }
@@ -55,15 +57,15 @@ impl_SQLGetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
 
         switch (attribute)
         {
+            case SQL_ATTR_ODBC_VERSION:
+                fillOutputNumber<SQLUINTEGER>(environment.odbc_version, out_value, out_value_max_length, out_value_length);
+                return SQL_SUCCESS;
+
             case SQL_ATTR_CONNECTION_POOLING:
             case SQL_ATTR_CP_MATCH:
             case SQL_ATTR_OUTPUT_NTS:
             default:
                 throw std::runtime_error("Unsupported environment attribute.");
-
-            case SQL_ATTR_ODBC_VERSION:
-                fillOutputNumber<SQLUINTEGER>(environment.odbc_version, out_value, out_value_max_length, out_value_length);
-                return SQL_SUCCESS;
         }
     });
 }
@@ -217,11 +219,11 @@ descHandleFromStatementHandle(Statement & statement, SQLINTEGER descType)
     {
         case SQL_ATTR_APP_ROW_DESC:		/* 10010 */
             return (HSTMT)statement.ard.get();
-        case SQL_ATTR_APP_PARAM_DESC:		/* 10011 */
+        case SQL_ATTR_APP_PARAM_DESC:   /* 10011 */
             return (HSTMT)statement.apd.get();
         case SQL_ATTR_IMP_ROW_DESC:		/* 10012 */
             return (HSTMT)statement.ird.get();
-        case SQL_ATTR_IMP_PARAM_DESC:		/* 10013 */
+        case SQL_ATTR_IMP_PARAM_DESC:	/* 10013 */
             return (HSTMT)statement.ipd.get();
     }
     return (HSTMT)0;
