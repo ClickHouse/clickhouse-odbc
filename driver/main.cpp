@@ -7,6 +7,7 @@
 #define stricmp _stricmp
 
 #include <algorithm>
+#include <strsafe.h>
 
 #include <odbcinst.h>
 #pragma comment(lib, "odbc32.lib")
@@ -53,7 +54,7 @@ namespace
 
 #endif
 /// Saved module handle.
-HINSTANCE NEAR      s_hModule;		
+HINSTANCE s_hModule = 0;		
 
 /* Globals */
 
@@ -379,8 +380,11 @@ static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWOR
 
     if (errcode)
         *errcode = 0;
+
     /* Validate arguments */
     if (lpsetupdlg->is_new_dsn && !*lpsetupdlg->ci.dsn)
+        return FALSE;
+    if (SQLValidDSN(lpszDSN))
         return FALSE;
 
     /* Write the data source name */
@@ -427,12 +431,12 @@ extern "C"
 void INTFUNC
 CenterDialog(HWND hdlg)
 {
-    HWND		hwndFrame;
-    RECT		rcDlg,
-        rcScr,
-        rcFrame;
-    int			cx,
-        cy;
+    HWND    hwndFrame;
+    RECT    rcDlg;
+    RECT    rcScr;
+    RECT    rcFrame;
+    int	    cx;
+    int     cy;
 
     hwndFrame = GetParent(hdlg);
 
@@ -469,14 +473,14 @@ CenterDialog(HWND hdlg)
     return;
 }
 
-LRESULT	CALLBACK
+INT_PTR	CALLBACK
 ConfigDlgProc(HWND hdlg,
               UINT wMsg,
               WPARAM wParam,
               LPARAM lParam)
 {
-    SetupDialogData * lpsetupdlg;
-    ConnInfo * ci;
+    //SetupDialogData * lpsetupdlg;
+    //ConnInfo * ci;
     //DWORD cmd;
     //char strbuf[64];
 
@@ -484,14 +488,23 @@ ConfigDlgProc(HWND hdlg,
     {
         case WM_INITDIALOG:
         {
-            lpsetupdlg = (SetupDialogData *)lParam;
-            ci = &lpsetupdlg->ci;
-
             CenterDialog(hdlg); /* Center dialog */
-            ShowWindow(hdlg, SW_SHOW);
-
-            return FALSE;		/* Focus was not set */
+            //ShowWindow(hdlg, SW_SHOWNORMAL);
+            //UpdateWindow(hdlg);
+            return TRUE;		/* Focus was not set */
         }
+     
+        case WM_COMMAND:
+            if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+            {
+                EndDialog(hdlg, LOWORD(wParam));
+                return TRUE;
+            }
+            break;
+
+        default:
+            //std::cerr << wMsg << std::endl;
+            break;
     }
 
     /* Message not processed */
@@ -556,12 +569,43 @@ ConfigDSN(HWND hwnd,
         if (hwnd)
         {
             /* Display dialog(s) */
-            fSuccess = setDSNAttributes(hwnd, lpsetupdlg, NULL);
-            /*fSuccess = (IDOK == DialogBoxParam(s_hModule,
-                                               MAKEINTRESOURCE(IDD_PROPPAGE_MEDIUM),
-                                               hwnd,
-                                               ConfigDlgProc,
-                                               (LPARAM)lpsetupdlg));*/
+#if 0
+            //fSuccess = setDSNAttributes(hwnd, lpsetupdlg, NULL
+#else
+            auto ret = DialogBoxParam(s_hModule,
+                                      MAKEINTRESOURCE(IDD_DIALOG1),
+                                      hwnd,
+                                      ConfigDlgProc,
+                                      (LPARAM)lpsetupdlg);
+            if (ret != IDOK)
+            {
+                auto err = GetLastError();
+                LPVOID lpMsgBuf;
+                LPVOID lpDisplayBuf;
+
+                FormatMessage(
+                    FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                    FORMAT_MESSAGE_FROM_SYSTEM |
+                    FORMAT_MESSAGE_IGNORE_INSERTS,
+                    NULL,
+                    err,
+                    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                    (LPTSTR)&lpMsgBuf,
+                    0, NULL);
+
+                lpDisplayBuf = (LPVOID)LocalAlloc(LMEM_ZEROINIT,
+                    (lstrlen((LPCTSTR)lpMsgBuf) + 40) * sizeof(TCHAR));
+                StringCchPrintf((LPTSTR)lpDisplayBuf,
+                                LocalSize(lpDisplayBuf) / sizeof(TCHAR),
+                                TEXT("failed with error %d: %s"),
+                                err, lpMsgBuf);
+                MessageBox(NULL, (LPCTSTR)lpDisplayBuf, TEXT("Error"), MB_OK);
+
+                LocalFree(lpMsgBuf);
+                LocalFree(lpDisplayBuf);
+            }
+            fSuccess = (IDOK == ret);
+#endif
         }
         else if (lpsetupdlg->ci.dsn[0])
             fSuccess = setDSNAttributes(hwnd, lpsetupdlg, NULL);
