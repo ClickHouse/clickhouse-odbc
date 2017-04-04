@@ -2,7 +2,7 @@
 
 #include <Poco/Net/HTTPClientSession.h>
 
-#include "diagnostic_record.h"
+#include "diagnostics.h"
 #include "environment.h"
 
 struct Connection

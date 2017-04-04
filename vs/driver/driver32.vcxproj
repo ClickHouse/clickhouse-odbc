@@ -156,7 +156,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\connection.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\diagnostic_record.h" />
+    <ClInclude Include="..\..\driver\diagnostics.h" />
     <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\environment.h" />
     <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\log.h" />
     <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\platform.h" />
@@ -175,6 +175,7 @@
     <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\result_set.cpp" />
     <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\statement.cpp" />
     <ClCompile Include="..\..\driver\connection.cpp" />
+    <ClCompile Include="..\..\driver\diagnostics.cpp" />
     <ClCompile Include="..\..\driver\main.cpp" />
   </ItemGroup>
   <ItemGroup>

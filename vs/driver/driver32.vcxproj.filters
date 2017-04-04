@@ -18,9 +18,6 @@
     <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\connection.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\diagnostic_record.h">
-      <Filter>Заголовочные файлы</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\environment.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
@@ -48,6 +45,9 @@
     <ClInclude Include="..\driver64\resource.h">
       <Filter>Файлы ресурсов</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\driver\diagnostics.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\attr.cpp">
@@ -72,6 +72,9 @@
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
     <ClCompile Include="..\..\driver\connection.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\driver\diagnostics.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
   </ItemGroup>

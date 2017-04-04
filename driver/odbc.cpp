@@ -1,6 +1,6 @@
 #include "string_ref.h"
 #include "log.h"
-#include "diagnostic_record.h"
+#include "diagnostics.h"
 #include "environment.h"
 #include "connection.h"
 #include "statement.h"
@@ -549,7 +549,15 @@ SQLGetDiagRec(SQLSMALLINT handle_type, SQLHANDLE handle,
     SQLINTEGER * out_native_error_code,
     SQLCHAR * out_mesage, SQLSMALLINT out_message_max_size, SQLSMALLINT * out_message_size)
 {
-    return impl_SQLGetDiagRec(handle_type, handle, record_number, out_sqlstate, out_native_error_code, out_mesage, out_message_max_size, out_message_size);
+    return impl_SQLGetDiagRec(
+        handle_type, 
+        handle, 
+        record_number, 
+        out_sqlstate, 
+        out_native_error_code, 
+        out_mesage, 
+        out_message_max_size, 
+        out_message_size);
 }
 
 

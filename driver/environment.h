@@ -1,6 +1,6 @@
 #pragma once
 
-#include "diagnostic_record.h"
+#include "diagnostics.h"
 
 #include <stdio.h>
 

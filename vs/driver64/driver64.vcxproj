@@ -165,6 +165,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\driver\attr.cpp" />
     <ClCompile Include="..\..\driver\connection.cpp" />
+    <ClCompile Include="..\..\driver\diagnostics.cpp" />
     <ClCompile Include="..\..\driver\handles.cpp" />
     <ClCompile Include="..\..\driver\info.cpp" />
     <ClCompile Include="..\..\driver\main.cpp" />
