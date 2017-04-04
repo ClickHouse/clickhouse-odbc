@@ -19,5 +19,5 @@ struct StringRef
         return size == strlen(rhs) && 0 == memcmp(data, rhs, strlen(rhs));
     }
 
-    operator bool() const { return data != nullptr; }
+    explicit operator bool() const { return data != nullptr; }
 };

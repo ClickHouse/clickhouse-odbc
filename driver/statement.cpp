@@ -1,5 +1,7 @@
 #include "statement.h"
 
+#include <Poco/Exception.h>
+
 Statement::Statement(Connection & conn_)
     : connection(conn_)
 {
@@ -11,9 +13,6 @@ Statement::Statement(Connection & conn_)
 
 void Statement::sendRequest()
 {
-    if (connection.user.find(':') != std::string::npos)
-        throw std::runtime_error("Username couldn't contain ':' (colon) symbol.");
-
     std::ostringstream user_password_base64;
     Poco::Base64Encoder base64_encoder(user_password_base64);
     base64_encoder << connection.user << ":" << connection.password;
@@ -28,23 +27,32 @@ void Statement::sendRequest()
     request.setCredentials("Basic", user_password_base64.str());
     request.setURI("/?database=" + connection.database + "&default_format=ODBCDriver"); /// TODO Ability to transfer settings. TODO escaping
 
-//      if (in && in->peek() != EOF)
-    //XXX     connection.session.reset();
-
-    connection.session.sendRequest(request) << query;
-
-    LOG("Receiving !");
-    response = std::make_unique<Poco::Net::HTTPResponse>();
-    in = &connection.session.receiveResponse(*response);
-    LOG("Receiving !!");
-
+    if (in && in->peek() != EOF)
+        connection.session.reset();
+    
+    // Send request to server with finite count of retries.
+    for (int i = 1; ; ++i)
+    {
+        try
+        {
+            connection.session.sendRequest(request) << query;
+            response = std::make_unique<Poco::Net::HTTPResponse>();
+            in = &connection.session.receiveResponse(*response);
+            break;
+        }
+        catch (const Poco::IOException&)
+        {
+            if (i > connection.retry_count)
+            {
+                throw;
+            }
+        }
+    }
+    
     Poco::Net::HTTPResponse::HTTPStatus status = response->getStatus();
-    LOG("Receiving !!!");
 
     if (status != Poco::Net::HTTPResponse::HTTP_OK)
     {
-        LOG("Receiving !!!!");
-
         std::stringstream error_message;
         error_message
             << "HTTP status code: " << status << std::endl
@@ -54,7 +62,6 @@ void Statement::sendRequest()
         throw std::runtime_error(error_message.str());
     }
 
-    LOG("Receiving ! !");
     result.init(*this);
 }
 
@@ -68,7 +75,7 @@ void Statement::reset()
 {
     in = nullptr;
     response.reset();
-    //XXX connection.session.reset();
+    connection.session.reset();
     diagnostic_record.reset();
     result = ResultSet();
 
