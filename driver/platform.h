@@ -34,3 +34,13 @@
 #include <sql.h>
 #include <sqlext.h>
 #include <sqltypes.h>
+
+#if defined (_win_)
+#   ifdef UNICODE
+#       define strcpy wcscpy_s
+#       define stricmp _wcsicmp
+#   else 
+#       define strcpy strcpy_s
+#       define stricmp _stricmp
+#   endif
+#endif
