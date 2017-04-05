@@ -30,15 +30,16 @@ namespace
 /// Max data source name length
 #define	MAXDSNAME	(32+1)
 
-#define INI_KDESC			"Description"	/* Data source description */
-#define INI_DATABASE		"Database"	    /* Database Name */
-#define INI_SERVER			"Servername"	/* Name of Server  running the ClickHouse service */
-#define INI_UID				"UID"		    /* Default User Name */
-#define INI_USERNAME		"Username"	    /* Default User Name */
-#define INI_PASSWORD		"Password"	    /* Default Password */
-#define INI_PORT			"Port"	        /* Port on which the ClickHouse is listening */
-#define INI_READONLY		"ReadOnly"	    /* Database is read only */
-#define INI_PROTOCOL		"Protocol"	    /* What protocol (6.2) */
+#define INI_KDESC           "Description"	/* Data source description */
+#define INI_DATABASE        "Database"	    /* Database Name */
+#define INI_SERVER          "Servername"	/* Name of Server  running the ClickHouse service */
+#define INI_UID             "UID"		    /* Default User Name */
+#define INI_USERNAME        "Username"	    /* Default User Name */
+#define INI_PASSWORD        "Password"	    /* Default Password */
+#define INI_PORT            "Port"	        /* Port on which the ClickHouse is listening */
+#define INI_READONLY        "ReadOnly"	    /* Database is read only */
+#define INI_PROTOCOL        "Protocol"	    /* What protocol (6.2) */
+#define INI_DSN             "ClickHouse"
 
 #define ABBR_PROTOCOL		"A1"
 #define ABBR_READONLY		"A0"
@@ -333,6 +334,29 @@ static void parseAttributes(LPCSTR lpszAttributes, SetupDialogData * lpsetupdlg)
     }
 }
 
+void getDSNinfo(ConnInfo *ci, bool overwrite)
+{
+    char * DSN = ci->dsn;
+
+    if (ci->desc[0] == '\0' || overwrite)
+        SQLGetPrivateProfileString(DSN, INI_KDESC, "", ci->desc, sizeof(ci->desc), ODBC_INI);
+
+    if (ci->server[0] == '\0' || overwrite)
+        SQLGetPrivateProfileString(DSN, INI_SERVER, "", ci->server, sizeof(ci->server), ODBC_INI);
+
+    if (ci->database[0] == '\0' || overwrite)
+        SQLGetPrivateProfileString(DSN, INI_DATABASE, "", ci->database, sizeof(ci->database), ODBC_INI);
+
+    if (ci->username[0] == '\0' || overwrite)
+        SQLGetPrivateProfileString(DSN, INI_USERNAME, "", ci->username, sizeof(ci->username), ODBC_INI);
+
+    if (ci->port[0] == '\0' || overwrite)
+        SQLGetPrivateProfileString(DSN, INI_PORT, "", ci->port, sizeof(ci->port), ODBC_INI);
+
+    if (ci->onlyread[0] == '\0' || overwrite)
+        SQLGetPrivateProfileString(DSN, INI_READONLY, "", ci->onlyread, sizeof(ci->onlyread), ODBC_INI);
+}
+
 /*	This is for datasource based options only */
 void writeDSNinfo(const ConnInfo * ci)
 {
@@ -480,10 +504,21 @@ ConfigDlgProc(HWND hdlg,
         case WM_INITDIALOG:
         {
             lpsetupdlg = (SetupDialogData *)lParam;
+            ci = &lpsetupdlg->ci;
             SetWindowLongPtr(hdlg, DWLP_USER, lParam);
 
             CenterDialog(hdlg); /* Center dialog */
-            // TODO fill fields
+
+            getDSNinfo(ci, false);
+
+            SetDlgItemText(hdlg, IDC_DSN_NAME, ci->dsn);
+            SetDlgItemText(hdlg, IDC_DESCRIPTION, ci->desc);
+            SetDlgItemText(hdlg, IDC_SERVER_HOST, ci->server);
+            SetDlgItemText(hdlg, IDC_SERVER_PORT, ci->port);
+            SetDlgItemText(hdlg, IDC_DATABASE, ci->database);
+            SetDlgItemText(hdlg, IDC_USER, ci->username);
+            SetDlgItemText(hdlg, IDC_PASSWORD, ci->password);
+
             return TRUE;		/* Focus was not set */
         }
      
@@ -495,6 +530,7 @@ ConfigDlgProc(HWND hdlg,
                     ci = &lpsetupdlg->ci;
 
                     GetDlgItemText(hdlg, IDC_DSN_NAME, ci->dsn, sizeof(ci->dsn));
+                    GetDlgItemText(hdlg, IDC_DESCRIPTION, ci->desc, sizeof(ci->desc));
                     GetDlgItemText(hdlg, IDC_SERVER_HOST, ci->server, sizeof(ci->server));
                     GetDlgItemText(hdlg, IDC_SERVER_PORT, ci->port, sizeof(ci->port));
                     GetDlgItemText(hdlg, IDC_DATABASE, ci->database, sizeof(ci->database));
@@ -556,13 +592,7 @@ ConfigDSN(HWND hwnd,
         lpsetupdlg->hwnd_parent = hwnd;
         lpsetupdlg->driver_name = lpszDriver;
         lpsetupdlg->is_new_dsn = (ODBC_ADD_DSN == fRequest);
-        lpsetupdlg->is_default = true;//!lstrcmpi(lpsetupdlg->ci.dsn, INI_DSN);
-
-        strcpy(lpsetupdlg->ci.dsn, "Test");
-        strcpy(lpsetupdlg->ci.server, "localhost");
-        strcpy(lpsetupdlg->ci.database, "default");
-        strcpy(lpsetupdlg->ci.username, "defaul");
-        strcpy(lpsetupdlg->ci.port, "8123");
+        lpsetupdlg->is_default = !lstrcmpi(lpsetupdlg->ci.dsn, INI_DSN);
 
         /*
         * Display the appropriate dialog (if parent window handle
