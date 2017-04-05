@@ -42,11 +42,11 @@
     <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\platform.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
-    <ClInclude Include="..\driver64\resource.h">
-      <Filter>Файлы ресурсов</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\driver\diagnostics.h">
       <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\driver\win\resource.h">
+      <Filter>Файлы ресурсов</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -68,24 +68,27 @@
     <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\statement.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\driver\main.cpp">
-      <Filter>Файлы исходного кода</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\driver\connection.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
     <ClCompile Include="..\..\driver\diagnostics.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="export.def">
+    <ClCompile Include="..\..\driver\win\dllmain.cpp">
       <Filter>Файлы исходного кода</Filter>
-    </None>
+    </ClCompile>
+    <ClCompile Include="..\..\driver\win\setup.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\driver64\driver64.rc">
+    <ResourceCompile Include="..\..\driver\win\resource.rc">
       <Filter>Файлы ресурсов</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\driver\win\export.def">
+      <Filter>Файлы исходного кода</Filter>
+    </None>
   </ItemGroup>
 </Project>

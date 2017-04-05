@@ -1,4 +1,4 @@
-#include "platform.h"
+#include "../platform.h"
 #include "resource.h"
 
 #if defined (_win_)
@@ -16,6 +16,9 @@
 #ifndef INTFUNC
 #   define INTFUNC  __stdcall
 #endif /* INTFUNC */
+
+/// Saved module handle.
+extern HINSTANCE module_instance;
 
 namespace
 {
@@ -54,11 +57,6 @@ namespace
 #define ODBCINST_INI		"ODBCINST.INI"
 
 #endif
-/// Saved module handle.
-HINSTANCE s_hModule = 0;		
-
-/* Globals */
-
 
 /*	Structure to hold all the connection attributes for a specific
 connection (used for both registry and file, DSN and DRIVER)
@@ -118,172 +116,172 @@ struct SetupDialogData
 BOOL
 copyAttributes(ConnInfo *ci, const char * attribute, const char * value)
 {
-	BOOL	found = TRUE;
+    BOOL	found = TRUE;
 
-	if (stricmp(attribute, "DSN") == 0)
-		strcpy(ci->dsn, value);
+    if (stricmp(attribute, "DSN") == 0)
+        strcpy(ci->dsn, value);
 
-	else if (stricmp(attribute, "driver") == 0)
-		strcpy(ci->drivername, value);
+    else if (stricmp(attribute, "driver") == 0)
+        strcpy(ci->drivername, value);
 
-	else if (stricmp(attribute, INI_KDESC) == 0)
-		strcpy(ci->desc, value);
+    else if (stricmp(attribute, INI_KDESC) == 0)
+        strcpy(ci->desc, value);
 
-	else if (stricmp(attribute, INI_DATABASE) == 0)
-		strcpy(ci->database, value);
+    else if (stricmp(attribute, INI_DATABASE) == 0)
+        strcpy(ci->database, value);
 
-	else if (stricmp(attribute, INI_SERVER) == 0 || stricmp(attribute, SPEC_SERVER) == 0)
-		strcpy(ci->server, value);
+    else if (stricmp(attribute, INI_SERVER) == 0 || stricmp(attribute, SPEC_SERVER) == 0)
+        strcpy(ci->server, value);
 
-	else if (stricmp(attribute, INI_USERNAME) == 0 || stricmp(attribute, INI_UID) == 0)
-		strcpy(ci->username, value);
+    else if (stricmp(attribute, INI_USERNAME) == 0 || stricmp(attribute, INI_UID) == 0)
+        strcpy(ci->username, value);
 
-	//else if (stricmp(attribute, INI_PASSWORD) == 0 || stricmp(attribute, "pwd") == 0)
-	//	ci->password = decode_or_remove_braces(value);
+    //else if (stricmp(attribute, INI_PASSWORD) == 0 || stricmp(attribute, "pwd") == 0)
+    //	ci->password = decode_or_remove_braces(value);
 
-	else if (stricmp(attribute, INI_PORT) == 0)
-		strcpy(ci->port, value);
+    else if (stricmp(attribute, INI_PORT) == 0)
+        strcpy(ci->port, value);
 
-	else if (stricmp(attribute, INI_READONLY) == 0 || stricmp(attribute, ABBR_READONLY) == 0)
-		strcpy(ci->onlyread, value);
+    else if (stricmp(attribute, INI_READONLY) == 0 || stricmp(attribute, ABBR_READONLY) == 0)
+        strcpy(ci->onlyread, value);
 #if 0
-	else if (stricmp(attribute, INI_PROTOCOL) == 0 || stricmp(attribute, ABBR_PROTOCOL) == 0)
-	{
-		char * ptr;
-		/*
-		 * The first part of the Protocol used to be "6.2", "6.3" or
-		 * "7.4" to denote which protocol version to use. Nowadays we
-		 * only support the 7.4 protocol, also known as the protocol
-		 * version 3. So just ignore the first part of the string,
-		 * parsing only the rollback_on_error value.
-		 */
-		ptr = (char*)strchr(value, '-');
-		if (ptr)
-		{
-			if ('-' != *value)
-			{
-				*ptr = '\0';
-				/* ignore first part */
-			}
-			ci->rollback_on_error = atoi(ptr + 1);
-		}
-	}
+    else if (stricmp(attribute, INI_PROTOCOL) == 0 || stricmp(attribute, ABBR_PROTOCOL) == 0)
+    {
+        char * ptr;
+        /*
+        * The first part of the Protocol used to be "6.2", "6.3" or
+        * "7.4" to denote which protocol version to use. Nowadays we
+        * only support the 7.4 protocol, also known as the protocol
+        * version 3. So just ignore the first part of the string,
+        * parsing only the rollback_on_error value.
+        */
+        ptr = (char*)strchr(value, '-');
+        if (ptr)
+        {
+            if ('-' != *value)
+            {
+                *ptr = '\0';
+                /* ignore first part */
+            }
+            ci->rollback_on_error = atoi(ptr + 1);
+        }
+    }
 
-	else if (stricmp(attribute, INI_SHOWOIDCOLUMN) == 0 || stricmp(attribute, ABBR_SHOWOIDCOLUMN) == 0)
-		strcpy(ci->show_oid_column, value);
+    else if (stricmp(attribute, INI_SHOWOIDCOLUMN) == 0 || stricmp(attribute, ABBR_SHOWOIDCOLUMN) == 0)
+        strcpy(ci->show_oid_column, value);
 
-	else if (stricmp(attribute, INI_FAKEOIDINDEX) == 0 || stricmp(attribute, ABBR_FAKEOIDINDEX) == 0)
-		strcpy(ci->fake_oid_index, value);
+    else if (stricmp(attribute, INI_FAKEOIDINDEX) == 0 || stricmp(attribute, ABBR_FAKEOIDINDEX) == 0)
+        strcpy(ci->fake_oid_index, value);
 
-	else if (stricmp(attribute, INI_ROWVERSIONING) == 0 || stricmp(attribute, ABBR_ROWVERSIONING) == 0)
-		strcpy(ci->row_versioning, value);
+    else if (stricmp(attribute, INI_ROWVERSIONING) == 0 || stricmp(attribute, ABBR_ROWVERSIONING) == 0)
+        strcpy(ci->row_versioning, value);
 
-	else if (stricmp(attribute, INI_SHOWSYSTEMTABLES) == 0 || stricmp(attribute, ABBR_SHOWSYSTEMTABLES) == 0)
-		strcpy(ci->show_system_tables, value);
+    else if (stricmp(attribute, INI_SHOWSYSTEMTABLES) == 0 || stricmp(attribute, ABBR_SHOWSYSTEMTABLES) == 0)
+        strcpy(ci->show_system_tables, value);
 
-	else if (stricmp(attribute, INI_CONNSETTINGS) == 0 || stricmp(attribute, ABBR_CONNSETTINGS) == 0)
-	{
-		/* We can use the conn_settings directly when they are enclosed with braces */
-		if ('{' == *value)
-		{
-			size_t	len;
+    else if (stricmp(attribute, INI_CONNSETTINGS) == 0 || stricmp(attribute, ABBR_CONNSETTINGS) == 0)
+    {
+        /* We can use the conn_settings directly when they are enclosed with braces */
+        if ('{' == *value)
+        {
+            size_t	len;
 
-			len = strlen(value + 1);
-			if (len > 0 && '}' == value[len])
-				len--;
-			STRN_TO_NAME(ci->conn_settings, value + 1, len);
-		}
-		else
-			ci->conn_settings = decode(value);
-	}
-	else if (stricmp(attribute, INI_DISALLOWPREMATURE) == 0 || stricmp(attribute, ABBR_DISALLOWPREMATURE) == 0)
-		ci->disallow_premature = atoi(value);
-	else if (stricmp(attribute, INI_UPDATABLECURSORS) == 0 || stricmp(attribute, ABBR_UPDATABLECURSORS) == 0)
-		ci->allow_keyset = atoi(value);
-	else if (stricmp(attribute, INI_LFCONVERSION) == 0 || stricmp(attribute, ABBR_LFCONVERSION) == 0)
-		ci->lf_conversion = atoi(value);
-	else if (stricmp(attribute, INI_TRUEISMINUS1) == 0 || stricmp(attribute, ABBR_TRUEISMINUS1) == 0)
-		ci->true_is_minus1 = atoi(value);
-	else if (stricmp(attribute, INI_INT8AS) == 0)
-		ci->int8_as = atoi(value);
-	else if (stricmp(attribute, INI_BYTEAASLONGVARBINARY) == 0 || stricmp(attribute, ABBR_BYTEAASLONGVARBINARY) == 0)
-		ci->bytea_as_longvarbinary = atoi(value);
-	else if (stricmp(attribute, INI_USESERVERSIDEPREPARE) == 0 || stricmp(attribute, ABBR_USESERVERSIDEPREPARE) == 0)
-		ci->use_server_side_prepare = atoi(value);
-	else if (stricmp(attribute, INI_LOWERCASEIDENTIFIER) == 0 || stricmp(attribute, ABBR_LOWERCASEIDENTIFIER) == 0)
-		ci->lower_case_identifier = atoi(value);
-	else if (stricmp(attribute, INI_GSSAUTHUSEGSSAPI) == 0 || stricmp(attribute, ABBR_GSSAUTHUSEGSSAPI) == 0)
-		ci->gssauth_use_gssapi = atoi(value);
-	else if (stricmp(attribute, INI_KEEPALIVETIME) == 0 || stricmp(attribute, ABBR_KEEPALIVETIME) == 0)
-		ci->keepalive_idle = atoi(value);
-	else if (stricmp(attribute, INI_KEEPALIVEINTERVAL) == 0 || stricmp(attribute, ABBR_KEEPALIVEINTERVAL) == 0)
-		ci->keepalive_interval = atoi(value);
+            len = strlen(value + 1);
+            if (len > 0 && '}' == value[len])
+                len--;
+            STRN_TO_NAME(ci->conn_settings, value + 1, len);
+        }
+        else
+            ci->conn_settings = decode(value);
+    }
+    else if (stricmp(attribute, INI_DISALLOWPREMATURE) == 0 || stricmp(attribute, ABBR_DISALLOWPREMATURE) == 0)
+        ci->disallow_premature = atoi(value);
+    else if (stricmp(attribute, INI_UPDATABLECURSORS) == 0 || stricmp(attribute, ABBR_UPDATABLECURSORS) == 0)
+        ci->allow_keyset = atoi(value);
+    else if (stricmp(attribute, INI_LFCONVERSION) == 0 || stricmp(attribute, ABBR_LFCONVERSION) == 0)
+        ci->lf_conversion = atoi(value);
+    else if (stricmp(attribute, INI_TRUEISMINUS1) == 0 || stricmp(attribute, ABBR_TRUEISMINUS1) == 0)
+        ci->true_is_minus1 = atoi(value);
+    else if (stricmp(attribute, INI_INT8AS) == 0)
+        ci->int8_as = atoi(value);
+    else if (stricmp(attribute, INI_BYTEAASLONGVARBINARY) == 0 || stricmp(attribute, ABBR_BYTEAASLONGVARBINARY) == 0)
+        ci->bytea_as_longvarbinary = atoi(value);
+    else if (stricmp(attribute, INI_USESERVERSIDEPREPARE) == 0 || stricmp(attribute, ABBR_USESERVERSIDEPREPARE) == 0)
+        ci->use_server_side_prepare = atoi(value);
+    else if (stricmp(attribute, INI_LOWERCASEIDENTIFIER) == 0 || stricmp(attribute, ABBR_LOWERCASEIDENTIFIER) == 0)
+        ci->lower_case_identifier = atoi(value);
+    else if (stricmp(attribute, INI_GSSAUTHUSEGSSAPI) == 0 || stricmp(attribute, ABBR_GSSAUTHUSEGSSAPI) == 0)
+        ci->gssauth_use_gssapi = atoi(value);
+    else if (stricmp(attribute, INI_KEEPALIVETIME) == 0 || stricmp(attribute, ABBR_KEEPALIVETIME) == 0)
+        ci->keepalive_idle = atoi(value);
+    else if (stricmp(attribute, INI_KEEPALIVEINTERVAL) == 0 || stricmp(attribute, ABBR_KEEPALIVEINTERVAL) == 0)
+        ci->keepalive_interval = atoi(value);
 #ifdef	USE_LIBPQ
-	else if (stricmp(attribute, INI_PREFERLIBPQ) == 0 || stricmp(attribute, ABBR_PREFERLIBPQ) == 0)
-		ci->prefer_libpq = atoi(value);
+    else if (stricmp(attribute, INI_PREFERLIBPQ) == 0 || stricmp(attribute, ABBR_PREFERLIBPQ) == 0)
+        ci->prefer_libpq = atoi(value);
 #endif /* USE_LIBPQ */
-	else if (stricmp(attribute, INI_SSLMODE) == 0 || stricmp(attribute, ABBR_SSLMODE) == 0)
-	{
-		switch (value[0])
-		{
-			case SSLLBYTE_ALLOW:
-				strcpy(ci->sslmode, SSLMODE_ALLOW);
-				break;
-			case SSLLBYTE_PREFER:
-				strcpy(ci->sslmode, SSLMODE_PREFER);
-				break;
-			case SSLLBYTE_REQUIRE:
-				strcpy(ci->sslmode, SSLMODE_REQUIRE);
-				break;
-			case SSLLBYTE_VERIFY:
-				switch (value[1])
-				{
-					case 'f':
-						strcpy(ci->sslmode, SSLMODE_VERIFY_FULL);
-						break;
-					case 'c':
-						strcpy(ci->sslmode, SSLMODE_VERIFY_CA);
-						break;
-					default:
-						strcpy(ci->sslmode, value);
-				}
-				break;
-			case SSLLBYTE_DISABLE:
-			default:
-				strcpy(ci->sslmode, SSLMODE_DISABLE);
-				break;
-		}
-	}
-	else if (stricmp(attribute, INI_ABBREVIATE) == 0)
-		unfoldCXAttribute(ci, value);
+    else if (stricmp(attribute, INI_SSLMODE) == 0 || stricmp(attribute, ABBR_SSLMODE) == 0)
+    {
+        switch (value[0])
+        {
+            case SSLLBYTE_ALLOW:
+                strcpy(ci->sslmode, SSLMODE_ALLOW);
+                break;
+            case SSLLBYTE_PREFER:
+                strcpy(ci->sslmode, SSLMODE_PREFER);
+                break;
+            case SSLLBYTE_REQUIRE:
+                strcpy(ci->sslmode, SSLMODE_REQUIRE);
+                break;
+            case SSLLBYTE_VERIFY:
+                switch (value[1])
+                {
+                    case 'f':
+                        strcpy(ci->sslmode, SSLMODE_VERIFY_FULL);
+                        break;
+                    case 'c':
+                        strcpy(ci->sslmode, SSLMODE_VERIFY_CA);
+                        break;
+                    default:
+                        strcpy(ci->sslmode, value);
+                }
+                break;
+            case SSLLBYTE_DISABLE:
+            default:
+                strcpy(ci->sslmode, SSLMODE_DISABLE);
+                break;
+        }
+    }
+    else if (stricmp(attribute, INI_ABBREVIATE) == 0)
+        unfoldCXAttribute(ci, value);
 #ifdef	_HANDLE_ENLIST_IN_DTC_
-	else if (stricmp(attribute, INI_XAOPT) == 0)
-		ci->xa_opt = atoi(value);
+    else if (stricmp(attribute, INI_XAOPT) == 0)
+        ci->xa_opt = atoi(value);
 #endif /* _HANDLE_ENLIST_IN_DTC_ */
-	else if (stricmp(attribute, INI_EXTRAOPTIONS) == 0)
-	{
-		UInt4	val1 = 0, val2 = 0;
+    else if (stricmp(attribute, INI_EXTRAOPTIONS) == 0)
+    {
+        UInt4	val1 = 0, val2 = 0;
 
-		if ('+' == value[0])
-		{
-			sscanf(value + 1, "%x-%x", &val1, &val2);
-			add_removeExtraOptions(ci, val1, val2);
-		}
-		else if ('-' == value[0])
-		{
-			sscanf(value + 1, "%x", &val2);
-			add_removeExtraOptions(ci, 0, val2);
-		}
-		else
-		{
-			setExtraOptions(ci, value, hex_format);
-		}
-	}
+        if ('+' == value[0])
+        {
+            sscanf(value + 1, "%x-%x", &val1, &val2);
+            add_removeExtraOptions(ci, val1, val2);
+        }
+        else if ('-' == value[0])
+        {
+            sscanf(value + 1, "%x", &val2);
+            add_removeExtraOptions(ci, 0, val2);
+        }
+        else
+        {
+            setExtraOptions(ci, value, hex_format);
+        }
+    }
 #endif
-	else
-		found = FALSE;
+    else
+        found = FALSE;
 
-	return found;
+    return found;
 }
 
 static void parseAttributes(LPCSTR lpszAttributes, SetupDialogData * lpsetupdlg)
@@ -441,11 +439,11 @@ static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWOR
 
 } // namespace 
 
-extern "C" 
+extern "C"
 {
 
 void INTFUNC
-CenterDialog(HWND hdlg)
+    CenterDialog(HWND hdlg)
 {
     HWND    hwndFrame;
     RECT    rcDlg;
@@ -490,10 +488,10 @@ CenterDialog(HWND hdlg)
 }
 
 INT_PTR	CALLBACK
-ConfigDlgProc(HWND hdlg,
-              UINT wMsg,
-              WPARAM wParam,
-              LPARAM lParam)
+    ConfigDlgProc(HWND hdlg,
+                    UINT wMsg,
+                    WPARAM wParam,
+                    LPARAM lParam)
 {
     SetupDialogData * lpsetupdlg;
     ConnInfo * ci;
@@ -521,7 +519,7 @@ ConfigDlgProc(HWND hdlg,
 
             return TRUE;		/* Focus was not set */
         }
-     
+
         case WM_COMMAND:
             switch (const DWORD cmd = LOWORD(wParam))
             {
@@ -549,11 +547,12 @@ ConfigDlgProc(HWND hdlg,
     return FALSE;
 }
 
-BOOL CALLBACK
-ConfigDSN(HWND hwnd,
-          WORD fRequest,
-          LPCSTR lpszDriver,
-          LPCSTR lpszAttributes)
+BOOL CALLBACK 
+ConfigDSN(
+    HWND hwnd,
+    WORD fRequest,
+    LPCSTR lpszDriver,
+    LPCSTR lpszAttributes)
 {
     BOOL fSuccess = FALSE;
     GLOBALHANDLE hglbAttr;
@@ -601,7 +600,7 @@ ConfigDSN(HWND hwnd,
         if (hwnd)
         {
             /* Display dialog(s) */
-            auto ret = DialogBoxParam(s_hModule,
+            auto ret = DialogBoxParam(module_instance,
                                       MAKEINTRESOURCE(IDD_DIALOG1),
                                       hwnd,
                                       ConfigDlgProc,
@@ -651,43 +650,19 @@ ConfigDSN(HWND hwnd,
 }
 
 BOOL CALLBACK
-ConfigDriver(HWND hwnd,
-             WORD fRequest,
-             LPCSTR lpszDriver,
-             LPCSTR lpszArgs,
-             LPSTR lpszMsg,
-             WORD cbMsgMax,
-             WORD *pcbMsgOut)
+ConfigDriver(
+    HWND hwnd,
+    WORD fRequest,
+    LPCSTR lpszDriver,
+    LPCSTR lpszArgs,
+    LPSTR lpszMsg,
+    WORD cbMsgMax,
+    WORD * pcbMsgOut)
 {
     MessageBox(hwnd, "ConfigDriver", "Debug", MB_OK);
     return TRUE;
 }
 
-BOOL WINAPI
-DllMain(HANDLE hInst, ULONG ul_reason_for_call, LPVOID)
-{
-    switch (ul_reason_for_call)
-    {
-        case DLL_PROCESS_ATTACH:
-            s_hModule = (HINSTANCE)hInst;	/* Save for dialog boxes */
-            break;
-
-        case DLL_THREAD_ATTACH:
-            break;
-
-        case DLL_PROCESS_DETACH:
-            break;
-
-        case DLL_THREAD_DETACH:
-            break;
-
-        default:
-            break;
-    }
-
-    return TRUE;
-}
-
-}
+} // extern
 
 #endif 

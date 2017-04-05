@@ -96,7 +96,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ModuleDefinitionFile>export.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>$(SolutionDir)..\driver\win\export.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -131,7 +131,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ModuleDefinitionFile>export.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>$(SolutionDir)..\driver\win\export.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -165,7 +165,7 @@
     <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\statement.h" />
     <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\string_ref.h" />
     <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\utils.h" />
-    <ClInclude Include="..\driver64\resource.h" />
+    <ClInclude Include="..\..\driver\win\resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\attr.cpp" />
@@ -176,7 +176,8 @@
     <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\statement.cpp" />
     <ClCompile Include="..\..\driver\connection.cpp" />
     <ClCompile Include="..\..\driver\diagnostics.cpp" />
-    <ClCompile Include="..\..\driver\main.cpp" />
+    <ClCompile Include="..\..\driver\win\dllmain.cpp" />
+    <ClCompile Include="..\..\driver\win\setup.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\Documents\Visual Studio 2015\Projects\Poco\Foundation\Foundation_vs140.vcxproj">
@@ -187,10 +188,10 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="export.def" />
+    <ResourceCompile Include="..\..\driver\win\resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\driver64\driver64.rc" />
+    <None Include="..\..\driver\win\export.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
