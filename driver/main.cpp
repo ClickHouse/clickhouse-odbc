@@ -374,9 +374,8 @@ void writeDSNinfo(const ConnInfo * ci)
 
 static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWORD * errcode)
 {
-    LPCSTR		lpszDSN;		/* Pointer to data source name */
-
-    lpszDSN = lpsetupdlg->ci.dsn;
+    /// Pointer to data source name
+    LPCSTR lpszDSN = lpsetupdlg->ci.dsn;
 
     if (errcode)
         *errcode = 0;
@@ -384,7 +383,7 @@ static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWOR
     /* Validate arguments */
     if (lpsetupdlg->is_new_dsn && !*lpsetupdlg->ci.dsn)
         return FALSE;
-    if (SQLValidDSN(lpszDSN))
+    if (!SQLValidDSN(lpszDSN))
         return FALSE;
 
     /* Write the data source name */
@@ -397,15 +396,8 @@ static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWOR
         ret = SQLInstallerError(1, &err, szMsg, sizeof(szMsg), NULL);
         if (hwndParent)
         {
-            //char		szBuf[MAXPGPATH];
-
             if (SQL_SUCCESS != ret)
-            {
-                //LoadString(s_hModule, IDS_BADDSN, szBuf, sizeof(szBuf));
-                //wsprintf(szMsg, szBuf, lpszDSN);
-            }
-            //LoadString(s_hModule, IDS_MSGTITLE, szBuf, sizeof(szBuf));
-            //MessageBox(hwndParent, szMsg, szBuf, MB_ICONEXCLAMATION | MB_OK);
+                MessageBox(hwndParent, szMsg, "Bad DSN configuration", MB_ICONEXCLAMATION | MB_OK);
         }
         if (errcode)
             *errcode = err;
@@ -414,7 +406,7 @@ static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWOR
 
     /* Update ODBC.INI */
     //writeDriverCommoninfo(ODBC_INI, lpsetupdlg->ci.dsn, &(lpsetupdlg->ci.drivers));
-    //writeDSNinfo(&lpsetupdlg->ci);
+    writeDSNinfo(&lpsetupdlg->ci);
 
     /* If the data source name has changed, remove the old name */
     if (lstrcmpi(lpsetupdlg->dsn, lpsetupdlg->ci.dsn))
@@ -479,31 +471,41 @@ ConfigDlgProc(HWND hdlg,
               WPARAM wParam,
               LPARAM lParam)
 {
-    //SetupDialogData * lpsetupdlg;
-    //ConnInfo * ci;
-    //DWORD cmd;
+    SetupDialogData * lpsetupdlg;
+    ConnInfo * ci;
     //char strbuf[64];
 
     switch (wMsg)
     {
         case WM_INITDIALOG:
         {
+            lpsetupdlg = (SetupDialogData *)lParam;
+            SetWindowLongPtr(hdlg, DWLP_USER, lParam);
+
             CenterDialog(hdlg); /* Center dialog */
-            //ShowWindow(hdlg, SW_SHOWNORMAL);
-            //UpdateWindow(hdlg);
+            // TODO fill fields
             return TRUE;		/* Focus was not set */
         }
      
         case WM_COMMAND:
-            if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+            switch (const DWORD cmd = LOWORD(wParam))
             {
-                EndDialog(hdlg, LOWORD(wParam));
-                return TRUE;
-            }
-            break;
+                case IDOK:
+                    lpsetupdlg = (SetupDialogData *)GetWindowLongPtr(hdlg, DWLP_USER);
+                    ci = &lpsetupdlg->ci;
 
-        default:
-            //std::cerr << wMsg << std::endl;
+                    GetDlgItemText(hdlg, IDC_DSN_NAME, ci->dsn, sizeof(ci->dsn));
+                    GetDlgItemText(hdlg, IDC_SERVER_HOST, ci->server, sizeof(ci->server));
+                    GetDlgItemText(hdlg, IDC_SERVER_PORT, ci->port, sizeof(ci->port));
+                    GetDlgItemText(hdlg, IDC_DATABASE, ci->database, sizeof(ci->database));
+                    GetDlgItemText(hdlg, IDC_USER, ci->username, sizeof(ci->username));
+                    GetDlgItemText(hdlg, IDC_PASSWORD, ci->password, sizeof(ci->password));
+
+                    /* Return to caller */
+                case IDCANCEL:
+                    EndDialog(hdlg, cmd);
+                    return TRUE;
+            }
             break;
     }
 
@@ -569,15 +571,16 @@ ConfigDSN(HWND hwnd,
         if (hwnd)
         {
             /* Display dialog(s) */
-#if 0
-            //fSuccess = setDSNAttributes(hwnd, lpsetupdlg, NULL
-#else
             auto ret = DialogBoxParam(s_hModule,
                                       MAKEINTRESOURCE(IDD_DIALOG1),
                                       hwnd,
                                       ConfigDlgProc,
                                       (LPARAM)lpsetupdlg);
-            if (ret != IDOK)
+            if (ret == IDOK)
+            {
+                fSuccess = setDSNAttributes(hwnd, lpsetupdlg, NULL);
+            }
+            else if (ret != IDCANCEL)
             {
                 auto err = GetLastError();
                 LPVOID lpMsgBuf;
@@ -604,8 +607,6 @@ ConfigDSN(HWND hwnd,
                 LocalFree(lpMsgBuf);
                 LocalFree(lpDisplayBuf);
             }
-            fSuccess = (IDOK == ret);
-#endif
         }
         else if (lpsetupdlg->ci.dsn[0])
             fSuccess = setDSNAttributes(hwnd, lpsetupdlg, NULL);
