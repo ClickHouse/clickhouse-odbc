@@ -28,7 +28,7 @@
 #
 #   include <winsock2.h>
 #   include <ws2tcpip.h>
-#	include <windows.h>
+#   include <windows.h>
 #endif
 
 #include <sql.h>
@@ -41,8 +41,11 @@
 #       define stricmp _wcsicmp
 #       define strlen wcslen
 #       define strncpy wcsncpy
-#   else 
+#   else
 #       define strcpy strcpy_s
 #       define stricmp _stricmp
 #   endif
+#else
+#   define LPCTSTR const char*
+#   define TEXT(value)  value
 #endif
