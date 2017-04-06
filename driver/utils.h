@@ -94,7 +94,7 @@ RETCODE fillOutputString(const std::string & value,
     LENGTH size_without_zero = static_cast<LENGTH>(value.size());
 
     if (out_value_length)
-        *out_value_length = size_without_zero;
+        *out_value_length = size_without_zero * sizeof(TCHAR);
 
     if (out_value_max_length < 0)
         return SQL_ERROR;
@@ -109,7 +109,7 @@ RETCODE fillOutputString(const std::string & value,
         const auto & tmp = value;
 #endif
 
-        if (out_value_max_length >= size_without_zero + 1)
+        if (out_value_max_length >= (size_without_zero + 1) * sizeof(TCHAR))
         {
             memcpy(out_value, tmp.data(), (size_without_zero + 1) * sizeof(TCHAR));
         }
