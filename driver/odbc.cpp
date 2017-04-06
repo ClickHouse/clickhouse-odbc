@@ -304,7 +304,7 @@ impl_SQLGetData(HSTMT statement_handle,
 
             case SQL_C_CHAR:
             case SQL_C_BINARY:
-                return fillOutputString(field.data.data(), field.data.size(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputString(field.data, out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_WCHAR:
             {
@@ -315,7 +315,7 @@ impl_SQLGetData(HSTMT statement_handle,
                 for (size_t i = 0, size = field.data.size(); i < size; ++i)
                     converted[i * 2] = field.data[i];
 
-                return fillOutputString(converted.data(), converted.size(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputString(converted, out_value, out_value_max_size, out_value_size_or_indicator);
             }
 
             case SQL_C_TINYINT:

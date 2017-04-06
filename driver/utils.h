@@ -88,11 +88,13 @@ std::string stringFromSQLChar(SQLTCHAR * data, SIZE_TYPE size)
 
 
 template <typename PTR, typename LENGTH>
-RETCODE fillOutputString(const char* value, size_t size_without_zero,
+RETCODE fillOutputString(const std::string & value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
 {
+    LENGTH size_without_zero = static_cast<LENGTH>(value.size());
+
     if (out_value_length)
-        *out_value_length = (LENGTH)size_without_zero;
+        *out_value_length = size_without_zero;
 
     if (out_value_max_length < 0)
         return SQL_ERROR;
@@ -101,15 +103,21 @@ RETCODE fillOutputString(const char* value, size_t size_without_zero,
 
     if (out_value)
     {
-        if (out_value_max_length >= static_cast<LENGTH>(size_without_zero + 1))
+#ifdef UNICODE
+        std::wstring tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(value);
+#else
+        const auto & tmp = value;
+#endif
+
+        if (out_value_max_length >= size_without_zero + 1)
         {
-            memcpy(out_value, value, (size_without_zero + 1) * sizeof(TCHAR));
+            memcpy(out_value, tmp.data(), (size_without_zero + 1) * sizeof(TCHAR));
         }
         else
         {
             if (out_value_max_length > 0)
             {
-                memcpy(out_value, value, (out_value_max_length - 1) * sizeof(TCHAR));
+                memcpy(out_value, tmp.data(), (out_value_max_length - 1) * sizeof(TCHAR));
                 reinterpret_cast<LPTSTR>(out_value)[out_value_max_length - 1] = 0;
 
                 LOG((LPCTSTR)(out_value));
@@ -120,21 +128,6 @@ RETCODE fillOutputString(const char* value, size_t size_without_zero,
 
     return res;
 }
-
-template <typename PTR, typename LENGTH>
-RETCODE fillOutputString(const char* value,
-    PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
-{
-    return fillOutputString(value, strlen(value), out_value, out_value_max_length, out_value_length);
-}
-
-template <typename PTR, typename LENGTH>
-RETCODE fillOutputString(const std::string & value,
-    PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
-{
-    return fillOutputString(value.data(), value.size(), out_value, out_value_max_length, out_value_length);
-}
-
 
 template <typename NUM, typename PTR, typename LENGTH>
 RETCODE fillOutputNumber(NUM num,

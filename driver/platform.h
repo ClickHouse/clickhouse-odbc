@@ -37,6 +37,8 @@
 
 #if defined (_win_)
 #   ifdef UNICODE
+#       include <sqlucode.h>
+
 #       define strcpy wcscpy_s
 #       define stricmp _wcsicmp
 #       define strncpy wcsncpy
