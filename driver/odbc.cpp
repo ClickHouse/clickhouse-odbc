@@ -40,7 +40,7 @@ SQLConnect(HDBC connection_handle,
         std::string user_str = stringFromSQLChar(user, user_size);
         std::string password_str = stringFromSQLChar(password, password_size);
 
-        connection.init(TEXT(""), 0, user_str, password_str, TEXT(""));
+        connection.init("", 0, user_str, password_str, "");
         return SQL_SUCCESS;
     });
 }
@@ -533,8 +533,14 @@ impl_SQLGetDiagRec(SQLSMALLINT handle_type, SQLHANDLE handle,
 
     /// The five-letter SQLSTATE and the trailing zero.
     if (out_sqlstate)
-        strncpy(reinterpret_cast<char *>(out_sqlstate), diagnostic_record->sql_state.data(), 6);
-
+    {
+#ifdef UNICODE
+        std::wstring wstr = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(diagnostic_record->sql_state);
+        wcsncpy(reinterpret_cast<LPTSTR>(out_sqlstate), wstr.data(), 6);
+#else
+        strncpy(reinterpret_cast<LPTSTR>(out_sqlstate), diagnostic_record->sql_state.data(), 6);
+#endif
+    }
     if (out_native_error_code)
         *out_native_error_code = diagnostic_record->native_error_code;
 

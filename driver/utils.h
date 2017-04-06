@@ -3,6 +3,7 @@
 #include "log.h"
 #include "string_ref.h"
 
+#include <codecvt>
 #include <string.h>
 
 /** Checks `handle`. Catches exceptions and puts them into the DiagnosticRecord.
@@ -29,23 +30,23 @@ RETCODE doWith(SQLHANDLE handle_opaque, F && f)
 
 
 /// Parse a string of the form `key1=value1;key2=value2` ... TODO Parsing values in curly brackets.
-static LPCTSTR nextKeyValuePair(LPCTSTR data, LPCTSTR end, StringRef & out_key, StringRef & out_value)
+static const char * nextKeyValuePair(const char * data, const char * end, StringRef & out_key, StringRef & out_value)
 {
     if (data >= end)
         return nullptr;
 
-    LPCTSTR key_begin = data;
-    LPCTSTR key_end = reinterpret_cast<LPCTSTR>(memchr(key_begin, '=', end - key_begin));
+    const char * key_begin = data;
+    const char * key_end = reinterpret_cast<const char *>(memchr(key_begin, '=', end - key_begin));
     if (!key_end)
         return nullptr;
 
-    LPCTSTR value_begin = key_end + 1;
-    LPCTSTR value_end;
+    const char * value_begin = key_end + 1;
+    const char * value_end;
     if (value_begin >= end)
         value_end = value_begin;
     else
     {
-        value_end = reinterpret_cast<LPCTSTR>(memchr(value_begin, ';', end - value_begin));
+        value_end = reinterpret_cast<const char *>(memchr(value_begin, ';', end - value_begin));
         if (!value_end)
             value_end = end;
     }
@@ -69,14 +70,25 @@ std::string stringFromSQLChar(SQLTCHAR * data, SIZE_TYPE size)
         return {};
 
     if (size < 0)
+    {
+#ifdef UNICODE
+        size = (SIZE_TYPE)wcslen(reinterpret_cast<LPCTSTR>(data));
+#else
         size = (SIZE_TYPE)strlen(reinterpret_cast<LPCTSTR>(data));
+#endif
+    }
 
-    return { reinterpret_cast<LPCTSTR>(data), static_cast<size_t>(size) };
+#ifdef UNICODE
+    std::wstring wstr(reinterpret_cast<LPCTSTR>(data), static_cast<size_t>(size));
+    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(wstr);
+#else
+    return{ reinterpret_cast<LPCTSTR>(data), static_cast<size_t>(size) };
+#endif
 }
 
 
 template <typename PTR, typename LENGTH>
-RETCODE fillOutputString(LPCTSTR value, size_t size_without_zero,
+RETCODE fillOutputString(const char* value, size_t size_without_zero,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
 {
     if (out_value_length)
@@ -110,7 +122,7 @@ RETCODE fillOutputString(LPCTSTR value, size_t size_without_zero,
 }
 
 template <typename PTR, typename LENGTH>
-RETCODE fillOutputString(LPCTSTR value,
+RETCODE fillOutputString(const char* value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
 {
     return fillOutputString(value, strlen(value), out_value, out_value_max_length, out_value_length);
