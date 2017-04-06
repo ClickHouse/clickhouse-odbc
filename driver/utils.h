@@ -29,23 +29,23 @@ RETCODE doWith(SQLHANDLE handle_opaque, F && f)
 
 
 /// Parse a string of the form `key1=value1;key2=value2` ... TODO Parsing values in curly brackets.
-static const char * nextKeyValuePair(const char * data, const char * end, StringRef & out_key, StringRef & out_value)
+static LPCTSTR nextKeyValuePair(LPCTSTR data, LPCTSTR end, StringRef & out_key, StringRef & out_value)
 {
     if (data >= end)
         return nullptr;
 
-    const char * key_begin = data;
-    const char * key_end = reinterpret_cast<const char *>(memchr(key_begin, '=', end - key_begin));
+    LPCTSTR key_begin = data;
+    LPCTSTR key_end = reinterpret_cast<LPCTSTR>(memchr(key_begin, '=', end - key_begin));
     if (!key_end)
         return nullptr;
 
-    const char * value_begin = key_end + 1;
-    const char * value_end;
+    LPCTSTR value_begin = key_end + 1;
+    LPCTSTR value_end;
     if (value_begin >= end)
         value_end = value_begin;
     else
     {
-        value_end = reinterpret_cast<const char *>(memchr(value_begin, ';', end - value_begin));
+        value_end = reinterpret_cast<LPCTSTR>(memchr(value_begin, ';', end - value_begin));
         if (!value_end)
             value_end = end;
     }
@@ -63,20 +63,20 @@ static const char * nextKeyValuePair(const char * data, const char * end, String
 
 
 template <typename SIZE_TYPE>
-std::string stringFromSQLChar(SQLCHAR * data, SIZE_TYPE size)
+std::string stringFromSQLChar(SQLTCHAR * data, SIZE_TYPE size)
 {
     if (!data)
         return {};
 
     if (size < 0)
-        size = (SIZE_TYPE)strlen(reinterpret_cast<const char *>(data));
+        size = (SIZE_TYPE)strlen(reinterpret_cast<LPCTSTR>(data));
 
-    return { reinterpret_cast<const char *>(data), static_cast<size_t>(size) };
+    return { reinterpret_cast<LPCTSTR>(data), static_cast<size_t>(size) };
 }
 
 
 template <typename PTR, typename LENGTH>
-RETCODE fillOutputString(const char * value, size_t size_without_zero,
+RETCODE fillOutputString(LPCTSTR value, size_t size_without_zero,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
 {
     if (out_value_length)
@@ -91,16 +91,16 @@ RETCODE fillOutputString(const char * value, size_t size_without_zero,
     {
         if (out_value_max_length >= static_cast<LENGTH>(size_without_zero + 1))
         {
-            memcpy(out_value, value, size_without_zero + 1);
+            memcpy(out_value, value, (size_without_zero + 1) * sizeof(TCHAR));
         }
         else
         {
             if (out_value_max_length > 0)
             {
-                memcpy(out_value, value, out_value_max_length - 1);
-                reinterpret_cast<char *>(out_value)[out_value_max_length - 1] = 0;
+                memcpy(out_value, value, (out_value_max_length - 1) * sizeof(TCHAR));
+                reinterpret_cast<LPTSTR>(out_value)[out_value_max_length - 1] = 0;
 
-                LOG((char*)(out_value));
+                LOG((LPCTSTR)(out_value));
             }
             res = SQL_SUCCESS_WITH_INFO;
         }
@@ -110,7 +110,7 @@ RETCODE fillOutputString(const char * value, size_t size_without_zero,
 }
 
 template <typename PTR, typename LENGTH>
-RETCODE fillOutputString(const char * value,
+RETCODE fillOutputString(LPCTSTR value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
 {
     return fillOutputString(value, strlen(value), out_value, out_value_max_length, out_value_length);

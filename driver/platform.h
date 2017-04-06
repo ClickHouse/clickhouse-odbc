@@ -39,6 +39,8 @@
 #   ifdef UNICODE
 #       define strcpy wcscpy_s
 #       define stricmp _wcsicmp
+#       define strlen wcslen
+#       define strncpy wcsncpy
 #   else 
 #       define strcpy strcpy_s
 #       define stricmp _stricmp

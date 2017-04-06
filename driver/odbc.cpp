@@ -29,9 +29,9 @@ extern "C"
 
 RETCODE SQL_API
 SQLConnect(HDBC connection_handle,
-           SQLCHAR * server_name, SQLSMALLINT server_name_size,
-           SQLCHAR * user, SQLSMALLINT user_size,
-           SQLCHAR * password, SQLSMALLINT password_size)
+           SQLTCHAR * server_name, SQLSMALLINT server_name_size,
+           SQLTCHAR * user, SQLSMALLINT user_size,
+           SQLTCHAR * password, SQLSMALLINT password_size)
 {
     LOG(__FUNCTION__);
 
@@ -40,7 +40,7 @@ SQLConnect(HDBC connection_handle,
         std::string user_str = stringFromSQLChar(user, user_size);
         std::string password_str = stringFromSQLChar(password, password_size);
 
-        connection.init("", 0, user_str, password_str, "");
+        connection.init(TEXT(""), 0, user_str, password_str, TEXT(""));
         return SQL_SUCCESS;
     });
 }
@@ -49,9 +49,9 @@ SQLConnect(HDBC connection_handle,
 RETCODE SQL_API
 SQLDriverConnect(HDBC connection_handle,
                  HWND unused_window,
-                 SQLCHAR FAR * connection_str_in,
+                 SQLTCHAR FAR * connection_str_in,
                  SQLSMALLINT connection_str_in_size,
-                 SQLCHAR FAR * connection_str_out,
+                 SQLTCHAR FAR * connection_str_out,
                  SQLSMALLINT connection_str_out_max_size,
                  SQLSMALLINT FAR * connection_str_out_size,
                  SQLUSMALLINT driver_completion)
@@ -67,7 +67,7 @@ SQLDriverConnect(HDBC connection_handle,
 
 RETCODE SQL_API
 SQLPrepare(HSTMT statement_handle,
-           SQLCHAR * statement_text, SQLINTEGER statement_text_size)
+           SQLTCHAR * statement_text, SQLINTEGER statement_text_size)
 {
     LOG(__FUNCTION__);
 
@@ -101,7 +101,7 @@ SQLExecute(HSTMT statement_handle)
 
 RETCODE SQL_API
 SQLExecDirect(HSTMT statement_handle,
-              SQLCHAR * statement_text, SQLINTEGER statement_text_size)
+              SQLTCHAR * statement_text, SQLINTEGER statement_text_size)
 {
     LOG(__FUNCTION__);
 
@@ -248,7 +248,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
 RETCODE SQL_API
 SQLDescribeCol(HSTMT statement_handle,
                SQLUSMALLINT column_number,
-               SQLCHAR * out_column_name, SQLSMALLINT out_column_name_max_size, SQLSMALLINT * out_column_name_size,
+               SQLTCHAR * out_column_name, SQLSMALLINT out_column_name_max_size, SQLSMALLINT * out_column_name_size,
                SQLSMALLINT * out_type, SQLULEN * out_column_size, SQLSMALLINT * out_decimal_digits, SQLSMALLINT * out_is_nullable)
 {
     LOG(__FUNCTION__);
@@ -495,9 +495,9 @@ SQLDisconnect(HDBC connection_handle)
 RETCODE
 impl_SQLGetDiagRec(SQLSMALLINT handle_type, SQLHANDLE handle,
     SQLSMALLINT record_number,
-    SQLCHAR * out_sqlstate,
+    SQLTCHAR * out_sqlstate,
     SQLINTEGER * out_native_error_code,
-    SQLCHAR * out_mesage, SQLSMALLINT out_message_max_size, SQLSMALLINT * out_message_size)
+    SQLTCHAR * out_mesage, SQLSMALLINT out_message_max_size, SQLSMALLINT * out_message_size)
 {
     LOG(__FUNCTION__);
 
@@ -545,9 +545,9 @@ impl_SQLGetDiagRec(SQLSMALLINT handle_type, SQLHANDLE handle,
 RETCODE SQL_API
 SQLGetDiagRec(SQLSMALLINT handle_type, SQLHANDLE handle,
     SQLSMALLINT record_number,
-    SQLCHAR * out_sqlstate,
+    SQLTCHAR * out_sqlstate,
     SQLINTEGER * out_native_error_code,
-    SQLCHAR * out_mesage, SQLSMALLINT out_message_max_size, SQLSMALLINT * out_message_size)
+    SQLTCHAR * out_mesage, SQLSMALLINT out_message_max_size, SQLSMALLINT * out_message_size)
 {
     return impl_SQLGetDiagRec(
         handle_type, 
@@ -575,7 +575,7 @@ SQLGetDiagField(SQLSMALLINT handle_type, SQLHANDLE handle,
         record_number,
         nullptr,
         nullptr,
-        reinterpret_cast<SQLCHAR *>(out_mesage),
+        reinterpret_cast<SQLTCHAR *>(out_mesage),
         out_message_max_size,
         out_message_size);
 }
@@ -583,10 +583,10 @@ SQLGetDiagField(SQLSMALLINT handle_type, SQLHANDLE handle,
 
 RETCODE SQL_API
 SQLTables(HSTMT statement_handle,
-          SQLCHAR * catalog_name, SQLSMALLINT catalog_name_length,
-          SQLCHAR * schema_name, SQLSMALLINT schema_name_length,
-          SQLCHAR * table_name, SQLSMALLINT table_name_length,
-          SQLCHAR * table_type, SQLSMALLINT table_type_length)
+          SQLTCHAR * catalog_name, SQLSMALLINT catalog_name_length,
+          SQLTCHAR * schema_name, SQLSMALLINT schema_name_length,
+          SQLTCHAR * table_name, SQLSMALLINT table_name_length,
+          SQLTCHAR * table_type, SQLSMALLINT table_type_length)
 {
     LOG(__FUNCTION__);
 
@@ -623,10 +623,10 @@ SQLTables(HSTMT statement_handle,
 
 RETCODE SQL_API
 SQLColumns(HSTMT statement_handle,
-           SQLCHAR * catalog_name, SQLSMALLINT catalog_name_length,
-           SQLCHAR * schema_name, SQLSMALLINT schema_name_length,
-           SQLCHAR * table_name, SQLSMALLINT table_name_length,
-           SQLCHAR * column_name, SQLSMALLINT column_name_length)
+           SQLTCHAR * catalog_name, SQLSMALLINT catalog_name_length,
+           SQLTCHAR * schema_name, SQLSMALLINT schema_name_length,
+           SQLTCHAR * table_name, SQLSMALLINT table_name_length,
+           SQLTCHAR * column_name, SQLSMALLINT column_name_length)
 {
     LOG(__FUNCTION__);
 
@@ -765,8 +765,8 @@ SQLNumParams(HSTMT statement_handle,
 
 RETCODE SQL_API
 SQLNativeSql(HDBC connection_handle,
-             SQLCHAR * query, SQLINTEGER query_length,
-             SQLCHAR * out_query, SQLINTEGER out_query_max_length, SQLINTEGER * out_query_length)
+             SQLTCHAR * query, SQLINTEGER query_length,
+             SQLTCHAR * out_query, SQLINTEGER out_query_max_length, SQLINTEGER * out_query_length)
 {
     LOG(__FUNCTION__);
 
@@ -794,9 +794,9 @@ SQLCloseCursor(
 
 RETCODE SQL_API
 SQLBrowseConnect(HDBC connection_handle,
-                 SQLCHAR *szConnStrIn,
+                 SQLTCHAR *szConnStrIn,
                  SQLSMALLINT cbConnStrIn,
-                 SQLCHAR *szConnStrOut,
+                 SQLTCHAR *szConnStrOut,
                  SQLSMALLINT cbConnStrOutMax,
                  SQLSMALLINT *pcbConnStrOut)
 {
@@ -818,9 +818,9 @@ SQLCancel(HSTMT StatementHandle)
 
 RETCODE SQL_API
 SQLDataSources(HENV EnvironmentHandle,
-               SQLUSMALLINT Direction, SQLCHAR *ServerName,
+               SQLUSMALLINT Direction, SQLTCHAR *ServerName,
                SQLSMALLINT BufferLength1, SQLSMALLINT *NameLength1,
-               SQLCHAR *Description, SQLSMALLINT BufferLength2,
+               SQLTCHAR *Description, SQLSMALLINT BufferLength2,
                SQLSMALLINT *NameLength2)
 {
     LOG(__FUNCTION__);
@@ -830,7 +830,7 @@ SQLDataSources(HENV EnvironmentHandle,
 
 RETCODE SQL_API
 SQLGetCursorName(HSTMT StatementHandle,
-                 SQLCHAR *CursorName, SQLSMALLINT BufferLength,
+                 SQLTCHAR *CursorName, SQLSMALLINT BufferLength,
                  SQLSMALLINT *NameLength)
 {
     LOG(__FUNCTION__);
@@ -869,7 +869,7 @@ SQLPutData(HSTMT StatementHandle,
 
 RETCODE SQL_API
 SQLSetCursorName(HSTMT StatementHandle,
-                 SQLCHAR *CursorName, SQLSMALLINT NameLength)
+                 SQLTCHAR *CursorName, SQLSMALLINT NameLength)
 {
     LOG(__FUNCTION__);
     return SQL_ERROR;
@@ -890,9 +890,9 @@ SQLSetParam(HSTMT StatementHandle,
 
 RETCODE SQL_API
 SQLSpecialColumns(HSTMT StatementHandle,
-                  SQLUSMALLINT IdentifierType, SQLCHAR *CatalogName,
-                  SQLSMALLINT NameLength1, SQLCHAR *SchemaName,
-                  SQLSMALLINT NameLength2, SQLCHAR *TableName,
+                  SQLUSMALLINT IdentifierType, SQLTCHAR *CatalogName,
+                  SQLSMALLINT NameLength1, SQLTCHAR *SchemaName,
+                  SQLSMALLINT NameLength2, SQLTCHAR *TableName,
                   SQLSMALLINT NameLength3, SQLUSMALLINT Scope,
                   SQLUSMALLINT Nullable)
 {
@@ -903,9 +903,9 @@ SQLSpecialColumns(HSTMT StatementHandle,
 
 RETCODE SQL_API
 SQLStatistics(HSTMT StatementHandle,
-              SQLCHAR *CatalogName, SQLSMALLINT NameLength1,
-              SQLCHAR *SchemaName, SQLSMALLINT NameLength2,
-              SQLCHAR *TableName, SQLSMALLINT NameLength3,
+              SQLTCHAR *CatalogName, SQLSMALLINT NameLength1,
+              SQLTCHAR *SchemaName, SQLSMALLINT NameLength2,
+              SQLTCHAR *TableName, SQLSMALLINT NameLength3,
               SQLUSMALLINT Unique, SQLUSMALLINT Reserved)
 {
     LOG(__FUNCTION__);
@@ -915,13 +915,13 @@ SQLStatistics(HSTMT StatementHandle,
 
 RETCODE SQL_API
 SQLColumnPrivileges(HSTMT hstmt,
-                    SQLCHAR *szCatalogName,
+                    SQLTCHAR *szCatalogName,
                     SQLSMALLINT cbCatalogName,
-                    SQLCHAR *szSchemaName,
+                    SQLTCHAR *szSchemaName,
                     SQLSMALLINT cbSchemaName,
-                    SQLCHAR *szTableName,
+                    SQLTCHAR *szTableName,
                     SQLSMALLINT cbTableName,
-                    SQLCHAR *szColumnName,
+                    SQLTCHAR *szColumnName,
                     SQLSMALLINT cbColumnName)
 {
     LOG(__FUNCTION__);
@@ -960,17 +960,17 @@ SQLExtendedFetch(HSTMT hstmt,
 
 RETCODE SQL_API
 SQLForeignKeys(HSTMT hstmt,
-               SQLCHAR *szPkCatalogName,
+               SQLTCHAR *szPkCatalogName,
                SQLSMALLINT cbPkCatalogName,
-               SQLCHAR *szPkSchemaName,
+               SQLTCHAR *szPkSchemaName,
                SQLSMALLINT cbPkSchemaName,
-               SQLCHAR *szPkTableName,
+               SQLTCHAR *szPkTableName,
                SQLSMALLINT cbPkTableName,
-               SQLCHAR *szFkCatalogName,
+               SQLTCHAR *szFkCatalogName,
                SQLSMALLINT cbFkCatalogName,
-               SQLCHAR *szFkSchemaName,
+               SQLTCHAR *szFkSchemaName,
                SQLSMALLINT cbFkSchemaName,
-               SQLCHAR *szFkTableName,
+               SQLTCHAR *szFkTableName,
                SQLSMALLINT cbFkTableName)
 {
     LOG(__FUNCTION__);
@@ -980,11 +980,11 @@ SQLForeignKeys(HSTMT hstmt,
 
 RETCODE SQL_API
 SQLPrimaryKeys(HSTMT hstmt,
-               SQLCHAR *szCatalogName,
+               SQLTCHAR *szCatalogName,
                SQLSMALLINT cbCatalogName,
-               SQLCHAR *szSchemaName,
+               SQLTCHAR *szSchemaName,
                SQLSMALLINT cbSchemaName,
-               SQLCHAR *szTableName,
+               SQLTCHAR *szTableName,
                SQLSMALLINT cbTableName)
 {
     LOG(__FUNCTION__);
@@ -994,13 +994,13 @@ SQLPrimaryKeys(HSTMT hstmt,
 
 RETCODE SQL_API
 SQLProcedureColumns(HSTMT hstmt,
-                    SQLCHAR *szCatalogName,
+                    SQLTCHAR *szCatalogName,
                     SQLSMALLINT cbCatalogName,
-                    SQLCHAR *szSchemaName,
+                    SQLTCHAR *szSchemaName,
                     SQLSMALLINT cbSchemaName,
-                    SQLCHAR *szProcName,
+                    SQLTCHAR *szProcName,
                     SQLSMALLINT cbProcName,
-                    SQLCHAR *szColumnName,
+                    SQLTCHAR *szColumnName,
                     SQLSMALLINT cbColumnName)
 {
     LOG(__FUNCTION__);
@@ -1010,11 +1010,11 @@ SQLProcedureColumns(HSTMT hstmt,
 
 RETCODE SQL_API
 SQLProcedures(HSTMT hstmt,
-              SQLCHAR *szCatalogName,
+              SQLTCHAR *szCatalogName,
               SQLSMALLINT cbCatalogName,
-              SQLCHAR *szSchemaName,
+              SQLTCHAR *szSchemaName,
               SQLSMALLINT cbSchemaName,
-              SQLCHAR *szProcName,
+              SQLTCHAR *szProcName,
               SQLSMALLINT cbProcName)
 {
     LOG(__FUNCTION__);
@@ -1035,11 +1035,11 @@ SQLSetPos(HSTMT hstmt,
 
 RETCODE SQL_API
 SQLTablePrivileges(HSTMT hstmt,
-                   SQLCHAR *szCatalogName,
+                   SQLTCHAR *szCatalogName,
                    SQLSMALLINT cbCatalogName,
-                   SQLCHAR *szSchemaName,
+                   SQLTCHAR *szSchemaName,
                    SQLSMALLINT cbSchemaName,
-                   SQLCHAR *szTableName,
+                   SQLTCHAR *szTableName,
                    SQLSMALLINT cbTableName)
 {
     LOG(__FUNCTION__);
@@ -1118,7 +1118,7 @@ SQLEndTran(
 
 RETCODE SQL_API
 SQLError(SQLHENV hDrvEnv, SQLHDBC hDrvDbc, SQLHSTMT hDrvStmt,
-    SQLCHAR *szSqlState, SQLINTEGER *pfNativeError, SQLCHAR *szErrorMsg,
+    SQLTCHAR *szSqlState, SQLINTEGER *pfNativeError, SQLTCHAR *szErrorMsg,
     SQLSMALLINT nErrorMsgMax, SQLSMALLINT *pcbErrorMsg)
 {
     LOG(__FUNCTION__);
@@ -1138,7 +1138,7 @@ SQLGetDescField(SQLHDESC DescriptorHandle, SQLSMALLINT RecordNumber,
 
 RETCODE SQL_API
 SQLGetDescRec(SQLHDESC DescriptorHandle, SQLSMALLINT RecordNumber,
-    SQLCHAR *Name, SQLSMALLINT BufferLength, SQLSMALLINT *StringLength,
+    SQLTCHAR *Name, SQLSMALLINT BufferLength, SQLSMALLINT *StringLength,
     SQLSMALLINT *Type, SQLSMALLINT *SubType, SQLLEN *Length,
     SQLSMALLINT *Precision, SQLSMALLINT *Scale, SQLSMALLINT *Nullable)
 {

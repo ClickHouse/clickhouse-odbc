@@ -1,0 +1,68 @@
+LIBRARY clickhouseodbc
+EXPORTS 
+
+DllMain                 @201
+ConfigDSNW              @202
+ConfigDriverW           @203
+
+SQLAllocHandle          @1001
+SQLAllocEnv             @2
+SQLAllocConnect         @1
+SQLAllocStmt            @3
+SQLFreeHandle           @1006
+SQLFreeEnv              @15
+SQLFreeConnect          @14
+SQLFreeStmt             @16
+
+SQLSetEnvAttr           @1019
+SQLSetConnectAttr       @1016
+SQLSetStmtAttr          @1020
+SQLGetEnvAttr           @1012
+SQLGetConnectAttr       @1007
+SQLGetStmtAttr          @1014
+SQLGetConnectOption     @42
+SQLGetStmtOption        @46
+SQLSetConnectOption     @50
+SQLSetStmtOption        @51
+
+SQLGetInfo              @45
+
+SQLDriverConnect
+SQLConnect              @7
+SQLPrepare              @19
+SQLExecute              @12
+SQLExecDirect           @11
+SQLNumResultCols        @18
+SQLColAttribute         @6
+SQLDescribeCol          @8
+SQLFetch                @13
+SQLFetchScroll          @1021		
+SQLGetData              @43
+SQLBindCol              @4
+SQLRowCount             @20
+SQLDisconnect           @9
+SQLGetDiagRec           @1011
+SQLGetDiagField         @1010
+SQLTables               @54
+SQLColumns              @40
+SQLGetTypeInfo          @47		
+SQLCloseCursor          @1003
+SQLCancel               @5
+SQLDataSources          @57
+SQLGetCursorName        @17
+SQLParamData            @48
+SQLPutData              @49
+SQLSetCursorName        @21
+SQLSetParam             @22
+SQLSpecialColumns       @52
+SQLStatistics           @53
+SQLCancelHandle         @1550
+SQLCompleteAsync        @1551
+SQLCopyDesc             @1004
+SQLEndTran              @1005
+SQLError                @10
+SQLGetDescField         @1008
+SQLGetDescRec           @1009
+SQLSetDescField         @1017
+SQLSetDescRec           @1018
+SQLTransact             @23

@@ -309,7 +309,7 @@ static void parseAttributes(LPCTSTR lpszAttributes, SetupDialogData * lpsetupdlg
         cbKey = lpsz - lpszStart;
         if (cbKey < sizeof(aszKey))
         {
-            memcpy(aszKey, lpszStart, cbKey);
+            memcpy(aszKey, lpszStart, cbKey * sizeof(TCHAR));
             aszKey[cbKey] = '\0';
         }
 
@@ -319,7 +319,7 @@ static void parseAttributes(LPCTSTR lpszAttributes, SetupDialogData * lpsetupdlg
             ;
 
         /* lpsetupdlg->aAttr[iElement].fSupplied = TRUE; */
-        memcpy(value, lpszStart, std::min<size_t>(lpsz - lpszStart + 1, MAXPGPATH));
+        memcpy(value, lpszStart, std::min<size_t>(lpsz - lpszStart + 1, MAXPGPATH) * sizeof(TCHAR));
 
         /* Copy the appropriate value to the conninfo  */
         copyAttributes(&lpsetupdlg->ci, aszKey, value);

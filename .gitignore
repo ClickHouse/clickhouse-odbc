@@ -12,6 +12,9 @@ vs/.vs/*
 vs/driver64/.vs/*
 vs/driver64/x64/Debug/*
 vs/driver64/x64/Release/*
+vs/odbc64w/.vs/*
+vs/odbc64w/x64/Debug/*
+vs/odbc64w/x64/Release/*
 vs/driver/x64/Debug/*
 vs/driver/x64/Release/*
 vs/driver/Debug/*
