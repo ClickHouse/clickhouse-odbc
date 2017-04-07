@@ -23,4 +23,6 @@ vs/x64/Debug/*
 vs/x64/Release/*
 vs/Debug/*
 vs/Release/*
+vs/installer/obj/*
+vs/installer/bin/*
 *.user
