@@ -14,6 +14,11 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Net", "..\..\..\..\Documents\Visual Studio 2015\Projects\Poco\Net\Net_x64_vs140.vcxproj", "{B057A1FE-09F7-465E-B8B5-E1B659051D76}"
 EndProject
 Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "installer", "installer\installer.wixproj", "{5A7881D5-FD59-4D16-ADAE-69F435199D75}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8164D41D-B053-405B-826C-CF37AC0EF176} = {8164D41D-B053-405B-826C-CF37AC0EF176}
+		{CCB84C84-FC4D-49A8-9A54-3B4391F046C5} = {CCB84C84-FC4D-49A8-9A54-3B4391F046C5}
+		{B057A1FE-09F7-465E-B8B5-E1B659051D76} = {B057A1FE-09F7-465E-B8B5-E1B659051D76}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -79,7 +84,6 @@ Global
 		{8164D41D-B053-405B-826C-CF37AC0EF176}.Debug|x64.ActiveCfg = debug_shared|x64
 		{8164D41D-B053-405B-826C-CF37AC0EF176}.Debug|x64.Build.0 = debug_shared|x64
 		{8164D41D-B053-405B-826C-CF37AC0EF176}.Debug|x86.ActiveCfg = debug_shared|x64
-		{8164D41D-B053-405B-826C-CF37AC0EF176}.Debug|x86.Build.0 = debug_shared|x64
 		{8164D41D-B053-405B-826C-CF37AC0EF176}.release_shared|x64.ActiveCfg = release_shared|x64
 		{8164D41D-B053-405B-826C-CF37AC0EF176}.release_shared|x64.Build.0 = release_shared|x64
 		{8164D41D-B053-405B-826C-CF37AC0EF176}.release_shared|x86.ActiveCfg = release_shared|x64

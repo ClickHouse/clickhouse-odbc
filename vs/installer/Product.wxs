@@ -1,41 +1,103 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <!-- Product details -->
   <Product Id="D77FCBEA-C3A9-442C-8055-83CBDB57009B"
            Name="ClickHouse ODBC drivers"
            Language="1033"
            Version="1.0.0.0"
            Manufacturer="Yandex LLC"
            UpgradeCode="537be4f3-8a10-431d-bb2b-7a743f82586c">
-    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+
+    <!-- Package details -->
+    <Package 
+      Id='*'
+      Keywords="ClickHouse, ODBC"
+      Comments="ClickHouse ODBC driver"
+      Manufacturer="Yandex LLC"
+      InstallerVersion="200" 
+      Platform="x64"
+      Compressed="yes" 
+      InstallScope="perMachine" />
+
+    <!-- Directories -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="ClickHouse ODBC">
+          <Component Id="AnsiDriver" Guid="01A07B41-83A6-4119-ABA6-11FAC66D23FE" Win64='yes'>
+            <File Id='AnsiDriverDll'
+                  Name='clickhouseodbc.dll'
+                  DiskId='1'
+                  Source='..\x64\Debug\clickhouseodbc.dll'
+                  KeyPath='yes' />
+            <File Id='AnsiPocoFoundationDll'
+                  Name='PocoFoundation64d.dll'
+                  DiskId='1'
+                  Source='..\x64\Debug\PocoFoundation64d.dll' />
+            <File Id='AnsiPocoNetdll'
+                  Name='PocoNet64d.dll'
+                  DiskId='1'
+                  Source='..\x64\Debug\PocoFoundation64d.dll' />
+
+            <RegistryKey Id='AnsiOdbcRegInfo' 
+                         Root='HKLM' 
+                         Key='SOFTWARE\ODBC\ODBCINST.INI\ClickHouse ANSI'
+                         ForceCreateOnInstall='yes'>
+              <RegistryValue Type='string' Name='Driver' Value='[INSTALLFOLDER]clickhouseodbc.dll'/>
+              <RegistryValue Type='string' Name='Setup' Value='[INSTALLFOLDER]clickhouseodbc.dll'/>
+              <RegistryValue Type='string' Name='Description' Value='ClickHouse ODBC ANSI'/>
+              <RegistryValue Type='string' Name='APILevel' Value='1'/>
+              <RegistryValue Type='string' Name='DriverODBCVer' Value='03.80'/>
+              <RegistryValue Type='string' Name='SQLLevel' Value='1'/>
+              <RegistryValue Type='string' Name='ConnectFunctions' Value='YYN'/>
+              <RegistryValue Type='string' Name='FileUsage' Value='0'/>
+            </RegistryKey>
+            <RegistryKey Id='AnsiOdbcRegInstalled' 
+                         Root='HKLM' 
+                         Key='SOFTWARE\ODBC\ODBCINST.INI\ODBC Drivers'
+                         ForceCreateOnInstall='yes'>
+              <RegistryValue Type='string' Name='ClickHouse ANSI' Value='Installed' />
+            </RegistryKey>
+          </Component>
+          <Component Id="UnicodeDriver" Guid="1908EA6A-9455-49C9-B69E-FF3C3469A88D" Win64='yes'>
+            <File Id='UnicodeDriverDll'
+                  Name='clickhouseodbcw.dll'
+                  DiskId='1'
+                  Source='..\x64\Debug\clickhouseodbcw.dll'
+                  KeyPath='yes' />
+            <File Id='UnicodePocoFoundationDll'
+                  Name='PocoFoundation64wd.dll'
+                  DiskId='1'
+                  Source='..\x64\Debug\PocoFoundation64wd.dll' />
+            <File Id='UnicodePocoNetdll'
+                  Name='PocoNet64wd.dll'
+                  DiskId='1'
+                  Source='..\x64\Debug\PocoFoundation64wd.dll' />            
+          </Component>
+          </Directory>
+      </Directory>
+    </Directory>
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
     <MediaTemplate />
 
-    <Feature Id="ProductFeature" Title="ClickHouse ODBC" Level="1">
-      <ComponentGroupRef Id="ProductComponents" />
+    <!-- Features -->
+    <Feature Id='Complete' Title='Foobar 1.0' Description='The complete package.'
+    Display='expand' Level='1' ConfigurableDirectory='INSTALLFOLDER'>
+      <Feature Id="AnsiDrivers"
+               Title="ClickHouse ODBC (ANSI)"
+               Level="1" >
+        <ComponentRef Id="AnsiDriver" />
+      </Feature>
+      <Feature Id="UnicodeDrivers"
+               Title="ClickHouse ODBC (Unicode)"
+               Level="1" >
+        <ComponentRef Id="UnicodeDriver" />
+      </Feature>
     </Feature>
+
+    <!-- UI -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+    <!-- <UIRef Id="WixUI_Minimal" /> -->
+    
   </Product>
-
-
-  <Fragment>
-    <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ProgramFilesFolder">
-          <Directory Id="INSTALLFOLDER" Name="ClickHouse ODBC" />
-      </Directory>
-    </Directory>
-  </Fragment>
-
-  <Fragment>
-    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-      <!-- TODO: Remove the comments around this Component element and the ComponentRef below in order to add resources to this installer. -->
-      <Component Id="Driver" Guid="01A07B41-83A6-4119-ABA6-11FAC66D23FE">
-        <File Id='DriverDLL'
-              Name='clickhouseodbc.dll'
-              DiskId='1'
-              Source='..\x64\Debug\clickhouseodbc.dll'
-              KeyPath='yes'>
-        </File>
-      </Component>
-    </ComponentGroup>
-  </Fragment>
 </Wix>
