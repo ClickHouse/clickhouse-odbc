@@ -81,7 +81,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <TargetName>clickhouseodbc</TargetName>
+    <TargetName>clickhouseodbcw</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -144,7 +144,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ModuleDefinitionFile>$(SolutionDir)..\driver\win\export.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>$(SolutionDir)..\driver\win\exportw.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -176,15 +176,15 @@
     <ResourceCompile Include="..\..\driver\win\resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\Documents\Visual Studio 2015\Projects\Poco\Foundation\Foundation_x64w_vs140.vcxproj">
-      <Project>{8164d41d-b053-405b-826c-cf37ac0ef176}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\Documents\Visual Studio 2015\Projects\Poco\Net\Net_x64w_vs140.vcxproj">
-      <Project>{b057a1fe-09f7-465e-b8b5-e1b659051d76}</Project>
-    </ProjectReference>
+    <None Include="..\..\driver\win\exportw.def" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\driver\win\exportw.def" />
+    <ProjectReference Include="..\..\..\..\..\Documents\Visual Studio 2015\Projects\Poco\Foundation\Foundation_x64_vs140.vcxproj">
+      <Project>{8164d41d-b053-405b-826c-cf37ac0ef176}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\Documents\Visual Studio 2015\Projects\Poco\Net\Net_x64_vs140.vcxproj">
+      <Project>{b057a1fe-09f7-465e-b8b5-e1b659051d76}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
