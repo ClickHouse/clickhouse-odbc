@@ -9,6 +9,9 @@ build
 *.aps
 
 vs/.vs/*
+vs/driver32w/.vs/*
+vs/driver32w/Debug/*
+vs/driver32w/Release/*
 vs/driver64/.vs/*
 vs/driver64/x64/Debug/*
 vs/driver64/x64/Release/*
