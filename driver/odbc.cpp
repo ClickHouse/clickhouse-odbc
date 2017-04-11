@@ -308,13 +308,15 @@ impl_SQLGetData(HSTMT statement_handle,
 
             case SQL_C_WCHAR:
             {
-                std::string converted;
-
+                std::string converted = field.data;
+/// TODO (artpaul) it's incorrect on Windows for Unicode version of driver
+///                but needed to be checked on Linux. 
+#if !defined (_win_) || !defined(UNICODE)
                 converted.resize(field.data.size() * 2 + 1, '\xFF');
                 converted[field.data.size() * 2] = '\0';
                 for (size_t i = 0, size = field.data.size(); i < size; ++i)
                     converted[i * 2] = field.data[i];
-
+#endif
                 return fillOutputString(converted, out_value, out_value_max_size, out_value_size_or_indicator);
             }
 
