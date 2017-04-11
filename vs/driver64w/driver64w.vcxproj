@@ -19,38 +19,38 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{97619DB8-5918-4B74-9B1F-0473E7C670D4}</ProjectGuid>
+    <ProjectGuid>{F779CF9F-3268-4C7A-BB6F-02576721A399}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>odbc</RootNamespace>
+    <RootNamespace>odbc64w</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
-    <ProjectName>driver</ProjectName>
+    <ProjectName>driver64w</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -72,17 +72,17 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <TargetName>clickhouseodbc</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <TargetName>clickhouseodbcw</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <TargetName>clickhouseodbc</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <TargetName>clickhouseodbcw</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -90,13 +90,11 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;ODBC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\driver64;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Net\include;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Foundation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;ODBC64W_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ModuleDefinitionFile>$(SolutionDir)..\driver\win\export.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -105,14 +103,13 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;ODBC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Net\include;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Foundation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;ODBC64W_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Foundation\include;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Net\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>export.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>$(SolutionDir)..\driver\win\exportw.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -123,15 +120,13 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;ODBC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\driver64;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Net\include;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Foundation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;ODBC64W_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ModuleDefinitionFile>$(SolutionDir)..\driver\win\export.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -142,56 +137,55 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;ODBC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Net\include;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Foundation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;ODBC64W_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Foundation\include;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Net\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>export.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>$(SolutionDir)..\driver\win\exportw.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\connection.h" />
+    <ClInclude Include="..\..\driver\connection.h" />
     <ClInclude Include="..\..\driver\diagnostics.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\environment.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\log.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\platform.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\read_helpers.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\result_set.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\statement.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\string_ref.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\utils.h" />
+    <ClInclude Include="..\..\driver\environment.h" />
+    <ClInclude Include="..\..\driver\log.h" />
+    <ClInclude Include="..\..\driver\platform.h" />
+    <ClInclude Include="..\..\driver\read_helpers.h" />
+    <ClInclude Include="..\..\driver\result_set.h" />
+    <ClInclude Include="..\..\driver\statement.h" />
+    <ClInclude Include="..\..\driver\string_ref.h" />
+    <ClInclude Include="..\..\driver\utils.h" />
     <ClInclude Include="..\..\driver\win\resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\attr.cpp" />
-    <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\handles.cpp" />
-    <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\info.cpp" />
-    <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\odbc.cpp" />
-    <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\result_set.cpp" />
-    <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\statement.cpp" />
+    <ClCompile Include="..\..\driver\attr.cpp" />
     <ClCompile Include="..\..\driver\connection.cpp" />
     <ClCompile Include="..\..\driver\diagnostics.cpp" />
+    <ClCompile Include="..\..\driver\handles.cpp" />
+    <ClCompile Include="..\..\driver\info.cpp" />
+    <ClCompile Include="..\..\driver\odbc.cpp" />
+    <ClCompile Include="..\..\driver\result_set.cpp" />
+    <ClCompile Include="..\..\driver\statement.cpp" />
     <ClCompile Include="..\..\driver\win\dllmain.cpp" />
     <ClCompile Include="..\..\driver\win\setup.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\Documents\Visual Studio 2015\Projects\Poco\Foundation\Foundation_vs140.vcxproj">
-      <Project>{8164d41d-b053-405b-826c-cf37ac0ef176}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\Documents\Visual Studio 2015\Projects\Poco\Net\Net_vs140.vcxproj">
-      <Project>{b057a1fe-09f7-465e-b8b5-e1b659051d76}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\driver\win\resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\driver\win\export.def" />
+    <None Include="..\..\driver\win\exportw.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\Documents\Visual Studio 2015\Projects\Poco\Foundation\Foundation_x64_vs140.vcxproj">
+      <Project>{8164d41d-b053-405b-826c-cf37ac0ef176}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\Documents\Visual Studio 2015\Projects\Poco\Net\Net_x64_vs140.vcxproj">
+      <Project>{b057a1fe-09f7-465e-b8b5-e1b659051d76}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
