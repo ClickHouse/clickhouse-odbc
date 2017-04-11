@@ -90,7 +90,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;DRIVER32W_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Foundation\include;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Net\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\Poco\Foundation\include;$(SolutionDir)..\..\Poco\Net\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -120,7 +120,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DRIVER32W_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Foundation\include;C:\Users\stanly\Documents\Visual Studio 2015\Projects\Poco\Net\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\Poco\Foundation\include;$(SolutionDir)..\..\Poco\Net\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -147,14 +147,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\Documents\Visual Studio 2015\Projects\Poco\Foundation\Foundation_vs140.vcxproj">
-      <Project>{8164d41d-b053-405b-826c-cf37ac0ef176}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\Documents\Visual Studio 2015\Projects\Poco\Net\Net_vs140.vcxproj">
-      <Project>{b057a1fe-09f7-465e-b8b5-e1b659051d76}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\driver\connection.h" />
     <ClInclude Include="..\..\driver\diagnostics.h" />
@@ -184,6 +176,14 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\driver\win\resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Poco\Foundation\Foundation_vs140.vcxproj">
+      <Project>{8164d41d-b053-405b-826c-cf37ac0ef176}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Poco\Net\Net_vs140.vcxproj">
+      <Project>{b057a1fe-09f7-465e-b8b5-e1b659051d76}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
