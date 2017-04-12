@@ -614,7 +614,7 @@ SQLTables(HSTMT statement_handle,
                 ", 'TABLE' AS TABLE_TYPE"
                 ", '' AS REMARKS"
             " FROM system.tables"
-            " WHERE 1";
+            " WHERE (1 == 1)";
 
         if (catalog_name)
             query << " AND TABLE_CAT LIKE '" << stringFromSQLChar(catalog_name, catalog_name_length) << "'";
@@ -667,7 +667,7 @@ SQLColumns(HSTMT statement_handle,
                 ", 0 AS ORDINAL_POSITION"
                 ", 0 AS IS_NULLABLE"
             " FROM system.columns"
-            " WHERE 1";
+            " WHERE (1 == 1)";
 
         if (catalog_name)
             query << " AND TABLE_CAT LIKE '" << stringFromSQLChar(catalog_name, catalog_name_length) << "'";
