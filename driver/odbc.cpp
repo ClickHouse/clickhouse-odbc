@@ -298,10 +298,6 @@ impl_SQLGetData(HSTMT statement_handle,
 
         switch (target_type)
         {
-            case SQL_ARD_TYPE:
-            case SQL_C_DEFAULT:
-                throw std::runtime_error("Unsupported type requested.");
-
             case SQL_C_CHAR:
             case SQL_C_BINARY:
                 return fillOutputString(field.data, out_value, out_value_max_size, out_value_size_or_indicator);
@@ -361,6 +357,10 @@ impl_SQLGetData(HSTMT statement_handle,
             case SQL_C_TIMESTAMP:
             case SQL_C_TYPE_TIMESTAMP:
                 return fillOutputNumber<SQL_TIMESTAMP_STRUCT>(field.getDateTime(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_ARD_TYPE:
+            case SQL_C_DEFAULT:
+                throw std::runtime_error("Unsupported type requested.");
 
             default:
                 throw std::runtime_error("Unknown type requested.");
@@ -443,6 +443,11 @@ SQLBindCol(HSTMT statement_handle,
     {
         if (column_number < 1 || column_number > statement.result.getNumColumns())
             throw std::runtime_error("Column number is out of range.");
+
+        if (target_type == SQL_C_DEFAULT)
+        {
+            target_type = statement.GetTypeInfo(statement.result.getColumnInfo(column_number - 1).type_without_parameters).sql_type;
+        }
 
 		Binding binding;
 		binding.target_type = target_type;
