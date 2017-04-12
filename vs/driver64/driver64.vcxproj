@@ -151,7 +151,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\driver\connection.h" />
-    <ClInclude Include="..\..\driver\diagnostic_record.h" />
+    <ClInclude Include="..\..\driver\diagnostics.h" />
     <ClInclude Include="..\..\driver\environment.h" />
     <ClInclude Include="..\..\driver\log.h" />
     <ClInclude Include="..\..\driver\platform.h" />
