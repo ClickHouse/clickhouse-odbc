@@ -1,0 +1,20 @@
+# Enable C++ support
+language: cpp
+
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+      compiler: gcc
+
+    - os: linux
+      dist: trusty
+      sudo: required
+      compiler: clang
+
+# Build steps
+script:
+  - mkdir build
+  - cd build
+  - cmake .. && make
