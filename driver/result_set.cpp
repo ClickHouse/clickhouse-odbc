@@ -4,9 +4,9 @@
 
 #include <Poco/Types.h>
 
-void ResultSet::init(Statement & statement_)
+void ResultSet::init(Statement * statement_)
 {
-    statement = &statement_;
+    statement = statement_;
 
     if (in().peek() == EOF)
         return;
@@ -41,12 +41,44 @@ void ResultSet::init(Statement & statement_)
         LOG(column.name << ", " << column.type << ", " << column.display_size);
 }
 
+bool ResultSet::empty() const 
+{ 
+    return columns_info.empty(); 
+}
+
+size_t ResultSet::getNumColumns() const 
+{ 
+    return columns_info.size(); 
+}
+
+const ColumnInfo & ResultSet::getColumnInfo(size_t i) const 
+{ 
+    return columns_info.at(i); 
+}
+
+size_t ResultSet::getNumRows() const 
+{
+    return rows; 
+}
+
+Row ResultSet::fetch()
+{
+    if (empty())
+        return{};
+
+    if (current_block.data.end() == iterator && !readNextBlock())
+        return{};
+
+    ++rows;
+    const Row & row = *iterator;
+    ++iterator;
+    return row;
+}
 
 std::istream & ResultSet::in()
 {
     return *statement->in;
 }
-
 
 bool ResultSet::readNextBlock()
 {
@@ -69,3 +101,9 @@ bool ResultSet::readNextBlock()
     iterator = current_block.data.begin();
     return !current_block.data.empty();
 }
+
+void ResultSet::throwIncompleteResult() const
+{
+    throw std::runtime_error("Incomplete result received.");
+}
+

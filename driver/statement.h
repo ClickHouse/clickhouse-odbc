@@ -30,9 +30,13 @@ public:
 
     void sendRequest();
 
+    /// Fetch next row.
     bool fetchRow();
 
     void reset();
+
+    /// Lookup TypeInfo for given name of type.
+    const TypeInfo & GetTypeInfo(const std::string & type_name) const;
 
     Connection & connection;
     std::string query;

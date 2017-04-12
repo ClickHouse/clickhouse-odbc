@@ -58,7 +58,7 @@ public:
 
     std::vector<Field> data;
 
-    operator bool() { return !data.empty(); }
+    bool isValid() const { return !data.empty(); }
 };
 
 
@@ -82,43 +82,26 @@ struct ColumnInfo
 class ResultSet
 {
 public:
-    ResultSet() {}
+    void init(Statement * statement_);
 
-    void init(Statement & statement_);
+    bool empty() const;
+    const ColumnInfo & getColumnInfo(size_t i) const;
+    size_t getNumColumns() const;
+    size_t getNumRows() const;
 
-    bool empty() const { return columns_info.empty(); }
-    size_t getNumColumns() const { return columns_info.size(); }
-    const ColumnInfo & getColumnInfo(size_t i) const { return columns_info.at(i); }
-    size_t getNumRows() const { return rows; }
+    Row fetch();
 
-    Row fetch()
-    {
-        if (empty())
-            return {};
+private:
+    std::istream & in();
 
-        if (current_block.data.end() == iterator && !readNextBlock())
-            return {};
+    void throwIncompleteResult() const;
 
-        ++rows;
-        const Row & row = *iterator;
-        ++iterator;
-        return row;
-    }
+    bool readNextBlock();
 
 private:
     Statement * statement = nullptr;
-
     std::vector<ColumnInfo> columns_info;
     Block current_block;
     Block::Data::const_iterator iterator;
     size_t rows = 0;
-
-    std::istream & in();
-
-    void throwIncompleteResult() const
-    {
-        throw std::runtime_error("Incomplete result received.");
-    }
-
-    bool readNextBlock();
 };

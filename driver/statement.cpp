@@ -62,13 +62,13 @@ void Statement::sendRequest()
         throw std::runtime_error(error_message.str());
     }
 
-    result.init(*this);
+    result.init(this);
 }
 
 bool Statement::fetchRow()
 {
     current_row = result.fetch();
-    return current_row;
+    return current_row.isValid();
 }
 
 void Statement::reset()
@@ -83,4 +83,9 @@ void Statement::reset()
     apd.reset(new DescriptorClass);
     ird.reset(new DescriptorClass);
     ipd.reset(new DescriptorClass);
+}
+
+const TypeInfo & Statement::GetTypeInfo(const std::string & type_name) const
+{
+    return connection.environment.types_info.at(type_name);
 }
