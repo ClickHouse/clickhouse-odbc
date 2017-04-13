@@ -362,7 +362,9 @@ RETCODE SQL_API
 SQLSetStmtOption(SQLHSTMT statement_handle, UWORD attribute, SQLULEN value)
 {
     LOG(__FUNCTION__);
-    return impl_SQLSetConnectAttr(statement_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
+    /// TODO (artpaul)
+    /// See https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/sqlsetstmtoption-mapping for correct implementation.
+    return impl_SQLSetStmtAttr(statement_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
 }
 
 }
