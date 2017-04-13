@@ -20,33 +20,12 @@ public:
     float getFloat() const      { return Poco::NumberParser::parseFloat(data); }
     double getDouble() const    { return Poco::NumberParser::parseFloat(data); }
 
-    SQL_DATE_STRUCT getDate() const
-    {
-        if (data.size() != 10)
-            throw std::runtime_error("Cannot interpret '" + data + "' as Date");
+    SQL_DATE_STRUCT getDate() const;
+    SQL_TIMESTAMP_STRUCT getDateTime() const;
 
-        SQL_DATE_STRUCT res;
-        res.year = (data[0] - '0') * 1000 + (data[1] - '0') * 100 + (data[2] - '0') * 10 + (data[3] - '0');
-        res.month = (data[5] - '0') * 10 + (data[6] - '0');
-        res.day = (data[8] - '0') * 10 + (data[9] - '0');
-        return res;
-    }
-
-    SQL_TIMESTAMP_STRUCT getDateTime() const
-    {
-        if (data.size() != 19)
-            throw std::runtime_error("Cannot interpret '" + data + "' as DateTime");
-
-        SQL_TIMESTAMP_STRUCT res;
-        res.year = (data[0] - '0') * 1000 + (data[1] - '0') * 100 + (data[2] - '0') * 10 + (data[3] - '0');
-        res.month = (data[5] - '0') * 10 + (data[6] - '0');
-        res.day = (data[8] - '0') * 10 + (data[9] - '0');
-        res.hour = (data[11] - '0') * 10 + (data[12] - '0');
-        res.minute = (data[14] - '0') * 10 + (data[15] - '0');
-        res.second = (data[17] - '0') * 10 + (data[18] - '0');
-        res.fraction = 0;
-        return res;
-    }
+private:
+    template <typename T>
+    void normalizeDate(T& date) const;
 };
 
 
