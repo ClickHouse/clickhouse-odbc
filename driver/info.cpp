@@ -17,6 +17,12 @@
 #   define SQL_ASYNC_NOTIFICATION_CAPABLE       0x00000001L
 #endif // ODBCVER >= 0x0380
 
+#ifdef UNICODE
+#   define DRIVER_FILE_NAME "CLICKHOUSEODBCW.DLL"
+#else
+#   define DRIVER_FILE_NAME "CLICKHOUSEODBC.DLL"
+#endif
+
 extern "C"
 {
 
@@ -38,17 +44,17 @@ SQLGetInfo(HDBC connection_handle,
     return doWith<Connection>(connection_handle, [&](Connection & connection)
     {
         const char * name = nullptr;
-
+        
         switch (info_type)
         {
             CASE_STRING(SQL_DRIVER_VER, "1.0")
             CASE_STRING(SQL_DRIVER_ODBC_VER, "03.80")
             CASE_STRING(SQL_DM_VER, "03.80.0000.0000")
-            CASE_STRING(SQL_DRIVER_NAME, "ClickHouse ODBC")
+            CASE_STRING(SQL_DRIVER_NAME, DRIVER_FILE_NAME)
             CASE_STRING(SQL_DBMS_NAME, "ClickHouse")
             CASE_STRING(SQL_DBMS_VER, "01.00.0000")
             CASE_STRING(SQL_SERVER_NAME, connection.host)
-            CASE_STRING(SQL_DATA_SOURCE_NAME, "ClickHouse")
+            CASE_STRING(SQL_DATA_SOURCE_NAME, connection.data_source)
             CASE_STRING(SQL_CATALOG_TERM, "catalog")
             CASE_STRING(SQL_COLLATION_SEQ, "UTF-8")
             CASE_STRING(SQL_DATABASE_NAME, connection.database)
@@ -81,7 +87,7 @@ SQLGetInfo(HDBC connection_handle,
             CASE_FALLTHROUGH(SQL_ROW_UPDATES)
             CASE_STRING(SQL_DESCRIBE_PARAMETER, "N")
 
-        /// UINTEGER single values
+            /// UINTEGER single values
             CASE_NUM(SQL_ODBC_INTERFACE_CONFORMANCE, SQLUINTEGER, SQL_OIC_CORE)
             CASE_NUM(SQL_ASYNC_MODE, SQLUINTEGER, SQL_AM_NONE)
             CASE_NUM(SQL_ASYNC_NOTIFICATION, SQLUINTEGER, SQL_ASYNC_NOTIFICATION_NOT_CAPABLE)
@@ -91,7 +97,8 @@ SQLGetInfo(HDBC connection_handle,
             CASE_NUM(SQL_PARAM_ARRAY_SELECTS, SQLUINTEGER, SQL_PAS_NO_SELECT)
             CASE_NUM(SQL_SQL_CONFORMANCE, SQLUINTEGER, SQL_SC_SQL92_ENTRY)
 
-        /// USMALLINT single values
+            /// USMALLINT single values
+            CASE_NUM(SQL_ODBC_API_CONFORMANCE, SQLSMALLINT, SQL_OAC_LEVEL1);
             CASE_NUM(SQL_GROUP_BY, SQLUSMALLINT, SQL_GB_GROUP_BY_CONTAINS_SELECT)
             CASE_NUM(SQL_CATALOG_LOCATION, SQLUSMALLINT, SQL_CL_START)
             CASE_NUM(SQL_FILE_USAGE, SQLUSMALLINT, SQL_FILE_NOT_SUPPORTED)
@@ -106,7 +113,7 @@ SQLGetInfo(HDBC connection_handle,
             CASE_NUM(SQL_NULL_COLLATION, SQLUSMALLINT, SQL_NC_END)
             CASE_NUM(SQL_TXN_CAPABLE, SQLUSMALLINT, SQL_TC_NONE)
 
-        /// UINTEGER non-empty bitmasks
+            /// UINTEGER non-empty bitmasks
             CASE_NUM(SQL_CATALOG_USAGE, SQLUINTEGER, SQL_CU_DML_STATEMENTS | SQL_CU_TABLE_DEFINITION)
             CASE_NUM(SQL_AGGREGATE_FUNCTIONS, SQLUINTEGER, SQL_AF_ALL | SQL_AF_AVG | SQL_AF_COUNT | SQL_AF_DISTINCT | SQL_AF_MAX | SQL_AF_MIN | SQL_AF_SUM)
             CASE_NUM(SQL_ALTER_TABLE, SQLUINTEGER, SQL_AT_ADD_COLUMN_DEFAULT | SQL_AT_ADD_COLUMN_SINGLE | SQL_AT_DROP_COLUMN_DEFAULT | SQL_AT_SET_COLUMN_DEFAULT)
@@ -204,7 +211,7 @@ SQLGetInfo(HDBC connection_handle,
 
             CASE_NUM(SQL_UNION, SQLUINTEGER, SQL_U_UNION | SQL_U_UNION_ALL)
 
-        /// UINTEGER empty bitmasks
+            /// UINTEGER empty bitmasks
             CASE_FALLTHROUGH(SQL_ALTER_DOMAIN)
             CASE_FALLTHROUGH(SQL_BATCH_ROW_COUNT)
             CASE_FALLTHROUGH(SQL_BATCH_SUPPORT)
@@ -237,7 +244,7 @@ SQLGetInfo(HDBC connection_handle,
             CASE_FALLTHROUGH(SQL_SQL92_REVOKE)
             CASE_NUM(SQL_DDL_INDEX, SQLUINTEGER, 0)
 
-        /// Limits on the maximum number, USMALLINT.
+            /// Limits on the maximum number, USMALLINT.
             CASE_FALLTHROUGH(SQL_ACTIVE_ENVIRONMENTS)
             CASE_FALLTHROUGH(SQL_MAX_COLUMNS_IN_GROUP_BY)
             CASE_FALLTHROUGH(SQL_MAX_COLUMNS_IN_INDEX)
@@ -256,7 +263,7 @@ SQLGetInfo(HDBC connection_handle,
             CASE_FALLTHROUGH(SQL_MAX_TABLE_NAME_LEN)
             CASE_NUM(SQL_MAX_CATALOG_NAME_LEN, SQLUSMALLINT, 0)
 
-        /// Limitations on the maximum number, UINTEGER.
+            /// Limitations on the maximum number, UINTEGER.
             CASE_FALLTHROUGH(SQL_MAX_ROW_SIZE)
             CASE_FALLTHROUGH(SQL_MAX_STATEMENT_LEN)
             CASE_FALLTHROUGH(SQL_MAX_BINARY_LITERAL_LEN)

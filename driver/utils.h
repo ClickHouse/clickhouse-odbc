@@ -111,13 +111,13 @@ RETCODE fillOutputString(const std::string & value,
 
         if (out_value_max_length >= (size_without_zero + 1) * sizeof(TCHAR))
         {
-            memcpy(out_value, tmp.data(), (size_without_zero + 1) * sizeof(TCHAR));
+            memcpy(out_value, tmp.c_str(), (size_without_zero + 1) * sizeof(TCHAR));
         }
         else
         {
             if (out_value_max_length > 0)
             {
-                memcpy(out_value, tmp.data(), (out_value_max_length - 1) * sizeof(TCHAR));
+                memcpy(out_value, tmp.c_str(), (out_value_max_length - 1) * sizeof(TCHAR));
                 reinterpret_cast<LPTSTR>(out_value)[out_value_max_length - 1] = 0;
 
                 LOG((LPCTSTR)(out_value));

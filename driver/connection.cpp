@@ -74,6 +74,8 @@ void Connection::init(const std::string & connection_string)
         }
         else if (current_key == "DATABASE")
             database = current_value.toString();
+        else if (current_key == "DSN")
+            data_source = current_value.toString();
     }
 
     init();

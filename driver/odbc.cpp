@@ -531,6 +531,9 @@ impl_SQLGetDiagRec(SQLSMALLINT handle_type, SQLHANDLE handle,
         case SQL_HANDLE_STMT:
             diagnostic_record = &reinterpret_cast<Statement *>(handle)->diagnostic_record;
             break;
+        case SQL_HANDLE_DESC:
+            // TODO (artpaul) implement
+            return SQL_NO_DATA;
         default:
             return SQL_ERROR;
     }

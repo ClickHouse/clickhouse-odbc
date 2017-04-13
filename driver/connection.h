@@ -8,11 +8,14 @@
 struct Connection
 {
     Environment & environment;
+
     std::string host = "localhost";
     uint16_t port = 8123;
     std::string user = "default";
     std::string password;
     std::string database = "default";
+    std::string data_source = "ClickHouse";
+
     Poco::Net::HTTPClientSession session;
     DiagnosticRecord diagnostic_record;
     int retry_count = 3;
