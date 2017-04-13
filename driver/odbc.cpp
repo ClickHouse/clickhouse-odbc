@@ -481,7 +481,7 @@ RETCODE SQL_API
 SQLMoreResults(HSTMT hstmt)
 {
     LOG(__FUNCTION__);
-
+    // TODO (artpaul) MS Excel call this function.
     return SQL_NO_DATA;
 }
 

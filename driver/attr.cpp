@@ -134,11 +134,14 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             CASE_FALLTHROUGH(SQL_ATTR_CONNECTION_TIMEOUT)
             CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session.getTimeout().seconds())
 
+            case SQL_ATTR_CURRENT_CATALOG:
+                fillOutputString(connection.database, out_value, out_value_max_length, out_value_length);
+                return SQL_SUCCESS;
+
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:
             case SQL_ATTR_AUTO_IPD:
             case SQL_ATTR_AUTOCOMMIT:
-            case SQL_ATTR_CURRENT_CATALOG:
             case SQL_ATTR_METADATA_ID:
             case SQL_ATTR_ODBC_CURSORS:
             case SQL_ATTR_PACKET_SIZE:
