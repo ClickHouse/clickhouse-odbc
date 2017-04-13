@@ -28,6 +28,7 @@ SQLSetStmtOption        @51
 SQLGetInfo              @45
 
 SQLDriverConnect
+SQLMoreResults
 SQLConnect              @7
 SQLPrepare              @19
 SQLExecute              @12
