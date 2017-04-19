@@ -1,20 +1,45 @@
-# Enable C++ support
 language: cpp
+
+sudo: required
+dist: trusty
+
+os: linux
+
+compiler:
+  - gcc
+
+cache:
+  ccache: true
+
+addons:
+  apt:
+    sources: [ ubuntu-toolchain-r-test, llvm-toolchain-precise ]
+    packages: [ gcc-6, g++-6, clang-5.0 ]
 
 matrix:
   include:
-    - os: linux
-      dist: trusty
-      sudo: required
-      compiler: gcc
+    - compiler: ": gcc-6"
+      before_install:
+        - export CC="gcc-6" CXX="g++-6"
+    - compiler: ": clang-5.0"
+      before_install:
+        - export CC="clang-5.0" CXX="clang++-5.0"
+  exclude:
+    - compiler: gcc
 
-    - os: linux
-      dist: trusty
-      sudo: required
-      compiler: clang
+install:
+  - sudo echo "deb http://archive.ubuntu.com/ubuntu xenial main universe" | sudo tee -a /etc/apt/sources.list.d/xenial.list
+  - sudo echo "deb http://archive.ubuntu.com/ubuntu xenial main" | sudo tee -a /etc/apt/sources.list.d/xenial.list
+  - sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1)
+  - sudo apt-get install unixodbc-dev binutils -y > build.log 2>&1 || (cat build.log && exit 1)
+  - mkdir -p "${HOME}/bin"
+  - ln -s "$(which ccache)" "${HOME}/bin/${CC}"
+  - PATH="${HOME}/bin:${PATH}"
 
-# Build steps
 script:
+  - cd contrib/poco
+  - ./configure --static --minimal --no-tests --cflags=-fPIC && make -s -j2 && sudo make install 
+  - cd ../..
   - mkdir build
   - cd build
   - cmake .. && make
