@@ -11,8 +11,11 @@ set (CMAKE_BUILD_COLOR_MAKEFILE          ON)
 set (CMAKE_CXX_FLAGS                     "${CMAKE_CXX_FLAGS} -std=c++14 -O2 -g -fvisibility-inlines-hidden -Wl,-Bstatic,--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# prefer .a libs
-list(REVERSE CMAKE_FIND_LIBRARY_SUFFIXES)
+if (WIN32 OR MSVC)
+   set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
+elseif (UNIX)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+endif()      
 
 find_package (Poco COMPONENTS Net)
 
