@@ -39,4 +39,5 @@ install:
 script:
   - mkdir build
   - cd build
-  - cmake .. -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` && make -j `nproc || grep -c ^processor /proc/cpuinfo`
+  - cmake --version
+  - cmake .. -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` && make -j `nproc || grep -c ^processor /proc/cpuinfo` VERBOSE=1
