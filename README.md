@@ -1,6 +1,6 @@
 ## Building
 
-1. Install unixodbc.
+1. Install unixodbc >= 2.3.0
 2. Download Poco source
 3. Run ```./configure --static --minimal --no-tests --cflags=-fPIC```
 4. Run ```make && make install```
