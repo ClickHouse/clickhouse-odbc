@@ -2,6 +2,7 @@ include_directories (${Poco_INCLUDE_DIRS})
 
 add_library(clickhouse-odbc SHARED
     attr.cpp
+    config.cpp
     connection.cpp
     diagnostics.cpp
     handles.cpp
@@ -19,4 +20,5 @@ set_target_properties(clickhouse-odbc
 target_link_libraries(clickhouse-odbc
     ${Poco_Net_LIBRARY}
     ${Poco_Foundation_LIBRARY}
+    odbc
 )
