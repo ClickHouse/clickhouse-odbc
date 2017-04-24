@@ -149,6 +149,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\driver\config.h" />
     <ClInclude Include="..\..\driver\connection.h" />
     <ClInclude Include="..\..\driver\diagnostics.h" />
     <ClInclude Include="..\..\driver\environment.h" />
@@ -163,6 +164,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\driver\attr.cpp" />
+    <ClCompile Include="..\..\driver\config.cpp" />
     <ClCompile Include="..\..\driver\connection.cpp" />
     <ClCompile Include="..\..\driver\diagnostics.cpp" />
     <ClCompile Include="..\..\driver\handles.cpp" />

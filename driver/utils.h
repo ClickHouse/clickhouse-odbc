@@ -107,8 +107,8 @@ void stringToTCHAR(const std::string & data, TCHAR (&result)[Len])
 #else
     const auto & tmp = data;
 #endif
-    size_t len = std::min<size_t>(Len, data.size());
-    strncpy(result, data.c_str(), len);
+    const size_t len = std::min<size_t>(Len - 1, data.size());
+    strncpy(result, tmp.c_str(), len);
     result[len] = 0;
 }
 
