@@ -29,7 +29,7 @@ extern "C"
 
 RETCODE SQL_API
 SQLConnect(HDBC connection_handle,
-           SQLTCHAR * server_name, SQLSMALLINT server_name_size,
+           SQLTCHAR * dsn, SQLSMALLINT dsn_size,
            SQLTCHAR * user, SQLSMALLINT user_size,
            SQLTCHAR * password, SQLSMALLINT password_size)
 {
@@ -37,10 +37,11 @@ SQLConnect(HDBC connection_handle,
 
     return doWith<Connection>(connection_handle, [&](Connection & connection)
     {
+        std::string dsn_str = stringFromSQLChar(dsn, dsn_size);
         std::string user_str = stringFromSQLChar(user, user_size);
         std::string password_str = stringFromSQLChar(password, password_size);
 
-        connection.init("", 0, user_str, password_str, "");
+        connection.init(dsn_str, 0, user_str, password_str, "");
         return SQL_SUCCESS;
     });
 }
@@ -306,7 +307,7 @@ impl_SQLGetData(HSTMT statement_handle,
             {
                 std::string converted = field.data;
 /// TODO (artpaul) it's incorrect on Windows for Unicode version of driver
-///                but needed to be checked on Linux. 
+///                but needed to be checked on Linux.
 #if !defined (_win_) || !defined(UNICODE)
                 converted.resize(field.data.size() * 2 + 1, '\xFF');
                 converted[field.data.size() * 2] = '\0';
@@ -566,13 +567,13 @@ SQLGetDiagRec(SQLSMALLINT handle_type, SQLHANDLE handle,
     SQLTCHAR * out_mesage, SQLSMALLINT out_message_max_size, SQLSMALLINT * out_message_size)
 {
     return impl_SQLGetDiagRec(
-        handle_type, 
-        handle, 
-        record_number, 
-        out_sqlstate, 
-        out_native_error_code, 
-        out_mesage, 
-        out_message_max_size, 
+        handle_type,
+        handle,
+        record_number,
+        out_sqlstate,
+        out_native_error_code,
+        out_mesage,
+        out_message_max_size,
         out_message_size);
 }
 
@@ -1216,7 +1217,7 @@ SQLTransact(SQLHENV hDrvEnv, SQLHDBC hDrvDbc, UWORD nType)
  *	functions must match the value of fFunction in SQLGetFunctions()
  */
 RETCODE	SQL_API
-SQLDummyOrdinal(void) 
+SQLDummyOrdinal(void)
 {
 #if defined (_win_)
     // TODO (artpaul) implement SQLGetFunctions

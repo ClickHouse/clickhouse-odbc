@@ -22,15 +22,15 @@ struct Environment
     {
 #if defined (_unix_)
         std::string stderr_path = "/tmp/clickhouse-odbc-stderr";
-        if (!freopen(stderr_path.c_str(), "a+", stderr))
+        if (!freopen(stderr_path.c_str(), "w", stderr))
             throw std::logic_error("Cannot freopen stderr.");
 #endif
     }
 
     const std::map<std::string, TypeInfo> types_info =
     {
-		{"UInt8",       TypeInfo{"TINYINT",   true,    SQL_TINYINT,			3}},
-		{"UInt16",      TypeInfo{"SMALLINT",  true,    SQL_SMALLINT,		5}},
+        {"UInt8",       TypeInfo{"TINYINT",   true,    SQL_TINYINT,			3}},
+        {"UInt16",      TypeInfo{"SMALLINT",  true,    SQL_SMALLINT,		5}},
         {"UInt32",      TypeInfo{"INT",       true,    SQL_INTEGER,			10}},
         {"UInt64",      TypeInfo{"BIGINT",    true,    SQL_BIGINT,			19}},
         {"Int8",        TypeInfo{"TINYINT",   false,   SQL_TINYINT,			3}},

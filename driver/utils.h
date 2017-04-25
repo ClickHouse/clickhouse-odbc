@@ -86,6 +86,31 @@ std::string stringFromSQLChar(SQLTCHAR * data, SIZE_TYPE size)
 #endif
 }
 
+inline std::string stringFromTCHAR(LPCTSTR data)
+{
+    if (!data)
+        return {};
+
+#ifdef UNICODE
+    std::wstring wstr(data);
+    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(wstr);
+#else
+    return std::string(data);
+#endif
+}
+
+template <size_t Len>
+void stringToTCHAR(const std::string & data, TCHAR (&result)[Len])
+{
+#ifdef UNICODE
+    std::wstring tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(data);
+#else
+    const auto & tmp = data;
+#endif
+    const size_t len = std::min<size_t>(Len - 1, data.size());
+    strncpy(result, tmp.c_str(), len);
+    result[len] = 0;
+}
 
 template <typename PTR, typename LENGTH>
 RETCODE fillOutputString(const std::string & value,

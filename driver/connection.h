@@ -25,7 +25,7 @@ struct Connection
     void init();
 
     void init(
-        const std::string & host_,
+        const std::string & dsn_,
         const uint16_t port_,
         const std::string & user_,
         const std::string & password_,
