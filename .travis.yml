@@ -32,14 +32,8 @@ install:
   - sudo echo "deb http://archive.ubuntu.com/ubuntu xenial main" | sudo tee -a /etc/apt/sources.list.d/xenial.list
   - sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1)
   - sudo apt-get install unixodbc-dev binutils -y > build.log 2>&1 || (cat build.log && exit 1)
-  - mkdir -p "${HOME}/bin"
-  - ln -s "$(which ccache)" "${HOME}/bin/${CC}"
-  - PATH="${HOME}/bin:${PATH}"
 
 script:
-  - cd contrib/poco
-  - ./configure --static --minimal --no-tests --cflags=-fPIC && make -s -j2 && sudo make install 
-  - cd ../..
   - mkdir build
   - cd build
-  - cmake .. && make
+  - cmake .. -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` && make -j `nproc || grep -c ^processor /proc/cpuinfo`
