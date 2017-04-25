@@ -18,5 +18,6 @@ set_target_properties(clickhouse-odbc
 
 target_link_libraries(clickhouse-odbc
     ${Poco_Net_LIBRARY}
+    ${Poco_Foundation_LIBRARY}
     odbc
 )

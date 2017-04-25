@@ -67,6 +67,7 @@ add_subdirectory (contrib)
 if (USE_INTERNAL_POCO_LIBRARY)
     # Remove pthread from linking poco's Net
     set_property(TARGET Net PROPERTY INTERFACE_LINK_LIBRARIES "")
+    set_property(TARGET Foundation PROPERTY INTERFACE_LINK_LIBRARIES "")
 endif ()
 
 add_subdirectory (driver)
