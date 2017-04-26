@@ -1,10 +1,15 @@
 ## Building (Linux)
 
 1. Install unixodbc >= 2.3.0
+```bash
+sudo apt install unixodbc-dev
+```
+
 2. At the root of source directory:
-  - mkdir build
-  - cd build
-  - cmake .. && make
+```bash
+mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 2)
+```
+
 3. clickhouse-odbc.so will be at ```build/driver/clickhouse-odbc.so```
 
 ## ODBC configuration
