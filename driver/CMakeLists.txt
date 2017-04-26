@@ -13,7 +13,7 @@ add_library(clickhouse-odbc SHARED
 
 set_target_properties(clickhouse-odbc
     PROPERTIES PREFIX ""
-               OUTPUT_NAME "odbc"
+               OUTPUT_NAME "clickhouse-odbc"
 )
 
 target_link_libraries(clickhouse-odbc

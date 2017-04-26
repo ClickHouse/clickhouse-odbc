@@ -1,10 +1,11 @@
-## Building
+## Building (Linux)
 
 1. Install unixodbc >= 2.3.0
-2. Download Poco source
-3. Run ```./configure --static --minimal --no-tests --cflags=-fPIC```
-4. Run ```make && make install```
-5. Run ```./build.sh```
+2. At the root of source directory:
+  - mkdir build
+  - cd build
+  - cmake .. && make
+3. clickhouse-odbc.so will be at ```build/driver/clickhouse-odbc.so```
 
 ## ODBC configuration
 
@@ -12,7 +13,7 @@ vim ~/.odbc.ini:
 
 ```(ini)
 [ClickHouse]
-Driver = /home/milovidov/work/ClickHouse/dbms/src/ODBC/odbc.so
+Driver = $(PATH_OF_CLICKHOUSE_ODBC_SO)
 Description = ClickHouse driver
 DATABASE = default
 HOST = localhost
@@ -21,4 +22,4 @@ FRAMED = 0
 ```
 
 ## Testing
-Run ```iusql -v ClickHouse```
+Run ```isql -v ClickHouse```
