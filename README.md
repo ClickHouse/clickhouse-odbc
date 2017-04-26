@@ -16,7 +16,7 @@ vim ~/.odbc.ini:
 Driver = $(PATH_OF_CLICKHOUSE_ODBC_SO)
 Description = ClickHouse driver
 DATABASE = default
-HOST = localhost
+SERVER = localhost
 PORT = 8123
 FRAMED = 0
 ```

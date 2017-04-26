@@ -26,19 +26,19 @@ namespace
 
 #define MAXPGPATH	1024
 /// Max keyword length
-#define MAXKEYLEN	(32+1)	
+#define MAXKEYLEN	(32+1)
 /// Max data source name length
 #define	MAXDSNAME	(32+1)
 
 #define INI_KDESC           TEXT("Description") /* Data source description */
 #define INI_DATABASE        TEXT("Database")    /* Database Name */
-#define INI_SERVER          TEXT("Servername")	/* Name of Server  running the ClickHouse service */
-#define INI_UID             TEXT("UID")		    /* Default User Name */
-#define INI_USERNAME        TEXT("Username")	/* Default User Name */
-#define INI_PASSWORD        TEXT("Password")	/* Default Password */
-#define INI_PORT            TEXT("Port")	    /* Port on which the ClickHouse is listening */
-#define INI_READONLY        TEXT("ReadOnly")	/* Database is read only */
-#define INI_PROTOCOL        TEXT("Protocol")	/* What protocol (6.2) */
+#define INI_SERVER          TEXT("Server")      /* Name of Server  running the ClickHouse service */
+#define INI_UID             TEXT("UID")         /* Default User Name */
+#define INI_USERNAME        TEXT("Username")    /* Default User Name */
+#define INI_PASSWORD        TEXT("Password")    /* Default Password */
+#define INI_PORT            TEXT("Port")        /* Port on which the ClickHouse is listening */
+#define INI_READONLY        TEXT("ReadOnly")    /* Database is read only */
+#define INI_PROTOCOL        TEXT("Protocol")    /* What protocol (6.2) */
 #define INI_DSN             TEXT("ClickHouse")
 
 #define ABBR_PROTOCOL		TEXT("A1")
@@ -434,7 +434,7 @@ static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWOR
     return TRUE;
 }
 
-} // namespace 
+} // namespace
 
 extern "C"
 {
@@ -544,7 +544,7 @@ INT_PTR	CALLBACK
     return FALSE;
 }
 
-BOOL CALLBACK 
+BOOL CALLBACK
 #ifdef UNICODE
 ConfigDSNW(
 #else
@@ -670,4 +670,4 @@ ConfigDriver(
 
 } // extern
 
-#endif 
+#endif

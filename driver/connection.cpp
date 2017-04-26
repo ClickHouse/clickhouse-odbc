@@ -12,10 +12,13 @@ Connection::Connection(Environment & env_)
 
 void Connection::init()
 {
+    loadConfiguration();
+    setDefaults();
+
     if (user.find(':') != std::string::npos)
         throw std::runtime_error("Username couldn't contain ':' (colon) symbol.");
 
-    session.setHost(host);
+    session.setHost(server);
     session.setPort(port);
     session.setKeepAlive(true);
     session.setKeepAliveTimeout(Poco::Timespan(86400, 0));
@@ -33,38 +36,16 @@ void Connection::init(
     if (session.connected())
         throw std::runtime_error("Already connected.");
 
-    if (!dsn_.empty())
-        data_source = dsn_;
-
-    ConnInfo ci;
-    stringToTCHAR(data_source, ci.dsn);
-    getDSNinfo(&ci, true);
+    data_source = dsn_;
 
     if (port_)
         port = port_;
-    else
-    {
-        int int_port = 0;
-        if (Poco::NumberParser::tryParse(stringFromTCHAR(ci.port), int_port))
-            port = int_port;
-        else
-            throw std::runtime_error("Cannot parse port number.");
-    }
-
     if (!user_.empty())
         user = user_;
-    else
-        user = stringFromTCHAR(ci.username);
-
     if (!password_.empty())
         password = password_;
-    else
-        password = stringFromTCHAR(ci.password);
-
     if (!database_.empty())
         database = database_;
-    else
-        database = stringFromTCHAR(ci.database);
 
     init();
 }
@@ -85,8 +66,8 @@ void Connection::init(const std::string & connection_string)
             user = current_value.toString();
         else if (current_key == "PWD")
             password = current_value.toString();
-        else if (current_key == "HOST")
-            host = current_value.toString();
+        else if (current_key == "HOST" || current_key == "SERVER")
+            server = current_value.toString();
         else if (current_key == "PORT")
         {
             int int_port = 0;
@@ -102,4 +83,46 @@ void Connection::init(const std::string & connection_string)
     }
 
     init();
+}
+
+void Connection::loadConfiguration()
+{
+    if (data_source.empty())
+        data_source = "ClickHouse";
+
+    ConnInfo ci;
+    stringToTCHAR(data_source, ci.dsn);
+    getDSNinfo(&ci, true);
+
+    if (!port)
+    {
+        int int_port = 0;
+        if (Poco::NumberParser::tryParse(stringFromTCHAR(ci.port), int_port))
+            port = int_port;
+        else
+            throw std::runtime_error("Cannot parse port number.");
+    }
+
+    if (server.empty())
+        server = stringFromTCHAR(ci.server);
+    if (user.empty())
+        user = stringFromTCHAR(ci.username);
+    if (password.empty())
+        password = stringFromTCHAR(ci.password);
+    if (database.empty())
+        database = stringFromTCHAR(ci.database);
+}
+
+void Connection::setDefaults()
+{
+    if (data_source.empty())
+        data_source = "ClickHouse";
+    if (server.empty())
+        server = "localhost";
+    if (port == 0)
+        port = 8123;
+    if (user.empty())
+        user = "default";
+    if (database.empty())
+        database = "default";
 }

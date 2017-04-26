@@ -44,7 +44,7 @@ SQLGetInfo(HDBC connection_handle,
     return doWith<Connection>(connection_handle, [&](Connection & connection)
     {
         const char * name = nullptr;
-        
+
         switch (info_type)
         {
             CASE_STRING(SQL_DRIVER_VER, "1.0")
@@ -53,7 +53,7 @@ SQLGetInfo(HDBC connection_handle,
             CASE_STRING(SQL_DRIVER_NAME, DRIVER_FILE_NAME)
             CASE_STRING(SQL_DBMS_NAME, "ClickHouse")
             CASE_STRING(SQL_DBMS_VER, "01.00.0000")
-            CASE_STRING(SQL_SERVER_NAME, connection.host)
+            CASE_STRING(SQL_SERVER_NAME, connection.server)
             CASE_STRING(SQL_DATA_SOURCE_NAME, connection.data_source)
             CASE_STRING(SQL_CATALOG_TERM, "catalog")
             CASE_STRING(SQL_COLLATION_SEQ, "UTF-8")

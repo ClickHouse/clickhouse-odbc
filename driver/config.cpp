@@ -32,16 +32,16 @@ void getDSNinfo(ConnInfo * ci, bool overwrite)
         SQLGetPrivateProfileString(ci->dsn, INI_KDESC, TEXT(""), ci->desc, sizeof(ci->desc), ODBC_INI);
 
     if (ci->server[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(ci->dsn, INI_SERVER, TEXT("localhost"), ci->server, sizeof(ci->server), ODBC_INI);
+        SQLGetPrivateProfileString(ci->dsn, INI_SERVER, TEXT(""), ci->server, sizeof(ci->server), ODBC_INI);
 
     if (ci->database[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(ci->dsn, INI_DATABASE, TEXT("default"), ci->database, sizeof(ci->database), ODBC_INI);
+        SQLGetPrivateProfileString(ci->dsn, INI_DATABASE, TEXT(""), ci->database, sizeof(ci->database), ODBC_INI);
 
     if (ci->username[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(ci->dsn, INI_USERNAME, TEXT("default"), ci->username, sizeof(ci->username), ODBC_INI);
+        SQLGetPrivateProfileString(ci->dsn, INI_USERNAME, TEXT(""), ci->username, sizeof(ci->username), ODBC_INI);
 
     if (ci->port[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(ci->dsn, INI_PORT, TEXT("8123"), ci->port, sizeof(ci->port), ODBC_INI);
+        SQLGetPrivateProfileString(ci->dsn, INI_PORT, TEXT(""), ci->port, sizeof(ci->port), ODBC_INI);
 
     if (ci->onlyread[0] == '\0' || overwrite)
         SQLGetPrivateProfileString(ci->dsn, INI_READONLY, TEXT(""), ci->onlyread, sizeof(ci->onlyread), ODBC_INI);

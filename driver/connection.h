@@ -9,12 +9,12 @@ struct Connection
 {
     Environment & environment;
 
-    std::string host = "localhost";
-    uint16_t port = 8123;
-    std::string user = "default";
+    std::string data_source;
+    std::string server;
+    uint16_t port = 0;
+    std::string user;
     std::string password;
-    std::string database = "default";
-    std::string data_source = "ClickHouse";
+    std::string database;
 
     Poco::Net::HTTPClientSession session;
     DiagnosticRecord diagnostic_record;
@@ -32,4 +32,11 @@ struct Connection
         const std::string & database_);
 
     void init(const std::string & connection_string);
+
+private:
+    /// Load uninitialized fields from odbc.ini
+    void loadConfiguration();
+
+    /// Sets uninitialized fields to their default values.
+    void setDefaults();
 };
