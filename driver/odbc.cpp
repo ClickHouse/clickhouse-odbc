@@ -80,6 +80,7 @@ SQLPrepare(HSTMT statement_handle,
         statement.query = stringFromSQLChar(statement_text, statement_text_size);
         if (statement.query.empty())
             throw std::runtime_error("Prepare called with empty query.");
+        statement.prepared = true;
 
         LOG(statement.query);
         return SQL_SUCCESS;
@@ -108,10 +109,16 @@ SQLExecDirect(HSTMT statement_handle,
 
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
-        if (!statement.query.empty())
-            throw std::runtime_error("ExecDirect called, but statement query is not empty.");
+        const std::string & query = stringFromSQLChar(statement_text, statement_text_size);
 
-        statement.query = stringFromSQLChar(statement_text, statement_text_size);
+        if (!statement.query.empty())
+        {
+            if (!statement.prepared) 
+                throw std::runtime_error("ExecDirect called, but statement query is not empty.");
+            else if (statement.query != query)
+                throw std::runtime_error("ExecDirect called, but statement query is not equal to prepared.");
+        }
+        statement.query = query;
         if (statement.query.empty())
             throw std::runtime_error("ExecDirect called with empty query.");
 

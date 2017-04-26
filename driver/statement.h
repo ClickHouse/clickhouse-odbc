@@ -42,6 +42,7 @@ public:
     std::string query;
     std::unique_ptr<Poco::Net::HTTPResponse> response;
     std::istream * in = nullptr;
+    bool prepared = false;
 
     DiagnosticRecord diagnostic_record;
 
