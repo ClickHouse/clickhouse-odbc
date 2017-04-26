@@ -60,6 +60,8 @@ endif ()
 message(STATUS "Using Poco: ${Poco_INCLUDE_DIRS} : ${Poco_Foundation_LIBRARY},${Poco_Util_LIBRARY},${Poco_Net_LIBRARY}")
 # === find_poco_end ===
 
+include (contrib/poco/cmake/FindODBC.cmake)
+
 message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE}")
 
 add_subdirectory (contrib)
