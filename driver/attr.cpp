@@ -110,7 +110,7 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
                 return SQL_SUCCESS;
 
             default:
-                throw std::runtime_error("Unsupported connection attribute.");
+                throw SqlException("Unsupported connection attribute.", "HY092");
         }
     });
 }

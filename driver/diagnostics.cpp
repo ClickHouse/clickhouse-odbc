@@ -1,7 +1,5 @@
 #include "diagnostics.h"
 
-#include <stdexcept>
-
 DiagnosticRecord::DiagnosticRecord()
 {
     reset();
@@ -12,6 +10,12 @@ void DiagnosticRecord::fromException()
     try
     {
         throw;
+    }
+    catch (const SqlException & e)
+    {
+        message = e.what();
+        native_error_code = 1;
+        sql_state = e.sqlState();
     }
     catch (const std::exception & e)
     {
