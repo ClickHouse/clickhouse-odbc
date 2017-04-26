@@ -45,7 +45,7 @@ else ()
 
     set (USE_INTERNAL_POCO_LIBRARY 1)
 
-    list (APPEND Poco_INCLUDE_DIRS
+    set (Poco_INCLUDE_DIRS
         "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Foundation/include/"
         "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Util/include/"
         "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Net/include/"
