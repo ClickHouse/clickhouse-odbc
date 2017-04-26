@@ -1,5 +1,3 @@
-include (../contrib/poco/cmake/FindODBC.cmake)
-
 add_library(clickhouse-odbc SHARED
     attr.cpp
     config.cpp
