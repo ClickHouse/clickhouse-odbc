@@ -155,26 +155,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\connection.h" />
+    <ClInclude Include="..\..\driver\connection.h" />
     <ClInclude Include="..\..\driver\config.h" />
     <ClInclude Include="..\..\driver\diagnostics.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\environment.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\log.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\platform.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\read_helpers.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\result_set.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\statement.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\string_ref.h" />
-    <ClInclude Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\utils.h" />
+    <ClInclude Include="..\..\driver\environment.h" />
+    <ClInclude Include="..\..\driver\log.h" />
+    <ClInclude Include="..\..\driver\platform.h" />
+    <ClInclude Include="..\..\driver\read_helpers.h" />
+    <ClInclude Include="..\..\driver\result_set.h" />
+    <ClInclude Include="..\..\driver\statement.h" />
+    <ClInclude Include="..\..\driver\string_ref.h" />
+    <ClInclude Include="..\..\driver\utils.h" />
     <ClInclude Include="..\..\driver\win\resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\attr.cpp" />
-    <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\handles.cpp" />
-    <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\info.cpp" />
-    <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\odbc.cpp" />
-    <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\result_set.cpp" />
-    <ClCompile Include="..\..\..\..\..\Source\Repos\clickhouse-odbc\driver\statement.cpp" />
+    <ClCompile Include="..\..\driver\attr.cpp" />
+    <ClCompile Include="..\..\driver\handles.cpp" />
+    <ClCompile Include="..\..\driver\info.cpp" />
+    <ClCompile Include="..\..\driver\odbc.cpp" />
+    <ClCompile Include="..\..\driver\result_set.cpp" />
+    <ClCompile Include="..\..\driver\statement.cpp" />
     <ClCompile Include="..\..\driver\config.cpp" />
     <ClCompile Include="..\..\driver\connection.cpp" />
     <ClCompile Include="..\..\driver\diagnostics.cpp" />
