@@ -10,7 +10,7 @@
     <?define BIT64 = "yes" ?>
     <?define PKGNAME = "ClickHouse ODBC x64" ?>
     <?define PGFOLDER = "ProgramFiles64Folder" ?>
-    <?define DLL_PATH = "../x64/Release" ?>
+    <?define DLL_PATH = "../x64/$(var.Configuration)" ?>
     <?define POCO_FOUNDATION = "PocoFoundation64.dll" ?>
     <?define POCO_NET = "PocoNet64.dll" ?>
     <?define ANSI_ID = "568F7B5A-6943-4B87-AB67-51E52B91607F" ?>
@@ -22,7 +22,7 @@
     <?define BIT64 = "no" ?>
     <?define PKGNAME = "ClickHouse ODBC x32" ?>
     <?define PGFOLDER = "ProgramFilesFolder" ?>
-    <?define DLL_PATH = "../Release" ?>
+    <?define DLL_PATH = "../$(var.Configuration)" ?>
     <?define POCO_FOUNDATION = "PocoFoundation.dll" ?>
     <?define POCO_NET = "PocoNet.dll" ?>
     <?define ANSI_ID = "5DFFB4E6-D747-4080-B733-69763772485C" ?>
