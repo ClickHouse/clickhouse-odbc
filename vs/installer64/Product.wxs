@@ -62,11 +62,11 @@
             <File Id='PocoFoundationDll'
                   Name='$(var.POCO_FOUNDATION)'
                   DiskId='1'
-                  Source='$(var.DLL_PATH)\$(var.POCO_FOUNDATION)' />
+                  Source='..\..\contrib\poco\bin64\$(var.POCO_FOUNDATION)' />
             <File Id='PocoNetdll'
                   Name='$(var.POCO_NET)'
                   DiskId='1'
-                  Source='$(var.DLL_PATH)\$(var.POCO_NET)' />            
+                  Source='..\..\contrib\poco\bin64\$(var.POCO_NET)' />            
           </Component>
           
           <Component Id="AnsiDriver" Guid="$(var.ANSI_ID)" Win64='$(var.BIT64)'>
