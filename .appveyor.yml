@@ -1,0 +1,19 @@
+version: 1.0.{build}
+
+clone_script:
+  - cmd: git clone --recursive --branch=%APPVEYOR_REPO_BRANCH% https://github.com/%APPVEYOR_REPO_NAME%.git %APPVEYOR_BUILD_FOLDER%
+
+platform:
+  - x86
+  - x64
+
+configuration:
+  - Release
+
+build_script:
+  - ps: |
+      msbuild @{"x86"="vs/odbc32.sln";"x64"="vs/odbc64.sln"}[$env:PLATFORM]
+
+deploy_script:
+   - ps: |
+       Push-AppveyorArtifact @{"x86"="vs\installer32\bin\Release\clickhouse_odbc_x32.msi";"x64"="vs\installer64\bin\Release\clickhouse_odbc_x64.msi"}[$env:PLATFORM]
