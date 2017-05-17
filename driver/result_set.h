@@ -55,6 +55,7 @@ struct ColumnInfo
     std::string type;
     std::string type_without_parameters;
     size_t display_size = 0;
+    bool is_nullable = false;
 };
 
 

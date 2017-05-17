@@ -165,6 +165,7 @@
     <ClInclude Include="..\..\driver\result_set.h" />
     <ClInclude Include="..\..\driver\statement.h" />
     <ClInclude Include="..\..\driver\string_ref.h" />
+    <ClInclude Include="..\..\driver\type_parser.h" />
     <ClInclude Include="..\..\driver\utils.h" />
     <ClInclude Include="..\..\driver\win\resource.h" />
   </ItemGroup>
@@ -178,6 +179,7 @@
     <ClCompile Include="..\..\driver\config.cpp" />
     <ClCompile Include="..\..\driver\connection.cpp" />
     <ClCompile Include="..\..\driver\diagnostics.cpp" />
+    <ClCompile Include="..\..\driver\type_parser.cpp" />
     <ClCompile Include="..\..\driver\win\dllmain.cpp" />
     <ClCompile Include="..\..\driver\win\setup.cpp" />
   </ItemGroup>

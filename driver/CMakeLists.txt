@@ -9,6 +9,7 @@ add_library(clickhouse-odbc SHARED
     odbc.cpp
     result_set.cpp
     statement.cpp
+    type_parser.cpp
 )
 
 set_target_properties(clickhouse-odbc

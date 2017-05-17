@@ -157,6 +157,7 @@
     <ClInclude Include="..\..\driver\read_helpers.h" />
     <ClInclude Include="..\..\driver\statement.h" />
     <ClInclude Include="..\..\driver\string_ref.h" />
+    <ClInclude Include="..\..\driver\type_parser.h" />
     <ClInclude Include="..\..\driver\utils.h" />
     <ClInclude Include="..\..\driver\win\resource.h" />
   </ItemGroup>
@@ -170,6 +171,7 @@
     <ClCompile Include="..\..\driver\odbc.cpp" />
     <ClCompile Include="..\..\driver\result_set.cpp" />
     <ClCompile Include="..\..\driver\statement.cpp" />
+    <ClCompile Include="..\..\driver\type_parser.cpp" />
     <ClCompile Include="..\..\driver\win\dllmain.cpp" />
     <ClCompile Include="..\..\driver\win\setup.cpp" />
   </ItemGroup>

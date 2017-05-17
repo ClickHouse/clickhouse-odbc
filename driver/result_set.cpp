@@ -1,6 +1,7 @@
 #include "log.h"
 #include "result_set.h"
 #include "statement.h"
+#include "type_parser.h"
 
 #include <Poco/Types.h>
 
@@ -49,6 +50,22 @@ void Field::normalizeDate(T& date) const
         date.day = 1;
 }
 
+static void assignTypeInfo(const TypeAst & ast, ColumnInfo * info)
+{
+    if (ast.meta == TypeAst::Terminal)
+    {
+        info->type_without_parameters = ast.name;
+    } 
+    else if (ast.meta == TypeAst::Nullable)
+    {
+        info->is_nullable = true;
+        assignTypeInfo(ast.elements.front(), info);
+    }
+    else
+    {
+        throw std::runtime_error("compound types doesn't supported: " + info->type);
+    }
+}
 
 void ResultSet::init(Statement * statement_)
 {
@@ -70,10 +87,17 @@ void ResultSet::init(Statement * statement_)
         readString(columns_info[i].name, in());
         readString(columns_info[i].type, in());
 
-        columns_info[i].type_without_parameters = columns_info[i].type;
-        auto pos = columns_info[i].type_without_parameters.find('(');
-        if (std::string::npos != pos)
-            columns_info[i].type_without_parameters.resize(pos);
+        {
+            TypeAst ast;
+            if (TypeParser(columns_info[i].type).parse(&ast))
+            {
+                assignTypeInfo(ast, &columns_info[i]);
+            }
+            else
+            {
+                throw std::runtime_error("can't pase name of type: " + columns_info[i].type);
+            }
+        }
     }
 
     readNextBlock();
