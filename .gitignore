@@ -1,5 +1,9 @@
 build
 
+CMakeFiles/
+Makefile
+CMakeCache.txt
+
 *.db
 *.pdb
 *.opendb
@@ -9,6 +13,7 @@ build
 *.aps
 *.user
 *.sdf
+*.cmake
 
 vs/.vs/*
 vs/driver32/.vs/*
