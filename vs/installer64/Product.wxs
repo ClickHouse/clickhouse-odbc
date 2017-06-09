@@ -58,6 +58,8 @@
     
     <!-- Directories -->
     <Directory Id="TARGETDIR" Name="SourceDir">
+      <Merge Id="CRT" SourceFile="$(var.CrtMergeModule)" Language="0" DiskId="1" />
+      
       <Directory Id="$(var.PGFOLDER)">
         <Directory Id="INSTALLFOLDER" Name="ClickHouse ODBC">
           <Component Id ="PocoLibs" Guid="$(var.POCOLIB_ID)" Win64='$(var.BIT64)'>
@@ -127,7 +129,6 @@
           </Component>
           </Directory>
       </Directory>
-      <Merge Id="CRT" Language="0" SourceFile="$(var.CrtMergeModule)" DiskId="1" />
     </Directory>
 
     <!-- Features -->
