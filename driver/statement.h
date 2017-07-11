@@ -3,8 +3,6 @@
 #include "connection.h"
 #include "result_set.h"
 
-#include <Poco/Base64Encoder.h>
-#include <Poco/Net/HTTPRequest.h>
 #include <Poco/Net/HTTPResponse.h>
 
 #include <sstream>
@@ -28,21 +26,41 @@ class Statement
 public:
     Statement(Connection & conn_);
 
-    void sendRequest();
+    /// Whether the driver should scan the SQL string for escape sequences or not.
+    bool getScanEscapeSequences() const;
+
+    /// Enable or disable scannign the SQL string for escape sequences.
+    void setScanEscapeSequences(bool value);
+
+    /// Returns original query.
+    const std::string getQuery() const;
+
+    /// Lookup TypeInfo for given name of type.
+    const TypeInfo & getTypeInfo(const std::string & type_name) const;
+
+    bool isEmpty() const;
+
+    bool isPrepared() const;
 
     /// Fetch next row.
     bool fetchRow();
 
+    /// Do all the necessary work for preparing the query.
+    void prepareQuery(const std::string& q);
+
+    /// Set query without preparation.
+    void setQuery(const std::string& q);
+
+    /// Reset statement to initial state.
     void reset();
 
-    /// Lookup TypeInfo for given name of type.
-    const TypeInfo & GetTypeInfo(const std::string & type_name) const;
+    /// Send request to a server.
+    void sendRequest();
+
 
     Connection & connection;
-    std::string query;
     std::unique_ptr<Poco::Net::HTTPResponse> response;
     std::istream * in = nullptr;
-    bool prepared = false;
 
     DiagnosticRecord diagnostic_record;
 
@@ -55,4 +73,10 @@ public:
     Row current_row;
 
     std::map<SQLUSMALLINT, Binding> bindings;
+
+private:
+    std::string query;
+    std::string prepared_query;
+    bool prepared = false;
+    bool scan_escape_sequences = true;
 };

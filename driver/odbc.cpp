@@ -74,15 +74,16 @@ SQLPrepare(HSTMT statement_handle,
 
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
-        if (!statement.query.empty())
+        const std::string & query = stringFromSQLChar(statement_text, statement_text_size);
+
+        if (!statement.isEmpty())
             throw std::runtime_error("Prepare called, but statement query is not empty.");
-
-        statement.query = stringFromSQLChar(statement_text, statement_text_size);
-        if (statement.query.empty())
+        if (query.empty())
             throw std::runtime_error("Prepare called with empty query.");
-        statement.prepared = true;
 
-        LOG(statement.query);
+        statement.prepareQuery(query);
+
+        LOG(query);
         return SQL_SUCCESS;
     });
 }
@@ -111,18 +112,22 @@ SQLExecDirect(HSTMT statement_handle,
     {
         const std::string & query = stringFromSQLChar(statement_text, statement_text_size);
 
-        if (!statement.query.empty())
+        if (!statement.isEmpty())
         {
-            if (!statement.prepared) 
+            if (!statement.isPrepared()) 
                 throw std::runtime_error("ExecDirect called, but statement query is not empty.");
-            else if (statement.query != query)
+            else if (statement.getQuery() != query)
                 throw std::runtime_error("ExecDirect called, but statement query is not equal to prepared.");
         }
-        statement.query = query;
-        if (statement.query.empty())
-            throw std::runtime_error("ExecDirect called with empty query.");
+        else
+        {
+            if (query.empty())
+                throw std::runtime_error("ExecDirect called with empty query.");
 
-        LOG(statement.query);
+            statement.setQuery(query);
+        }
+       
+        LOG(query);
         statement.sendRequest();
         return SQL_SUCCESS;
     });
@@ -454,7 +459,7 @@ SQLBindCol(HSTMT statement_handle,
 
         if (target_type == SQL_C_DEFAULT)
         {
-            target_type = statement.GetTypeInfo(statement.result.getColumnInfo(column_number - 1).type_without_parameters).sql_type;
+            target_type = statement.getTypeInfo(statement.result.getColumnInfo(column_number - 1).type_without_parameters).sql_type;
         }
 
 		Binding binding;
@@ -638,7 +643,7 @@ SQLTables(HSTMT statement_handle,
 
         query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
 
-        statement.query = query.str();
+        statement.setQuery(query.str());
         statement.sendRequest();
         return SQL_SUCCESS;
     });
@@ -691,7 +696,7 @@ SQLColumns(HSTMT statement_handle,
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
 
-        statement.query = query.str();
+        statement.setQuery(query.str());
         statement.sendRequest();
         return SQL_SUCCESS;
     });
@@ -766,7 +771,7 @@ SQLGetTypeInfo(HSTMT statement_handle,
         if (first)
             query.str("SELECT 1 WHERE 0");
 
-        statement.query = query.str();
+        statement.setQuery(query.str());
         statement.sendRequest();
         return SQL_SUCCESS;
     });

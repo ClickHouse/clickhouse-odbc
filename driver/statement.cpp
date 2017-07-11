@@ -1,6 +1,8 @@
 #include "statement.h"
 
+#include <Poco/Base64Encoder.h>
 #include <Poco/Exception.h>
+#include <Poco/Net/HTTPRequest.h>
 
 Statement::Statement(Connection & conn_)
     : connection(conn_)
@@ -9,6 +11,36 @@ Statement::Statement(Connection & conn_)
     apd.reset(new DescriptorClass);
     ird.reset(new DescriptorClass);
     ipd.reset(new DescriptorClass);
+}
+
+bool Statement::getScanEscapeSequences() const
+{
+    return scan_escape_sequences;
+}
+
+void Statement::setScanEscapeSequences(bool value)
+{
+    scan_escape_sequences = value;
+}
+
+const std::string Statement::getQuery() const
+{
+    return query;
+}
+
+const TypeInfo & Statement::getTypeInfo(const std::string & type_name) const
+{
+    return connection.environment.types_info.at(type_name);
+}
+
+bool Statement::isEmpty() const
+{
+    return query.empty();
+}
+
+bool Statement::isPrepared() const
+{
+    return prepared;
 }
 
 void Statement::sendRequest()
@@ -35,7 +67,7 @@ void Statement::sendRequest()
     {
         try
         {
-            connection.session.sendRequest(request) << query;
+            connection.session.sendRequest(request) << prepared_query;
             response = std::make_unique<Poco::Net::HTTPResponse>();
             in = &connection.session.receiveResponse(*response);
             break;
@@ -71,6 +103,19 @@ bool Statement::fetchRow()
     return current_row.isValid();
 }
 
+void Statement::prepareQuery(const std::string& q)
+{
+    query = q;
+    prepared_query = q; // TODO do preparation
+    prepared = true;
+}
+
+void Statement::setQuery(const std::string& q)
+{
+    query = q;
+    prepared_query = q;
+}
+
 void Statement::reset()
 {
     in = nullptr;
@@ -83,9 +128,4 @@ void Statement::reset()
     apd.reset(new DescriptorClass);
     ird.reset(new DescriptorClass);
     ipd.reset(new DescriptorClass);
-}
-
-const TypeInfo & Statement::GetTypeInfo(const std::string & type_name) const
-{
-    return connection.environment.types_info.at(type_name);
 }

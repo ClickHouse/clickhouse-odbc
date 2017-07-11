@@ -172,6 +172,10 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
 
         switch (attribute)
         {
+            case SQL_ATTR_NOSCAN:
+                statement.setScanEscapeSequences((SQLULEN)value != SQL_NOSCAN_ON);
+                return SQL_SUCCESS;
+
             case SQL_ATTR_APP_ROW_DESC:
             case SQL_ATTR_APP_PARAM_DESC:
             case SQL_ATTR_CURSOR_SCROLLABLE:
@@ -184,7 +188,6 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_KEYSET_SIZE:
             case SQL_ATTR_MAX_LENGTH:
             case SQL_ATTR_MAX_ROWS:
-            case SQL_ATTR_NOSCAN:
             case SQL_ATTR_PARAM_BIND_OFFSET_PTR:
             case SQL_ATTR_PARAM_BIND_TYPE:
             case SQL_ATTR_PARAM_OPERATION_PTR:
@@ -247,9 +250,9 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
         switch (attribute)
         {
             CASE_FALLTHROUGH(SQL_ATTR_APP_ROW_DESC)
-                CASE_FALLTHROUGH(SQL_ATTR_APP_PARAM_DESC)
-                CASE_FALLTHROUGH(SQL_ATTR_IMP_ROW_DESC)
-                CASE_FALLTHROUGH(SQL_ATTR_IMP_PARAM_DESC)
+            CASE_FALLTHROUGH(SQL_ATTR_APP_PARAM_DESC)
+            CASE_FALLTHROUGH(SQL_ATTR_IMP_ROW_DESC)
+            CASE_FALLTHROUGH(SQL_ATTR_IMP_PARAM_DESC)
                 if (out_value_length)
                     *out_value_length = sizeof(HSTMT *);
                 *((HSTMT *)out_value) = (HSTMT *)descHandleFromStatementHandle(statement, attribute);
@@ -264,7 +267,7 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             CASE_NUM(SQL_ATTR_MAX_LENGTH, SQLULEN, 0);
             CASE_NUM(SQL_ATTR_MAX_ROWS, SQLULEN, 0);
             CASE_NUM(SQL_ATTR_METADATA_ID, SQLULEN, SQL_FALSE);
-            CASE_NUM(SQL_ATTR_NOSCAN, SQLULEN, SQL_NOSCAN_ON);
+            CASE_NUM(SQL_ATTR_NOSCAN, SQLULEN, (statement.getScanEscapeSequences() ? SQL_NOSCAN_OFF : SQL_NOSCAN_ON));
             CASE_NUM(SQL_ATTR_QUERY_TIMEOUT, SQLULEN, 0);
             CASE_NUM(SQL_ATTR_RETRIEVE_DATA, SQLULEN, SQL_RD_ON);
             CASE_NUM(SQL_ATTR_ROW_NUMBER, SQLULEN, statement.result.getNumRows());
