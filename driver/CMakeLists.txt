@@ -4,6 +4,7 @@ add_library(clickhouse-odbc SHARED
     config.cpp
     connection.cpp
     diagnostics.cpp
+    escape_sequences.cpp
     handles.cpp
     info.cpp
     odbc.cpp

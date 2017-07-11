@@ -57,11 +57,10 @@ public:
     /// Send request to a server.
     void sendRequest();
 
-
+public:
     Connection & connection;
-    std::unique_ptr<Poco::Net::HTTPResponse> response;
+    
     std::istream * in = nullptr;
-
     DiagnosticRecord diagnostic_record;
 
     std::unique_ptr<DescriptorClass> ard;
@@ -75,6 +74,8 @@ public:
     std::map<SQLUSMALLINT, Binding> bindings;
 
 private:
+    std::unique_ptr<Poco::Net::HTTPResponse> response;
+
     std::string query;
     std::string prepared_query;
     bool prepared = false;

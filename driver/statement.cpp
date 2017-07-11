@@ -1,3 +1,4 @@
+#include "escape_sequences.h"
 #include "statement.h"
 
 #include <Poco/Base64Encoder.h>
@@ -106,7 +107,15 @@ bool Statement::fetchRow()
 void Statement::prepareQuery(const std::string& q)
 {
     query = q;
-    prepared_query = q; // TODO do preparation
+    if (scan_escape_sequences)
+    {
+        prepared_query = replaceEscapeSequences(query);
+    }
+    else
+    {
+        prepared_query = q;
+    }
+
     prepared = true;
 }
 

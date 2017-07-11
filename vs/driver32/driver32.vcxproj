@@ -159,6 +159,7 @@
     <ClInclude Include="..\..\driver\config.h" />
     <ClInclude Include="..\..\driver\diagnostics.h" />
     <ClInclude Include="..\..\driver\environment.h" />
+    <ClInclude Include="..\..\driver\escape_sequences.h" />
     <ClInclude Include="..\..\driver\log.h" />
     <ClInclude Include="..\..\driver\platform.h" />
     <ClInclude Include="..\..\driver\read_helpers.h" />
@@ -171,6 +172,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\driver\attr.cpp" />
+    <ClCompile Include="..\..\driver\escape_sequences.cpp" />
     <ClCompile Include="..\..\driver\handles.cpp" />
     <ClCompile Include="..\..\driver\info.cpp" />
     <ClCompile Include="..\..\driver\odbc.cpp" />
