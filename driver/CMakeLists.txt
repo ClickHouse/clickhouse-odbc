@@ -1,10 +1,10 @@
+add_subdirectory (escaping)
 
 add_library(clickhouse-odbc SHARED
     attr.cpp
     config.cpp
     connection.cpp
     diagnostics.cpp
-    escape_sequences.cpp
     handles.cpp
     info.cpp
     odbc.cpp
@@ -19,6 +19,8 @@ set_target_properties(clickhouse-odbc
 )
 
 target_link_libraries(clickhouse-odbc
+    clickhouse-odbc-escaping
+
     ${Poco_Net_LIBRARY}
     ${Poco_Foundation_LIBRARY}
     ${ODBC_LIBRARIES}
