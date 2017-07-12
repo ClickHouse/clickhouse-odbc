@@ -26,8 +26,17 @@ struct Token {
         RCURLY,     //  }
     };
 
-    Type type = INVALID;
+    Type type;
     StringView literal;
+
+    Token()
+        : type(INVALID)
+    { }
+
+    Token(Type t, StringView l)
+        : type(t)
+        , literal(l)
+    { }
 };
 
 class Lexer {

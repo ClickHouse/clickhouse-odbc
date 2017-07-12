@@ -51,7 +51,13 @@
     <ClInclude Include="..\..\driver\type_parser.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\driver\escape_sequences.h">
+    <ClInclude Include="..\..\driver\escaping\escape_sequences.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\driver\escaping\lexer.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\driver\escaping\string_view.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
   </ItemGroup>
@@ -92,7 +98,10 @@
     <ClCompile Include="..\..\driver\type_parser.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\driver\escape_sequences.cpp">
+    <ClCompile Include="..\..\driver\escaping\escape_sequences.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\driver\escaping\lexer.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
   </ItemGroup>
