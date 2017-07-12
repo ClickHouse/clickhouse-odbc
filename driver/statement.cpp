@@ -1,5 +1,5 @@
-#include "escape_sequences.h"
 #include "statement.h"
+#include "escaping/escape_sequences.h"
 
 #include <Poco/Base64Encoder.h>
 #include <Poco/Exception.h>
@@ -62,7 +62,7 @@ void Statement::sendRequest()
 
     if (in && in->peek() != EOF)
         connection.session.reset();
-    
+
     // Send request to server with finite count of retries.
     for (int i = 1; ; ++i)
     {
@@ -81,7 +81,7 @@ void Statement::sendRequest()
             }
         }
     }
-    
+
     Poco::Net::HTTPResponse::HTTPStatus status = response->getStatus();
 
     if (status != Poco::Net::HTTPResponse::HTTP_OK)

@@ -74,4 +74,8 @@ if (USE_INTERNAL_POCO_LIBRARY)
     set_property(TARGET Foundation PROPERTY INTERFACE_LINK_LIBRARIES "")
 endif ()
 
+include_directories(contrib)
+include_directories(driver)
+
 add_subdirectory (driver)
+add_subdirectory (driver/ut)
