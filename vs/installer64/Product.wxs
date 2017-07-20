@@ -10,8 +10,15 @@
   <?define PKGNAME = "ClickHouse ODBC x64" ?>
   <?define PGFOLDER = "ProgramFiles64Folder" ?>
   <?define DLL_PATH = "../x64/$(var.Configuration)" ?>
-  <?define POCO_FOUNDATION = "PocoFoundation64.dll" ?>
-  <?define POCO_NET = "PocoNet64.dll" ?>
+
+  <?if $(var.Configuration) = Debug ?>
+    <?define POCO_FOUNDATION = "PocoFoundation64d.dll" ?>
+    <?define POCO_NET = "PocoNet64d.dll" ?>
+  <?else?>
+    <?define POCO_FOUNDATION = "PocoFoundation64.dll" ?>
+    <?define POCO_NET = "PocoNet64.dll" ?>
+  <?endif ?>
+
   <?define CrtMergeModule = "$(env.CommonProgramFiles)\Merge Modules\Microsoft_VC140_CRT_x64.msm" ?>
   <?define ANSI_ID = "568F7B5A-6943-4B87-AB67-51E52B91607F" ?>
   <?define POCOLIB_ID = "D771CE33-985F-4C0B-ADE1-629115BEA253" ?>
