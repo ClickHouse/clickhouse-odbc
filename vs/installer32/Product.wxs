@@ -14,6 +14,8 @@
   <?if $(var.Configuration) = Debug ?>
     <?define POCO_FOUNDATION = "PocoFoundationd.dll" ?>
     <?define POCO_NET = "PocoNetd.dll" ?>
+	<?define POCO_FOUNDATION_PDB = "PocoFoundationd.pdb" ?>
+    <?define POCO_NET_PDB = "PocoNetd.pdb" ?>
   <?else?>
     <?define POCO_FOUNDATION = "PocoFoundation.dll" ?>
     <?define POCO_NET = "PocoNet.dll" ?>
@@ -60,7 +62,19 @@
             <File Id='PocoNetdll'
                   Name='$(var.POCO_NET)'
                   DiskId='1'
-                  Source='..\..\contrib\poco\bin\$(var.POCO_NET)' />            
+                  Source='..\..\contrib\poco\bin\$(var.POCO_NET)' />   
+			<?if $(var.Configuration) = Debug ?>
+				<File Id='PocoFoundationPdb'
+					Name='$(var.POCO_FOUNDATION_PDB)'
+					DiskId='1'
+					Source='..\..\contrib\poco\bin\$(var.POCO_FOUNDATION_PDB)' />
+				<File Id='PocoNetPdb'
+					Name='$(var.POCO_NET_PDB)'
+					DiskId='1'
+					Source='..\..\contrib\poco\bin\$(var.POCO_NET_PDB)' />  
+			<?endif ?>	
+
+				  
           </Component>
           
           <Component Id="AnsiDriver" Guid="$(var.ANSI_ID)" Win64='$(var.BIT64)'>
@@ -69,7 +83,13 @@
                   DiskId='1'
                   Source='$(var.DLL_PATH)\clickhouseodbc.dll'
                   KeyPath='yes' />
-
+			<?if $(var.Configuration) = Debug ?>
+				<File Id='AnsiDriverPdb'
+					Name='clickhouseodbc.pdb'
+					DiskId='1'
+					Source='$(var.DLL_PATH)\clickhouseodbc.pdb' />
+			<?endif ?>
+				  
             <RegistryKey Id='AnsiOdbcRegInfo' 
                          Root='HKLM' 
                          Key='SOFTWARE\ODBC\ODBCINST.INI\ClickHouse ANSI'
@@ -96,6 +116,12 @@
                   DiskId='1'
                   Source='$(var.DLL_PATH)\clickhouseodbcw.dll'
                   KeyPath='yes' />
+			<?if $(var.Configuration) = Debug ?>
+				<File Id='UnicodeDriverPdb'
+					Name='clickhouseodbcw.pdb'
+					DiskId='1'
+					Source='$(var.DLL_PATH)\clickhouseodbcw.pdb' />
+			<?endif ?>
 
             <RegistryKey Id='UnicodeOdbcRegInfo'
                          Root='HKLM'
