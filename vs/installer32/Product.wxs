@@ -2,37 +2,31 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
 
   <!-- Define variables -->
-  <?if $(var.Platform) != x64 and $(var.Platform) != x86 ?>
+  <?if $(var.Platform) != x86 ?>
     <?error Invalid Platform variable ?>
   <?endif?>
 
-  <?if $(var.Platform) = x64 ?>
-    <?define BIT64 = "yes" ?>
-    <?define PKGNAME = "ClickHouse ODBC x64" ?>
-    <?define PGFOLDER = "ProgramFiles64Folder" ?>
-    <?define DLL_PATH = "../x64/$(var.Configuration)" ?>
-    <?define POCO_FOUNDATION = "PocoFoundation64.dll" ?>
-    <?define POCO_NET = "PocoNet64.dll" ?>
-    <?define CrtMergeModule = "$(env.CommonProgramFiles)\Merge Modules\Microsoft_VC140_CRT_x64.msm" ?>
-    <?define ANSI_ID = "568F7B5A-6943-4B87-AB67-51E52B91607F" ?>
-    <?define POCOLIB_ID = "D771CE33-985F-4C0B-ADE1-629115BEA253" ?>
-    <?define PRODUCT_ID= "D77FCBEA-C3A9-442C-8055-83CBDB57009B" ?>
-    <?define UNICODE_ID = "241F5D8F-BC09-47EC-808B-2B344CBCC131" ?>
-    <?define UPGRADE_ID = "B63A7326-E080-49E3-A963-8F5EFC2DDD65" ?>
+  <?define BIT64 = "no" ?>
+  <?define PKGNAME = "ClickHouse ODBC x32" ?>
+  <?define PGFOLDER = "ProgramFilesFolder" ?>
+  <?define DLL_PATH = "../$(var.Configuration)" ?>
+
+  <?if $(var.Configuration) = Debug ?>
+    <?define POCO_FOUNDATION = "PocoFoundationd.dll" ?>
+    <?define POCO_NET = "PocoNetd.dll" ?>
+	<?define POCO_FOUNDATION_PDB = "PocoFoundationd.pdb" ?>
+    <?define POCO_NET_PDB = "PocoNetd.pdb" ?>
   <?else?>
-    <?define BIT64 = "no" ?>
-    <?define PKGNAME = "ClickHouse ODBC x32" ?>
-    <?define PGFOLDER = "ProgramFilesFolder" ?>
-    <?define DLL_PATH = "../$(var.Configuration)" ?>
     <?define POCO_FOUNDATION = "PocoFoundation.dll" ?>
     <?define POCO_NET = "PocoNet.dll" ?>
-    <?define CrtMergeModule = "$(env.CommonProgramFiles)\Merge Modules\Microsoft_VC140_CRT_x86.msm" ?>
-    <?define ANSI_ID = "5DFFB4E6-D747-4080-B733-69763772485C" ?>
-    <?define POCOLIB_ID = "611EDC2C-2617-485E-81BE-2A9B4664E7BC" ?>
-    <?define PRODUCT_ID= "9FCA44DB-6963-4EBF-87A6-279331C139EB" ?>
-    <?define UNICODE_ID = "76D81B68-57A7-4195-B2D1-26A9B968FA51" ?>
-    <?define UPGRADE_ID = "3C19591C-7FFC-461A-8828-611EDFBE0619" ?>
-  <?endif?>
+  <?endif ?>
+
+  <?define CrtMergeModule = "$(env.CommonProgramFiles)\Merge Modules\Microsoft_VC140_CRT_x86.msm" ?>
+  <?define ANSI_ID = "5DFFB4E6-D747-4080-B733-69763772485C" ?>
+  <?define POCOLIB_ID = "611EDC2C-2617-485E-81BE-2A9B4664E7BC" ?>
+  <?define PRODUCT_ID= "9FCA44DB-6963-4EBF-87A6-279331C139EB" ?>
+  <?define UNICODE_ID = "76D81B68-57A7-4195-B2D1-26A9B968FA51" ?>
+  <?define UPGRADE_ID = "3C19591C-7FFC-461A-8828-611EDFBE0619" ?>
 
   <!-- Product details -->
   <Product Id="$(var.PRODUCT_ID)"
@@ -48,7 +42,7 @@
       Keywords="ClickHouse, ODBC"
       Comments="ClickHouse ODBC driver"
       Manufacturer="Yandex LLC"
-      InstallerVersion="200" 
+      InstallerVersion="301" 
       Platform="$(var.Platform)"
       Compressed="yes" 
       InstallScope="perMachine" />
@@ -68,7 +62,19 @@
             <File Id='PocoNetdll'
                   Name='$(var.POCO_NET)'
                   DiskId='1'
-                  Source='..\..\contrib\poco\bin\$(var.POCO_NET)' />            
+                  Source='..\..\contrib\poco\bin\$(var.POCO_NET)' />   
+			<?if $(var.Configuration) = Debug ?>
+				<File Id='PocoFoundationPdb'
+					Name='$(var.POCO_FOUNDATION_PDB)'
+					DiskId='1'
+					Source='..\..\contrib\poco\bin\$(var.POCO_FOUNDATION_PDB)' />
+				<File Id='PocoNetPdb'
+					Name='$(var.POCO_NET_PDB)'
+					DiskId='1'
+					Source='..\..\contrib\poco\bin\$(var.POCO_NET_PDB)' />  
+			<?endif ?>	
+
+				  
           </Component>
           
           <Component Id="AnsiDriver" Guid="$(var.ANSI_ID)" Win64='$(var.BIT64)'>
@@ -77,7 +83,13 @@
                   DiskId='1'
                   Source='$(var.DLL_PATH)\clickhouseodbc.dll'
                   KeyPath='yes' />
-
+			<?if $(var.Configuration) = Debug ?>
+				<File Id='AnsiDriverPdb'
+					Name='clickhouseodbc.pdb'
+					DiskId='1'
+					Source='$(var.DLL_PATH)\clickhouseodbc.pdb' />
+			<?endif ?>
+				  
             <RegistryKey Id='AnsiOdbcRegInfo' 
                          Root='HKLM' 
                          Key='SOFTWARE\ODBC\ODBCINST.INI\ClickHouse ANSI'
@@ -104,6 +116,12 @@
                   DiskId='1'
                   Source='$(var.DLL_PATH)\clickhouseodbcw.dll'
                   KeyPath='yes' />
+			<?if $(var.Configuration) = Debug ?>
+				<File Id='UnicodeDriverPdb'
+					Name='clickhouseodbcw.pdb'
+					DiskId='1'
+					Source='$(var.DLL_PATH)\clickhouseodbcw.pdb' />
+			<?endif ?>
 
             <RegistryKey Id='UnicodeOdbcRegInfo'
                          Root='HKLM'
