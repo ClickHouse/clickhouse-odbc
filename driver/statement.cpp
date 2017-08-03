@@ -7,6 +7,7 @@
 
 Statement::Statement(Connection & conn_)
     : connection(conn_)
+    , metadata_id(conn_.environment.metadata_id)
 {
     ard.reset(new DescriptorClass);
     apd.reset(new DescriptorClass);
@@ -22,6 +23,16 @@ bool Statement::getScanEscapeSequences() const
 void Statement::setScanEscapeSequences(bool value)
 {
     scan_escape_sequences = value;
+}
+
+SQLUINTEGER Statement::getMetadataId() const
+{
+    return metadata_id;
+}
+
+void Statement::setMetadataId(SQLUINTEGER id)
+{
+    metadata_id = id;
 }
 
 const std::string Statement::getQuery() const

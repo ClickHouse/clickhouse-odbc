@@ -32,6 +32,12 @@ public:
     /// Enable or disable scannign the SQL string for escape sequences.
     void setScanEscapeSequences(bool value);
 
+    /// Returns current value of SQL_ATTR_METADATA_ID.
+    SQLUINTEGER getMetadataId() const;
+
+    /// Sets value of SQL_ATTR_METADATA_ID.
+    void setMetadataId(SQLUINTEGER id);
+
     /// Returns original query.
     const std::string getQuery() const;
 
@@ -75,6 +81,10 @@ public:
 
 private:
     std::unique_ptr<Poco::Net::HTTPResponse> response;
+
+    /// An SQLUINTEGER value that determines 
+    /// how the string arguments of catalog functions are treated.
+    SQLUINTEGER metadata_id;
 
     std::string query;
     std::string prepared_query;

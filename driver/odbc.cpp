@@ -298,7 +298,7 @@ impl_SQLGetData(HSTMT statement_handle,
 {
     LOG(__FUNCTION__);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement)
+    return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE
     {
         if (column_or_param_number < 1 || column_or_param_number > statement.result.getNumColumns())
             throw std::runtime_error("Column number is out of range.");
@@ -609,7 +609,7 @@ SQLGetDiagField(SQLSMALLINT handle_type, SQLHANDLE handle,
         out_message_size);
 }
 
-
+/// Description: https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqltables
 RETCODE SQL_API
 SQLTables(HSTMT statement_handle,
           SQLTCHAR * catalog_name, SQLSMALLINT catalog_name_length,
@@ -619,29 +619,78 @@ SQLTables(HSTMT statement_handle,
 {
     LOG(__FUNCTION__);
 
+    // TODO (artpaul) Take statement.getMetatadaId() into account.
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
+        const std::string catalog = stringFromSQLChar(catalog_name, catalog_name_length);
+    
         std::stringstream query;
 
-        query << "SELECT"
+        // Get a list of all tables in all databases.  
+        if (catalog_name != nullptr && catalog == SQL_ALL_CATALOGS &&
+            !schema_name && !table_name && !table_type)
+        {
+            query << "SELECT"
                 " database AS TABLE_CAT"
                 ", '' AS TABLE_SCHEM"
                 ", name AS TABLE_NAME"
                 ", 'TABLE' AS TABLE_TYPE"
                 ", '' AS REMARKS"
-            " FROM system.tables"
-            " WHERE (1 == 1)";
+                " FROM system.tables"
+                " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
+        }
+        // Get a list of all tables in the current database.  
+        else if (!catalog_name && !schema_name && !table_name && !table_type)
+        {
+            query << "SELECT"
+                " database AS TABLE_CAT"
+                ", '' AS TABLE_SCHEM"
+                ", name AS TABLE_NAME"
+                ", 'TABLE' AS TABLE_TYPE"
+                ", '' AS REMARKS"
+                " FROM system.tables"
+                " WHERE (database == '";
+            query << statement.connection.database << "')";
+            query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
+        }
+        // Get a list of databases on the current connection's server.
+        else if (!catalog.empty() &&
+                 schema_name != nullptr && schema_name_length == 0 &&
+                 table_name != nullptr && table_name_length == 0)
+        {
+            query << "SELECT"
+                " name AS TABLE_CAT"
+                ", '' AS TABLE_SCHEM"
+                ", '' AS TABLE_NAME"
+                ", '' AS TABLE_TYPE"
+                ", '' AS REMARKS"
+                " FROM system.databases"
+                " WHERE (1 == 1)";
+            query << " AND TABLE_CAT LIKE '" << catalog << "'";
+            query << " ORDER BY TABLE_CAT";
+        }
+        else
+        {
+            query << "SELECT"
+                " database AS TABLE_CAT"
+                ", '' AS TABLE_SCHEM"
+                ", name AS TABLE_NAME"
+                ", 'TABLE' AS TABLE_TYPE"
+                ", '' AS REMARKS"
+                " FROM system.tables"
+                " WHERE (1 == 1)";
 
-        if (catalog_name)
-            query << " AND TABLE_CAT LIKE '" << stringFromSQLChar(catalog_name, catalog_name_length) << "'";
-        if (schema_name)
-            query << " AND TABLE_SCHEM LIKE '" << stringFromSQLChar(schema_name, schema_name_length) << "'";
-        if (table_name)
-            query << " AND TABLE_NAME LIKE '" << stringFromSQLChar(table_name, table_name_length) << "'";
-    /*  if (table_type)
-            query << " AND TABLE_TYPE = '" << stringFromSQLChar(table_type, table_type_length) << "'";*/
+            if (catalog_name_length)
+                query << " AND TABLE_CAT LIKE '" << stringFromSQLChar(catalog_name, catalog_name_length) << "'";
+            if (schema_name_length)
+                query << " AND TABLE_SCHEM LIKE '" << stringFromSQLChar(schema_name, schema_name_length) << "'";
+            if (table_name_length)
+                query << " AND TABLE_NAME LIKE '" << stringFromSQLChar(table_name, table_name_length) << "'";
+            //if (table_type_length)
+            //    query << " AND TABLE_TYPE = '" << stringFromSQLChar(table_type, table_type_length) << "'";
 
-        query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
+            query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
+        }
 
         statement.setQuery(query.str());
         statement.sendRequest();
@@ -685,13 +734,13 @@ SQLColumns(HSTMT statement_handle,
             " FROM system.columns"
             " WHERE (1 == 1)";
 
-        if (catalog_name)
+        if (catalog_name_length)
             query << " AND TABLE_CAT LIKE '" << stringFromSQLChar(catalog_name, catalog_name_length) << "'";
-        if (schema_name)
+        if (schema_name_length)
             query << " AND TABLE_SCHEM LIKE '" << stringFromSQLChar(schema_name, schema_name_length) << "'";
-        if (table_name)
+        if (table_name_length)
             query << " AND TABLE_NAME LIKE '" << stringFromSQLChar(table_name, table_name_length) << "'";
-        if (column_name)
+        if (column_name_length)
             query << " AND COLUMN_NAME LIKE '" << stringFromSQLChar(column_name, column_name_length) << "'";
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";

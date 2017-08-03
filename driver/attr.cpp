@@ -38,6 +38,10 @@ impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
                 return SQL_SUCCESS;
             }
 
+            case SQL_ATTR_METADATA_ID:
+                environment.metadata_id = (SQLUINTEGER)value;
+                return SQL_SUCCESS;
+
             default:
                 throw std::runtime_error("Unsupported environment attribute.");
         }
@@ -51,15 +55,18 @@ impl_SQLGetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
 {
     LOG(__FUNCTION__);
 
-    return doWith<Environment>(environment_handle, [&](Environment & environment)
+    return doWith<Environment>(environment_handle, [&](Environment & environment) -> RETCODE
     {
         LOG("attr: " << attribute);
+        const char * name = nullptr;
 
         switch (attribute)
         {
             case SQL_ATTR_ODBC_VERSION:
                 fillOutputNumber<SQLUINTEGER>(environment.odbc_version, out_value, out_value_max_length, out_value_length);
                 return SQL_SUCCESS;
+
+             CASE_NUM(SQL_ATTR_METADATA_ID, SQLUINTEGER, environment.metadata_id);
 
             case SQL_ATTR_CONNECTION_POOLING:
             case SQL_ATTR_CP_MATCH:
@@ -92,12 +99,15 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
                 return SQL_SUCCESS;
             }
 
+            case SQL_ATTR_CURRENT_CATALOG:
+                connection.database = stringFromSQLChar((SQLTCHAR *)value, value_length);
+                return SQL_SUCCESS;
+
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:
             case SQL_ATTR_AUTO_IPD:
             case SQL_ATTR_AUTOCOMMIT:
             case SQL_ATTR_CONNECTION_DEAD:
-            case SQL_ATTR_CURRENT_CATALOG:
             case SQL_ATTR_METADATA_ID:
             case SQL_ATTR_ODBC_CURSORS:
             case SQL_ATTR_PACKET_SIZE:
@@ -174,6 +184,10 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
         {
             case SQL_ATTR_NOSCAN:
                 statement.setScanEscapeSequences((SQLULEN)value != SQL_NOSCAN_ON);
+                return SQL_SUCCESS;
+
+            case SQL_ATTR_METADATA_ID:
+                statement.setMetadataId((SQLUINTEGER)value);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_APP_ROW_DESC:
@@ -266,7 +280,7 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             CASE_NUM(SQL_ATTR_ENABLE_AUTO_IPD, SQLULEN, SQL_FALSE);
             CASE_NUM(SQL_ATTR_MAX_LENGTH, SQLULEN, 0);
             CASE_NUM(SQL_ATTR_MAX_ROWS, SQLULEN, 0);
-            CASE_NUM(SQL_ATTR_METADATA_ID, SQLULEN, SQL_FALSE);
+            CASE_NUM(SQL_ATTR_METADATA_ID, SQLUINTEGER, statement.getMetadataId());
             CASE_NUM(SQL_ATTR_NOSCAN, SQLULEN, (statement.getScanEscapeSequences() ? SQL_NOSCAN_OFF : SQL_NOSCAN_ON));
             CASE_NUM(SQL_ATTR_QUERY_TIMEOUT, SQLULEN, 0);
             CASE_NUM(SQL_ATTR_RETRIEVE_DATA, SQLULEN, SQL_RD_ON);

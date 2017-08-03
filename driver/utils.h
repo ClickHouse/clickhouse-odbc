@@ -66,16 +66,20 @@ static const char * nextKeyValuePair(const char * data, const char * end, String
 template <typename SIZE_TYPE>
 std::string stringFromSQLChar(SQLTCHAR * data, SIZE_TYPE size)
 {
-    if (!data)
+    if (!data || size == 0)
         return {};
-
-    if (size < 0)
+    
+    if (size == SQL_NTS)
     {
 #ifdef UNICODE
         size = (SIZE_TYPE)wcslen(reinterpret_cast<LPCTSTR>(data));
 #else
         size = (SIZE_TYPE)strlen(reinterpret_cast<LPCTSTR>(data));
 #endif
+    }
+    else if (size < 0)
+    {
+        throw std::runtime_error("invalid size of string : " + std::to_string(size));
     }
 
 #ifdef UNICODE

@@ -46,6 +46,7 @@ struct Environment
         {"Array",       TypeInfo{"TEXT",      true,    SQL_VARCHAR,			0xFFFFFF}},
     };
 
+    SQLUINTEGER metadata_id = SQL_FALSE;
     int odbc_version = SQL_OV_ODBC3_80;
     DiagnosticRecord diagnostic_record;
 };
