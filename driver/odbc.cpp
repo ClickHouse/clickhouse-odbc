@@ -682,8 +682,8 @@ SQLTables(HSTMT statement_handle,
 
             if (catalog_name_length)
                 query << " AND TABLE_CAT LIKE '" << stringFromSQLChar(catalog_name, catalog_name_length) << "'";
-            if (schema_name_length)
-                query << " AND TABLE_SCHEM LIKE '" << stringFromSQLChar(schema_name, schema_name_length) << "'";
+            //if (schema_name_length)
+            //    query << " AND TABLE_SCHEM LIKE '" << stringFromSQLChar(schema_name, schema_name_length) << "'";
             if (table_name_length)
                 query << " AND TABLE_NAME LIKE '" << stringFromSQLChar(table_name, table_name_length) << "'";
             //if (table_type_length)

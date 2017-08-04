@@ -21,6 +21,7 @@ void Connection::init()
     session.setHost(server);
     session.setPort(port);
     session.setKeepAlive(true);
+    session.setTimeout(Poco::Timespan(30, 0));
     session.setKeepAliveTimeout(Poco::Timespan(86400, 0));
 
     /// TODO Timeout.
