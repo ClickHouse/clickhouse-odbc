@@ -39,7 +39,7 @@ impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
             }
 
             case SQL_ATTR_METADATA_ID:
-                environment.metadata_id = (SQLUINTEGER)value;
+                environment.metadata_id = reinterpret_cast<intptr_t>(value);
                 return SQL_SUCCESS;
 
             default:
@@ -187,7 +187,7 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
                 return SQL_SUCCESS;
 
             case SQL_ATTR_METADATA_ID:
-                statement.setMetadataId((SQLUINTEGER)value);
+                statement.setMetadataId(reinterpret_cast<intptr_t>(value));
                 return SQL_SUCCESS;
 
             case SQL_ATTR_APP_ROW_DESC:
@@ -233,7 +233,7 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
 
 
 static SQLHDESC
-descHandleFromStatementHandle(Statement & statement, SQLINTEGER descType) 
+descHandleFromStatementHandle(Statement & statement, SQLINTEGER descType)
 {
     switch (descType)
     {
