@@ -27,6 +27,7 @@
 extern "C"
 {
 
+/// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlconnect-function
 RETCODE SQL_API
 SQLConnect(HDBC connection_handle,
            SQLTCHAR * dsn, SQLSMALLINT dsn_size,
@@ -47,6 +48,7 @@ SQLConnect(HDBC connection_handle,
 }
 
 
+/// Description: https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqldriverconnect
 RETCODE SQL_API
 SQLDriverConnect(HDBC connection_handle,
                  HWND unused_window,
@@ -61,6 +63,8 @@ SQLDriverConnect(HDBC connection_handle,
     return doWith<Connection>(connection_handle, [&](Connection & connection)
     {
         connection.init(stringFromSQLChar(connection_str_in, connection_str_in_size));
+        // Copy complete connection string.
+        fillOutputString(connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size);
         return SQL_SUCCESS;
     });
 }

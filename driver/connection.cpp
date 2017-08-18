@@ -10,6 +10,18 @@ Connection::Connection(Environment & env_)
 {
 }
 
+std::string Connection::connectionString() const
+{
+    std::string ret;
+    ret += "DSN=" + data_source + ";";
+    ret += "DATABASE=" + database + ";";
+    ret += "SERVER=" + server + ";";
+    ret += "PORT=" + std::to_string(port) + ";";
+    ret += "UID=" + user + ";";
+    // TODO (artpaul) Do we need to fill PWD?
+    return ret;
+}
+
 void Connection::init()
 {
     loadConfiguration();
@@ -23,8 +35,6 @@ void Connection::init()
     session.setKeepAlive(true);
     session.setTimeout(Poco::Timespan(30, 0));
     session.setKeepAliveTimeout(Poco::Timespan(86400, 0));
-
-    /// TODO Timeout.
 }
 
 void Connection::init(

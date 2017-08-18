@@ -22,6 +22,9 @@ struct Connection
 
     Connection(Environment & env_);
 
+    /// Returns the completed connection string.
+    std::string connectionString() const;
+
     void init();
 
     void init(
