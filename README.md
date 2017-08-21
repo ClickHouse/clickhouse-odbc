@@ -1,3 +1,18 @@
+## Cloning a Project with Submodules
+
+Please, note - [git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules) are used in this project. 
+
+When you clone such a project, by default you get the directories that contain submodules, but none of the files within them.
+So, in order to build the project, you need either:
+  * clone repo with all submodules altogether (use `--recursive`)
+```bash
+git clone --recursive https://github.com/yandex/clickhouse-odbc
+```
+  * or add submodules manually after main project cloned - in the root of source tree run:
+```bash
+git submodule init && git submodule update
+```
+
 ## Building (Linux)
 
 1. Install unixodbc >= 2.3.0
