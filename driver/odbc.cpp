@@ -13,7 +13,9 @@
 #include <malloc.h>
 #include <string.h>
 
+#include <codecvt>
 #include <iostream>
+#include <locale>
 #include <sstream>
 #include <stdexcept>
 
@@ -321,16 +323,8 @@ impl_SQLGetData(HSTMT statement_handle,
 
             case SQL_C_WCHAR:
             {
-                std::string converted = field.data;
-/// TODO (artpaul) it's incorrect on Windows for Unicode version of driver
-///                but needed to be checked on Linux.
-#if !defined (_win_) || !defined(UNICODE)
-                converted.resize(field.data.size() * 2 + 1, '\xFF');
-                converted[field.data.size() * 2] = '\0';
-                for (size_t i = 0, size = field.data.size(); i < size; ++i)
-                    converted[i * 2] = field.data[i];
-#endif
-                return fillOutputString(converted, out_value, out_value_max_size, out_value_size_or_indicator);
+                std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> ucs2conv;
+                return fillOutputU16String(ucs2conv.from_bytes(field.data), out_value, out_value_max_size, out_value_size_or_indicator);
             }
 
             case SQL_C_TINYINT:
