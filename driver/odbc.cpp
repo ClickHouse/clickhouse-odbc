@@ -118,7 +118,7 @@ SQLExecDirect(HSTMT statement_handle,
 
         if (!statement.isEmpty())
         {
-            if (!statement.isPrepared()) 
+            if (!statement.isPrepared())
                 throw std::runtime_error("ExecDirect called, but statement query is not empty.");
             else if (statement.getQuery() != query)
                 throw std::runtime_error("ExecDirect called, but statement query is not equal to prepared.");
@@ -130,7 +130,7 @@ SQLExecDirect(HSTMT statement_handle,
 
             statement.setQuery(query);
         }
-       
+
         LOG(query);
         statement.sendRequest();
         return SQL_SUCCESS;
@@ -627,10 +627,10 @@ SQLTables(HSTMT statement_handle,
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
         const std::string catalog = stringFromSQLChar(catalog_name, catalog_name_length);
-    
+
         std::stringstream query;
 
-        // Get a list of all tables in all databases.  
+        // Get a list of all tables in all databases.
         if (catalog_name != nullptr && catalog == SQL_ALL_CATALOGS &&
             !schema_name && !table_name && !table_type)
         {
@@ -643,7 +643,7 @@ SQLTables(HSTMT statement_handle,
                 " FROM system.tables"
                 " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
         }
-        // Get a list of all tables in the current database.  
+        // Get a list of all tables in the current database.
         else if (!catalog_name && !schema_name && !table_name && !table_type)
         {
             query << "SELECT"
@@ -760,8 +760,7 @@ RETCODE SQL_API
 SQLGetTypeInfo(HSTMT statement_handle,
                SQLSMALLINT type)
 {
-    LOG(__FUNCTION__);
-    LOG("type = " << type);
+    LOG(__FUNCTION__ << "(type = " << type << ")");
 
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
@@ -807,6 +806,11 @@ SQLGetTypeInfo(HSTMT statement_handle,
             add_query_for_type(name_info.first, name_info.second);
         }
 
+        // TODO (artpaul) check current version of ODBC.
+        //
+        //      In ODBC 3.x, the SQL date, time, and timestamp data types
+        //      are SQL_TYPE_DATE, SQL_TYPE_TIME, and SQL_TYPE_TIMESTAMP, respectively;
+        //      in ODBC 2.x, the data types are SQL_DATE, SQL_TIME, and SQL_TIMESTAMP.
         {
             auto info = statement.connection.environment.types_info.at("Date");
             info.sql_type = SQL_DATE;

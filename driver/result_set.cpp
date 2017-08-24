@@ -11,9 +11,9 @@ SQL_DATE_STRUCT Field::getDate() const
         throw std::runtime_error("Cannot interpret '" + data + "' as Date");
 
     SQL_DATE_STRUCT res;
-    res.year = (data[0] - '0') * 1000 + (data[1] - '0') * 100 + (data[2] - '0') * 10 + (data[3] - '0');
-    res.month = (data[5] - '0') * 10 + (data[6] - '0');
-    res.day = (data[8] - '0') * 10 + (data[9] - '0');
+    res.year  = (data[0] - '0') * 1000 + (data[1] - '0') * 100 + (data[2] - '0') * 10 + (data[3] - '0');
+    res.month = (data[5] - '0') * 10   + (data[6] - '0');
+    res.day   = (data[8] - '0') * 10   + (data[9] - '0');
 
     normalizeDate(res);
 
@@ -22,17 +22,32 @@ SQL_DATE_STRUCT Field::getDate() const
 
 SQL_TIMESTAMP_STRUCT Field::getDateTime() const
 {
-    if (data.size() != 19)
-        throw std::runtime_error("Cannot interpret '" + data + "' as DateTime");
-
     SQL_TIMESTAMP_STRUCT res;
-    res.year = (data[0] - '0') * 1000 + (data[1] - '0') * 100 + (data[2] - '0') * 10 + (data[3] - '0');
-    res.month = (data[5] - '0') * 10 + (data[6] - '0');
-    res.day = (data[8] - '0') * 10 + (data[9] - '0');
-    res.hour = (data[11] - '0') * 10 + (data[12] - '0');
-    res.minute = (data[14] - '0') * 10 + (data[15] - '0');
-    res.second = (data[17] - '0') * 10 + (data[18] - '0');
-    res.fraction = 0;
+
+    if (data.size() == 10)
+    {
+        res.year   = (data[0] - '0') * 1000 + (data[1] - '0') * 100 + (data[2] - '0') * 10 + (data[3] - '0');
+        res.month  = (data[5] - '0') * 10   + (data[6] - '0');
+        res.day    = (data[8] - '0') * 10   + (data[9] - '0');
+        res.hour   = 0;
+        res.minute = 0;
+        res.second = 0;
+        res.fraction = 0;
+    }
+    else if (data.size() == 19)
+    {
+        res.year   = (data[0]  - '0') * 1000 + (data[1]  - '0') * 100 + (data[2] - '0') * 10 + (data[3] - '0');
+        res.month  = (data[5]  - '0') * 10   + (data[6]  - '0');
+        res.day    = (data[8]  - '0') * 10   + (data[9]  - '0');
+        res.hour   = (data[11] - '0') * 10   + (data[12] - '0');
+        res.minute = (data[14] - '0') * 10   + (data[15] - '0');
+        res.second = (data[17] - '0') * 10   + (data[18] - '0');
+        res.fraction = 0;
+    }
+    else
+    {
+        throw std::runtime_error("Cannot interpret '" + data + "' as DateTime");
+    }
 
     normalizeDate(res);
 
@@ -55,7 +70,7 @@ static void assignTypeInfo(const TypeAst & ast, ColumnInfo * info)
     if (ast.meta == TypeAst::Terminal)
     {
         info->type_without_parameters = ast.name;
-    } 
+    }
     else if (ast.meta == TypeAst::Nullable)
     {
         info->is_nullable = true;
@@ -111,24 +126,24 @@ void ResultSet::init(Statement * statement_)
         LOG(column.name << ", " << column.type << ", " << column.display_size);
 }
 
-bool ResultSet::empty() const 
-{ 
-    return columns_info.empty(); 
-}
-
-size_t ResultSet::getNumColumns() const 
-{ 
-    return columns_info.size(); 
-}
-
-const ColumnInfo & ResultSet::getColumnInfo(size_t i) const 
-{ 
-    return columns_info.at(i); 
-}
-
-size_t ResultSet::getNumRows() const 
+bool ResultSet::empty() const
 {
-    return rows; 
+    return columns_info.empty();
+}
+
+size_t ResultSet::getNumColumns() const
+{
+    return columns_info.size();
+}
+
+const ColumnInfo & ResultSet::getColumnInfo(size_t i) const
+{
+    return columns_info.at(i);
+}
+
+size_t ResultSet::getNumRows() const
+{
+    return rows;
 }
 
 Row ResultSet::fetch()
