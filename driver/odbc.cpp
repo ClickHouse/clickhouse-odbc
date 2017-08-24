@@ -323,7 +323,11 @@ impl_SQLGetData(HSTMT statement_handle,
 
             case SQL_C_WCHAR:
             {
+#if defined (_win_)
+                std::wstring_convert<std::codecvt_utf8<uint_least16_t>, uint_least16_t> ucs2conv;
+#else      
                 std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> ucs2conv;
+#endif
                 return fillOutputU16String(ucs2conv.from_bytes(field.data), out_value, out_value_max_size, out_value_size_or_indicator);
             }
 

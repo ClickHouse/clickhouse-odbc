@@ -118,12 +118,12 @@ void stringToTCHAR(const std::string & data, TCHAR (&result)[Len])
 
 
 
-template <typename PTR, typename LENGTH>
-RETCODE fillOutputU16String(const std::u16string & value,
+template <typename STRING, typename PTR, typename LENGTH>
+RETCODE fillOutputU16String(const STRING & value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
 {
     LENGTH size_without_zero = static_cast<LENGTH>(value.size());
-    const size_t typeSize = sizeof(std::u16string::value_type);
+    const size_t typeSize = sizeof(STRING::value_type);
 
     if (out_value_length)
         *out_value_length = size_without_zero * typeSize;
