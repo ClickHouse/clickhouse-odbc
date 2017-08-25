@@ -1,6 +1,6 @@
 ## Cloning a Project with Submodules
 
-Please, note - [git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules) are used in this project. 
+Please note - [git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules) are used in this project. 
 
 When you clone such a project, by default you get the directories that contain submodules, but none of the files within them.
 So, in order to build the project, you need either:
@@ -13,19 +13,35 @@ git clone --recursive https://github.com/yandex/clickhouse-odbc
 git submodule init && git submodule update
 ```
 
-## Building (Linux)
+## Installing Prerequisites (Linux)
+You'll need to have installed:
+  * Fresh C compiler, which understands -std=c++14
+  * Static libraries 
+    * static **libgcc**
+    * static **libstdc++**
+    * static **libodbc**
+  * cmake >= 3
 
-1. Install unixodbc >= 2.3.0
+### RPM-based Linux
+CentOS is shipped with gcc 4.X, which is not suitable for this task.
+Fedora and CentOS do not have static libodbc provided, so you'll need either to build your own, or download 3-rd party packages.
+Static libodbc is available for [Fedora 25](https://github.com/Altinity/unixODBC/tree/master/RPMS/Fedora25) and [Fedora 26](https://github.com/Altinity/unixODBC/tree/master/RPMS/Fedora26).
+If you are running another OS, you can try to build your own RPMs from [this project](https://github.com/Altinity/unixODBC).
+
+### DEB-based Linux
+Install unixodbc >= 2.3.0
 ```bash
 sudo apt install unixodbc-dev
 ```
 
-2. At the root of source directory:
+## Building (Linux)
+
+1. At the root of source directory:
 ```bash
 mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 2)
 ```
 
-3. clickhouse-odbc.so will be at ```build/driver/clickhouse-odbc.so```
+2. clickhouse-odbc.so will be at ```build/driver/clickhouse-odbc.so```
 
 ## ODBC configuration
 
