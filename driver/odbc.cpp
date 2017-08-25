@@ -165,7 +165,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
 #endif
         out_num_value)
 {
-    LOG(__FUNCTION__);
+    LOG(__FUNCTION__ << "(col=" << column_number << ", field=" << field_identifier << ")");
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE
     {
@@ -225,6 +225,14 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
             case SQL_DESC_NUM_PREC_RADIX:
                 break;
             case SQL_DESC_OCTET_LENGTH:
+                if (column_info.fixed_size)
+                {
+                    num_value = column_info.fixed_size;
+                }
+                else
+                {
+                    num_value = type_info.octet_length;
+                }
                 break;
             case SQL_DESC_PRECISION:
                 break;
@@ -325,7 +333,7 @@ impl_SQLGetData(HSTMT statement_handle,
             {
 #if defined (_win_)
                 std::wstring_convert<std::codecvt_utf8<uint_least16_t>, uint_least16_t> ucs2conv;
-#else      
+#else
                 std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> ucs2conv;
 #endif
                 return fillOutputU16String(ucs2conv.from_bytes(field.data), out_value, out_value_max_size, out_value_size_or_indicator);
@@ -592,6 +600,7 @@ SQLGetDiagRec(SQLSMALLINT handle_type, SQLHANDLE handle,
 }
 
 
+/// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlgetdiagfield-function
 RETCODE SQL_API
 SQLGetDiagField(SQLSMALLINT handle_type, SQLHANDLE handle,
     SQLSMALLINT record_number,

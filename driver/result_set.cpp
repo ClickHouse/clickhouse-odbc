@@ -70,6 +70,7 @@ static void assignTypeInfo(const TypeAst & ast, ColumnInfo * info)
     if (ast.meta == TypeAst::Terminal)
     {
         info->type_without_parameters = ast.name;
+        info->fixed_size = ast.size;
     }
     else if (ast.meta == TypeAst::Nullable)
     {
