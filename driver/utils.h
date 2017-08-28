@@ -68,7 +68,7 @@ std::string stringFromSQLChar(SQLTCHAR * data, SIZE_TYPE size)
 {
     if (!data || size == 0)
         return {};
-    
+
     if (size == SQL_NTS)
     {
 #ifdef UNICODE
@@ -114,6 +114,45 @@ void stringToTCHAR(const std::string & data, TCHAR (&result)[Len])
     const size_t len = std::min<size_t>(Len - 1, data.size());
     strncpy(result, tmp.c_str(), len);
     result[len] = 0;
+}
+
+
+
+template <typename STRING, typename PTR, typename LENGTH>
+RETCODE fillOutputU16String(const STRING & value,
+    PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
+{
+    LENGTH size_without_zero = static_cast<LENGTH>(value.size());
+    const size_t typeSize = sizeof(typename STRING::value_type);
+
+    if (out_value_length)
+        *out_value_length = size_without_zero * typeSize;
+
+    if (out_value_max_length < 0)
+        return SQL_ERROR;
+
+    bool res = SQL_SUCCESS;
+
+    if (out_value)
+    {
+        if (out_value_max_length >= (size_without_zero + 1) * typeSize)
+        {
+            memcpy(out_value, value.c_str(), (size_without_zero + 1) * typeSize);
+        }
+        else
+        {
+            if (out_value_max_length > 0)
+            {
+                memcpy(out_value, value.c_str(), (out_value_max_length - 1) * sizeof(std::u16string::value_type));
+                reinterpret_cast<std::u16string::value_type*>(out_value)[out_value_max_length - 1] = 0;
+
+                LOG((LPCTSTR)(out_value));
+            }
+            res = SQL_SUCCESS_WITH_INFO;
+        }
+    }
+
+    return res;
 }
 
 template <typename PTR, typename LENGTH>

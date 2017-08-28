@@ -6,7 +6,7 @@
 
 #include <malloc.h>
 
-RETCODE allocEnv(SQLHENV * out_environment)
+static RETCODE allocEnv(SQLHENV * out_environment)
 {
     if (nullptr == out_environment)
         return SQL_INVALID_HANDLE;
@@ -21,7 +21,7 @@ RETCODE allocEnv(SQLHENV * out_environment)
     }
 }
 
-RETCODE allocConnect(SQLHENV environment, SQLHDBC * out_connection)
+static RETCODE allocConnect(SQLHENV environment, SQLHDBC * out_connection)
 {
     if (nullptr == out_connection)
         return SQL_INVALID_HANDLE;
@@ -37,7 +37,7 @@ RETCODE allocConnect(SQLHENV environment, SQLHDBC * out_connection)
     }
 }
 
-RETCODE allocStmt(SQLHDBC connection, SQLHSTMT * out_statement)
+static RETCODE allocStmt(SQLHDBC connection, SQLHSTMT * out_statement)
 {
     if (nullptr == out_statement || nullptr == connection)
         return SQL_INVALID_HANDLE;
@@ -54,7 +54,7 @@ RETCODE allocStmt(SQLHDBC connection, SQLHSTMT * out_statement)
 }
 
 template <typename Handle>
-RETCODE freeHandle(SQLHANDLE handle_opaque)
+static RETCODE freeHandle(SQLHANDLE handle_opaque)
 {
     delete reinterpret_cast<Handle *>(handle_opaque);
     handle_opaque = nullptr;

@@ -14,6 +14,7 @@ git submodule init && git submodule update
 ```
 
 ## Installing Prerequisites (Linux)
+
 You'll need to have installed:
   * Fresh C compiler, which understands -std=c++14
   * Static libraries 

@@ -13,6 +13,7 @@ struct TypeInfo
     bool is_unsigned;
     SQLSMALLINT sql_type;
     size_t column_size;
+    size_t octet_length;
 };
 
 
@@ -29,21 +30,21 @@ struct Environment
 
     const std::map<std::string, TypeInfo> types_info =
     {
-        {"UInt8",       TypeInfo{"TINYINT",   true,    SQL_TINYINT,			3}},
-        {"UInt16",      TypeInfo{"SMALLINT",  true,    SQL_SMALLINT,		5}},
-        {"UInt32",      TypeInfo{"INT",       true,    SQL_INTEGER,			10}},
-        {"UInt64",      TypeInfo{"BIGINT",    true,    SQL_BIGINT,			19}},
-        {"Int8",        TypeInfo{"TINYINT",   false,   SQL_TINYINT,			3}},
-        {"Int16",       TypeInfo{"SMALLINT",  false,   SQL_SMALLINT,		5}},
-        {"Int32",       TypeInfo{"INT",       false,   SQL_INTEGER,			10}},
-        {"Int64",       TypeInfo{"BIGINT",    false,   SQL_BIGINT,			20}},
-        {"Float32",     TypeInfo{"REAL",      false,   SQL_REAL,			7}},
-        {"Float64",     TypeInfo{"DOUBLE",    false,   SQL_DOUBLE,			15}},
-        {"String",      TypeInfo{"TEXT",      true,    SQL_VARCHAR,			0xFFFFFF}},
-        {"FixedString", TypeInfo{"TEXT",      true,    SQL_VARCHAR,			0xFFFFFF}},
-        {"Date",        TypeInfo{"DATE",      true,    SQL_TYPE_DATE,		10}},
-        {"DateTime",    TypeInfo{"TIMESTAMP", true,    SQL_TYPE_TIMESTAMP,	19}},
-        {"Array",       TypeInfo{"TEXT",      true,    SQL_VARCHAR,			0xFFFFFF}},
+        {"UInt8",       TypeInfo{"TINYINT",   true,    SQL_TINYINT,         3,  1}},
+        {"UInt16",      TypeInfo{"SMALLINT",  true,    SQL_SMALLINT,        5,  2}},
+        {"UInt32",      TypeInfo{"INT",       true,    SQL_INTEGER,         10, 4}},
+        {"UInt64",      TypeInfo{"BIGINT",    true,    SQL_BIGINT,          19, 8}},
+        {"Int8",        TypeInfo{"TINYINT",   false,   SQL_TINYINT,         3,  1}},
+        {"Int16",       TypeInfo{"SMALLINT",  false,   SQL_SMALLINT,        5,  2}},
+        {"Int32",       TypeInfo{"INT",       false,   SQL_INTEGER,         10, 4}},
+        {"Int64",       TypeInfo{"BIGINT",    false,   SQL_BIGINT,          20, 8}},
+        {"Float32",     TypeInfo{"REAL",      false,   SQL_REAL,            7,  4}},
+        {"Float64",     TypeInfo{"DOUBLE",    false,   SQL_DOUBLE,          15, 8}},
+        {"String",      TypeInfo{"TEXT",      true,    SQL_VARCHAR,         0xFFFFFF, (1 << 20)}},
+        {"FixedString", TypeInfo{"TEXT",      true,    SQL_VARCHAR,         0xFFFFFF, (1 << 20)}},
+        {"Date",        TypeInfo{"DATE",      true,    SQL_TYPE_DATE,       10, 6}},
+        {"DateTime",    TypeInfo{"TIMESTAMP", true,    SQL_TYPE_TIMESTAMP,  19, 16}},
+        {"Array",       TypeInfo{"TEXT",      true,    SQL_VARCHAR,         0xFFFFFF, (1 << 20)}},
     };
 
     SQLUINTEGER metadata_id = SQL_FALSE;

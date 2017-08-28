@@ -13,7 +13,9 @@
 #include <malloc.h>
 #include <string.h>
 
+#include <codecvt>
 #include <iostream>
+#include <locale>
 #include <sstream>
 #include <stdexcept>
 
@@ -118,7 +120,7 @@ SQLExecDirect(HSTMT statement_handle,
 
         if (!statement.isEmpty())
         {
-            if (!statement.isPrepared()) 
+            if (!statement.isPrepared())
                 throw std::runtime_error("ExecDirect called, but statement query is not empty.");
             else if (statement.getQuery() != query)
                 throw std::runtime_error("ExecDirect called, but statement query is not equal to prepared.");
@@ -130,7 +132,7 @@ SQLExecDirect(HSTMT statement_handle,
 
             statement.setQuery(query);
         }
-       
+
         LOG(query);
         statement.sendRequest();
         return SQL_SUCCESS;
@@ -163,7 +165,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
 #endif
         out_num_value)
 {
-    LOG(__FUNCTION__);
+    LOG(__FUNCTION__ << "(col=" << column_number << ", field=" << field_identifier << ")");
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE
     {
@@ -223,6 +225,14 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
             case SQL_DESC_NUM_PREC_RADIX:
                 break;
             case SQL_DESC_OCTET_LENGTH:
+                if (column_info.fixed_size)
+                {
+                    num_value = column_info.fixed_size;
+                }
+                else
+                {
+                    num_value = type_info.octet_length;
+                }
                 break;
             case SQL_DESC_PRECISION:
                 break;
@@ -321,16 +331,12 @@ impl_SQLGetData(HSTMT statement_handle,
 
             case SQL_C_WCHAR:
             {
-                std::string converted = field.data;
-/// TODO (artpaul) it's incorrect on Windows for Unicode version of driver
-///                but needed to be checked on Linux.
-#if !defined (_win_) || !defined(UNICODE)
-                converted.resize(field.data.size() * 2 + 1, '\xFF');
-                converted[field.data.size() * 2] = '\0';
-                for (size_t i = 0, size = field.data.size(); i < size; ++i)
-                    converted[i * 2] = field.data[i];
+#if defined (_win_)
+                std::wstring_convert<std::codecvt_utf8<uint_least16_t>, uint_least16_t> ucs2conv;
+#else
+                std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> ucs2conv;
 #endif
-                return fillOutputString(converted, out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputU16String(ucs2conv.from_bytes(field.data), out_value, out_value_max_size, out_value_size_or_indicator);
             }
 
             case SQL_C_TINYINT:
@@ -594,6 +600,7 @@ SQLGetDiagRec(SQLSMALLINT handle_type, SQLHANDLE handle,
 }
 
 
+/// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlgetdiagfield-function
 RETCODE SQL_API
 SQLGetDiagField(SQLSMALLINT handle_type, SQLHANDLE handle,
     SQLSMALLINT record_number,
@@ -627,10 +634,10 @@ SQLTables(HSTMT statement_handle,
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
         const std::string catalog = stringFromSQLChar(catalog_name, catalog_name_length);
-    
+
         std::stringstream query;
 
-        // Get a list of all tables in all databases.  
+        // Get a list of all tables in all databases.
         if (catalog_name != nullptr && catalog == SQL_ALL_CATALOGS &&
             !schema_name && !table_name && !table_type)
         {
@@ -643,7 +650,7 @@ SQLTables(HSTMT statement_handle,
                 " FROM system.tables"
                 " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
         }
-        // Get a list of all tables in the current database.  
+        // Get a list of all tables in the current database.
         else if (!catalog_name && !schema_name && !table_name && !table_type)
         {
             query << "SELECT"
@@ -760,8 +767,7 @@ RETCODE SQL_API
 SQLGetTypeInfo(HSTMT statement_handle,
                SQLSMALLINT type)
 {
-    LOG(__FUNCTION__);
-    LOG("type = " << type);
+    LOG(__FUNCTION__ << "(type = " << type << ")");
 
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
@@ -807,6 +813,11 @@ SQLGetTypeInfo(HSTMT statement_handle,
             add_query_for_type(name_info.first, name_info.second);
         }
 
+        // TODO (artpaul) check current version of ODBC.
+        //
+        //      In ODBC 3.x, the SQL date, time, and timestamp data types
+        //      are SQL_TYPE_DATE, SQL_TYPE_TIME, and SQL_TYPE_TIMESTAMP, respectively;
+        //      in ODBC 2.x, the data types are SQL_DATE, SQL_TIME, and SQL_TIMESTAMP.
         {
             auto info = statement.connection.environment.types_info.at("Date");
             info.sql_type = SQL_DATE;
