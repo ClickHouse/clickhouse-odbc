@@ -22,6 +22,16 @@ std::string Connection::connectionString() const
     return ret;
 }
 
+const std::string & Connection::getDatabase() const
+{
+    return database;
+}
+
+void Connection::setDatabase(const std::string & db)
+{
+    database = db;
+}
+
 void Connection::init()
 {
     loadConfiguration();

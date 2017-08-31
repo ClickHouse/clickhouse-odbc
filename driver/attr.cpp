@@ -66,7 +66,7 @@ impl_SQLGetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
                 fillOutputNumber<SQLUINTEGER>(environment.odbc_version, out_value, out_value_max_length, out_value_length);
                 return SQL_SUCCESS;
 
-             CASE_NUM(SQL_ATTR_METADATA_ID, SQLUINTEGER, environment.metadata_id);
+            CASE_NUM(SQL_ATTR_METADATA_ID, SQLUINTEGER, environment.metadata_id);
 
             case SQL_ATTR_CONNECTION_POOLING:
             case SQL_ATTR_CP_MATCH:
@@ -78,6 +78,7 @@ impl_SQLGetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
 }
 
 
+/// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlsetconnectattr-function
 RETCODE
 impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
     SQLPOINTER value, SQLINTEGER value_length)
@@ -100,7 +101,7 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             }
 
             case SQL_ATTR_CURRENT_CATALOG:
-                connection.database = stringFromSQLChar((SQLTCHAR *)value, value_length);
+                connection.setDatabase(stringFromSQLBytes((SQLTCHAR *)value, value_length));
                 return SQL_SUCCESS;
 
             case SQL_ATTR_ACCESS_MODE:
@@ -145,7 +146,7 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session.getTimeout().seconds())
 
             case SQL_ATTR_CURRENT_CATALOG:
-                fillOutputPlatformString(connection.database, out_value, out_value_max_length, out_value_length);
+                fillOutputPlatformString(connection.getDatabase(), out_value, out_value_max_length, out_value_length);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_ACCESS_MODE:

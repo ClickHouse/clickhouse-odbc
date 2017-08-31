@@ -62,31 +62,65 @@ static const char * nextKeyValuePair(const char * data, const char * end, String
     return value_end;
 }
 
+template <typename SIZE_TYPE>
+std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols)
+{
+    if (!data || symbols == 0)
+        return{};
+    if (symbols == SQL_NTS)
+    {
+#ifdef UNICODE
+        symbols = (SIZE_TYPE)wcslen(reinterpret_cast<LPCTSTR>(data));
+#else
+        symbols = (SIZE_TYPE)strlen(reinterpret_cast<LPCTSTR>(data));
+#endif
+    }
+    else if (symbols < 0)
+        throw std::runtime_error("invalid size of string : " + std::to_string(symbols));
+#ifdef UNICODE
+    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>()
+        .to_bytes(std::wstring(data, symbols));
+#else
+    return{ (const char*)data, (size_t)symbols };
+#endif
+}
 
 template <typename SIZE_TYPE>
-std::string stringFromSQLChar(SQLTCHAR * data, SIZE_TYPE size)
+std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
 {
     if (!data || size == 0)
         return {};
+    // Count of symblols in the string
+    size_t symbols = 0;
 
     if (size == SQL_NTS)
     {
 #ifdef UNICODE
-        size = (SIZE_TYPE)wcslen(reinterpret_cast<LPCTSTR>(data));
+        symbols = (SIZE_TYPE)wcslen(reinterpret_cast<LPCTSTR>(data));
 #else
-        size = (SIZE_TYPE)strlen(reinterpret_cast<LPCTSTR>(data));
+        symbols = (SIZE_TYPE)strlen(reinterpret_cast<LPCTSTR>(data));
 #endif
+    }
+    else if (size == SQL_IS_POINTER || size == SQL_IS_UINTEGER ||
+             size == SQL_IS_INTEGER || size == SQL_IS_USMALLINT ||
+             size == SQL_IS_SMALLINT)
+    {
+        throw std::runtime_error("SQL data is not a string");
     }
     else if (size < 0)
     {
-        throw std::runtime_error("invalid size of string : " + std::to_string(size));
+        return{ reinterpret_cast<const char*>(data),  (size_t)SQL_LEN_BINARY_ATTR(size) };
+    }
+    else
+    {
+        symbols = static_cast<size_t>(size) / sizeof(SQLTCHAR);
     }
 
 #ifdef UNICODE
-    std::wstring wstr(reinterpret_cast<LPCTSTR>(data), static_cast<size_t>(size));
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(wstr);
+    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>()
+        .to_bytes(std::wstring(data, symbols));
 #else
-    return{ reinterpret_cast<LPCTSTR>(data), static_cast<size_t>(size) };
+    return{ (const char*)data, (size_t)symbols };
 #endif
 }
 
@@ -120,31 +154,46 @@ template <typename STRING, typename PTR, typename LENGTH>
 RETCODE fillOutputStringImpl(const STRING & value,
                              PTR out_value, 
                              LENGTH out_value_max_length, 
-                             LENGTH * out_value_length)
+                             LENGTH * out_value_length,
+                             bool length_in_bytes)
 {
     using CharType = typename STRING::value_type;
-    LENGTH size_without_zero = static_cast<LENGTH>(value.size());
+    LENGTH symbols = static_cast<LENGTH>(value.size());
 
     if (out_value_length)
-        *out_value_length = size_without_zero * sizeof(CharType);
+    {
+        if (length_in_bytes)
+            *out_value_length = symbols * sizeof(CharType);
+        else
+            *out_value_length = symbols;
+    }
 
     if (out_value_max_length < 0)
         return SQL_ERROR;
 
     if (out_value)
     {
-        if (out_value_max_length >= (size_without_zero + 1) * sizeof(CharType))
+        size_t max_length_in_bytes;
+
+        if (length_in_bytes)
+            max_length_in_bytes = out_value_max_length;
+        else
+            max_length_in_bytes = out_value_max_length * sizeof(CharType);
+
+        if (max_length_in_bytes >= (symbols + 1) * sizeof(CharType))
         {
-            memcpy(out_value, value.c_str(), (size_without_zero + 1) * sizeof(CharType));
+            memcpy(out_value, value.c_str(), (symbols + 1) * sizeof(CharType));
         }
         else
         {
-            if (out_value_max_length >= 2 * sizeof(CharType))
+            if (max_length_in_bytes >= sizeof(CharType))
             {
-                memset(out_value, 0, out_value_max_length);
-                memcpy(out_value, value.data(), (out_value_max_length - 2) * sizeof(CharType));
+                memcpy(out_value, value.data(), max_length_in_bytes - sizeof(CharType));
+                reinterpret_cast<CharType*>(out_value)[(max_length_in_bytes / sizeof(CharType)) - 1] = 0;
             }
             return SQL_SUCCESS_WITH_INFO;
+
+            ;
         }
     }
 
@@ -155,12 +204,12 @@ template <typename PTR, typename LENGTH>
 RETCODE fillOutputRawString(const std::string & value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
 {
-    return fillOutputStringImpl(value, out_value, out_value_max_length, out_value_length);
+    return fillOutputStringImpl(value, out_value, out_value_max_length, out_value_length, true);
 }
 
 template <typename PTR, typename LENGTH>
 RETCODE fillOutputUSC2String(const std::string & value,
-    PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
+    PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true)
 {
 #if defined (_win_)
     using CharType = uint_least16_t;
@@ -169,16 +218,16 @@ RETCODE fillOutputUSC2String(const std::string & value,
 #endif
     return fillOutputStringImpl(
         std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value), 
-        out_value, out_value_max_length, out_value_length);
+        out_value, out_value_max_length, out_value_length, length_in_bytes);
 }
 
 template <typename PTR, typename LENGTH>
 RETCODE fillOutputPlatformString(
     const std::string & value, 
-    PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
+    PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true)
 {
 #ifdef UNICODE
-    return fillOutputUSC2String(value, out_value, out_value_max_length, out_value_length);
+    return fillOutputUSC2String(value, out_value, out_value_max_length, out_value_length, length_in_bytes);
 #else
     return fillOutputRawString(value, out_value, out_value_max_length, out_value_length);
 #endif

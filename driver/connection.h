@@ -14,7 +14,6 @@ struct Connection
     uint16_t port = 0;
     std::string user;
     std::string password;
-    std::string database;
 
     Poco::Net::HTTPClientSession session;
     DiagnosticRecord diagnostic_record;
@@ -24,6 +23,12 @@ struct Connection
 
     /// Returns the completed connection string.
     std::string connectionString() const;
+
+    /// Returns database associated with the current connection.
+    const std::string & getDatabase() const;
+
+    /// Sets database to the current connection;
+    void setDatabase(const std::string & db);
 
     void init();
 
@@ -42,4 +47,7 @@ private:
 
     /// Sets uninitialized fields to their default values.
     void setDefaults();
+
+private:
+    std::string database;
 };

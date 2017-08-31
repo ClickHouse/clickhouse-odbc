@@ -40,9 +40,9 @@ SQLConnect(HDBC connection_handle,
 
     return doWith<Connection>(connection_handle, [&](Connection & connection)
     {
-        std::string dsn_str = stringFromSQLChar(dsn, dsn_size);
-        std::string user_str = stringFromSQLChar(user, user_size);
-        std::string password_str = stringFromSQLChar(password, password_size);
+        std::string dsn_str = stringFromSQLSymbols(dsn, dsn_size);
+        std::string user_str = stringFromSQLSymbols(user, user_size);
+        std::string password_str = stringFromSQLSymbols(password, password_size);
 
         connection.init(dsn_str, 0, user_str, password_str, "");
         return SQL_SUCCESS;
@@ -64,9 +64,9 @@ SQLDriverConnect(HDBC connection_handle,
     LOG(__FUNCTION__);
     return doWith<Connection>(connection_handle, [&](Connection & connection)
     {
-        connection.init(stringFromSQLChar(connection_str_in, connection_str_in_size));
+        connection.init(stringFromSQLSymbols(connection_str_in, connection_str_in_size));
         // Copy complete connection string.
-        fillOutputPlatformString(connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size);
+        fillOutputPlatformString(connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size, false);
         return SQL_SUCCESS;
     });
 }
@@ -80,7 +80,7 @@ SQLPrepare(HSTMT statement_handle,
 
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
-        const std::string & query = stringFromSQLChar(statement_text, statement_text_size);
+        const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
 
         if (!statement.isEmpty())
             throw std::runtime_error("Prepare called, but statement query is not empty.");
@@ -116,7 +116,7 @@ SQLExecDirect(HSTMT statement_handle,
 
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
-        const std::string & query = stringFromSQLChar(statement_text, statement_text_size);
+        const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
 
         if (!statement.isEmpty())
         {
@@ -299,7 +299,7 @@ SQLDescribeCol(HSTMT statement_handle,
         if (out_is_nullable)
             *out_is_nullable = SQL_NO_NULLS;
 
-        return fillOutputPlatformString(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size);;
+        return fillOutputPlatformString(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size, false);
     });
 }
 
@@ -570,7 +570,7 @@ impl_SQLGetDiagRec(SQLSMALLINT handle_type, SQLHANDLE handle,
     if (out_native_error_code)
         *out_native_error_code = diagnostic_record->native_error_code;
 
-    return fillOutputPlatformString(diagnostic_record->message, out_mesage, out_message_max_size, out_message_size);
+    return fillOutputPlatformString(diagnostic_record->message, out_mesage, out_message_max_size, out_message_size, false);
 }
 
 
@@ -626,7 +626,7 @@ SQLTables(HSTMT statement_handle,
     // TODO (artpaul) Take statement.getMetatadaId() into account.
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
-        const std::string catalog = stringFromSQLChar(catalog_name, catalog_name_length);
+        const std::string catalog = stringFromSQLSymbols(catalog_name, catalog_name_length);
 
         std::stringstream query;
 
@@ -654,7 +654,7 @@ SQLTables(HSTMT statement_handle,
                 ", '' AS REMARKS"
                 " FROM system.tables"
                 " WHERE (database == '";
-            query << statement.connection.database << "')";
+            query << statement.connection.getDatabase() << "')";
             query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
         }
         // Get a list of databases on the current connection's server.
@@ -685,13 +685,13 @@ SQLTables(HSTMT statement_handle,
                 " WHERE (1 == 1)";
 
             if (catalog_name && catalog_name_length)
-                query << " AND TABLE_CAT LIKE '" << stringFromSQLChar(catalog_name, catalog_name_length) << "'";
+                query << " AND TABLE_CAT LIKE '" << stringFromSQLSymbols(catalog_name, catalog_name_length) << "'";
             //if (schema_name_length)
-            //    query << " AND TABLE_SCHEM LIKE '" << stringFromSQLChar(schema_name, schema_name_length) << "'";
+            //    query << " AND TABLE_SCHEM LIKE '" << stringFromSQLSymbols(schema_name, schema_name_length) << "'";
             if (table_name && table_name_length)
-                query << " AND TABLE_NAME LIKE '" << stringFromSQLChar(table_name, table_name_length) << "'";
+                query << " AND TABLE_NAME LIKE '" << stringFromSQLSymbols(table_name, table_name_length) << "'";
             //if (table_type_length)
-            //    query << " AND TABLE_TYPE = '" << stringFromSQLChar(table_type, table_type_length) << "'";
+            //    query << " AND TABLE_TYPE = '" << stringFromSQLSymbols(table_type, table_type_length) << "'";
 
             query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
         }
@@ -739,13 +739,13 @@ SQLColumns(HSTMT statement_handle,
             " WHERE (1 == 1)";
 
         if (catalog_name_length)
-            query << " AND TABLE_CAT LIKE '" << stringFromSQLChar(catalog_name, catalog_name_length) << "'";
+            query << " AND TABLE_CAT LIKE '" << stringFromSQLSymbols(catalog_name, catalog_name_length) << "'";
         if (schema_name_length)
-            query << " AND TABLE_SCHEM LIKE '" << stringFromSQLChar(schema_name, schema_name_length) << "'";
+            query << " AND TABLE_SCHEM LIKE '" << stringFromSQLSymbols(schema_name, schema_name_length) << "'";
         if (table_name_length)
-            query << " AND TABLE_NAME LIKE '" << stringFromSQLChar(table_name, table_name_length) << "'";
+            query << " AND TABLE_NAME LIKE '" << stringFromSQLSymbols(table_name, table_name_length) << "'";
         if (column_name_length)
-            query << " AND COLUMN_NAME LIKE '" << stringFromSQLChar(column_name, column_name_length) << "'";
+            query << " AND COLUMN_NAME LIKE '" << stringFromSQLSymbols(column_name, column_name_length) << "'";
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
 
@@ -858,8 +858,8 @@ SQLNativeSql(HDBC connection_handle,
 
     return doWith<Connection>(connection_handle, [&](Connection & connection)
     {
-        std::string query_str = stringFromSQLChar(query, query_length);
-        return fillOutputRawString(query_str, out_query, out_query_max_length, out_query_length);
+        std::string query_str = stringFromSQLSymbols(query, query_length);
+        return fillOutputPlatformString(query_str, out_query, out_query_max_length, out_query_length, false);
     });
 }
 

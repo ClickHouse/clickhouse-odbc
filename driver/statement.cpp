@@ -69,7 +69,7 @@ void Statement::sendRequest()
     request.setKeepAlive(true);
     request.setChunkedTransferEncoding(true);
     request.setCredentials("Basic", user_password_base64.str());
-    request.setURI("/?database=" + connection.database + "&default_format=ODBCDriver"); /// TODO Ability to transfer settings. TODO escaping
+    request.setURI("/?database=" + connection.getDatabase() + "&default_format=ODBCDriver"); /// TODO Ability to transfer settings. TODO escaping
 
     if (in && in->peek() != EOF)
         connection.session.reset();
