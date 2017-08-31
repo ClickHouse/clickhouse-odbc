@@ -66,7 +66,7 @@ SQLDriverConnect(HDBC connection_handle,
     {
         connection.init(stringFromSQLChar(connection_str_in, connection_str_in_size));
         // Copy complete connection string.
-        fillOutputString(connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size);
+        fillOutputPlatformString(connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size);
         return SQL_SUCCESS;
     });
 }
@@ -267,7 +267,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
         if (out_num_value)
             *static_cast<SQLLEN*>(out_num_value) = num_value;
 
-        return fillOutputString(str_value, out_string_value, out_string_value_max_size, out_string_value_size);
+        return fillOutputPlatformString(str_value, out_string_value, out_string_value_max_size, out_string_value_size);
     });
 }
 
@@ -299,7 +299,7 @@ SQLDescribeCol(HSTMT statement_handle,
         if (out_is_nullable)
             *out_is_nullable = SQL_NO_NULLS;
 
-        return fillOutputString(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size);;
+        return fillOutputPlatformString(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size);;
     });
 }
 
@@ -327,17 +327,10 @@ impl_SQLGetData(HSTMT statement_handle,
         {
             case SQL_C_CHAR:
             case SQL_C_BINARY:
-                return fillOutputString(field.data, out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputRawString(field.data, out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_WCHAR:
-            {
-#if defined (_win_)
-                std::wstring_convert<std::codecvt_utf8<uint_least16_t>, uint_least16_t> ucs2conv;
-#else
-                std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> ucs2conv;
-#endif
-                return fillOutputU16String(ucs2conv.from_bytes(field.data), out_value, out_value_max_size, out_value_size_or_indicator);
-            }
+                return fillOutputUSC2String(field.data, out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_TINYINT:
             case SQL_C_STINYINT:
@@ -577,7 +570,7 @@ impl_SQLGetDiagRec(SQLSMALLINT handle_type, SQLHANDLE handle,
     if (out_native_error_code)
         *out_native_error_code = diagnostic_record->native_error_code;
 
-    return fillOutputString(diagnostic_record->message, out_mesage, out_message_max_size, out_message_size);
+    return fillOutputPlatformString(diagnostic_record->message, out_mesage, out_message_max_size, out_message_size);
 }
 
 
@@ -866,7 +859,7 @@ SQLNativeSql(HDBC connection_handle,
     return doWith<Connection>(connection_handle, [&](Connection & connection)
     {
         std::string query_str = stringFromSQLChar(query, query_length);
-        return fillOutputString(query_str, out_query, out_query_max_length, out_query_length);
+        return fillOutputRawString(query_str, out_query, out_query_max_length, out_query_length);
     });
 }
 

@@ -116,86 +116,74 @@ void stringToTCHAR(const std::string & data, TCHAR (&result)[Len])
     result[len] = 0;
 }
 
-
-
 template <typename STRING, typename PTR, typename LENGTH>
-RETCODE fillOutputU16String(const STRING & value,
-    PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
+RETCODE fillOutputStringImpl(const STRING & value,
+                             PTR out_value, 
+                             LENGTH out_value_max_length, 
+                             LENGTH * out_value_length)
 {
+    using CharType = typename STRING::value_type;
     LENGTH size_without_zero = static_cast<LENGTH>(value.size());
-    const size_t typeSize = sizeof(typename STRING::value_type);
 
     if (out_value_length)
-        *out_value_length = size_without_zero * typeSize;
+        *out_value_length = size_without_zero * sizeof(CharType);
 
     if (out_value_max_length < 0)
         return SQL_ERROR;
 
-    bool res = SQL_SUCCESS;
-
     if (out_value)
     {
-        if (out_value_max_length >= (size_without_zero + 1) * typeSize)
+        if (out_value_max_length >= (size_without_zero + 1) * sizeof(CharType))
         {
-            memcpy(out_value, value.c_str(), (size_without_zero + 1) * typeSize);
+            memcpy(out_value, value.c_str(), (size_without_zero + 1) * sizeof(CharType));
         }
         else
         {
-            if (out_value_max_length > 0)
+            if (out_value_max_length >= 2 * sizeof(CharType))
             {
-                memcpy(out_value, value.c_str(), (out_value_max_length - 1) * sizeof(std::u16string::value_type));
-                reinterpret_cast<std::u16string::value_type*>(out_value)[out_value_max_length - 1] = 0;
-
-                LOG((LPCTSTR)(out_value));
+                memset(out_value, 0, out_value_max_length);
+                memcpy(out_value, value.data(), (out_value_max_length - 2) * sizeof(CharType));
             }
-            res = SQL_SUCCESS_WITH_INFO;
+            return SQL_SUCCESS_WITH_INFO;
         }
     }
 
-    return res;
+    return SQL_SUCCESS;
 }
 
 template <typename PTR, typename LENGTH>
-RETCODE fillOutputString(const std::string & value,
+RETCODE fillOutputRawString(const std::string & value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
 {
-    LENGTH size_without_zero = static_cast<LENGTH>(value.size());
-
-    if (out_value_length)
-        *out_value_length = size_without_zero * sizeof(TCHAR);
-
-    if (out_value_max_length < 0)
-        return SQL_ERROR;
-
-    bool res = SQL_SUCCESS;
-
-    if (out_value)
-    {
-#ifdef UNICODE
-        std::wstring tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(value);
-#else
-        const auto & tmp = value;
-#endif
-
-        if (out_value_max_length >= (size_without_zero + 1) * sizeof(TCHAR))
-        {
-            memcpy(out_value, tmp.c_str(), (size_without_zero + 1) * sizeof(TCHAR));
-        }
-        else
-        {
-            if (out_value_max_length > 0)
-            {
-                memcpy(out_value, tmp.c_str(), (out_value_max_length - 1) * sizeof(TCHAR));
-                reinterpret_cast<LPTSTR>(out_value)[out_value_max_length - 1] = 0;
-
-                LOG((LPCTSTR)(out_value));
-            }
-            res = SQL_SUCCESS_WITH_INFO;
-        }
-    }
-
-    return res;
+    return fillOutputStringImpl(value, out_value, out_value_max_length, out_value_length);
 }
+
+template <typename PTR, typename LENGTH>
+RETCODE fillOutputUSC2String(const std::string & value,
+    PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
+{
+#if defined (_win_)
+    using CharType = uint_least16_t;
+#else
+    using CharType = char16_t;
+#endif
+    return fillOutputStringImpl(
+        std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value), 
+        out_value, out_value_max_length, out_value_length);
+}
+
+template <typename PTR, typename LENGTH>
+RETCODE fillOutputPlatformString(
+    const std::string & value, 
+    PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length)
+{
+#ifdef UNICODE
+    return fillOutputUSC2String(value, out_value, out_value_max_length, out_value_length);
+#else
+    return fillOutputRawString(value, out_value, out_value_max_length, out_value_length);
+#endif
+}
+
 
 template <typename NUM, typename PTR, typename LENGTH>
 RETCODE fillOutputNumber(NUM num,
@@ -231,12 +219,6 @@ RETCODE fillOutputNumber(NUM num,
 #define CASE_FALLTHROUGH(NAME) \
     case NAME: \
         if (!name) name = #NAME;
-
-#define CASE_STRING(NAME, VALUE) \
-    case NAME: \
-        if (!name) name = #NAME; \
-        LOG("GetInfo " << name << ", type: String, value: " << (VALUE)); \
-        return fillOutputString(VALUE, out_value, out_value_max_length, out_value_length);
 
 #define CASE_NUM(NAME, TYPE, VALUE) \
     case NAME: \

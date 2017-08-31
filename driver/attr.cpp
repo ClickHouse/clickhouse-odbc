@@ -145,7 +145,7 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session.getTimeout().seconds())
 
             case SQL_ATTR_CURRENT_CATALOG:
-                fillOutputString(connection.database, out_value, out_value_max_length, out_value_length);
+                fillOutputPlatformString(connection.database, out_value, out_value_max_length, out_value_length);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_ACCESS_MODE:

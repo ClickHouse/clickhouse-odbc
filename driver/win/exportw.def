@@ -29,6 +29,7 @@ SQLGetInfoW             @45
 
 SQLDriverConnectW
 SQLMoreResults
+SQLNativeSqlW           @62
 SQLConnectW             @7
 SQLPrepareW             @19
 SQLExecute              @12
