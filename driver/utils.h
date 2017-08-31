@@ -4,6 +4,7 @@
 #include "string_ref.h"
 
 #include <codecvt>
+#include <locale>
 #include <string.h>
 
 /** Checks `handle`. Catches exceptions and puts them into the DiagnosticRecord.
@@ -152,8 +153,8 @@ void stringToTCHAR(const std::string & data, TCHAR (&result)[Len])
 
 template <typename STRING, typename PTR, typename LENGTH>
 RETCODE fillOutputStringImpl(const STRING & value,
-                             PTR out_value, 
-                             LENGTH out_value_max_length, 
+                             PTR out_value,
+                             LENGTH out_value_max_length,
                              LENGTH * out_value_length,
                              bool length_in_bytes)
 {
@@ -217,13 +218,13 @@ RETCODE fillOutputUSC2String(const std::string & value,
     using CharType = char16_t;
 #endif
     return fillOutputStringImpl(
-        std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value), 
+        std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value),
         out_value, out_value_max_length, out_value_length, length_in_bytes);
 }
 
 template <typename PTR, typename LENGTH>
 RETCODE fillOutputPlatformString(
-    const std::string & value, 
+    const std::string & value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true)
 {
 #ifdef UNICODE
