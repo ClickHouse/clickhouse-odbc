@@ -236,9 +236,12 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
                 num_value = column_info.is_nullable;
                 break;
             case SQL_DESC_OCTET_LENGTH:
-                if (column_info.fixed_size)
+                if (type_info.IsStringType())
                 {
-                    num_value = column_info.fixed_size;
+                    if (column_info.fixed_size)
+                        num_value = column_info.fixed_size * SIZEOF_CHAR;
+                    else
+                        num_value = type_info.octet_length * SIZEOF_CHAR;
                 }
                 else
                 {

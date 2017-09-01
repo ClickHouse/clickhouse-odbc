@@ -50,3 +50,13 @@
 #   define LPCTSTR const char*
 #   define TEXT(value)  value
 #endif
+
+#if defined (UNICODE)
+#   if defined (_win_)
+#       define SIZEOF_CHAR  sizeof(uint_least16_t)
+#   else
+#       define SIZEOF_CHAR  sizeof(char16_t)
+#   endif
+#else
+#   define SIZEOF_CHAR sizeof(char)
+#endif

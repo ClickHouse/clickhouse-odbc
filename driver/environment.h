@@ -21,6 +21,11 @@ struct TypeInfo
             sql_type == SQL_TINYINT || sql_type == SQL_SMALLINT ||
             sql_type == SQL_INTEGER || sql_type == SQL_BIGINT;
     }
+
+    inline bool IsStringType() const
+    {
+        return sql_type == SQL_VARCHAR;
+    }
 };
 
 
