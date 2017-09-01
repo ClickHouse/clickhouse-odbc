@@ -170,7 +170,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
     return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE
     {
         if (column_number < 1 || column_number > statement.result.getNumColumns())
-            throw std::runtime_error("Column number is out of range.");
+            throw SqlException("Column number is out of range.", "07009");
 
         size_t column_idx = column_number - 1;
 
@@ -186,6 +186,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
                 num_value = SQL_FALSE;
                 break;
             case SQL_DESC_BASE_COLUMN_NAME:
+                str_value = column_info.name;
                 break;
             case SQL_DESC_BASE_TABLE_NAME:
                 break;
@@ -204,11 +205,23 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
                 num_value = column_info.display_size;
                 break;
             case SQL_DESC_FIXED_PREC_SCALE:
+                num_value = SQL_FALSE;
                 break;
             case SQL_DESC_LABEL:
                 str_value = column_info.name;
                 break;
             case SQL_DESC_LENGTH:
+                if (type_info.sql_type == SQL_VARCHAR)
+                {
+                    if (column_info.fixed_size)
+                    {
+                        num_value = column_info.fixed_size;
+                    }
+                    else
+                    {
+                        num_value = type_info.octet_length;
+                    }
+                }
                 break;
             case SQL_DESC_LITERAL_PREFIX:
                 break;
@@ -220,9 +233,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
                 str_value = column_info.name;
                 break;
             case SQL_DESC_NULLABLE:
-                num_value = SQL_FALSE;
-                break;
-            case SQL_DESC_NUM_PREC_RADIX:
+                num_value = column_info.is_nullable;
                 break;
             case SQL_DESC_OCTET_LENGTH:
                 if (column_info.fixed_size)
@@ -235,6 +246,12 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
                 }
                 break;
             case SQL_DESC_PRECISION:
+                break;
+            case SQL_DESC_NUM_PREC_RADIX:
+                if (type_info.IsIntegerType())
+                {
+                    num_value = 10;
+                }
                 break;
             case SQL_DESC_SCALE:
                 break;
@@ -261,11 +278,13 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
                 num_value = SQL_FALSE;
                 break;
             default:
-                return SQL_ERROR;
+                throw SqlException(
+                    "Unsupported FieldIdentifier = " + std::to_string(field_identifier), 
+                    "HYC00");
         }
 
         if (out_num_value)
-            *static_cast<SQLLEN*>(out_num_value) = num_value;
+            memcpy(out_num_value, &num_value, sizeof(SQLLEN));
 
         return fillOutputPlatformString(str_value, out_string_value, out_string_value_max_size, out_string_value_size);
     });
