@@ -477,7 +477,16 @@ SQLBindCol(HSTMT statement_handle,
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
         if (column_number < 1 || column_number > statement.result.getNumColumns())
-            throw std::runtime_error("Column number is out of range.");
+            throw SqlException("Column number is out of range", "07009");
+        if (out_value_max_size < 0)
+            throw SqlException("Invalid string or buffer length", "HY090");
+
+        // Unbinding column
+        if (out_value_size_or_indicator == nullptr)
+        {
+            statement.bindings.erase(column_number);
+            return SQL_SUCCESS;
+        }
 
         if (target_type == SQL_C_DEFAULT)
         {

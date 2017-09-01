@@ -211,8 +211,6 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_PARAMSET_SIZE:
             case SQL_ATTR_QUERY_TIMEOUT:
             case SQL_ATTR_RETRIEVE_DATA:
-            case SQL_ATTR_ROW_BIND_OFFSET_PTR:
-            case SQL_ATTR_ROW_BIND_TYPE:
             case SQL_ATTR_ROW_NUMBER:
             case SQL_ATTR_ROW_OPERATION_PTR:
             case SQL_ATTR_ROW_STATUS_PTR:       /// Libreoffice Base
@@ -226,6 +224,8 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_IMP_PARAM_DESC:	/* 10013 (read-only) */
                 return SQL_ERROR;
 
+            case SQL_ATTR_ROW_BIND_OFFSET_PTR:
+            case SQL_ATTR_ROW_BIND_TYPE:
             default:
                 throw std::runtime_error("Unsupported statement attribute.");
         }
@@ -286,6 +286,8 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             CASE_NUM(SQL_ATTR_QUERY_TIMEOUT, SQLULEN, 0);
             CASE_NUM(SQL_ATTR_RETRIEVE_DATA, SQLULEN, SQL_RD_ON);
             CASE_NUM(SQL_ATTR_ROW_NUMBER, SQLULEN, statement.result.getNumRows());
+            CASE_NUM(SQL_ATTR_USE_BOOKMARKS, SQLULEN, SQL_UB_OFF);
+            CASE_NUM(SQL_ATTR_ROW_BIND_TYPE, SQLULEN, SQL_BIND_TYPE_DEFAULT);
 
             case SQL_ATTR_FETCH_BOOKMARK_PTR:
             case SQL_ATTR_KEYSET_SIZE:
@@ -296,13 +298,11 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_PARAMS_PROCESSED_PTR:
             case SQL_ATTR_PARAMSET_SIZE:
             case SQL_ATTR_ROW_BIND_OFFSET_PTR:
-            case SQL_ATTR_ROW_BIND_TYPE:    /// TODO
             case SQL_ATTR_ROW_OPERATION_PTR:
             case SQL_ATTR_ROW_STATUS_PTR:
             case SQL_ATTR_ROWS_FETCHED_PTR:
             case SQL_ATTR_ROW_ARRAY_SIZE:
             case SQL_ATTR_SIMULATE_CURSOR:
-            case SQL_ATTR_USE_BOOKMARKS:    /// Libreoffice Base
             default:
                 throw std::runtime_error("Unsupported statement attribute.");
         }
