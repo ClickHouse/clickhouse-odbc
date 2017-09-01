@@ -9,20 +9,13 @@ set (CXX_WARNING_FLAGS "-Wnon-virtual-dtor")
 
 set (CMAKE_BUILD_COLOR_MAKEFILE          ON)
 set (CMAKE_CXX_FLAGS                     "${CMAKE_CXX_FLAGS} -std=c++14 -O2 -g -fvisibility-inlines-hidden")
-set (CMAKE_SHARED_LINKER_FLAGS           "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
+set (CMAKE_SHARED_LINKER_FLAGS           "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--whole-archive -Wl,--no-whole-archive")
 set (CMAKE_POSITION_INDEPENDENT_CODE     ON)
 
 # === find_poco ===
 option (USE_INTERNAL_POCO_LIBRARY "Set to FALSE to use system poco library instead of bundled" 1)
 
 if (NOT USE_INTERNAL_POCO_LIBRARY)
-
-    if (WIN32 OR MSVC)
-        set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
-    elseif (UNIX)
-        set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-    endif ()
-
     find_package (Poco COMPONENTS Net)
 endif ()
 
