@@ -55,7 +55,7 @@ bool Statement::isPrepared() const
     return prepared;
 }
 
-void Statement::sendRequest()
+void Statement::sendRequest(IResultMutatorPtr mutator)
 {
     std::ostringstream user_password_base64;
     Poco::Base64Encoder base64_encoder(user_password_base64);
@@ -106,7 +106,7 @@ void Statement::sendRequest()
         throw std::runtime_error(error_message.str());
     }
 
-    result.init(this);
+    result.init(this, std::move(mutator));
 }
 
 bool Statement::fetchRow()

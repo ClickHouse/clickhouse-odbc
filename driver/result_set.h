@@ -2,11 +2,13 @@
 
 #include "read_helpers.h"
 #include "platform.h"
+#include "type_parser.h"
 
 #include <Poco/NumberParser.h>
 #include <Poco/Types.h>
 
 #include <vector>
+#include <memory>
 
 class Statement;
 
@@ -59,11 +61,22 @@ struct ColumnInfo
     bool is_nullable = false;
 };
 
+class IResultMutator
+{
+public:
+    virtual ~IResultMutator() = default;
+
+    virtual void UpdateColumnInfo(std::vector<ColumnInfo> * columns_info) = 0;
+
+    virtual void UpdateRow(const std::vector<ColumnInfo> & columns_info, Row * row) = 0;
+};
+
+using IResultMutatorPtr = std::unique_ptr<IResultMutator>;
 
 class ResultSet
 {
 public:
-    void init(Statement * statement_);
+    void init(Statement * statement_, IResultMutatorPtr mutator_);
 
     bool empty() const;
     const ColumnInfo & getColumnInfo(size_t i) const;
@@ -81,8 +94,11 @@ private:
 
 private:
     Statement * statement = nullptr;
+    IResultMutatorPtr mutator;
     std::vector<ColumnInfo> columns_info;
     Block current_block;
     Block::Data::const_iterator iterator;
     size_t rows = 0;
 };
+
+void assignTypeInfo(const TypeAst & ast, ColumnInfo * info);

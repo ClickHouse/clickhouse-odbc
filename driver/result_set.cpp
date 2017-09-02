@@ -1,9 +1,25 @@
 #include "log.h"
 #include "result_set.h"
 #include "statement.h"
-#include "type_parser.h"
 
 #include <Poco/Types.h>
+
+namespace
+{
+
+class EmptyMutator : public IResultMutator
+{
+public:
+    void UpdateColumnInfo(std::vector<ColumnInfo> *) override
+    {
+    }
+
+    void UpdateRow(const std::vector<ColumnInfo> & , Row *) override
+    {
+    }
+};
+
+} // namespace
 
 SQL_DATE_STRUCT Field::getDate() const
 {
@@ -65,7 +81,7 @@ void Field::normalizeDate(T& date) const
         date.day = 1;
 }
 
-static void assignTypeInfo(const TypeAst & ast, ColumnInfo * info)
+void assignTypeInfo(const TypeAst & ast, ColumnInfo * info)
 {
     if (ast.meta == TypeAst::Terminal)
     {
@@ -83,9 +99,10 @@ static void assignTypeInfo(const TypeAst & ast, ColumnInfo * info)
     }
 }
 
-void ResultSet::init(Statement * statement_)
+void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_)
 {
     statement = statement_;
+    mutator = (mutator_ ? std::move(mutator_) : IResultMutatorPtr(new EmptyMutator));
 
     if (in().peek() == EOF)
         return;
@@ -116,15 +133,16 @@ void ResultSet::init(Statement * statement_)
         }
     }
 
+    mutator->UpdateColumnInfo(&columns_info);
+
     readNextBlock();
 
     /// The displayed column sizes are calculated from the first block.
     for (const auto & row : current_block.data)
+    {
         for (size_t i = 0; i < num_columns; ++i)
             columns_info[i].display_size = std::max(row.data[i].data.size(), columns_info[i].display_size);
-
-    for (const auto & column : columns_info)
-        LOG(column.name << ", " << column.type << ", " << column.display_size);
+    }
 }
 
 bool ResultSet::empty() const
@@ -180,6 +198,8 @@ bool ResultSet::readNextBlock()
 
         for (size_t j = 0; j < num_columns; ++j)
             readString(row.data[j].data, in());
+
+        mutator->UpdateRow(columns_info, &row);
 
         current_block.data.emplace_back(std::move(row));
     }

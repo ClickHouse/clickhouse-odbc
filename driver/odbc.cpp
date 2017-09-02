@@ -5,6 +5,7 @@
 #include "connection.h"
 #include "statement.h"
 #include "result_set.h"
+#include "type_parser.h"
 #include "utils.h"
 
 #include <Poco/Types.h>
@@ -743,29 +744,72 @@ SQLColumns(HSTMT statement_handle,
 {
     LOG(__FUNCTION__);
 
+    class ColumnsMutator : public IResultMutator
+    {
+    public:
+        ColumnsMutator(Environment* env_)
+            : env(env_)
+        {
+        }
+        
+        void UpdateColumnInfo(std::vector<ColumnInfo> * columns_info) override
+        { 
+            columns_info->at(4).name = "Int16";
+            columns_info->at(4).type_without_parameters = "Int16";
+        }
+
+        void UpdateRow(const std::vector<ColumnInfo> & columns_info, Row * row) override
+        {
+            ColumnInfo type_column;
+
+            {
+                TypeAst ast;
+                if (TypeParser(row->data.at(4).data).parse(&ast))
+                {
+                    assignTypeInfo(ast, &type_column);
+                }
+                else
+                {
+                    throw std::runtime_error("can't pase name of type: " + row->data.at(4).data);
+                }
+            }
+
+            const TypeInfo & type_info = env->types_info.at(type_column.type_without_parameters);
+
+            row->data.at(4).data = std::to_string(type_info.sql_type);
+            row->data.at(5).data = type_info.sql_type_name;
+            row->data.at(6).data = std::to_string(type_info.column_size);
+            row->data.at(13).data = std::to_string(type_info.sql_type);
+            row->data.at(15).data = std::to_string(type_info.octet_length);
+        }
+
+    private:
+        Environment* const env;
+    };
+
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
         std::stringstream query;
 
         query << "SELECT"
-                " database AS TABLE_CAT"
-                ", '' AS TABLE_SCHEM"
-                ", table AS TABLE_NAME"
-                ", name AS COLUMN_NAME"
-                ", 0 AS DATA_TYPE"  /// TODO
-                ", 0 AS TYPE_NAME"
-                ", 0 AS COLUMN_SIZE"
-                ", 0 AS BUFFER_LENGTH"
-                ", 0 AS DECIMAL_DIGITS"
-                ", 0 AS NUM_PREC_RADIX"
-                ", 0 AS NULLABLE"
-                ", 0 AS REMARKS"
-                ", 0 AS COLUMN_DEF"
-                ", 0 AS SQL_DATA_TYPE "
-                ", 0 AS SQL_DATETIME_SUB"
-                ", 0 AS CHAR_OCTET_LENGTH"
-                ", 0 AS ORDINAL_POSITION"
-                ", 0 AS IS_NULLABLE"
+                " database AS TABLE_CAT"    // 0
+                ", '' AS TABLE_SCHEM"       // 1
+                ", table AS TABLE_NAME"     // 2
+                ", name AS COLUMN_NAME"     // 3
+                ", type AS DATA_TYPE"       // 4
+                ", '' AS TYPE_NAME"         // 5
+                ", 0 AS COLUMN_SIZE"        // 6
+                ", 0 AS BUFFER_LENGTH"      // 7
+                ", 0 AS DECIMAL_DIGITS"     // 8
+                ", 0 AS NUM_PREC_RADIX"     // 9
+                ", 0 AS NULLABLE"           // 10
+                ", 0 AS REMARKS"            // 11
+                ", 0 AS COLUMN_DEF"         // 12
+                ", 0 AS SQL_DATA_TYPE"      // 13
+                ", 0 AS SQL_DATETIME_SUB"   // 14
+                ", 0 AS CHAR_OCTET_LENGTH"  // 15
+                ", 0 AS ORDINAL_POSITION"   // 16
+                ", 0 AS IS_NULLABLE"        // 17
             " FROM system.columns"
             " WHERE (1 == 1)";
 
@@ -781,7 +825,7 @@ SQLColumns(HSTMT statement_handle,
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
 
         statement.setQuery(query.str());
-        statement.sendRequest();
+        statement.sendRequest(IResultMutatorPtr(new ColumnsMutator(&statement.connection.environment)));
         return SQL_SUCCESS;
     });
 }

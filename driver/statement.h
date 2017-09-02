@@ -61,11 +61,14 @@ public:
     void reset();
 
     /// Send request to a server.
-    void sendRequest();
+    void sendRequest(IResultMutatorPtr mutator = nullptr);
 
 public:
     Connection & connection;
     
+    ResultSet result;
+    Row current_row;
+
     std::istream * in = nullptr;
     DiagnosticRecord diagnostic_record;
 
@@ -73,9 +76,6 @@ public:
     std::unique_ptr<DescriptorClass> apd;
     std::unique_ptr<DescriptorClass> ird;
     std::unique_ptr<DescriptorClass> ipd;
-
-    ResultSet result;
-    Row current_row;
 
     std::map<SQLUSMALLINT, Binding> bindings;
 
