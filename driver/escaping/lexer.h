@@ -20,6 +20,7 @@ struct Token {
         D,
         T,
         TS,
+        CONCAT,
         CONVERT,
 
         // Delimiters
@@ -57,9 +58,15 @@ public:
     /// Returns next token if its type is equal to expected or error otherwise.
     Token Consume(Token::Type expected);
 
+    /// Look at type of token at position n.
+    Token LookAhead(size_t n);
+
     /// Checks whether type of next token is equal to expected.
     /// Skips token if true.
     bool Match(Token::Type expected);
+
+    /// Peek next token.
+    Token Peek();
 
 private:
     /// Makes token of length len againts current position.

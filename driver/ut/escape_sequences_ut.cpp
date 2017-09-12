@@ -9,6 +9,23 @@ TEST(EscapeSequencesCase, ParseConvert) {
     );
 }
 
+TEST(EscapeSequencesCase, ParseConcat) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn CONCAT('a', 'b')}"),
+        "SELECT concat('a','b')"
+    );
+
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn CONCAT(`table`.`field1`, `table`.`field1`)}"),
+        "SELECT concat(`table`.`field1`,`table`.`field1`)"
+    );
+
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn CONCAT({fn CONCAT(`table`.`field1`, '.')}, `table`.`field1`)}"),
+        "SELECT concat(concat(`table`.`field1`,'.'),`table`.`field1`)"
+    );
+}
+
 TEST(EscapeSequencesCase, DateTime) {
     ASSERT_EQ(
         replaceEscapeSequences("SELECT {d '2017-01-01'}"),
@@ -21,10 +38,9 @@ TEST(EscapeSequencesCase, DateTime) {
     );
 }
 
-
 TEST(LexerCase, ParseString) {
     Token tok = Lexer("'2017-01-01'").Consume();
 
     ASSERT_EQ(tok.type, Token::STRING);
-    ASSERT_EQ(tok.literal, "2017-01-01");
+    ASSERT_EQ(tok.literal, "'2017-01-01'");
 }

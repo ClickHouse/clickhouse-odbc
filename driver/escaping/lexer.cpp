@@ -10,6 +10,7 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
     {"D",       Token::D},
     {"T",       Token::T},
     {"TS",      Token::TS},
+    {"CONCAT",  Token::CONCAT},
     {"CONVERT", Token::CONVERT}
 };
 
@@ -60,6 +61,14 @@ Token Lexer::Consume(Token::Type expected) {
     return Token{Token::INVALID, StringView()};
 }
 
+Token Lexer::LookAhead(size_t n) {
+    while (readed_.size() < n + 1) {
+        readed_.push_back(NextToken());
+    }
+
+    return readed_[n];
+}
+
 bool Lexer::Match(Token::Type expected) {
     if (readed_.empty()) {
         readed_.push_back(NextToken());
@@ -82,6 +91,10 @@ Token Lexer::MakeToken(const Token::Type type, size_t len) {
     }
 
     return token;
+}
+
+Token Lexer::Peek() {
+    return LookAhead(0);
 }
 
 Token Lexer::NextToken() {
@@ -111,18 +124,16 @@ Token Lexer::NextToken() {
                 return MakeToken(Token::COMMA, 1);
 
             case '\'': {
-                const char* st = ++cur_;
+                const char* st = cur_;
                 bool has_slash = false;
 
-                for (; cur_ < end_; ++cur_) {
+                for (++cur_; cur_ < end_; ++cur_) {
                     if (*cur_ == '\\' && !has_slash) {
                         has_slash = true;
                         continue;
                     }
                     if (*cur_ == '\'' && !has_slash) {
-                        return Token{
-                            Token::STRING,
-                            StringView(st, ++cur_ - st - 1)};
+                        return Token{Token::STRING, StringView(st, ++cur_)};
                     }
 
                     has_slash = false;
@@ -133,6 +144,20 @@ Token Lexer::NextToken() {
 
             default: {
                 const char* st = cur_;
+
+                if (*cur_ == '`') {
+                    for (++cur_; cur_ < end_; ++cur_) {
+                        if (*cur_  == '`') {
+                            return Token{Token::IDENT, StringView(st, ++cur_)};
+                        }
+                        if (!isalpha(*cur_) && !isdigit(*cur_) && *cur_ != '_')
+                        {
+                            return Token{Token::INVALID, StringView(st, cur_)};
+                        }
+                    }
+
+                    break;
+                }
 
                 if (isalpha(*cur_) || *cur_ == '_') {
                     for (++cur_; cur_ < end_; ++cur_) {
