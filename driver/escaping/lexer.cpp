@@ -7,6 +7,9 @@ namespace {
 
 static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
     {"FN",      Token::FN},
+    {"D",       Token::D},
+    {"T",       Token::T},
+    {"TS",      Token::TS},
     {"CONVERT", Token::CONVERT}
 };
 
@@ -106,6 +109,27 @@ Token Lexer::NextToken() {
                 return MakeToken(Token::RCURLY, 1);
             case ',':
                 return MakeToken(Token::COMMA, 1);
+
+            case '\'': {
+                const char* st = ++cur_;
+                bool has_slash = false;
+
+                for (; cur_ < end_; ++cur_) {
+                    if (*cur_ == '\\' && !has_slash) {
+                        has_slash = true;
+                        continue;
+                    }
+                    if (*cur_ == '\'' && !has_slash) {
+                        return Token{
+                            Token::STRING,
+                            StringView(st, ++cur_ - st - 1)};
+                    }
+
+                    has_slash = false;
+                }
+
+                return Token{Token::INVALID, StringView(st, cur_ - st)};
+            }
 
             default: {
                 const char* st = cur_;

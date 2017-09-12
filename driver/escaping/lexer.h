@@ -13,9 +13,13 @@ struct Token {
         // Identifiers and literals
         IDENT,
         NUMBER,
+        STRING,
 
         // Keywords
         FN,
+        D,
+        T,
+        TS,
         CONVERT,
 
         // Delimiters
@@ -37,6 +41,10 @@ struct Token {
         : type(t)
         , literal(l)
     { }
+
+    inline bool isInvalid() const {
+        return type == INVALID;
+    }
 };
 
 class Lexer {
