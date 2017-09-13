@@ -203,6 +203,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
                 num_value = statement.result.getNumColumns();
                 break;
             case SQL_DESC_DISPLAY_SIZE:
+                // TODO (artpaul) https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/display-size
                 num_value = column_info.display_size;
                 break;
             case SQL_DESC_FIXED_PREC_SCALE:
@@ -212,7 +213,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
                 str_value = column_info.name;
                 break;
             case SQL_DESC_LENGTH:
-                if (type_info.sql_type == SQL_VARCHAR)
+                if (type_info.IsStringType())
                 {
                     if (column_info.fixed_size)
                     {
@@ -220,7 +221,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
                     }
                     else
                     {
-                        num_value = type_info.octet_length;
+                        num_value = column_info.display_size;
                     }
                 }
                 break;
@@ -242,7 +243,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
                     if (column_info.fixed_size)
                         num_value = column_info.fixed_size * SIZEOF_CHAR;
                     else
-                        num_value = type_info.octet_length * SIZEOF_CHAR;
+                        num_value = column_info.display_size * SIZEOF_CHAR;
                 }
                 else
                 {
