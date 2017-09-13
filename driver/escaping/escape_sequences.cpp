@@ -45,7 +45,28 @@ string processFunction(const StringView seq, Lexer& lex) {
             }
             return func + "(" + num.literal.to_string() + ")";
         }
+    } else if (fn.type == Token::ROUND) {
+        string result = "round";
+        lex.SetEmitSpaces(true);
+        while (true) {
+            const Token tok(lex.Peek());
 
+            if (tok.type == Token::RCURLY) {
+                break;
+            } else if (tok.type == Token::LCURLY) {
+                lex.SetEmitSpaces(false);
+                result += processEscapeSequencesImpl(seq, lex);
+                lex.SetEmitSpaces(true);
+            } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
+                break;
+            } else {
+                result += tok.literal.to_string();
+                lex.Consume();
+            }
+        }
+        lex.SetEmitSpaces(false);
+
+        return result;
     } else if (fn.type == Token::CONCAT) {
         string result = "concat";
 
