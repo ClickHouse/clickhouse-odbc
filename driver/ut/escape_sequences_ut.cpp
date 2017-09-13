@@ -12,17 +12,17 @@ TEST(EscapeSequencesCase, ParseConvert) {
 TEST(EscapeSequencesCase, ParseConcat) {
     ASSERT_EQ(
         replaceEscapeSequences("SELECT {fn CONCAT('a', 'b')}"),
-        "SELECT concat('a','b')"
+        "SELECT concat('a', 'b')"
     );
 
     ASSERT_EQ(
         replaceEscapeSequences("SELECT {fn CONCAT(`table`.`field1`, `table`.`field1`)}"),
-        "SELECT concat(`table`.`field1`,`table`.`field1`)"
+        "SELECT concat(`table`.`field1`, `table`.`field1`)"
     );
 
     ASSERT_EQ(
         replaceEscapeSequences("SELECT {fn CONCAT({fn CONCAT(`table`.`field1`, '.')}, `table`.`field1`)}"),
-        "SELECT concat(concat(`table`.`field1`,'.'),`table`.`field1`)"
+        "SELECT concat(concat(`table`.`field1`, '.'), `table`.`field1`)"
     );
 }
 

@@ -32,6 +32,7 @@ std::string to_upper(const StringView& str) {
 
 Lexer::Lexer(const StringView text)
     : text_(text)
+    , emit_space_(false)
     , cur_(text.data())
     , end_(text.data() + text.size())
 {
@@ -97,6 +98,10 @@ Token Lexer::Peek() {
     return LookAhead(0);
 }
 
+void Lexer::SetEmitSpaces(bool value) {
+    emit_space_ = value;
+}
+
 Token Lexer::NextToken() {
     for (; cur_ < end_; ++cur_) {
         switch (*cur_) {
@@ -108,6 +113,8 @@ Token Lexer::NextToken() {
             case '\f':
             case '\n':
             case '\r':
+                if (emit_space_)
+                    return MakeToken(Token::SPACE, 1);
                 continue;
 
             /** Delimiters */
@@ -193,7 +200,13 @@ Token Lexer::NextToken() {
                     return Token{Token::NUMBER, StringView(st, cur_)};
                 }
 
-                return Token{Token::INVALID, StringView(st, cur_)};
+                for (; cur_ < end_; ++cur_) {
+                    if (isspace(*cur_)) {
+                        break;
+                    }
+                }
+
+                return Token{Token::OTHER, StringView(st, cur_)};
             }
         }
     }

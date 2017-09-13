@@ -49,13 +49,16 @@ string processFunction(const StringView seq, Lexer& lex) {
     } else if (fn.type == Token::CONCAT) {
         string result = "concat";
 
+        lex.SetEmitSpaces(true);
         while (true) {
             const Token tok(lex.Peek());
 
             if (tok.type == Token::RCURLY) {
                 break;
             } else if (tok.type == Token::LCURLY) {
+                lex.SetEmitSpaces(false);
                 result += processEscapeSequencesImpl(seq, lex);
+                lex.SetEmitSpaces(true);
             } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
                 break;
             } else {
@@ -63,6 +66,7 @@ string processFunction(const StringView seq, Lexer& lex) {
                 lex.Consume();
             }
         }
+        lex.SetEmitSpaces(false);
 
         return result;
     }

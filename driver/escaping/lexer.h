@@ -9,6 +9,8 @@ struct Token {
     enum Type {
         INVALID = 0,
         EOS,
+        SPACE,
+        OTHER,
 
         // Identifiers and literals
         IDENT,
@@ -68,6 +70,9 @@ public:
     /// Peek next token.
     Token Peek();
 
+    /// Enable or disable emitting of space tokens.
+    void SetEmitSpaces(bool value);
+
 private:
     /// Makes token of length len againts current position.
     Token MakeToken(const Token::Type type, size_t len);
@@ -82,6 +87,7 @@ private:
     const char* end_;
     /// Recognized tokens.
     std::deque<Token> readed_;
+    bool emit_space_;
 };
 
 /// Convers all letters to upper-case.
