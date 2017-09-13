@@ -131,7 +131,7 @@ SQLExecDirect(HSTMT statement_handle,
             if (query.empty())
                 throw std::runtime_error("ExecDirect called with empty query.");
 
-            statement.setQuery(query);
+            statement.prepareQuery(query);
         }
 
         LOG(query);
