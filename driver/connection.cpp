@@ -18,7 +18,10 @@ std::string Connection::connectionString() const
     ret += "SERVER=" + server + ";";
     ret += "PORT=" + std::to_string(port) + ";";
     ret += "UID=" + user + ";";
-    // TODO (artpaul) Do we need to fill PWD?
+    if (!password.empty())
+    {
+        ret += "PWD=" + password + ";";
+    }
     return ret;
 }
 

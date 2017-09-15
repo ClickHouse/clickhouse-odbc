@@ -45,4 +45,7 @@ void getDSNinfo(ConnInfo * ci, bool overwrite)
 
     if (ci->onlyread[0] == '\0' || overwrite)
         SQLGetPrivateProfileString(ci->dsn, INI_READONLY, TEXT(""), ci->onlyread, sizeof(ci->onlyread), ODBC_INI);
+
+    if (ci->password[0] == '\0' || overwrite)
+        SQLGetPrivateProfileString(ci->dsn, INI_PASSWORD, TEXT(""), ci->password, sizeof(ci->password), ODBC_INI);
 }

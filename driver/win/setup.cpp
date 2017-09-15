@@ -133,148 +133,15 @@ copyAttributes(ConnInfo *ci, LPCTSTR attribute, LPCTSTR value)
     else if (stricmp(attribute, INI_USERNAME) == 0 || stricmp(attribute, INI_UID) == 0)
         strcpy(ci->username, value);
 
-    //else if (stricmp(attribute, INI_PASSWORD) == 0 || stricmp(attribute, "pwd") == 0)
-    //	ci->password = decode_or_remove_braces(value);
+    else if (stricmp(attribute, INI_PASSWORD) == 0 || stricmp(attribute, TEXT("pwd")) == 0)
+        strcpy(ci->password, value);
 
     else if (stricmp(attribute, INI_PORT) == 0)
         strcpy(ci->port, value);
 
     else if (stricmp(attribute, INI_READONLY) == 0 || stricmp(attribute, ABBR_READONLY) == 0)
         strcpy(ci->onlyread, value);
-#if 0
-    else if (stricmp(attribute, INI_PROTOCOL) == 0 || stricmp(attribute, ABBR_PROTOCOL) == 0)
-    {
-        char * ptr;
-        /*
-        * The first part of the Protocol used to be "6.2", "6.3" or
-        * "7.4" to denote which protocol version to use. Nowadays we
-        * only support the 7.4 protocol, also known as the protocol
-        * version 3. So just ignore the first part of the string,
-        * parsing only the rollback_on_error value.
-        */
-        ptr = (char*)strchr(value, '-');
-        if (ptr)
-        {
-            if ('-' != *value)
-            {
-                *ptr = '\0';
-                /* ignore first part */
-            }
-            ci->rollback_on_error = atoi(ptr + 1);
-        }
-    }
 
-    else if (stricmp(attribute, INI_SHOWOIDCOLUMN) == 0 || stricmp(attribute, ABBR_SHOWOIDCOLUMN) == 0)
-        strcpy(ci->show_oid_column, value);
-
-    else if (stricmp(attribute, INI_FAKEOIDINDEX) == 0 || stricmp(attribute, ABBR_FAKEOIDINDEX) == 0)
-        strcpy(ci->fake_oid_index, value);
-
-    else if (stricmp(attribute, INI_ROWVERSIONING) == 0 || stricmp(attribute, ABBR_ROWVERSIONING) == 0)
-        strcpy(ci->row_versioning, value);
-
-    else if (stricmp(attribute, INI_SHOWSYSTEMTABLES) == 0 || stricmp(attribute, ABBR_SHOWSYSTEMTABLES) == 0)
-        strcpy(ci->show_system_tables, value);
-
-    else if (stricmp(attribute, INI_CONNSETTINGS) == 0 || stricmp(attribute, ABBR_CONNSETTINGS) == 0)
-    {
-        /* We can use the conn_settings directly when they are enclosed with braces */
-        if ('{' == *value)
-        {
-            size_t	len;
-
-            len = strlen(value + 1);
-            if (len > 0 && '}' == value[len])
-                len--;
-            STRN_TO_NAME(ci->conn_settings, value + 1, len);
-        }
-        else
-            ci->conn_settings = decode(value);
-    }
-    else if (stricmp(attribute, INI_DISALLOWPREMATURE) == 0 || stricmp(attribute, ABBR_DISALLOWPREMATURE) == 0)
-        ci->disallow_premature = atoi(value);
-    else if (stricmp(attribute, INI_UPDATABLECURSORS) == 0 || stricmp(attribute, ABBR_UPDATABLECURSORS) == 0)
-        ci->allow_keyset = atoi(value);
-    else if (stricmp(attribute, INI_LFCONVERSION) == 0 || stricmp(attribute, ABBR_LFCONVERSION) == 0)
-        ci->lf_conversion = atoi(value);
-    else if (stricmp(attribute, INI_TRUEISMINUS1) == 0 || stricmp(attribute, ABBR_TRUEISMINUS1) == 0)
-        ci->true_is_minus1 = atoi(value);
-    else if (stricmp(attribute, INI_INT8AS) == 0)
-        ci->int8_as = atoi(value);
-    else if (stricmp(attribute, INI_BYTEAASLONGVARBINARY) == 0 || stricmp(attribute, ABBR_BYTEAASLONGVARBINARY) == 0)
-        ci->bytea_as_longvarbinary = atoi(value);
-    else if (stricmp(attribute, INI_USESERVERSIDEPREPARE) == 0 || stricmp(attribute, ABBR_USESERVERSIDEPREPARE) == 0)
-        ci->use_server_side_prepare = atoi(value);
-    else if (stricmp(attribute, INI_LOWERCASEIDENTIFIER) == 0 || stricmp(attribute, ABBR_LOWERCASEIDENTIFIER) == 0)
-        ci->lower_case_identifier = atoi(value);
-    else if (stricmp(attribute, INI_GSSAUTHUSEGSSAPI) == 0 || stricmp(attribute, ABBR_GSSAUTHUSEGSSAPI) == 0)
-        ci->gssauth_use_gssapi = atoi(value);
-    else if (stricmp(attribute, INI_KEEPALIVETIME) == 0 || stricmp(attribute, ABBR_KEEPALIVETIME) == 0)
-        ci->keepalive_idle = atoi(value);
-    else if (stricmp(attribute, INI_KEEPALIVEINTERVAL) == 0 || stricmp(attribute, ABBR_KEEPALIVEINTERVAL) == 0)
-        ci->keepalive_interval = atoi(value);
-#ifdef	USE_LIBPQ
-    else if (stricmp(attribute, INI_PREFERLIBPQ) == 0 || stricmp(attribute, ABBR_PREFERLIBPQ) == 0)
-        ci->prefer_libpq = atoi(value);
-#endif /* USE_LIBPQ */
-    else if (stricmp(attribute, INI_SSLMODE) == 0 || stricmp(attribute, ABBR_SSLMODE) == 0)
-    {
-        switch (value[0])
-        {
-            case SSLLBYTE_ALLOW:
-                strcpy(ci->sslmode, SSLMODE_ALLOW);
-                break;
-            case SSLLBYTE_PREFER:
-                strcpy(ci->sslmode, SSLMODE_PREFER);
-                break;
-            case SSLLBYTE_REQUIRE:
-                strcpy(ci->sslmode, SSLMODE_REQUIRE);
-                break;
-            case SSLLBYTE_VERIFY:
-                switch (value[1])
-                {
-                    case 'f':
-                        strcpy(ci->sslmode, SSLMODE_VERIFY_FULL);
-                        break;
-                    case 'c':
-                        strcpy(ci->sslmode, SSLMODE_VERIFY_CA);
-                        break;
-                    default:
-                        strcpy(ci->sslmode, value);
-                }
-                break;
-            case SSLLBYTE_DISABLE:
-            default:
-                strcpy(ci->sslmode, SSLMODE_DISABLE);
-                break;
-        }
-    }
-    else if (stricmp(attribute, INI_ABBREVIATE) == 0)
-        unfoldCXAttribute(ci, value);
-#ifdef	_HANDLE_ENLIST_IN_DTC_
-    else if (stricmp(attribute, INI_XAOPT) == 0)
-        ci->xa_opt = atoi(value);
-#endif /* _HANDLE_ENLIST_IN_DTC_ */
-    else if (stricmp(attribute, INI_EXTRAOPTIONS) == 0)
-    {
-        UInt4	val1 = 0, val2 = 0;
-
-        if ('+' == value[0])
-        {
-            sscanf(value + 1, "%x-%x", &val1, &val2);
-            add_removeExtraOptions(ci, val1, val2);
-        }
-        else if ('-' == value[0])
-        {
-            sscanf(value + 1, "%x", &val2);
-            add_removeExtraOptions(ci, 0, val2);
-        }
-        else
-        {
-            setExtraOptions(ci, value, hex_format);
-        }
-    }
-#endif
     else
         found = FALSE;
 
@@ -288,8 +155,6 @@ static void parseAttributes(LPCTSTR lpszAttributes, SetupDialogData * lpsetupdlg
     TCHAR		aszKey[MAXKEYLEN];
     int			cbKey;
     TCHAR		value[MAXPGPATH];
-
-    //CC_conninfo_init(&(lpsetupdlg->ci), COPY_GLOBALS);
 
     for (lpsz = lpszAttributes; *lpsz; lpsz++)
     {
@@ -350,6 +215,9 @@ void getDSNinfo(ConnInfo *ci, bool overwrite)
 
     if (ci->onlyread[0] == '\0' || overwrite)
         SQLGetPrivateProfileString(DSN, INI_READONLY, TEXT(""), ci->onlyread, sizeof(ci->onlyread), ODBC_INI);
+
+    if (ci->password[0] == '\0' || overwrite)
+        SQLGetPrivateProfileString(DSN, INI_PASSWORD, TEXT(""), ci->password, sizeof(ci->password), ODBC_INI);
 }
 
 /*	This is for datasource based options only */
@@ -388,6 +256,11 @@ void writeDSNinfo(const ConnInfo * ci)
     SQLWritePrivateProfileString(DSN,
                                  INI_READONLY,
                                  ci->onlyread,
+                                 ODBC_INI);
+
+    SQLWritePrivateProfileString(DSN,
+                                 INI_PASSWORD,
+                                 ci->password,
                                  ODBC_INI);
 }
 
