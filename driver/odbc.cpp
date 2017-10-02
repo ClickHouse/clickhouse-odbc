@@ -251,6 +251,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
                 }
                 break;
             case SQL_DESC_PRECISION:
+                num_value = 0;
                 break;
             case SQL_DESC_NUM_PREC_RADIX:
                 if (type_info.IsIntegerType())
@@ -284,7 +285,7 @@ SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT
                 break;
             default:
                 throw SqlException(
-                    "Unsupported FieldIdentifier = " + std::to_string(field_identifier), 
+                    "Unsupported FieldIdentifier = " + std::to_string(field_identifier),
                     "HYC00");
         }
 
@@ -752,9 +753,9 @@ SQLColumns(HSTMT statement_handle,
             : env(env_)
         {
         }
-        
+
         void UpdateColumnInfo(std::vector<ColumnInfo> * columns_info) override
-        { 
+        {
             columns_info->at(4).name = "Int16";
             columns_info->at(4).type_without_parameters = "Int16";
         }
