@@ -104,12 +104,44 @@ string processDate(const StringView seq, Lexer& lex) {
     }
 }
 
+string removeMilliseconds(const StringView token) {
+    if (token.empty()) {
+        return string();
+    }
+
+    const char* begin = token.data();
+    const char* p = begin + token.size() - 1;
+    const char* dot = nullptr;
+    const bool quoted = (*p == '\'');
+    if (quoted) {
+        --p;
+    }
+    for (; p > begin; --p) {
+        if (isdigit(*p)) {
+            continue;
+        }
+        if (*p == '.') {
+            if (dot) {
+                return token.to_string();
+            }
+            dot = p;
+        } else {
+            if (dot) {
+                return string(begin, dot) + (quoted ? "'" : "");
+            }
+            return token.to_string();
+        }
+    }
+
+    return token.to_string();
+}
+
 string processDateTime(const StringView seq, Lexer& lex) {
     Token data = lex.Consume(Token::STRING);
     if (data.isInvalid()) {
         return seq.to_string();
     } else {
-        return string("toDateTime(") + data.literal.to_string() + ")";
+        return string("toDateTime(") + removeMilliseconds(data.literal) + ")";
     }
 }
 
