@@ -41,6 +41,7 @@ sudo apt install unixodbc-dev
 ```bash
 mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 2)
 ```
+Please use cmake3 to build the project on CentOS 7. You can install it with `yum install cmake3`.
 
 2. clickhouse-odbc.so will be at ```build/driver/clickhouse-odbc.so```
 
