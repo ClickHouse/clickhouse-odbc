@@ -66,7 +66,7 @@ static const char * nextKeyValuePair(const char * data, const char * end, String
 template <typename SIZE_TYPE>
 std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols)
 {
-    if (!data || symbols == 0)
+    if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
         return{};
     if (symbols == SQL_NTS)
     {
