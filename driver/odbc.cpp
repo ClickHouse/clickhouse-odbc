@@ -815,14 +815,25 @@ SQLColumns(HSTMT statement_handle,
             " FROM system.columns"
             " WHERE (1 == 1)";
 
-        if (catalog_name_length)
-            query << " AND TABLE_CAT LIKE '" << stringFromSQLSymbols(catalog_name, catalog_name_length) << "'";
-        if (schema_name_length)
-            query << " AND TABLE_SCHEM LIKE '" << stringFromSQLSymbols(schema_name, schema_name_length) << "'";
-        if (table_name_length)
-            query << " AND TABLE_NAME LIKE '" << stringFromSQLSymbols(table_name, table_name_length) << "'";
-        if (column_name_length)
-            query << " AND COLUMN_NAME LIKE '" << stringFromSQLSymbols(column_name, column_name_length) << "'";
+        std::string s;
+        s = stringFromSQLSymbols(catalog_name, catalog_name_length);
+        if (s.length() > 0) {
+            query << " AND TABLE_CAT LIKE '" << s << "'";
+        } else {
+            query << " AND TABLE_CAT = currentDatabase()";
+        }
+
+        s = stringFromSQLSymbols(schema_name, schema_name_length);
+        if (s.length() > 0)
+            query << " AND TABLE_SCHEM LIKE '" << s << "'";
+
+        s = stringFromSQLSymbols(table_name, table_name_length);
+        if (s.length() > 0)
+            query << " AND TABLE_NAME LIKE '" << s << "'";
+
+        s = stringFromSQLSymbols(column_name, column_name_length);
+        if (s.length() > 0)
+            query << " AND COLUMN_NAME LIKE '" << s << "'";
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
 
