@@ -172,6 +172,7 @@
     <ClCompile Include="..\..\driver\config.cpp" />
     <ClCompile Include="..\..\driver\connection.cpp" />
     <ClCompile Include="..\..\driver\diagnostics.cpp" />
+    <ClCompile Include="..\..\driver\environment.cpp" />
     <ClCompile Include="..\..\driver\escaping\escape_sequences.cpp" />
     <ClCompile Include="..\..\driver\escaping\lexer.cpp" />
     <ClCompile Include="..\..\driver\handles.cpp" />
