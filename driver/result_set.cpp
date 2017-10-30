@@ -95,7 +95,8 @@ void assignTypeInfo(const TypeAst & ast, ColumnInfo * info)
     }
     else
     {
-        throw std::runtime_error("compound types doesn't supported: " + info->type);
+        // Interprete all unsupported types as String.
+        info->type_without_parameters = "String";
     }
 }
 
@@ -128,7 +129,8 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_)
             }
             else
             {
-                throw std::runtime_error("can't pase name of type: " + columns_info[i].type);
+                // Interprete all unknown types as String.
+                columns_info[i].type_without_parameters = "String";
             }
         }
     }
