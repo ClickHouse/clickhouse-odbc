@@ -772,7 +772,8 @@ SQLColumns(HSTMT statement_handle,
                 }
                 else
                 {
-                    throw std::runtime_error("can't pase name of type: " + row->data.at(4).data);
+                    // Interprete all unknown types as String.
+                    type_column.type_without_parameters = "String";
                 }
             }
 
