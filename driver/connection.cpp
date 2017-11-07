@@ -46,7 +46,7 @@ void Connection::init()
     session.setHost(server);
     session.setPort(port);
     session.setKeepAlive(true);
-    session.setTimeout(Poco::Timespan(30, 0));
+    session.setTimeout(Poco::Timespan(timeout, 0));
     session.setKeepAliveTimeout(Poco::Timespan(86400, 0));
 }
 
@@ -126,6 +126,15 @@ void Connection::loadConfiguration()
         else
             throw std::runtime_error("Cannot parse port number.");
     }
+    if (timeout == 0)
+    {
+        const std::string timeout_string = stringFromTCHAR(ci.timeout);
+        if (!timeout_string.empty()) 
+        {
+            if (!Poco::NumberParser::tryParse(timeout_string, this->timeout))
+                throw std::runtime_error("Cannot parse connection timeout value.");
+        }
+    }
 
     if (server.empty())
         server = stringFromTCHAR(ci.server);
@@ -149,4 +158,6 @@ void Connection::setDefaults()
         user = "default";
     if (database.empty())
         database = "default";
+    if (timeout == 0)
+        timeout = 30;
 }

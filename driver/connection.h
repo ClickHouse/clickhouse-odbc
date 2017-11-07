@@ -11,9 +11,10 @@ struct Connection
 
     std::string data_source;
     std::string server;
-    uint16_t port = 0;
     std::string user;
     std::string password;
+    uint16_t port = 0;
+    int timeout = 0;
 
     Poco::Net::HTTPClientSession session;
     DiagnosticRecord diagnostic_record;

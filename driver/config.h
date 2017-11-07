@@ -14,6 +14,7 @@
 #define INI_PASSWORD        TEXT("Password")    /* Default Password */
 #define INI_PORT            TEXT("Port")        /* Port on which the ClickHouse is listening */
 #define INI_READONLY        TEXT("ReadOnly")    /* Database is read only */
+#define INI_TIMEOUT         TEXT("Timeout")
 
 #ifndef WIN32
 #   define ODBC_INI         ".odbc.ini"
@@ -39,6 +40,7 @@ struct ConnInfo
     TCHAR       port[SMALL_REGISTRY_LEN];
     TCHAR       sslmode[16];
     TCHAR       onlyread[SMALL_REGISTRY_LEN];
+    TCHAR       timeout[SMALL_REGISTRY_LEN];
     TCHAR       show_system_tables[SMALL_REGISTRY_LEN];
     TCHAR       translation_dll[MEDIUM_REGISTRY_LEN];
     TCHAR       translation_option[SMALL_REGISTRY_LEN];

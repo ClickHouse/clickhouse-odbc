@@ -18,6 +18,7 @@ ConnInfo::ConnInfo()
     ZERO_FIELD(port);
     ZERO_FIELD(sslmode);
     ZERO_FIELD(onlyread);
+    ZERO_FIELD(timeout);
     ZERO_FIELD(show_system_tables);
     ZERO_FIELD(translation_dll);
     ZERO_FIELD(translation_option);
@@ -48,4 +49,7 @@ void getDSNinfo(ConnInfo * ci, bool overwrite)
 
     if (ci->password[0] == '\0' || overwrite)
         SQLGetPrivateProfileString(ci->dsn, INI_PASSWORD, TEXT(""), ci->password, sizeof(ci->password), ODBC_INI);
+
+    if (ci->timeout[0] == '\0' || overwrite)
+        SQLGetPrivateProfileString(ci->dsn, INI_TIMEOUT, TEXT("30"), ci->timeout, sizeof(ci->timeout), ODBC_INI);
 }

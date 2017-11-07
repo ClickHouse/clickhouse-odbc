@@ -39,6 +39,7 @@ namespace
 #define INI_PORT            TEXT("Port")        /* Port on which the ClickHouse is listening */
 #define INI_READONLY        TEXT("ReadOnly")    /* Database is read only */
 #define INI_PROTOCOL        TEXT("Protocol")    /* What protocol (6.2) */
+#define INI_TIMEOUT         TEXT("Timeout")
 #define INI_DSN             TEXT("ClickHouse")
 
 #define ABBR_PROTOCOL		TEXT("A1")
@@ -70,6 +71,7 @@ struct ConnInfo
     TCHAR		port[SMALL_REGISTRY_LEN];
     TCHAR		sslmode[16];
     TCHAR		onlyread[SMALL_REGISTRY_LEN];
+    TCHAR		timeout[SMALL_REGISTRY_LEN];
     TCHAR		fake_oid_index[SMALL_REGISTRY_LEN];
     TCHAR		show_oid_column[SMALL_REGISTRY_LEN];
     TCHAR		row_versioning[SMALL_REGISTRY_LEN];
@@ -113,7 +115,7 @@ struct SetupDialogData
 BOOL
 copyAttributes(ConnInfo *ci, LPCTSTR attribute, LPCTSTR value)
 {
-    BOOL	found = TRUE;
+    BOOL found = TRUE;
 
     if (stricmp(attribute, TEXT("DSN")) == 0)
         strcpy(ci->dsn, value);
@@ -141,6 +143,9 @@ copyAttributes(ConnInfo *ci, LPCTSTR attribute, LPCTSTR value)
 
     else if (stricmp(attribute, INI_READONLY) == 0 || stricmp(attribute, ABBR_READONLY) == 0)
         strcpy(ci->onlyread, value);
+
+    else if (stricmp(attribute, INI_TIMEOUT) == 0)
+        strcpy(ci->timeout, value);
 
     else
         found = FALSE;
@@ -218,6 +223,9 @@ void getDSNinfo(ConnInfo *ci, bool overwrite)
 
     if (ci->password[0] == '\0' || overwrite)
         SQLGetPrivateProfileString(DSN, INI_PASSWORD, TEXT(""), ci->password, sizeof(ci->password), ODBC_INI);
+
+    if (ci->timeout[0] == '\0' || overwrite)
+        SQLGetPrivateProfileString(DSN, INI_TIMEOUT, TEXT("30"), ci->timeout, sizeof(ci->timeout), ODBC_INI);
 }
 
 /*	This is for datasource based options only */
@@ -261,6 +269,11 @@ void writeDSNinfo(const ConnInfo * ci)
     SQLWritePrivateProfileString(DSN,
                                  INI_PASSWORD,
                                  ci->password,
+                                 ODBC_INI);
+
+    SQLWritePrivateProfileString(DSN,
+                                 INI_TIMEOUT,
+                                 ci->timeout,
                                  ODBC_INI);
 }
 
@@ -386,6 +399,7 @@ INT_PTR	CALLBACK
             SetDlgItemText(hdlg, IDC_DATABASE, ci->database);
             SetDlgItemText(hdlg, IDC_USER, ci->username);
             SetDlgItemText(hdlg, IDC_PASSWORD, ci->password);
+            SetDlgItemText(hdlg, IDC_TIMEOUT, ci->timeout);
 
             return TRUE;		/* Focus was not set */
         }
@@ -404,6 +418,7 @@ INT_PTR	CALLBACK
                     GetDlgItemText(hdlg, IDC_DATABASE, ci->database, sizeof(ci->database));
                     GetDlgItemText(hdlg, IDC_USER, ci->username, sizeof(ci->username));
                     GetDlgItemText(hdlg, IDC_PASSWORD, ci->password, sizeof(ci->password));
+                    GetDlgItemText(hdlg, IDC_TIMEOUT, ci->timeout, sizeof(ci->timeout));
 
                     /* Return to caller */
                 case IDCANCEL:
