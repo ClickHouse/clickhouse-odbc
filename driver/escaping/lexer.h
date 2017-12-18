@@ -25,6 +25,7 @@ struct Token {
         CONCAT,
         CONVERT,
         ROUND,
+        POWER,
 
         // Delimiters
         COMMA,      //  ,
