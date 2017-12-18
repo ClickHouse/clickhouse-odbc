@@ -12,6 +12,11 @@ set (CMAKE_CXX_FLAGS                     "${CMAKE_CXX_FLAGS} -std=c++14 -O2 -g -
 set (CMAKE_SHARED_LINKER_FLAGS           "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
 set (CMAKE_POSITION_INDEPENDENT_CODE     ON)
 
+option (CLICKHOUSE_ODBC_TEST "Enable tests" 1)
+if (CLICKHOUSE_ODBC_TEST)
+    enable_testing ()
+endif ()
+
 # === find_poco ===
 option (USE_INTERNAL_POCO_LIBRARY "Set to FALSE to use system poco library instead of bundled" 1)
 
@@ -38,6 +43,7 @@ else ()
     set (ENABLE_NETSSL 0 CACHE BOOL "")
     set (ENABLE_CRYPTO 0 CACHE BOOL "")
     set (ENABLE_DATA 0 CACHE BOOL "")
+    set (ENABLE_UTIL 0 CACHE BOOL "")
     set (ENABLE_ZIP 0 CACHE BOOL "")
     set (ENABLE_PAGECOMPILER 0 CACHE BOOL "")
     set (ENABLE_PAGECOMPILER_FILE2PAGE 0 CACHE BOOL "")
@@ -45,25 +51,19 @@ else ()
 
     set (USE_INTERNAL_POCO_LIBRARY 1)
 
-    set (Poco_INCLUDE_DIRS
-        "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Foundation/include/"
-        "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Util/include/"
-        "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Net/include/"
-    )
-
     set (Poco_Foundation_LIBRARY PocoFoundation)
     set (Poco_Util_LIBRARY PocoUtil)
     set (Poco_Net_LIBRARY PocoNet)
-    include_directories (BEFORE ${Poco_INCLUDE_DIRS})
 endif ()
 
 message(STATUS "Using Poco: ${Poco_INCLUDE_DIRS} : ${Poco_Foundation_LIBRARY},${Poco_Util_LIBRARY},${Poco_Net_LIBRARY}")
 # === find_poco_end ===
 
+include (cmake/find_ccache.cmake)
 include (contrib/poco/cmake/FindODBC.cmake)
 include (cmake/Modules/CheckODBCversion.cmake)
 
-message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE}")
+message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE} ; CCACHE=${CCACHE_FOUND} ${CCACHE_VERSION}")
 
 add_subdirectory (contrib)
 
@@ -74,8 +74,4 @@ if (USE_INTERNAL_POCO_LIBRARY)
     set_property(TARGET Foundation PROPERTY INTERFACE_LINK_LIBRARIES "")
 endif ()
 
-include_directories(contrib)
-include_directories(driver)
-
 add_subdirectory (driver)
-add_subdirectory (driver/ut)

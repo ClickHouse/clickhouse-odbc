@@ -10,3 +10,5 @@ target_link_libraries(clickhouse-odbc-ut
     gtest-lib
     pthread
 )
+
+add_test(NAME "clickhouse-odbc-ut" COMMAND "clickhouse-odbc-ut")
