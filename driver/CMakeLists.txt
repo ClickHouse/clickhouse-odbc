@@ -1,4 +1,4 @@
-add_subdirectory (escaping)
+add_subdirectory(escaping)
 
 add_library(clickhouse-odbc SHARED
     attr.cpp
@@ -26,3 +26,7 @@ target_link_libraries(clickhouse-odbc
     ${Poco_Foundation_LIBRARY}
     ${ODBC_LIBRARIES}
 )
+
+if(CLICKHOUSE_ODBC_TEST)
+    add_subdirectory(ut)
+endif()
