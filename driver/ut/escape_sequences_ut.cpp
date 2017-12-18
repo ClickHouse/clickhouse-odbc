@@ -32,6 +32,13 @@ TEST(EscapeSequencesCase, ParseRound) {
     );
 }
 
+TEST(EscapeSequencesCase, ParsePower) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn POWER(`f_g38d`.`hsf_thkd_wect_fxge`,2)}"),
+        "SELECT pow(`f_g38d`.`hsf_thkd_wect_fxge`,2)"
+    );
+}
+
 TEST(EscapeSequencesCase, DateTime) {
     ASSERT_EQ(
         replaceEscapeSequences("SELECT {d '2017-01-01'}"),

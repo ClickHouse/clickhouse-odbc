@@ -45,8 +45,8 @@ string processFunction(const StringView seq, Lexer& lex) {
             }
             return func + "(" + num.literal.to_string() + ")";
         }
-    } else if (fn.type == Token::ROUND) {
-        string result = "round";
+    } else if (fn.type == Token::ROUND || fn.type == Token::POWER) {
+        string result = fn.type == Token::ROUND ? "round" : fn.type == Token::POWER ? "pow" : "WRONG_TOKEN";
         lex.SetEmitSpaces(true);
         while (true) {
             const Token tok(lex.Peek());
