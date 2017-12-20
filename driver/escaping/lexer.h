@@ -26,6 +26,7 @@ struct Token {
         CONVERT,
         ROUND,
         POWER,
+        TIMESTAMPDIFF,
 
         // Delimiters
         COMMA,      //  ,
