@@ -1,0 +1,21 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+export DEB_BUILD_MAINT_OPTIONS=hardening=+all
+
+ifndef DH_VERBOSE
+    CMAKE_FLAGS += -DCMAKE_VERBOSE_MAKEFILE=0
+endif
+
+%:
+	dh $@ --parallel --buildsystem=cmake
+
+override_dh_auto_configure:
+	dh_auto_configure -- $(CMAKE_FLAGS)
+
+override_dh_install:
+	dh_install
+	rm -rf debian/clickhouse-odbc/usr/include debian/clickhouse-odbc/usr/lib/cmake debian/clickhouse-odbc/usr/lib/libPoco*.a

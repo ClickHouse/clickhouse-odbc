@@ -97,15 +97,18 @@ void Connection::init(const std::string & connection_string)
             int int_port = 0;
             if (Poco::NumberParser::tryParse(current_value.toString(), int_port))
                 port = int_port;
-            else
+            else {
+                std::cerr << "CANNNNNNNNNNT\n";
                 throw std::runtime_error("Cannot parse port number.");
+            }
         }
         else if (current_key == "DATABASE")
             database = current_value.toString();
         else if (current_key == "DSN")
             data_source = current_value.toString();
     }
-
+    std::cerr << "port=" << port << "\n";
+    
     init();
 }
 
@@ -123,8 +126,11 @@ void Connection::loadConfiguration()
         int int_port = 0;
         if (Poco::NumberParser::tryParse(stringFromTCHAR(ci.port), int_port))
             port = int_port;
-        else
+        else {
+            std::cerr << "CPPN port=" << port << "\n";
+            
             throw std::runtime_error("Cannot parse port number.");
+        }
     }
     if (timeout == 0)
     {
@@ -152,6 +158,7 @@ void Connection::setDefaults()
         data_source = "ClickHouse";
     if (server.empty())
         server = "localhost";
+std::cerr << "port=" << port << "\n";
     if (port == 0)
         port = 8123;
     if (user.empty())

@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -e
+
+if [ -x /usr/bin/odbcinst ]; then
+    odbcinst -u -d -n Clickhouse
+fi
+
+#DEBHELPER#

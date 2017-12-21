@@ -14,10 +14,14 @@ add_library(clickhouse-odbc SHARED
     type_parser.cpp
 )
 
-set_target_properties(clickhouse-odbc
-    PROPERTIES PREFIX ""
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set_target_properties(clickhouse-odbc
+        PROPERTIES PREFIX ""
                OUTPUT_NAME "clickhouse-odbc"
-)
+    )
+else()
+    set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
+endif()
 
 target_link_libraries(clickhouse-odbc
     clickhouse-odbc-escaping
@@ -26,6 +30,10 @@ target_link_libraries(clickhouse-odbc
     ${Poco_Foundation_LIBRARY}
     ${ODBC_LIBRARIES}
 )
+
+install(TARGETS clickhouse-odbc LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/odbc)
+install(FILES unixodbc.ini DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/clickhouse-odbc)
+install(FILES odbc.ini DESTINATION ${CMAKE_INSTALL_DOCDIR}/examples)
 
 if(CLICKHOUSE_ODBC_TEST)
     add_subdirectory(ut)
