@@ -1,19 +1,38 @@
 #include "escape_sequences.h"
 #include "lexer.h"
+#include <map>
 
 using namespace std;
 
 namespace {
 
+const std::map<const std::string, const std::string> fn_convert_map {
+    {"SQL_TINYINT", "toUInt8"},
+    {"SQL_SMALLINT", "toUInt16"},
+    {"SQL_INTEGER", "toInt32"},
+    {"SQL_BIGINT",  "toInt64"},
+    {"SQL_REAL", "toFloat32"},
+    {"SQL_DOUBLE", "toFloat64"},
+    {"SQL_VARCHAR", "toString"},
+    {"SQL_DATE", "toDate"},
+    {"SQL_TYPE_DATE", "toDate"},
+    {"SQL_TIMESTAMP", "toDateTime"},
+    {"SQL_TYPE_TIMESTAMP", "toDateTime"},
+};
+
+const std::map<const Token::Type, const std::string> function_map {
+    {Token::ROUND,    "round" },
+    {Token::POWER,    "pow"},
+    {Token::TRUNCATE, "floor"},
+};
+
 string processEscapeSequencesImpl(const StringView seq, Lexer& lex);
 
 string convertFunctionByType(const StringView& typeName) {
-    if (typeName == "SQL_BIGINT") {
-        return "toInt64";
-    }
-    if (typeName == "SQL_INTEGER") {
-        return "toInt32";
-    }
+    const auto type_name_string = typeName.to_string();
+    if (fn_convert_map.find(type_name_string) != fn_convert_map.end())
+        return fn_convert_map.at(type_name_string);
+
     return string();
 }
 
@@ -45,8 +64,8 @@ string processFunction(const StringView seq, Lexer& lex) {
             }
             return func + "(" + num.literal.to_string() + ")";
         }
-    } else if (fn.type == Token::ROUND || fn.type == Token::POWER) {
-        string result = fn.type == Token::ROUND ? "round" : fn.type == Token::POWER ? "pow" : "WRONG_TOKEN";
+    } else if (function_map.find(fn.type) != function_map.end()) {
+        string result = function_map.at(fn.type);
         lex.SetEmitSpaces(true);
         while (true) {
             const Token tok(lex.Peek());
