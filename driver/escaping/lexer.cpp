@@ -5,7 +5,7 @@
 
 namespace {
 
-static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
+static const std::unordered_map<std::string, Token::Type> KEYWORDS {
     {"FN",      Token::FN},
     {"D",       Token::D},
     {"T",       Token::T},
@@ -14,6 +14,7 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
     {"CONVERT", Token::CONVERT},
     {"ROUND",   Token::ROUND},
     {"POWER",   Token::POWER},
+    {"TRUNCATE", Token::TRUNCATE},
 };
 
 static Token::Type LookupIdent(const std::string& ident) {

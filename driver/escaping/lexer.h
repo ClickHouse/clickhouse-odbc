@@ -26,6 +26,7 @@ struct Token {
         CONVERT,
         ROUND,
         POWER,
+        TRUNCATE,
 
         // Delimiters
         COMMA,      //  ,

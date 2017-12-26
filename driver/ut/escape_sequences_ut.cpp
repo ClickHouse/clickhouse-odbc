@@ -39,6 +39,18 @@ TEST(EscapeSequencesCase, ParsePower) {
     );
 }
 
+TEST(EscapeSequencesCase, ParseTruncate) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT CAST({fn TRUNCATE(1.1 + 2.4, 1)} AS INTEGER) AS `yr_date_ok`"),
+              "SELECT CAST(trunc(1.1 + 2.4, 1) AS INTEGER) AS `yr_date_ok`"
+    );
+    //ASSERT_EQ(
+    //    replaceEscapeSequences("SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM `Custom_SQL_Query`.`date`),0)} AS INTEGER) AS `yr_date_ok`"),
+    //          "TODO: convert extract() function"
+    //);
+}
+
+
 TEST(EscapeSequencesCase, DateTime) {
     ASSERT_EQ(
         replaceEscapeSequences("SELECT {d '2017-01-01'}"),
