@@ -23,7 +23,7 @@ const std::map<const std::string, const std::string> fn_convert_map {
 const std::map<const Token::Type, const std::string> function_map {
     {Token::ROUND,    "round" },
     {Token::POWER,    "pow"},
-    {Token::TRUNCATE, "floor"},
+    {Token::TRUNCATE, "trunc"},
 };
 
 string processEscapeSequencesImpl(const StringView seq, Lexer& lex);
