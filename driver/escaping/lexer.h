@@ -27,6 +27,8 @@ struct Token {
         ROUND,
         POWER,
         TRUNCATE,
+        SQRT,
+        ABS,
 
         // Delimiters
         COMMA,      //  ,

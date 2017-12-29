@@ -39,6 +39,23 @@ TEST(EscapeSequencesCase, ParsePower) {
     );
 }
 
+TEST(EscapeSequencesCase, ParseSqrt) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn SQRT(1 + 1)}"),
+        "SELECT sqrt(1 + 1)"
+    );
+}
+
+TEST(EscapeSequencesCase, ParseAbs) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn ABS(1 + 1)}"), "SELECT abs(1 + 1)" ); }
+
+// TODO: problem with -1
+TEST(EscapeSequencesCase, ParseAbsMinus) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn ABS(-1 + -1)}"), "SELECT abs(-1 + -1)" ); }
+TEST(EscapeSequencesCase, ParseAbsm1) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn ABS(-1)}"), "SELECT abs(-1)" ); }
+
+TEST(EscapeSequencesCase, ParseAbs2) { ASSERT_EQ( replaceEscapeSequences("SELECT COUNT({fn ABS(`test.odbc1`.`err_orr_arr`)})"), "SELECT COUNT(abs(`test.odbc1`.`err_orr_arr`))" ); }
+TEST(EscapeSequencesCase, ParseAbs3) { ASSERT_EQ( replaceEscapeSequences("SELECT COUNT({fn ABS(`err_orr_arr`)})"), "SELECT COUNT(abs(`err_orr_arr`))" ); }
+TEST(EscapeSequencesCase, ParseAbs4) { ASSERT_EQ( replaceEscapeSequences("SELECT COUNT({fn ABS(`test.odbc1`.`err_orr_arr`)}) AS `TEMP_Calculation_559572257702191122__2716881070__0_`"), "SELECT COUNT(abs(`test.odbc1`.`err_orr_arr`)) AS `TEMP_Calculation_559572257702191122__2716881070__0_`" ); }
+
 TEST(EscapeSequencesCase, ParseTruncate) {
     ASSERT_EQ(
         replaceEscapeSequences("SELECT CAST({fn TRUNCATE(1.1 + 2.4, 1)} AS INTEGER) AS `yr_date_ok`"),

@@ -24,6 +24,9 @@ const std::map<const Token::Type, const std::string> function_map {
     {Token::ROUND,    "round" },
     {Token::POWER,    "pow"},
     {Token::TRUNCATE, "trunc"},
+    {Token::SQRT,     "sqrt" },
+    {Token::ABS,      "abs" },
+    {Token::CONCAT,   "concat" },
 };
 
 string processEscapeSequencesImpl(const StringView seq, Lexer& lex);
@@ -66,29 +69,6 @@ string processFunction(const StringView seq, Lexer& lex) {
         }
     } else if (function_map.find(fn.type) != function_map.end()) {
         string result = function_map.at(fn.type);
-        lex.SetEmitSpaces(true);
-        while (true) {
-            const Token tok(lex.Peek());
-
-            if (tok.type == Token::RCURLY) {
-                break;
-            } else if (tok.type == Token::LCURLY) {
-                lex.SetEmitSpaces(false);
-                result += processEscapeSequencesImpl(seq, lex);
-                lex.SetEmitSpaces(true);
-            } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
-                break;
-            } else {
-                result += tok.literal.to_string();
-                lex.Consume();
-            }
-        }
-        lex.SetEmitSpaces(false);
-
-        return result;
-    } else if (fn.type == Token::CONCAT) {
-        string result = "concat";
-
         lex.SetEmitSpaces(true);
         while (true) {
             const Token tok(lex.Peek());
