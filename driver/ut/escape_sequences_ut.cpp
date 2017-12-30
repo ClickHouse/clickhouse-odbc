@@ -1,10 +1,26 @@
 #include <escaping/escape_sequences.h>
 #include <gtest/gtest.h>
 
-TEST(EscapeSequencesCase, ParseConvert) {
+TEST(EscapeSequencesCase, ParseConvert1) {
     ASSERT_EQ(
         replaceEscapeSequences("SELECT {fn CONVERT(1, SQL_BIGINT)}"),
         "SELECT toInt64(1)"
+    );
+}
+
+/* TODO:
+TEST(EscapeSequencesCase, ParseConvert2) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn CONVERT(1 + 1, SQL_BIGINT)}"),
+        "SELECT toInt64(1 + 1)"
+    );
+}
+*/
+
+TEST(EscapeSequencesCase, ParseConvert3) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn CONVERT({fn ROUND(1.1 + 2.4, 1)}, SQL_BIGINT)}"),
+        "SELECT toInt64(round(1.1 + 2.4, 1))"
     );
 }
 
@@ -48,7 +64,6 @@ TEST(EscapeSequencesCase, ParseSqrt) {
 
 TEST(EscapeSequencesCase, ParseAbs) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn ABS(1 + 1)}"), "SELECT abs(1 + 1)" ); }
 
-// TODO: problem with -1
 TEST(EscapeSequencesCase, ParseAbsMinus) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn ABS(-1 + -1)}"), "SELECT abs(-1 + -1)" ); }
 TEST(EscapeSequencesCase, ParseAbsm1) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn ABS(-1)}"), "SELECT abs(-1)" ); }
 

@@ -89,6 +89,7 @@ string processFunction(const StringView seq, Lexer& lex) {
         lex.SetEmitSpaces(false);
 
         return result;
+    } else if (fn.type == Token::TIMESTAMPDIFF) {
     }
 
     return seq.to_string();
