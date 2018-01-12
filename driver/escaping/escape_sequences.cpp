@@ -48,7 +48,7 @@ string processFunction(const StringView seq, Lexer& lex) {
         }
 
         Token num = lex.Consume();
-        if (num.type != Token::NUMBER) {
+        if (num.type != Token::NUMBER && num.type != Token::IDENT) {
             return seq.to_string();
         }
         if (!lex.Match(Token::COMMA)) {
