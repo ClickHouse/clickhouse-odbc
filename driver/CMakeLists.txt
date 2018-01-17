@@ -1,5 +1,7 @@
 add_subdirectory(escaping)
 
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/config_cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/config_cmake.h)
+
 add_library(clickhouse-odbc SHARED
     attr.cpp
     config.cpp
@@ -23,9 +25,15 @@ else()
     set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
 endif()
 
-target_link_libraries(clickhouse-odbc
-    clickhouse-odbc-escaping
+target_include_directories (clickhouse-odbc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
+target_link_libraries(clickhouse-odbc clickhouse-odbc-escaping)
+
+if(Poco_NetSSL_FOUND) 
+    target_link_libraries(clickhouse-odbc ${Poco_NetSSL_LIBRARY} ${Poco_Util_LIBRARY})
+endif()
+
+target_link_libraries(clickhouse-odbc
     ${Poco_Net_LIBRARY}
     ${Poco_Foundation_LIBRARY}
     ${ODBC_LIBRARIES}

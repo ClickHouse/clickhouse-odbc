@@ -96,7 +96,7 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             {
                 auto timeout = static_cast<SQLUSMALLINT>(reinterpret_cast<intptr_t>(value));
                 LOG("Timeout: " << timeout);
-                connection.session.setTimeout(Poco::Timespan(timeout, 0));
+                connection.session->setTimeout(Poco::Timespan(timeout, 0));
                 return SQL_SUCCESS;
             }
 
@@ -143,7 +143,7 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
         {
             CASE_NUM(SQL_ATTR_CONNECTION_DEAD, SQLUINTEGER, SQL_CD_FALSE);
             CASE_FALLTHROUGH(SQL_ATTR_CONNECTION_TIMEOUT)
-            CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session.getTimeout().seconds())
+            CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session->getTimeout().seconds())
 
             case SQL_ATTR_CURRENT_CATALOG:
                 fillOutputPlatformString(connection.getDatabase(), out_value, out_value_max_length, out_value_length);

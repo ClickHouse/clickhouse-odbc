@@ -45,16 +45,26 @@ else ()
     set (ENABLE_XML 0 CACHE BOOL "")
     set (ENABLE_JSON 0 CACHE BOOL "")
     set (ENABLE_MONGODB 0 CACHE BOOL "")
-    set (ENABLE_NETSSL 0 CACHE BOOL "")
-    set (ENABLE_CRYPTO 0 CACHE BOOL "")
+    #set (ENABLE_NETSSL 0 CACHE BOOL "")
+    #set (ENABLE_CRYPTO 0 CACHE BOOL "")
+    #set (ENABLE_UTIL 0 CACHE BOOL "")
     set (ENABLE_DATA 0 CACHE BOOL "")
-    set (ENABLE_UTIL 0 CACHE BOOL "")
     set (ENABLE_ZIP 0 CACHE BOOL "")
     set (ENABLE_PAGECOMPILER 0 CACHE BOOL "")
     set (ENABLE_PAGECOMPILER_FILE2PAGE 0 CACHE BOOL "")
     set (ENABLE_REDIS 0 CACHE BOOL "")
 
     set (USE_INTERNAL_POCO_LIBRARY 1)
+
+    if (OPENSSL_FOUND)
+        set (Poco_NetSSL_FOUND 1)
+        set (Poco_NetSSL_LIBRARY PocoNetSSL)
+        set (Poco_Crypto_LIBRARY PocoCrypto)
+        set (Poco_NetSSL_INCLUDE_DIRS
+            "${ClickHouse_SOURCE_DIR}/contrib/poco/NetSSL_OpenSSL/include/"
+            "${ClickHouse_SOURCE_DIR}/contrib/poco/Crypto/include/"
+        )
+    endif ()
 
     set (Poco_Foundation_LIBRARY PocoFoundation)
     set (Poco_Util_LIBRARY PocoUtil)

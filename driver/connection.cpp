@@ -5,6 +5,14 @@
 
 #include <Poco/NumberParser.h>
 
+#include <Poco/Net/HTTPClientSession.h>
+
+#include "config_cmake.h"
+#if Poco_NetSSL_FOUND
+#include <Poco/Net/HTTPSClientSession.h>
+#endif
+
+
 Connection::Connection(Environment & env_)
     : environment(env_)
 {
@@ -15,6 +23,7 @@ std::string Connection::connectionString() const
     std::string ret;
     ret += "DSN=" + data_source + ";";
     ret += "DATABASE=" + database + ";";
+    ret += "PROTO=" + proto + ";";
     ret += "SERVER=" + server + ";";
     ret += "PORT=" + std::to_string(port) + ";";
     ret += "UID=" + user + ";";
@@ -43,11 +52,23 @@ void Connection::init()
     if (user.find(':') != std::string::npos)
         throw std::runtime_error("Username couldn't contain ':' (colon) symbol.");
 
-    session.setHost(server);
-    session.setPort(port);
-    session.setKeepAlive(true);
-    session.setTimeout(Poco::Timespan(timeout, 0));
-    session.setKeepAliveTimeout(Poco::Timespan(86400, 0));
+    #if Poco_NetSSL_FOUND
+    bool is_ssl = proto == "https";
+
+    std::call_once(ssl_init_once, SSLInit);
+    #endif
+
+    session = std::unique_ptr<Poco::Net::HTTPClientSession>(
+        #if Poco_NetSSL_FOUND
+            is_ssl ? new Poco::Net::HTTPSClientSession :
+        #endif
+        new Poco::Net::HTTPClientSession);
+
+    session->setHost(server);
+    session->setPort(port);
+    session->setKeepAlive(true);
+    session->setTimeout(Poco::Timespan(timeout, 0));
+    session->setKeepAliveTimeout(Poco::Timespan(86400, 0));
 }
 
 void Connection::init(
@@ -57,7 +78,7 @@ void Connection::init(
     const std::string & password_,
     const std::string & database_)
 {
-    if (session.connected())
+    if (session->connected())
         throw std::runtime_error("Already connected.");
 
     data_source = dsn_;
@@ -90,6 +111,10 @@ void Connection::init(const std::string & connection_string)
             user = current_value.toString();
         else if (current_key == "PWD")
             password = current_value.toString();
+        else if (current_key == "PROTO")
+            proto = current_value.toString();
+        else if (current_key == "SECURE")
+            proto = "https";
         else if (current_key == "HOST" || current_key == "SERVER")
             server = current_value.toString();
         else if (current_key == "PORT")
@@ -107,8 +132,7 @@ void Connection::init(const std::string & connection_string)
         else if (current_key == "DSN")
             data_source = current_value.toString();
     }
-    std::cerr << "port=" << port << "\n";
-    
+
     init();
 }
 
@@ -121,16 +145,13 @@ void Connection::loadConfiguration()
     stringToTCHAR(data_source, ci.dsn);
     getDSNinfo(&ci, true);
 
-    if (!port)
+    if (!port && ci.port[0] != 0)
     {
         int int_port = 0;
         if (Poco::NumberParser::tryParse(stringFromTCHAR(ci.port), int_port))
             port = int_port;
-        else {
-            std::cerr << "CPPN port=" << port << "\n";
-            
+        else
             throw std::runtime_error("Cannot parse port number.");
-        }
     }
     if (timeout == 0)
     {
@@ -156,9 +177,10 @@ void Connection::setDefaults()
 {
     if (data_source.empty())
         data_source = "ClickHouse";
+    if (proto.empty())
+        proto = "http";
     if (server.empty())
         server = "localhost";
-std::cerr << "port=" << port << "\n";
     if (port == 0)
         port = 8123;
     if (user.empty())
@@ -167,4 +189,14 @@ std::cerr << "port=" << port << "\n";
         database = "default";
     if (timeout == 0)
         timeout = 30;
+}
+
+std::once_flag ssl_init_once;
+
+void SSLInit()
+{
+    // http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
+#if Poco_NetSSL_FOUND
+    Poco::Net::initializeSSL();
+#endif
 }
