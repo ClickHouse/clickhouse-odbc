@@ -13,7 +13,7 @@ CMakeCache.txt
 *.aps
 *.user
 *.sdf
-*.cmake
+#*.cmake
 
 vs/.vs/*
 vs/driver32/.vs/*
