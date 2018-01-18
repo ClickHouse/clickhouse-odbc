@@ -8,7 +8,7 @@
 #include <Poco/Net/HTTPClientSession.h>
 
 #include "config_cmake.h"
-#if Poco_NetSSL_FOUND
+#if USE_SSL
 #include <Poco/Net/HTTPSClientSession.h>
 #endif
 
@@ -52,14 +52,14 @@ void Connection::init()
     if (user.find(':') != std::string::npos)
         throw std::runtime_error("Username couldn't contain ':' (colon) symbol.");
 
-    #if Poco_NetSSL_FOUND
+    #if USE_SSL
     bool is_ssl = proto == "https";
 
     std::call_once(ssl_init_once, SSLInit);
     #endif
 
     session = std::unique_ptr<Poco::Net::HTTPClientSession>(
-        #if Poco_NetSSL_FOUND
+        #if USE_SSL
             is_ssl ? new Poco::Net::HTTPSClientSession :
         #endif
         new Poco::Net::HTTPClientSession);
@@ -78,7 +78,7 @@ void Connection::init(
     const std::string & password_,
     const std::string & database_)
 {
-    if (session->connected())
+    if (session && session->connected())
         throw std::runtime_error("Already connected.");
 
     data_source = dsn_;
@@ -123,7 +123,6 @@ void Connection::init(const std::string & connection_string)
             if (Poco::NumberParser::tryParse(current_value.toString(), int_port))
                 port = int_port;
             else {
-                std::cerr << "CANNNNNNNNNNT\n";
                 throw std::runtime_error("Cannot parse port number.");
             }
         }
@@ -196,7 +195,7 @@ std::once_flag ssl_init_once;
 void SSLInit()
 {
     // http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
-#if Poco_NetSSL_FOUND
+#if USE_SSL
     Poco::Net::initializeSSL();
 #endif
 }

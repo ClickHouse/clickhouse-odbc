@@ -7,6 +7,9 @@
 # to build and install package:
 # cd .. && debuild -us -uc -i --source-option=--format="3.0 (native)" && sudo dpkg -i `ls ../clickhouse-odbc_*_amd64.deb | tail -n1`
 
+# test https:
+# cd .. && debuild -eDH_VERBOSE=1 -eCMAKE_FLAGS="-DENABLE_SSL=1 -DFORCE_STATIC_LINK=" -us -uc -i --source-option=--format="3.0 (native)" && sudo dpkg -i `ls ../clickhouse-odbc_*_amd64.deb | tail -n1`
+
 function q {
     echo "$*" | isql clickhouse -b -v
 }

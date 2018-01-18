@@ -29,7 +29,7 @@ target_include_directories (clickhouse-odbc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(clickhouse-odbc clickhouse-odbc-escaping)
 
-if(Poco_NetSSL_FOUND)
+if(USE_SSL)
     target_link_libraries(clickhouse-odbc ${Poco_NetSSL_LIBRARY} ${Poco_Util_LIBRARY})
 endif()
 
