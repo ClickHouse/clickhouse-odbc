@@ -8,16 +8,35 @@ TEST(EscapeSequencesCase, ParseConvert1) {
     );
 }
 
-/* TODO:
 TEST(EscapeSequencesCase, ParseConvert2) {
     ASSERT_EQ(
-        replaceEscapeSequences("SELECT {fn CONVERT(1 + 1, SQL_BIGINT)}"),
-        "SELECT toInt64(1 + 1)"
+        replaceEscapeSequences("SELECT {fn CONVERT(-1.2, SQL_BIGINT)}"),
+              "SELECT toInt64(-1.2)"
     );
 }
-*/
 
 TEST(EscapeSequencesCase, ParseConvert3) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT SUM({fn CONVERT(amount, SQL_BIGINT)})"),
+        "SELECT SUM(toInt64(amount))"
+    );
+}
+
+TEST(EscapeSequencesCase, ParseConvert4) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT SUM({fn CONVERT(Custom_SQL_Query.amount, SQL_BIGINT)})"),
+              "SELECT SUM(toInt64(Custom_SQL_Query.amount))"
+    );
+}
+
+TEST(EscapeSequencesCase, ParseConvert5) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT SUM({fn CONVERT(`Custom_SQL_Query`.`amount`, SQL_BIGINT)})"),
+              "SELECT SUM(toInt64(`Custom_SQL_Query`.`amount`))"
+    );
+}
+
+TEST(EscapeSequencesCase, ParseConvert6) {
     ASSERT_EQ(
         replaceEscapeSequences("SELECT {fn CONVERT({fn ROUND(1.1 + 2.4, 1)}, SQL_BIGINT)}"),
         "SELECT toInt64(round(1.1 + 2.4, 1))"
