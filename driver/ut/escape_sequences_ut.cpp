@@ -36,12 +36,27 @@ TEST(EscapeSequencesCase, ParseConvert5) {
     );
 }
 
+TEST(EscapeSequencesCase, ParseConvert6_0) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn ROUND(1.1 + 2.4, 1)}"),
+              "SELECT round(1.1 + 2.4, 1)"
+    );
+}
+
 TEST(EscapeSequencesCase, ParseConvert6) {
     ASSERT_EQ(
         replaceEscapeSequences("SELECT {fn CONVERT({fn ROUND(1.1 + 2.4, 1)}, SQL_BIGINT)}"),
         "SELECT toInt64(round(1.1 + 2.4, 1))"
     );
 }
+
+TEST(EscapeSequencesCase, ParseConvert6_1) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn   CONVERT(  {fn   ROUND(  1.1  +  2.4  , 1 )  }  ,  SQL_BIGINT  )  }"),
+              "SELECT toInt64(round(  1.1  +  2.4  , 1 )  )"
+    );
+}
+
 
 TEST(EscapeSequencesCase, ParseConcat) {
     ASSERT_EQ(

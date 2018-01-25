@@ -43,13 +43,22 @@ string processFunction(const StringView seq, Lexer& lex) {
     const Token fn(lex.Consume());
 
     if (fn.type == Token::CONVERT) {
+        string result;
         if (!lex.Match(Token::LPARENT)) {
             return seq.to_string();
         }
 
-        Token num = lex.Consume();
-        if (num.type != Token::NUMBER && num.type != Token::IDENT) {
+        const Token num(lex.Peek());
+
+        if (num.type == Token::LCURLY) {
+            //lex.SetEmitSpaces(false);
+            result += processEscapeSequencesImpl(seq, lex);
+            //lex.SetEmitSpaces(true);
+        } else if (num.type != Token::NUMBER && num.type != Token::IDENT) {
             return seq.to_string();
+        } else {
+            lex.Consume();
+            result += num.literal.to_string();
         }
         if (!lex.Match(Token::COMMA)) {
             return seq.to_string();
@@ -65,8 +74,10 @@ string processFunction(const StringView seq, Lexer& lex) {
             if (!lex.Match(Token::RPARENT)) {
                 return seq.to_string();
             }
-            return func + "(" + num.literal.to_string() + ")";
+            result = func + "(" + result + ")";
         }
+
+        return result;
     } else if (function_map.find(fn.type) != function_map.end()) {
         string result = function_map.at(fn.type);
         lex.SetEmitSpaces(true);
