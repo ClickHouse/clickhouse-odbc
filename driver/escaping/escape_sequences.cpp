@@ -51,18 +51,24 @@ string processFunction(const StringView seq, Lexer& lex) {
         const Token num(lex.Peek());
 
         if (num.type == Token::LCURLY) {
-            //lex.SetEmitSpaces(false);
+            lex.SetEmitSpaces(false);
             result += processEscapeSequencesImpl(seq, lex);
-            //lex.SetEmitSpaces(true);
+            lex.SetEmitSpaces(true);
         } else if (num.type != Token::NUMBER && num.type != Token::IDENT) {
             return seq.to_string();
         } else {
             lex.Consume();
             result += num.literal.to_string();
         }
+
+        while (lex.Match(Token::SPACE)) {}
+
         if (!lex.Match(Token::COMMA)) {
             return seq.to_string();
         }
+
+        while (lex.Match(Token::SPACE)) {}
+
         Token type = lex.Consume();
         if (type.type != Token::IDENT) {
             return seq.to_string();
@@ -71,6 +77,7 @@ string processFunction(const StringView seq, Lexer& lex) {
         string func = convertFunctionByType(type.literal.to_string());
 
         if (!func.empty()) {
+            while (lex.Match(Token::SPACE)) {}
             if (!lex.Match(Token::RPARENT)) {
                 return seq.to_string();
             }
@@ -164,6 +171,7 @@ string processEscapeSequencesImpl(const StringView seq, Lexer& lex) {
     }
 
     while (true) {
+        while (lex.Match(Token::SPACE)) {}
         const Token tok(lex.Consume());
 
         switch (tok.type) {
