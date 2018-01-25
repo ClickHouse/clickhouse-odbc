@@ -6,7 +6,9 @@
 namespace {
 
 #define DECLARE(NAME) {#NAME, Token::NAME}
-static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
+#define DECLARE_SQL_TSI(NAME) {#NAME, Token::SQL_TSI_##NAME}
+
+    static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
         DECLARE(FN),
         DECLARE(D),
         DECLARE(T),
@@ -30,8 +32,20 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
         DECLARE(SQL_TSI_MONTH),
         DECLARE(SQL_TSI_QUARTER),
         DECLARE(SQL_TSI_YEAR),
+
+        // DECLARE_SQL_TSI(MILLISECOND),
+        DECLARE_SQL_TSI(SECOND),
+        DECLARE_SQL_TSI(MINUTE),
+        DECLARE_SQL_TSI(HOUR),
+        DECLARE_SQL_TSI(DAY),
+        //DECLARE_SQL_TSI(DAYOFYEAR),
+        DECLARE_SQL_TSI(WEEK),
+        DECLARE_SQL_TSI(MONTH),
+        DECLARE_SQL_TSI(QUARTER),
+        DECLARE_SQL_TSI(YEAR),
 };
 #undef DECLARE
+#undef DECLARE_SQL_TSI
 
 static Token::Type LookupIdent(const std::string& ident) {
     auto ki = KEYWORDS.find(ident);

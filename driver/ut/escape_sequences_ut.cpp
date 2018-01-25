@@ -129,6 +129,12 @@ TEST(EscapeSequencesCase, Parsetimestampdiff) {
     );
 }
 
+TEST(EscapeSequencesCase, ParseTimestampadd1) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn TIMESTAMPADD(SQL_TSI_YEAR, 1, {fn CURDATE()})}"),
+"SELECT addYears(today(), 1)"
+); }
+
+
+
 
 TEST(EscapeSequencesCase, DateTime) {
     ASSERT_EQ(
