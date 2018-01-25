@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/yandex/ClickHouse.svg?branch=master)](https://travis-ci.org/yandex/clickhouse-odbc)
+
 ## Cloning a Project with Submodules
 
 Please note - [git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules) are used in this project. 
@@ -10,7 +12,7 @@ git clone --recursive https://github.com/yandex/clickhouse-odbc
 ```
   * or add submodules manually after main project cloned - in the root of source tree run:
 ```bash
-git submodule init && git submodule update
+git submodule update --init --recursive
 ```
 
 ## Installing Prerequisites (Linux)
