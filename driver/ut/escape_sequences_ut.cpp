@@ -119,7 +119,16 @@ TEST(EscapeSequencesCase, ParseTruncate) {
 TEST(EscapeSequencesCase, ParseCurdate1) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn CURDATE()}"), "SELECT today()" ); }
 
 
-TEST(EscapeSequencesCase, ParseTimestampdiff2) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY,CAST(`test`.`odbc1`.`datetime` AS DATE),{fn CURDATE()} )}"), "" ); }
+TEST(EscapeSequencesCase, ParseTimestampdiff2) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY,CAST(`test`.`odbc1`.`datetime` AS DATE),{fn CURDATE()} )}"), "SELECT dateDiff('day',CAST(`test`.`odbc1`.`datetime` AS DATE),today() )"
+); }
+
+TEST(EscapeSequencesCase, Parsetimestampdiff) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY,CAST(`activity`.`min_activation_yabrowser` AS DATE),CAST(`activity`.`date` AS DATE))} AS `Calculation_503558746242125826`, SUM({fn CONVERT(1, SQL_BIGINT)}) AS `sum_Number_of_Records_ok`"),
+              "SELECT dateDiff('day',CAST(`activity`.`min_activation_yabrowser` AS DATE),CAST(`activity`.`date` AS DATE)) AS `Calculation_503558746242125826`, SUM(toInt64(1)) AS `sum_Number_of_Records_ok`"
+    );
+}
+
 
 TEST(EscapeSequencesCase, DateTime) {
     ASSERT_EQ(
@@ -142,13 +151,5 @@ TEST(EscapeSequencesCase, DateTime) {
     ASSERT_EQ(
         replaceEscapeSequences("SELECT {ts '2017.01.01 10:01:01'}"),
         "SELECT toDateTime('2017.01.01 10:01:01')"
-    );
-}
-
-
-TEST(EscapeSequencesCase, Parsetimestampdiff) {
-    ASSERT_EQ(
-        replaceEscapeSequences("SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY,CAST(`activity`.`min_activation_yabrowser` AS DATE),CAST(`activity`.`date` AS DATE))} AS `Calculation_503558746242125826`, SUM({fn CONVERT(1, SQL_BIGINT)}) AS `sum_Number_of_Records_ok`"),
-        "SELECT lololo"
     );
 }

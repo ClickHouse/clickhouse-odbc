@@ -30,6 +30,7 @@ struct Token {
         SQRT,
         ABS,
         TIMESTAMPDIFF,
+        TIMESTAMPADD,
         CURDATE,
 
         // for TIMESTAMPDIFF

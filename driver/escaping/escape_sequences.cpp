@@ -28,7 +28,22 @@ const std::map<const Token::Type, const std::string> function_map {
     {Token::ABS,      "abs" },
     {Token::CONCAT,   "concat" },
     {Token::CURDATE,   "today" },
+    {Token::TIMESTAMPDIFF, "dateDiff" },
+    //{Token::TIMESTAMPADD, "dateAdd" },
 };
+
+const std::map<const Token::Type, const std::string> literal_map {
+    // {Token::SQL_TSI_FRAC_SECOND, ""},
+    {Token::SQL_TSI_SECOND, "'second'"},
+    {Token::SQL_TSI_MINUTE, "'minute'"},
+    {Token::SQL_TSI_HOUR, "'hour'"},
+    {Token::SQL_TSI_DAY, "'day'"},
+    {Token::SQL_TSI_WEEK, "'week'"},
+    {Token::SQL_TSI_MONTH, "'month'"},
+    {Token::SQL_TSI_QUARTER, "'quarter'"},
+    {Token::SQL_TSI_YEAR, "'year'"},
+};
+
 
 string processEscapeSequencesImpl(const StringView seq, Lexer& lex);
 
@@ -101,7 +116,10 @@ string processFunction(const StringView seq, Lexer& lex) {
             } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
                 break;
             } else {
-                result += tok.literal.to_string();
+                if (literal_map.find(tok.type) != literal_map.end()) {
+                    result += literal_map.at(tok.type);
+                } else
+                    result += tok.literal.to_string();
                 lex.Consume();
             }
         }
@@ -113,7 +131,7 @@ string processFunction(const StringView seq, Lexer& lex) {
         lex.SetEmitSpaces(true);
         while (true) {
             const Token tok(lex.Peek());
-            
+
             if (tok.type == Token::RCURLY) {
                 break;
             } else if (tok.type == Token::LCURLY) {
@@ -128,7 +146,7 @@ string processFunction(const StringView seq, Lexer& lex) {
             }
         }
         lex.SetEmitSpaces(false);
-        
+
         return result;
     }
 

@@ -19,7 +19,17 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
         DECLARE(ABS),
         DECLARE(TRUNCATE),
         DECLARE(TIMESTAMPDIFF),
+        DECLARE(TIMESTAMPADD),
         DECLARE(CURDATE),
+        //DECLARE(SQL_TSI_FRAC_SECOND),
+        DECLARE(SQL_TSI_SECOND),
+        DECLARE(SQL_TSI_MINUTE),
+        DECLARE(SQL_TSI_HOUR),
+        DECLARE(SQL_TSI_DAY),
+        DECLARE(SQL_TSI_WEEK),
+        DECLARE(SQL_TSI_MONTH),
+        DECLARE(SQL_TSI_QUARTER),
+        DECLARE(SQL_TSI_YEAR),
 };
 #undef DECLARE
 
