@@ -27,6 +27,7 @@ const std::map<const Token::Type, const std::string> function_map {
     {Token::SQRT,     "sqrt" },
     {Token::ABS,      "abs" },
     {Token::CONCAT,   "concat" },
+    {Token::CURDATE,   "today" },
 };
 
 string processEscapeSequencesImpl(const StringView seq, Lexer& lex);

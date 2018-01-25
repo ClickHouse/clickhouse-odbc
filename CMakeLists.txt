@@ -11,64 +11,42 @@ set (CXX_WARNING_FLAGS "-Wnon-virtual-dtor")
 
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_EXTENSIONS 0)
-set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_STANDARD_REQUIRED         ON)
+set (CMAKE_POSITION_INDEPENDENT_CODE     ON)
 set (CMAKE_BUILD_COLOR_MAKEFILE          ON)
 set (CMAKE_CXX_FLAGS                     "${CMAKE_CXX_FLAGS} -O2 -g -fvisibility-inlines-hidden")
-set (CMAKE_SHARED_LINKER_FLAGS           "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
-set (CMAKE_POSITION_INDEPENDENT_CODE     ON)
+
+# to avoid this error:
+# /usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/libssl.a(s23_srvr.o): relocation R_X86_64_PC32 against symbol `ssl23_get_client_hello' can not be used when making a shared object; recompile with -fPIC
+# use:  cmake .. -DFORCE_STATIC_LINK=
+set (FORCE_STATIC_LINK "-Bstatic," CACHE INTERNAL "")
+
+set (CMAKE_SHARED_LINKER_FLAGS           "${CMAKE_SHARED_LINKER_FLAGS} -Wl,${FORCE_STATIC_LINK}--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
 
 option (CLICKHOUSE_ODBC_TEST "Enable tests" 1)
 if (CLICKHOUSE_ODBC_TEST)
     enable_testing ()
 endif ()
 
-# === find_poco ===
-option (USE_INTERNAL_POCO_LIBRARY "Set to FALSE to use system poco library instead of bundled" 1)
+option (ENABLE_SSL "Use openssl for accessing https:// interface" OFF)
 
-if (NOT USE_INTERNAL_POCO_LIBRARY)
-
-    if (WIN32 OR MSVC)
-        set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
-    elseif (UNIX)
-        set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+if (ENABLE_SSL)
+    find_package (OpenSSL)
+    if (OPENSSL_FOUND)
+        set (USE_SSL 1)
     endif ()
-
-    find_package (Poco COMPONENTS Net)
 endif ()
 
-if (Poco_INCLUDE_DIRS AND Poco_Foundation_LIBRARY)
-    include_directories (${Poco_INCLUDE_DIRS})
-else ()
-    set (POCO_STATIC 1 CACHE BOOL "")
+set (OPENSSL_LIBRARIES "-Wl,-Bdynamic ${OPENSSL_LIBRARIES} -Wl,-Bstatic")
 
-    set (ENABLE_CPPUNIT 0 CACHE BOOL "")
-    set (ENABLE_XML 0 CACHE BOOL "")
-    set (ENABLE_JSON 0 CACHE BOOL "")
-    set (ENABLE_MONGODB 0 CACHE BOOL "")
-    set (ENABLE_NETSSL 0 CACHE BOOL "")
-    set (ENABLE_CRYPTO 0 CACHE BOOL "")
-    set (ENABLE_DATA 0 CACHE BOOL "")
-    set (ENABLE_UTIL 0 CACHE BOOL "")
-    set (ENABLE_ZIP 0 CACHE BOOL "")
-    set (ENABLE_PAGECOMPILER 0 CACHE BOOL "")
-    set (ENABLE_PAGECOMPILER_FILE2PAGE 0 CACHE BOOL "")
-    set (ENABLE_REDIS 0 CACHE BOOL "")
-
-    set (USE_INTERNAL_POCO_LIBRARY 1)
-
-    set (Poco_Foundation_LIBRARY PocoFoundation)
-    set (Poco_Util_LIBRARY PocoUtil)
-    set (Poco_Net_LIBRARY PocoNet)
-endif ()
-
-message(STATUS "Using Poco: ${Poco_INCLUDE_DIRS} : ${Poco_Foundation_LIBRARY},${Poco_Util_LIBRARY},${Poco_Net_LIBRARY}")
-# === find_poco_end ===
-
+include (cmake/find_poco.cmake)
 include (cmake/find_ccache.cmake)
 include (contrib/poco/cmake/FindODBC.cmake)
 include (cmake/Modules/CheckODBCversion.cmake)
 
 message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE} ; CCACHE=${CCACHE_FOUND} ${CCACHE_VERSION}")
+
+message (STATUS "${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_VERSION}")
 
 add_subdirectory (contrib)
 

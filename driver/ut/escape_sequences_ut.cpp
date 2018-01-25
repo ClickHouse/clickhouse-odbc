@@ -116,6 +116,10 @@ TEST(EscapeSequencesCase, ParseTruncate) {
     //);
 }
 
+TEST(EscapeSequencesCase, ParseCurdate1) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn CURDATE()}"), "SELECT today()" ); }
+
+
+TEST(EscapeSequencesCase, ParseTimestampdiff2) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY,CAST(`test`.`odbc1`.`datetime` AS DATE),{fn CURDATE()} )}"), "" ); }
 
 TEST(EscapeSequencesCase, DateTime) {
     ASSERT_EQ(

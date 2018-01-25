@@ -18,6 +18,7 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS {
     {"SQRT",    Token::SQRT},
     {"ABS",     Token::ABS},
     {"TIMESTAMPDIFF", Token::TIMESTAMPDIFF},
+    {"CURDATE", Token::CURDATE},
 };
 
 static Token::Type LookupIdent(const std::string& ident) {

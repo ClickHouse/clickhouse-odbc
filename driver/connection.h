@@ -1,22 +1,26 @@
 #pragma once
 
+#include <memory>
+#include <mutex>
 #include <Poco/Net/HTTPClientSession.h>
 
 #include "diagnostics.h"
 #include "environment.h"
+//namespace Poco { namespace Net { class HTTPClientSession; } }
 
 struct Connection
 {
     Environment & environment;
 
     std::string data_source;
+    std::string proto;
     std::string server;
     std::string user;
     std::string password;
     uint16_t port = 0;
     int timeout = 0;
 
-    Poco::Net::HTTPClientSession session;
+    std::unique_ptr<Poco::Net::HTTPClientSession> session;
     DiagnosticRecord diagnostic_record;
     int retry_count = 3;
 
@@ -52,3 +56,6 @@ private:
 private:
     std::string database;
 };
+
+extern std::once_flag ssl_init_once;
+void SSLInit();
