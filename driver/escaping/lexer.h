@@ -32,6 +32,17 @@ struct Token {
         TIMESTAMPDIFF,
         CURDATE,
 
+        // for TIMESTAMPDIFF
+        SQL_TSI_FRAC_SECOND,
+        SQL_TSI_SECOND,
+        SQL_TSI_MINUTE,
+        SQL_TSI_HOUR,
+        SQL_TSI_DAY,
+        SQL_TSI_WEEK,
+        SQL_TSI_MONTH,
+        SQL_TSI_QUARTER,
+        SQL_TSI_YEAR,
+
         // Delimiters
         COMMA,      //  ,
         LPARENT,    //  (
