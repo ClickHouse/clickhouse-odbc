@@ -1,19 +1,41 @@
 #include "escape_sequences.h"
 #include "lexer.h"
+#include <map>
 
 using namespace std;
 
 namespace {
 
+const std::map<const std::string, const std::string> fn_convert_map {
+    {"SQL_TINYINT", "toUInt8"},
+    {"SQL_SMALLINT", "toUInt16"},
+    {"SQL_INTEGER", "toInt32"},
+    {"SQL_BIGINT",  "toInt64"},
+    {"SQL_REAL", "toFloat32"},
+    {"SQL_DOUBLE", "toFloat64"},
+    {"SQL_VARCHAR", "toString"},
+    {"SQL_DATE", "toDate"},
+    {"SQL_TYPE_DATE", "toDate"},
+    {"SQL_TIMESTAMP", "toDateTime"},
+    {"SQL_TYPE_TIMESTAMP", "toDateTime"},
+};
+
+const std::map<const Token::Type, const std::string> function_map {
+    {Token::ROUND,    "round" },
+    {Token::POWER,    "pow"},
+    {Token::TRUNCATE, "trunc"},
+    {Token::SQRT,     "sqrt" },
+    {Token::ABS,      "abs" },
+    {Token::CONCAT,   "concat" },
+};
+
 string processEscapeSequencesImpl(const StringView seq, Lexer& lex);
 
 string convertFunctionByType(const StringView& typeName) {
-    if (typeName == "SQL_BIGINT") {
-        return "toInt64";
-    }
-    if (typeName == "SQL_INTEGER") {
-        return "toInt32";
-    }
+    const auto type_name_string = typeName.to_string();
+    if (fn_convert_map.find(type_name_string) != fn_convert_map.end())
+        return fn_convert_map.at(type_name_string);
+
     return string();
 }
 
@@ -26,7 +48,7 @@ string processFunction(const StringView seq, Lexer& lex) {
         }
 
         Token num = lex.Consume();
-        if (num.type != Token::NUMBER) {
+        if (num.type != Token::NUMBER && num.type != Token::IDENT) {
             return seq.to_string();
         }
         if (!lex.Match(Token::COMMA)) {
@@ -45,31 +67,8 @@ string processFunction(const StringView seq, Lexer& lex) {
             }
             return func + "(" + num.literal.to_string() + ")";
         }
-    } else if (fn.type == Token::ROUND || fn.type == Token::POWER) {
-        string result = fn.type == Token::ROUND ? "round" : fn.type == Token::POWER ? "pow" : "WRONG_TOKEN";
-        lex.SetEmitSpaces(true);
-        while (true) {
-            const Token tok(lex.Peek());
-
-            if (tok.type == Token::RCURLY) {
-                break;
-            } else if (tok.type == Token::LCURLY) {
-                lex.SetEmitSpaces(false);
-                result += processEscapeSequencesImpl(seq, lex);
-                lex.SetEmitSpaces(true);
-            } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
-                break;
-            } else {
-                result += tok.literal.to_string();
-                lex.Consume();
-            }
-        }
-        lex.SetEmitSpaces(false);
-
-        return result;
-    } else if (fn.type == Token::CONCAT) {
-        string result = "concat";
-
+    } else if (function_map.find(fn.type) != function_map.end()) {
+        string result = function_map.at(fn.type);
         lex.SetEmitSpaces(true);
         while (true) {
             const Token tok(lex.Peek());

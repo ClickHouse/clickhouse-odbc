@@ -17,6 +17,9 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
         DECLARE(ROUND),
         DECLARE(POWER),
         DECLARE(TIMESTAMPDIFF),
+        DECLARE(TRUNCATE),
+        DECLARE(SQRT),
+        DECLARE(ABS),
 };
 #undef DECLARE
 
@@ -159,11 +162,20 @@ Token Lexer::NextToken() {
                 const char* st = cur_;
 
                 if (*cur_ == '`') {
+                    bool inside_quotes = true;
                     for (++cur_; cur_ < end_; ++cur_) {
                         if (*cur_  == '`') {
-                            return Token{Token::IDENT, StringView(st, ++cur_)};
+                            inside_quotes=!inside_quotes;
+                            if (cur_ < end_ && *(cur_+1)  == '.') {
+                                ++cur_;
+                                continue;
+                            }
+                            else if (!inside_quotes)
+                                return Token{Token::IDENT, StringView(st, ++cur_)};
+                            if (cur_ < end_)
+                                ++cur_;
                         }
-                        if (!isalpha(*cur_) && !isdigit(*cur_) && *cur_ != '_')
+                        if (!isalpha(*cur_) && !isdigit(*cur_) && *cur_ != '_' && *cur_ != '.')
                         {
                             return Token{Token::INVALID, StringView(st, cur_)};
                         }
@@ -174,7 +186,7 @@ Token Lexer::NextToken() {
 
                 if (isalpha(*cur_) || *cur_ == '_') {
                     for (++cur_; cur_ < end_; ++cur_) {
-                        if (!isalpha(*cur_) && !isdigit(*cur_) && *cur_ != '_')
+                        if (!isalpha(*cur_) && !isdigit(*cur_) && *cur_ != '_' && *cur_ != '.')
                         {
                             break;
                         }
@@ -186,8 +198,9 @@ Token Lexer::NextToken() {
                     };
                 }
 
-                if (isdigit(*cur_) || *cur_ == '.') {
+                if (isdigit(*cur_) || *cur_ == '.' || *cur_ == '-') {
                     bool has_dot = *cur_ == '.';
+                    bool has_minus = *cur_ == '-';
 
                     for (++cur_; cur_ < end_; ++cur_) {
                         if (*cur_ == '.') {
@@ -197,7 +210,12 @@ Token Lexer::NextToken() {
                                 has_dot = true;
                             }
                             continue;
+                        } else if (*cur_ == '-') {
+                            if (has_minus) {
+                                return Token{Token::INVALID, StringView(st, cur_)};
+                            }
                         }
+
                         if (!isdigit(*cur_)) {
                             break;
                         }

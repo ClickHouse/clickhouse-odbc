@@ -79,9 +79,9 @@ void Statement::sendRequest(IResultMutatorPtr mutator)
     {
         try
         {
-            connection.session.sendRequest(request) << prepared_query;
+            connection.session->sendRequest(request) << prepared_query;
             response = std::make_unique<Poco::Net::HTTPResponse>();
-            in = &connection.session.receiveResponse(*response);
+            in = &connection.session->receiveResponse(*response);
             break;
         }
         catch (const Poco::IOException&)

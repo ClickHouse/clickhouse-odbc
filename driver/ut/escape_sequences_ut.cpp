@@ -8,6 +8,35 @@ TEST(EscapeSequencesCase, ParseConvert) {
     );
 }
 
+TEST(EscapeSequencesCase, ParseConvert2) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn CONVERT(-1.2, SQL_BIGINT)}"),
+              "SELECT toInt64(-1.2)"
+    );
+}
+
+TEST(EscapeSequencesCase, ParseConvert3) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT SUM({fn CONVERT(amount, SQL_BIGINT)})"),
+        "SELECT SUM(toInt64(amount))"
+    );
+}
+
+TEST(EscapeSequencesCase, ParseConvert4) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT SUM({fn CONVERT(Custom_SQL_Query.amount, SQL_BIGINT)})"),
+              "SELECT SUM(toInt64(Custom_SQL_Query.amount))"
+    );
+}
+
+TEST(EscapeSequencesCase, ParseConvert5) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT SUM({fn CONVERT(`Custom_SQL_Query`.`amount`, SQL_BIGINT)})"),
+              "SELECT SUM(toInt64(`Custom_SQL_Query`.`amount`))"
+    );
+}
+
+
 TEST(EscapeSequencesCase, ParseConcat) {
     ASSERT_EQ(
         replaceEscapeSequences("SELECT {fn CONCAT('a', 'b')}"),
@@ -38,6 +67,35 @@ TEST(EscapeSequencesCase, ParsePower) {
         "SELECT pow(`f_g38d`.`hsf_thkd_wect_fxge`,2)"
     );
 }
+
+TEST(EscapeSequencesCase, ParseSqrt) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn SQRT(1 + 1)}"),
+        "SELECT sqrt(1 + 1)"
+    );
+}
+
+TEST(EscapeSequencesCase, ParseAbs) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn ABS(1 + 1)}"), "SELECT abs(1 + 1)" ); }
+
+// TODO: problem with -1
+TEST(EscapeSequencesCase, ParseAbsMinus) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn ABS(-1 + -1)}"), "SELECT abs(-1 + -1)" ); }
+TEST(EscapeSequencesCase, ParseAbsm1) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn ABS(-1)}"), "SELECT abs(-1)" ); }
+
+TEST(EscapeSequencesCase, ParseAbs2) { ASSERT_EQ( replaceEscapeSequences("SELECT COUNT({fn ABS(`test.odbc1`.`err_orr_arr`)})"), "SELECT COUNT(abs(`test.odbc1`.`err_orr_arr`))" ); }
+TEST(EscapeSequencesCase, ParseAbs3) { ASSERT_EQ( replaceEscapeSequences("SELECT COUNT({fn ABS(`err_orr_arr`)})"), "SELECT COUNT(abs(`err_orr_arr`))" ); }
+TEST(EscapeSequencesCase, ParseAbs4) { ASSERT_EQ( replaceEscapeSequences("SELECT COUNT({fn ABS(`test.odbc1`.`err_orr_arr`)}) AS `TEMP_Calculation_559572257702191122__2716881070__0_`"), "SELECT COUNT(abs(`test.odbc1`.`err_orr_arr`)) AS `TEMP_Calculation_559572257702191122__2716881070__0_`" ); }
+
+TEST(EscapeSequencesCase, ParseTruncate) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT CAST({fn TRUNCATE(1.1 + 2.4, 1)} AS INTEGER) AS `yr_date_ok`"),
+              "SELECT CAST(trunc(1.1 + 2.4, 1) AS INTEGER) AS `yr_date_ok`"
+    );
+    //ASSERT_EQ(
+    //    replaceEscapeSequences("SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM `Custom_SQL_Query`.`date`),0)} AS INTEGER) AS `yr_date_ok`"),
+    //          "TODO: convert extract() function"
+    //);
+}
+
 
 TEST(EscapeSequencesCase, DateTime) {
     ASSERT_EQ(
