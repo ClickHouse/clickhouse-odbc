@@ -4,7 +4,7 @@
 #include "statement.h"
 #include "utils.h"
 
-#include <malloc.h>
+//#include <malloc.h>
 
 extern "C"
 {
