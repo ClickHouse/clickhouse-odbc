@@ -5,21 +5,23 @@
 
 namespace {
 
-static const std::unordered_map<std::string, Token::Type> KEYWORDS {
-    {"FN",      Token::FN},
-    {"D",       Token::D},
-    {"T",       Token::T},
-    {"TS",      Token::TS},
-    {"CONCAT",  Token::CONCAT},
-    {"CONVERT", Token::CONVERT},
-    {"ROUND",   Token::ROUND},
-    {"POWER",   Token::POWER},
-    {"TRUNCATE", Token::TRUNCATE},
-    {"SQRT",    Token::SQRT},
-    {"ABS",     Token::ABS},
-    {"TIMESTAMPDIFF", Token::TIMESTAMPDIFF},
-    {"CURDATE", Token::CURDATE},
+#define DECLARE(NAME) {#NAME, Token::NAME}
+static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
+        DECLARE(FN),
+        DECLARE(D),
+        DECLARE(T),
+        DECLARE(TS),
+        DECLARE(CONCAT),
+        DECLARE(CONVERT),
+        DECLARE(ROUND),
+        DECLARE(POWER),
+        DECLARE(SQRT),
+        DECLARE(ABS),
+        DECLARE(TRUNCATE),
+        DECLARE(TIMESTAMPDIFF),
+        DECLARE(CURDATE),
 };
+#undef DECLARE
 
 static Token::Type LookupIdent(const std::string& ident) {
     auto ki = KEYWORDS.find(ident);

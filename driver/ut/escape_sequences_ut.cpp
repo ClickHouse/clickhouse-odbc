@@ -144,3 +144,11 @@ TEST(EscapeSequencesCase, DateTime) {
         "SELECT toDateTime('2017.01.01 10:01:01')"
     );
 }
+
+
+TEST(EscapeSequencesCase, Parsetimestampdiff) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY,CAST(`activity`.`min_activation_yabrowser` AS DATE),CAST(`activity`.`date` AS DATE))} AS `Calculation_503558746242125826`, SUM({fn CONVERT(1, SQL_BIGINT)}) AS `sum_Number_of_Records_ok`"),
+        "SELECT lololo"
+    );
+}

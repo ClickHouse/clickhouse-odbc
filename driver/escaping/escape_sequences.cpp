@@ -109,6 +109,27 @@ string processFunction(const StringView seq, Lexer& lex) {
 
         return result;
     } else if (fn.type == Token::TIMESTAMPDIFF) {
+        string result = "TSD_tODO";
+        lex.SetEmitSpaces(true);
+        while (true) {
+            const Token tok(lex.Peek());
+            
+            if (tok.type == Token::RCURLY) {
+                break;
+            } else if (tok.type == Token::LCURLY) {
+                lex.SetEmitSpaces(false);
+                result += processEscapeSequencesImpl(seq, lex);
+                lex.SetEmitSpaces(true);
+            } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
+                break;
+            } else {
+                result += tok.literal.to_string();
+                lex.Consume();
+            }
+        }
+        lex.SetEmitSpaces(false);
+        
+        return result;
     }
 
     return seq.to_string();
