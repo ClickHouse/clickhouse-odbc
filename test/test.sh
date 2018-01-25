@@ -8,6 +8,7 @@
 # cd .. && debuild -us -uc -i --source-option=--format="3.0 (native)" && sudo dpkg -i `ls ../clickhouse-odbc_*_amd64.deb | tail -n1`
 
 function q {
+    echo "Asking [$*]"
     echo "$*" | isql clickhouse -b -v
 }
 
@@ -36,3 +37,5 @@ q $'SELECT SUM((CASE WHEN (`test`.`odbc1`.`ui64` * `test`.`odbc1`.`ui64`) < 0 TH
 q "DROP TABLE IF EXISTS test.purchase_stat;"
 q "CREATE TABLE test.purchase_stat (purchase_id UInt64, purchase_date DateTime, offer_category UInt64, amount UInt64) ENGINE = Memory;"
 q $'SELECT SUM({fn CONVERT(Custom_SQL_Query.amount, SQL_BIGINT)}) AS sum_amount FROM (SELECT purchase_date, offer_category, SUM(amount) AS amount, COUNT(DISTINCT purchase_id) AS purchase_id FROM test.purchase_stat WHERE (offer_category = 1) GROUP BY purchase_date, offer_category) Custom_SQL_Query HAVING (COUNT(1) > 0)'
+
+q $'SELECT (CASE WHEN (`test`.`odbc1`.`ui64` > 0) THEN 1 WHEN NOT (`test`.`odbc1`.`ui64` > 0) THEN 0 ELSE NULL END) AS `Calculation_162692564973015040`, SUM({fn CONVERT(1, SQL_BIGINT)}) AS `sum_Number_of_Records_ok` FROM `test`.`odbc1` GROUP BY (CASE WHEN (`test`.`odbc1`.`ui64` > 0) THEN 1 WHEN NOT (`test`.`odbc1`.`ui64` > 0) THEN 0 ELSE NULL END)'
