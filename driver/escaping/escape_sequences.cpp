@@ -138,7 +138,6 @@ string processFunction(const StringView seq, Lexer& lex) {
         if ( !lex.Match ( Token::LPARENT ) )
             return seq.to_string();
 
-        const Token tok(lex.Peek());
         Token type = lex.Consume();
         if (timeadd_func_map.find(type.type) == timeadd_func_map.end())
             return seq.to_string(); 
