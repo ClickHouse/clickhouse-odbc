@@ -1,6 +1,15 @@
+/*
+ 
+ https://docs.faircom.com/doc/sqlref/#33384.htm
+ https://docs.microsoft.com/ru-ru/sql/odbc/reference/appendixes/time-date-and-interval-functions
+ https://my.vertica.com/docs/7.2.x/HTML/index.htm#Authoring/SQLReferenceManual/Functions/Date-Time/TIMESTAMPADD.htm%3FTocPath%3DSQL%2520Reference%2520Manual%7CSQL%2520Functions%7CDate%252FTime%2520Functions%7C_____43
+
+*/
 #include "escape_sequences.h"
 #include "lexer.h"
 #include <map>
+
+#include <iostream>
 
 using namespace std;
 
@@ -27,7 +36,35 @@ const std::map<const Token::Type, const std::string> function_map {
     {Token::SQRT,     "sqrt" },
     {Token::ABS,      "abs" },
     {Token::CONCAT,   "concat" },
+    {Token::CURDATE,   "today" },
+    {Token::TIMESTAMPDIFF, "dateDiff" },
+    //{Token::TIMESTAMPADD, "dateAdd" },
 };
+
+const std::map<const Token::Type, const std::string> literal_map {
+    // {Token::SQL_TSI_FRAC_SECOND, ""},
+    {Token::SQL_TSI_SECOND, "'second'"},
+    {Token::SQL_TSI_MINUTE, "'minute'"},
+    {Token::SQL_TSI_HOUR, "'hour'"},
+    {Token::SQL_TSI_DAY, "'day'"},
+    {Token::SQL_TSI_WEEK, "'week'"},
+    {Token::SQL_TSI_MONTH, "'month'"},
+    {Token::SQL_TSI_QUARTER, "'quarter'"},
+    {Token::SQL_TSI_YEAR, "'year'"},
+};
+
+const std::map<const Token::Type, const std::string> timeadd_func_map {
+    // {Token::SQL_TSI_FRAC_SECOND, ""},
+    {Token::SQL_TSI_SECOND, "addSeconds"},
+    {Token::SQL_TSI_MINUTE, "addMinutes"},
+    {Token::SQL_TSI_HOUR, "addHours"},
+    {Token::SQL_TSI_DAY, "addDays"},
+    {Token::SQL_TSI_WEEK, "addWeeks"},
+    {Token::SQL_TSI_MONTH, "addMonths"},
+    {Token::SQL_TSI_QUARTER, "addQuarters"},
+    {Token::SQL_TSI_YEAR, "addYears"},
+};
+
 
 string processEscapeSequencesImpl(const StringView seq, Lexer& lex);
 
@@ -39,21 +76,46 @@ string convertFunctionByType(const StringView& typeName) {
     return string();
 }
 
+string processIdentOrFunction(const StringView seq, Lexer& lex) {
+    while (lex.Match(Token::SPACE)) {}
+    const auto token = lex.Peek();
+    string result;
+    
+    if ( token.type == Token::LCURLY ) {
+        lex.SetEmitSpaces ( false );
+        result += processEscapeSequencesImpl ( seq, lex );
+        lex.SetEmitSpaces ( true );
+    } else if ( token.type == Token::NUMBER || token.type == Token::IDENT ) {
+        result += token.literal.to_string();
+        lex.Consume();
+    } else {
+        return "";
+    }
+    while (lex.Match(Token::SPACE)) {}
+    return result;
+}
+
 string processFunction(const StringView seq, Lexer& lex) {
     const Token fn(lex.Consume());
 
     if (fn.type == Token::CONVERT) {
-        if (!lex.Match(Token::LPARENT)) {
+        string result;
+        if (!lex.Match(Token::LPARENT))
             return seq.to_string();
-        }
 
-        Token num = lex.Consume();
-        if (num.type != Token::NUMBER && num.type != Token::IDENT) {
+        auto num = processIdentOrFunction(seq, lex);
+        if (num.empty())
             return seq.to_string();
-        }
+        result += num;
+
+        while (lex.Match(Token::SPACE)) {}
+
         if (!lex.Match(Token::COMMA)) {
             return seq.to_string();
         }
+
+        while (lex.Match(Token::SPACE)) {}
+
         Token type = lex.Consume();
         if (type.type != Token::IDENT) {
             return seq.to_string();
@@ -62,11 +124,48 @@ string processFunction(const StringView seq, Lexer& lex) {
         string func = convertFunctionByType(type.literal.to_string());
 
         if (!func.empty()) {
+            while (lex.Match(Token::SPACE)) {}
             if (!lex.Match(Token::RPARENT)) {
                 return seq.to_string();
             }
-            return func + "(" + num.literal.to_string() + ")";
+            result = func + "(" + result + ")";
         }
+
+        return result;
+
+    } else if ( fn.type == Token::TIMESTAMPADD ) {
+        string result;
+        if ( !lex.Match ( Token::LPARENT ) )
+            return seq.to_string();
+
+        Token type = lex.Consume();
+        if (timeadd_func_map.find(type.type) == timeadd_func_map.end())
+            return seq.to_string(); 
+        string func = timeadd_func_map.at(type.type);
+        if ( !lex.Match ( Token::COMMA ) )
+            return seq.to_string();
+        auto ramount = processIdentOrFunction(seq, lex);
+        if (ramount.empty())
+            return seq.to_string();
+
+        while ( lex.Match ( Token::SPACE ) ) {}
+
+        if ( !lex.Match ( Token::COMMA ) )
+            return seq.to_string();
+
+
+        auto rdate = processIdentOrFunction(seq, lex);
+        if (rdate.empty())
+            return seq.to_string();
+
+        if ( !func.empty() ) {
+            while ( lex.Match ( Token::SPACE ) ) {}
+            if ( !lex.Match ( Token::RPARENT ) ) {
+                return seq.to_string();
+            }
+            result = func + "(" + rdate + ", " + ramount + ")";
+        }
+        return result;
     } else if (function_map.find(fn.type) != function_map.end()) {
         string result = function_map.at(fn.type);
         lex.SetEmitSpaces(true);
@@ -82,7 +181,10 @@ string processFunction(const StringView seq, Lexer& lex) {
             } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
                 break;
             } else {
-                result += tok.literal.to_string();
+                if (literal_map.find(tok.type) != literal_map.end()) {
+                    result += literal_map.at(tok.type);
+                } else
+                    result += tok.literal.to_string();
                 lex.Consume();
             }
         }
@@ -152,6 +254,7 @@ string processEscapeSequencesImpl(const StringView seq, Lexer& lex) {
     }
 
     while (true) {
+        while (lex.Match(Token::SPACE)) {}
         const Token tok(lex.Consume());
 
         switch (tok.type) {

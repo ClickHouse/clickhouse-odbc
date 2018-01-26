@@ -5,19 +5,47 @@
 
 namespace {
 
-static const std::unordered_map<std::string, Token::Type> KEYWORDS {
-    {"FN",      Token::FN},
-    {"D",       Token::D},
-    {"T",       Token::T},
-    {"TS",      Token::TS},
-    {"CONCAT",  Token::CONCAT},
-    {"CONVERT", Token::CONVERT},
-    {"ROUND",   Token::ROUND},
-    {"POWER",   Token::POWER},
-    {"TRUNCATE", Token::TRUNCATE},
-    {"SQRT",    Token::SQRT},
-    {"ABS",    Token::ABS},
+#define DECLARE(NAME) {#NAME, Token::NAME}
+#define DECLARE_SQL_TSI(NAME) {#NAME, Token::SQL_TSI_##NAME}
+
+    static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
+        DECLARE(FN),
+        DECLARE(D),
+        DECLARE(T),
+        DECLARE(TS),
+        DECLARE(CONCAT),
+        DECLARE(CONVERT),
+        DECLARE(ROUND),
+        DECLARE(POWER),
+        DECLARE(SQRT),
+        DECLARE(ABS),
+        DECLARE(TRUNCATE),
+        DECLARE(TIMESTAMPDIFF),
+        DECLARE(TIMESTAMPADD),
+        DECLARE(CURDATE),
+        //DECLARE(SQL_TSI_FRAC_SECOND),
+        DECLARE(SQL_TSI_SECOND),
+        DECLARE(SQL_TSI_MINUTE),
+        DECLARE(SQL_TSI_HOUR),
+        DECLARE(SQL_TSI_DAY),
+        DECLARE(SQL_TSI_WEEK),
+        DECLARE(SQL_TSI_MONTH),
+        DECLARE(SQL_TSI_QUARTER),
+        DECLARE(SQL_TSI_YEAR),
+
+        // DECLARE_SQL_TSI(MILLISECOND),
+        DECLARE_SQL_TSI(SECOND),
+        DECLARE_SQL_TSI(MINUTE),
+        DECLARE_SQL_TSI(HOUR),
+        DECLARE_SQL_TSI(DAY),
+        //DECLARE_SQL_TSI(DAYOFYEAR),
+        DECLARE_SQL_TSI(WEEK),
+        DECLARE_SQL_TSI(MONTH),
+        DECLARE_SQL_TSI(QUARTER),
+        DECLARE_SQL_TSI(YEAR),
 };
+#undef DECLARE
+#undef DECLARE_SQL_TSI
 
 static Token::Type LookupIdent(const std::string& ident) {
     auto ki = KEYWORDS.find(ident);

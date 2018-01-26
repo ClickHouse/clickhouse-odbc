@@ -1,7 +1,7 @@
 #include <escaping/escape_sequences.h>
 #include <gtest/gtest.h>
 
-TEST(EscapeSequencesCase, ParseConvert) {
+TEST(EscapeSequencesCase, ParseConvert1) {
     ASSERT_EQ(
         replaceEscapeSequences("SELECT {fn CONVERT(1, SQL_BIGINT)}"),
         "SELECT toInt64(1)"
@@ -33,6 +33,27 @@ TEST(EscapeSequencesCase, ParseConvert5) {
     ASSERT_EQ(
         replaceEscapeSequences("SELECT SUM({fn CONVERT(`Custom_SQL_Query`.`amount`, SQL_BIGINT)})"),
               "SELECT SUM(toInt64(`Custom_SQL_Query`.`amount`))"
+    );
+}
+
+TEST(EscapeSequencesCase, ParseConvert6_0) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn ROUND(1.1 + 2.4, 1)}"),
+              "SELECT round(1.1 + 2.4, 1)"
+    );
+}
+
+TEST(EscapeSequencesCase, ParseConvert6) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn CONVERT({fn ROUND(1.1 + 2.4, 1)}, SQL_BIGINT)}"),
+        "SELECT toInt64(round(1.1 + 2.4, 1))"
+    );
+}
+
+TEST(EscapeSequencesCase, ParseConvert6_1) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT  {fn   CONVERT(  {fn   ROUND(  1.1  +  2.4  ,  1  )  }  ,  SQL_BIGINT  )  }"),
+              "SELECT  toInt64(round(  1.1  +  2.4  ,  1  )  )"
     );
 }
 
@@ -77,7 +98,6 @@ TEST(EscapeSequencesCase, ParseSqrt) {
 
 TEST(EscapeSequencesCase, ParseAbs) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn ABS(1 + 1)}"), "SELECT abs(1 + 1)" ); }
 
-// TODO: problem with -1
 TEST(EscapeSequencesCase, ParseAbsMinus) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn ABS(-1 + -1)}"), "SELECT abs(-1 + -1)" ); }
 TEST(EscapeSequencesCase, ParseAbsm1) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn ABS(-1)}"), "SELECT abs(-1)" ); }
 
@@ -95,6 +115,29 @@ TEST(EscapeSequencesCase, ParseTruncate) {
     //          "TODO: convert extract() function"
     //);
 }
+
+TEST(EscapeSequencesCase, ParseCurdate1) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn CURDATE()}"), "SELECT today()" ); }
+
+
+TEST(EscapeSequencesCase, ParseTimestampdiff2) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY,CAST(`test`.`odbc1`.`datetime` AS DATE),{fn CURDATE()} )}"), "SELECT dateDiff('day',CAST(`test`.`odbc1`.`datetime` AS DATE),today() )"
+); }
+
+TEST(EscapeSequencesCase, Parsetimestampdiff) {
+    ASSERT_EQ(
+        replaceEscapeSequences("SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY,CAST(`activity`.`min_activation_yabrowser` AS DATE),CAST(`activity`.`date` AS DATE))} AS `Calculation_503558746242125826`, SUM({fn CONVERT(1, SQL_BIGINT)}) AS `sum_Number_of_Records_ok`"),
+              "SELECT dateDiff('day',CAST(`activity`.`min_activation_yabrowser` AS DATE),CAST(`activity`.`date` AS DATE)) AS `Calculation_503558746242125826`, SUM(toInt64(1)) AS `sum_Number_of_Records_ok`"
+    );
+}
+
+TEST(EscapeSequencesCase, ParseTimestampadd1) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn TIMESTAMPADD(SQL_TSI_YEAR, 1, {fn CURDATE()})}"),
+"SELECT addYears(today(), 1)"
+); }
+
+TEST(EscapeSequencesCase, ParseTimestampadd2) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn  TIMESTAMPADD(  SQL_TSI_YEAR  ,  1  ,  {fn  CURDATE()  }  )  }"),
+                                                           "SELECT addYears(today()  , 1)"
+); }
+
+
 
 
 TEST(EscapeSequencesCase, DateTime) {
