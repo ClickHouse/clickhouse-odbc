@@ -76,6 +76,27 @@ string convertFunctionByType(const StringView& typeName) {
     return string();
 }
 
+string processIdentOrFunction(const StringView seq, Lexer& lex) {
+    while (lex.Match(Token::SPACE)) {}
+    const auto token = lex.Peek();
+    //std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "pi0 "<<" t=" << lex.Peek().literal.to_string()<< " tt=" << token.type <<"\n";        
+    
+    string result;
+    
+    if ( token.type == Token::LCURLY ) {
+        lex.SetEmitSpaces ( false );
+        result += processEscapeSequencesImpl ( seq, lex );
+        lex.SetEmitSpaces ( true );
+    } else if ( token.type == Token::NUMBER || token.type == Token::IDENT ) {
+        result += token.literal.to_string();
+        lex.Consume();
+    } else {
+        return "";
+    }
+    while (lex.Match(Token::SPACE)) {}
+    return result;
+}
+
 string processFunction(const StringView seq, Lexer& lex) {
     const Token fn(lex.Consume());
 
@@ -84,6 +105,7 @@ string processFunction(const StringView seq, Lexer& lex) {
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
 
+        /*
         const Token num(lex.Peek());
 
         if (num.type == Token::LCURLY) {
@@ -95,8 +117,16 @@ string processFunction(const StringView seq, Lexer& lex) {
         } else {
             lex.Consume();
             result += num.literal.to_string();
-        }
-
+        }*/
+        //std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "rr0 "<<" t=" << lex.Peek().literal.to_string()<<"\n";        
+        auto num = processIdentOrFunction(seq, lex);
+       // std::cerr << "num="<< num << "\n";
+        //std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "rr1 n="<< num <<" t=" << lex.Peek().literal.to_string()<<"\n";        
+        if (num.empty())
+            return seq.to_string();
+        result += num;
+        
+        
         while (lex.Match(Token::SPACE)) {}
 
         if (!lex.Match(Token::COMMA)) {
@@ -143,6 +173,7 @@ std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "g0" << "\n";
         if ( !lex.Match ( Token::COMMA ) )
             return seq.to_string();
         
+/*
         std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "g2 " << tok.type <<"\n";        
         const auto amount = lex.Consume();
         std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "g3 " << amount.type <<"\n";        
@@ -158,6 +189,14 @@ std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "g0" << "\n";
             //lex.Consume();
         }
         std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "g4 t=" << amount.type  << " r=" << result << " c=" << lex.Peek().literal.to_string()<<"\n";        
+*/
+auto ramount = processIdentOrFunction(seq, lex);
+// std::cerr << "num="<< num << "\n";
+//std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "rr1 n="<< num <<" t=" << lex.Peek().literal.to_string()<<"\n";        
+if (ramount.empty())
+    return seq.to_string();
+
+
         
         while ( lex.Match ( Token::SPACE ) ) {}
 
@@ -166,8 +205,9 @@ std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "g0" << "\n";
             return seq.to_string();
         }
 
-        while ( lex.Match ( Token::SPACE ) ) {}
+        //while ( lex.Match ( Token::SPACE ) ) {}
 
+/*
         string rdate;
         const auto date = lex.Peek();
         std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "gg " << date.type << " c=" << lex.Peek().literal.to_string()<<"\n";        
@@ -183,6 +223,11 @@ std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "g0" << "\n";
             //lex.Consume();
         }
         std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "g5 t=" << date.type  << " r=" << result << " c=" << "\n"       ;
+*/
+auto rdate = processIdentOrFunction(seq, lex);
+if (rdate.empty())
+    return seq.to_string();
+
         
         if ( !func.empty() ) {
             while ( lex.Match ( Token::SPACE ) ) {}
@@ -219,8 +264,8 @@ std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "g0" << "\n";
         lex.SetEmitSpaces(false);
 
         return result;
-    } else if (fn.type == Token::TIMESTAMPDIFF) {
-        string result = "TSD_tODO";
+/*    } else if (fn.type == Token::TIMESTAMPDIFF) {
+        string result;
         lex.SetEmitSpaces(true);
         while (true) {
             const Token tok(lex.Peek());
@@ -241,6 +286,8 @@ std::cerr << __FUNCTION__ << ":" << __LINE__ << " " << "g0" << "\n";
         lex.SetEmitSpaces(false);
 
         return result;
+*/
+        
     }
 
     return seq.to_string();
