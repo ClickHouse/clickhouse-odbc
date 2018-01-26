@@ -11,7 +11,7 @@
 #include <Poco/Types.h>
 
 #include <stdio.h>
-#include <malloc.h>
+//#include <malloc.h>
 #include <string.h>
 
 #include <codecvt>

@@ -9,6 +9,7 @@
 #   define _win32_
 #elif defined(__APPLE__)
 #   define _darwin_
+#   define _unix_
 #endif
 
 #if defined(_win32_) || defined(_win64_)

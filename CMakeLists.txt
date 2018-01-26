@@ -21,7 +21,9 @@ set (CMAKE_CXX_FLAGS                     "${CMAKE_CXX_FLAGS} -O2 -g -fvisibility
 # use:  cmake .. -DFORCE_STATIC_LINK=
 set (FORCE_STATIC_LINK "-Bstatic," CACHE INTERNAL "")
 
-set (CMAKE_SHARED_LINKER_FLAGS           "${CMAKE_SHARED_LINKER_FLAGS} -Wl,${FORCE_STATIC_LINK}--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
+if (NOT APPLE)
+    set (CMAKE_SHARED_LINKER_FLAGS           "${CMAKE_SHARED_LINKER_FLAGS} -Wl,${FORCE_STATIC_LINK}--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
+endif ()
 
 option (CLICKHOUSE_ODBC_TEST "Enable tests" 1)
 if (CLICKHOUSE_ODBC_TEST)
