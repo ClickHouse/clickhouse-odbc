@@ -7,7 +7,10 @@
 
 #include <Poco/Net/HTTPClientSession.h>
 
+#if __has_include("config_cmake.h")
 #include "config_cmake.h"
+#endif
+
 #if USE_SSL
 #include <Poco/Net/HTTPSClientSession.h>
 #endif
