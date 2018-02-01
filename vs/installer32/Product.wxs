@@ -32,7 +32,7 @@
   <Product Id="$(var.PRODUCT_ID)"
            Name="$(var.PKGNAME)"
            Language="1033"
-           Version="1.0.0.20171107"
+           Version="1.0.0.20170201"
            Manufacturer="Yandex LLC"
            UpgradeCode="$(var.UPGRADE_ID)">
 
