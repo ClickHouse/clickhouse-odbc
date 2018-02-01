@@ -53,6 +53,7 @@ q $'SELECT `test`.`odbc1`.`ui64` AS `bannerid`, SUM((CASE WHEN `test`.`odbc1`.`u
 q $'SELECT test.odbc1.ui64 AS BannerID,   SUM((CASE WHEN test.odbc1.ui64 = 0 THEN NULL ELSE test.odbc1.ui64 / test.odbc1.ui64 END)) AS sum_Calculation_500744014152380416_ok,   SUM(test.odbc1.ui64) AS sum_ch_installs_ok,   SUM(test.odbc1.ui64) AS sum_goodshows_ok FROM test.odbc1 GROUP BY test.odbc1.ui64'
 q $'SELECT test.odbc1.ui64 AS BannerID,   SUM((CASE WHEN test.odbc1.ui64 > 0 THEN NULL ELSE test.odbc1.ui64 / test.odbc1.ui64 END)) AS sum_Calculation_500744014152380416_ok,   SUM(test.odbc1.ui64) AS sum_ch_installs_ok,   SUM(test.odbc1.ui64) AS sum_goodshows_ok FROM test.odbc1 GROUP BY test.odbc1.ui64'
 
+
 q "DROP TABLE IF EXISTS test.test_tableau;"
 q "create table test.test_tableau (country String, clicks UInt64, shows UInt64) engine Log"
 q "insert into test.test_tableau values ('ru',10000,100500),('ua',1000,6000),('by',2000,6500),('tr',100,500)"
