@@ -1,0 +1,9 @@
+
+// TODO: make automatic
+
+#define VERSION_MAJOR 1
+#define VERSION_MINOR 0
+#define VERSION_PATCH 0
+#define VERSION_TWEAK 20180201
+#define VERSION_EXTRA ""
+#define VERSION_STRING "2018-02-01"
