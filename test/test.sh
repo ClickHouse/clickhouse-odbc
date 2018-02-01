@@ -15,6 +15,7 @@ function q {
     echo "$*" | isql clickhouse -b -v
 }
 
+q "SELECT * FROM system.build_options;"
 q "DROP TABLE IF EXISTS test.odbc1;"
 q "CREATE TABLE test.odbc1 (ui64 UInt64, string String, date Date, datetime DateTime) ENGINE = Memory;"
 q "INSERT INTO test.odbc1 VALUES (1, '2', 3, 4);"
@@ -44,3 +45,22 @@ q $"SELECT {d '2017-08-30'}"
 q 'SELECT CAST(CAST(`odbc1`.`date` AS DATE) AS DATE) AS `tdy_Calculation_687361904651595777_ok` FROM `test`.`odbc1`'
 
 q 'SELECT {fn CURDATE()}'
+
+q $'SELECT `test`.`odbc1`.`ui64` AS `bannerid`, SUM((CASE WHEN `test`.`odbc1`.`ui64` = 0 THEN NULL ELSE `test`.`odbc1`.`ui64` / `test`.`odbc1`.`ui64` END)) AS `sum_Calculation_582934706662502402_ok`, SUM(`test`.`odbc1`.`ui64`) AS `sum_clicks_ok`, SUM(`test`.`odbc1`.`ui64`) AS `sum_shows_ok`, SUM(`test`.`odbc1`.`ui64`) AS `sum_true_installs_ok`, CAST(CAST(`test`.`odbc1`.`date` AS DATE) AS DATE) AS `tdy_Calculation_582934706642255872_ok` FROM `test`.`odbc1` WHERE (`test`.`odbc1`.`string` = \'YandexBrowser\') GROUP BY `test`.`odbc1`.`ui64`, CAST(CAST(`test`.`odbc1`.`date` AS DATE) AS DATE)'
+
+#TODO: q $'SELECT SUM({fn CONVERT(1, SQL_BIGINT)}) AS `sum_Number_of_Records_ok`, CAST({fn TRUNCATE(EXTRACT(YEAR FROM `m_ru_6p_v1`.`date`),0)} AS INTEGER) AS `yr_date_ok` FROM `m_ru_6p_v1` GROUP BY CAST({fn TRUNCATE(EXTRACT(YEAR FROM `m_ru_6p_v1`.`date`),0)} AS INTEGER)'
+
+q $'SELECT test.odbc1.ui64 AS BannerID,   SUM((CASE WHEN test.odbc1.ui64 = 0 THEN NULL ELSE test.odbc1.ui64 / test.odbc1.ui64 END)) AS sum_Calculation_500744014152380416_ok,   SUM(test.odbc1.ui64) AS sum_ch_installs_ok,   SUM(test.odbc1.ui64) AS sum_goodshows_ok FROM test.odbc1 GROUP BY test.odbc1.ui64'
+q $'SELECT test.odbc1.ui64 AS BannerID,   SUM((CASE WHEN test.odbc1.ui64 > 0 THEN NULL ELSE test.odbc1.ui64 / test.odbc1.ui64 END)) AS sum_Calculation_500744014152380416_ok,   SUM(test.odbc1.ui64) AS sum_ch_installs_ok,   SUM(test.odbc1.ui64) AS sum_goodshows_ok FROM test.odbc1 GROUP BY test.odbc1.ui64'
+
+
+q "DROP TABLE IF EXISTS test.test_tableau;"
+q "create table test.test_tableau (country String, clicks UInt64, shows UInt64) engine Log"
+q "insert into test.test_tableau values ('ru',10000,100500),('ua',1000,6000),('by',2000,6500),('tr',100,500)"
+q "insert into test.test_tableau values ('undefined',0,2)"
+q "insert into test.test_tableau values ('injected',1,0)"
+q 'SELECT test.test_tableau.country AS country, SUM((CASE WHEN test.test_tableau.shows = 0 THEN NULL ELSE CAST(test.test_tableau.clicks AS FLOAT) / test.test_tableau.shows END)) AS sum_Calculation_920986154656493569_ok, SUM({fn POWER(CAST(test.test_tableau.clicks AS FLOAT),2)}) AS sum_Calculation_920986154656579587_ok FROM test.test_tableau GROUP BY test.test_tableau.country;'
+q "DROP TABLE test.test_tableau;"
+
+q 'SELECT NULL'
+q 'SELECT [NULL]'
