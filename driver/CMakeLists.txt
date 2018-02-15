@@ -37,8 +37,11 @@ target_link_libraries(clickhouse-odbc
     ${Poco_Net_LIBRARY}
     ${Poco_Foundation_LIBRARY}
     ${ODBC_LIBRARIES}
-    ${LTDL_LIBRARY}
 )
+
+if(APPLE)
+    target_link_libraries(clickhouse-odbc ${LTDL_LIBRARY})
+endif()
 
 install(TARGETS clickhouse-odbc LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/odbc)
 install(FILES unixodbc.ini DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/clickhouse-odbc)
