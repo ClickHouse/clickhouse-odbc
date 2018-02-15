@@ -16,12 +16,20 @@ set (CMAKE_POSITION_INDEPENDENT_CODE     ON)
 set (CMAKE_BUILD_COLOR_MAKEFILE          ON)
 set (CMAKE_CXX_FLAGS                     "${CMAKE_CXX_FLAGS} -O2 -g -fvisibility-inlines-hidden")
 
+if (CMAKE_SYSTEM MATCHES "FreeBSD")
+    set (ARCH_FREEBSD 1)
+endif ()
+
+if (ARCH_FREEBSD)
+    set (CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
+endif ()
+
 # to avoid this error:
 # /usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/libssl.a(s23_srvr.o): relocation R_X86_64_PC32 against symbol `ssl23_get_client_hello' can not be used when making a shared object; recompile with -fPIC
 # use:  cmake .. -DFORCE_STATIC_LINK=
 set (FORCE_STATIC_LINK "-Bstatic," CACHE INTERNAL "")
 
-if (NOT APPLE)
+if (NOT APPLE AND NOT ARCH_FREEBSD)
     set (CMAKE_SHARED_LINKER_FLAGS           "${CMAKE_SHARED_LINKER_FLAGS} -Wl,${FORCE_STATIC_LINK}--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
 endif ()
 

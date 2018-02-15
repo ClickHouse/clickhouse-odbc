@@ -155,11 +155,12 @@ SQLNumResultCols(HSTMT statement_handle,
     });
 }
 
+
 RETCODE SQL_API
 SQLColAttribute(HSTMT statement_handle, SQLUSMALLINT column_number, SQLUSMALLINT field_identifier,
     SQLPOINTER out_string_value,
     SQLSMALLINT out_string_value_max_size, SQLSMALLINT * out_string_value_size,
-#if defined (_unix_) || defined(_win64_)
+#if defined (_unix_) || defined(_win64_) || defined (__FreeBSD__)
     SQLLEN *
 #else
     SQLPOINTER
