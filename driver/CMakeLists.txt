@@ -37,6 +37,7 @@ target_link_libraries(clickhouse-odbc
     ${Poco_Net_LIBRARY}
     ${Poco_Foundation_LIBRARY}
     ${ODBC_LIBRARIES}
+    ${LTDL_LIBRARY}
 )
 
 install(TARGETS clickhouse-odbc LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/odbc)
