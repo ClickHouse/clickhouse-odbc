@@ -25,7 +25,7 @@ else()
     set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
 endif()
 
-target_include_directories (clickhouse-odbc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories (clickhouse-odbc PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${ODBC_INCLUDE_DIRECTORIES})
 
 target_link_libraries(clickhouse-odbc clickhouse-odbc-escaping)
 
