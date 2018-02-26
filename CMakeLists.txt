@@ -16,13 +16,18 @@ set (CMAKE_POSITION_INDEPENDENT_CODE     ON)
 set (CMAKE_BUILD_COLOR_MAKEFILE          ON)
 set (CMAKE_CXX_FLAGS                     "${CMAKE_CXX_FLAGS} -O2 -g -fvisibility-inlines-hidden")
 
-if (CMAKE_SYSTEM MATCHES "FreeBSD")
-    set (ARCH_FREEBSD 1)
-endif ()
+include (cmake/arch.cmake)
 
 if (ARCH_FREEBSD)
     set (CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
 endif ()
+
+if (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "None")
+    set (CMAKE_BUILD_TYPE "RELWITHDEBINFO")
+endif ()
+string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_UC)
+
+include (cmake/sanitize.cmake)
 
 # to avoid this error:
 # /usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/libssl.a(s23_srvr.o): relocation R_X86_64_PC32 against symbol `ssl23_get_client_hello' can not be used when making a shared object; recompile with -fPIC
@@ -69,3 +74,5 @@ if (USE_INTERNAL_POCO_LIBRARY)
 endif ()
 
 add_subdirectory (driver)
+
+include (cmake/print_flags.cmake)
