@@ -1014,15 +1014,99 @@ SQLGetCursorName(HSTMT StatementHandle,
 }
 
 
-/*
+
 /// This function can be implemented in the driver manager.
 RETCODE SQL_API
-SQLGetFunctions(HDBC ConnectionHandle,
+SQLGetFunctions(HDBC connection_handle,
                 SQLUSMALLINT FunctionId, SQLUSMALLINT *Supported)
 {
-    LOG(__FUNCTION__);
-    return SQL_ERROR;
-}*/
+    LOG(__FUNCTION__ << ":" << __LINE__ << " " << " id=" << FunctionId << " ptr=" << Supported);
+    return doWith<Connection>(connection_handle, [&](Connection & connection) -> RETCODE
+    {
+
+    if (FunctionId == SQL_API_ODBC3_ALL_FUNCTIONS) {
+        memset(Supported, 0, sizeof(Supported[0]) * SQL_API_ODBC3_ALL_FUNCTIONS_SIZE);
+        #define SET_EXISTS(x) Supported[(x) >> 4] |= (1 << ((x) & 0xF))
+        // #define CLR_EXISTS(x) Supported[(x) >> 4] &= ~(1 << ((x) & 0xF))
+            // info.cpp:
+            SET_EXISTS(SQL_API_SQLGETINFO);
+
+            // handles.cpp:
+            SET_EXISTS(SQL_API_SQLALLOCHANDLE);
+            SET_EXISTS(SQL_API_SQLALLOCENV);
+            SET_EXISTS(SQL_API_SQLALLOCCONNECT);
+            SET_EXISTS(SQL_API_SQLALLOCSTMT);
+            SET_EXISTS(SQL_API_SQLFREEHANDLE);
+            SET_EXISTS(SQL_API_SQLFREEENV);
+            SET_EXISTS(SQL_API_SQLFREECONNECT);
+            SET_EXISTS(SQL_API_SQLFREESTMT);
+
+            // odbc.cpp:
+            SET_EXISTS(SQL_API_SQLCONNECT);
+            SET_EXISTS(SQL_API_SQLDRIVERCONNECT);
+            SET_EXISTS(SQL_API_SQLPREPARE);
+            SET_EXISTS(SQL_API_SQLEXECUTE);
+            SET_EXISTS(SQL_API_SQLEXECDIRECT);
+            SET_EXISTS(SQL_API_SQLNUMRESULTCOLS);
+            SET_EXISTS(SQL_API_SQLCOLATTRIBUTE);
+            SET_EXISTS(SQL_API_SQLDESCRIBECOL);
+            SET_EXISTS(SQL_API_SQLFETCH);
+            SET_EXISTS(SQL_API_SQLFETCHSCROLL);
+            SET_EXISTS(SQL_API_SQLGETDATA);
+            SET_EXISTS(SQL_API_SQLBINDCOL);
+            SET_EXISTS(SQL_API_SQLROWCOUNT);
+            SET_EXISTS(SQL_API_SQLMORERESULTS);
+            SET_EXISTS(SQL_API_SQLDISCONNECT);
+            SET_EXISTS(SQL_API_SQLGETDIAGREC);
+            SET_EXISTS(SQL_API_SQLGETDIAGFIELD);
+            SET_EXISTS(SQL_API_SQLTABLES);
+            SET_EXISTS(SQL_API_SQLCOLUMNS);
+            SET_EXISTS(SQL_API_SQLGETTYPEINFO);
+            SET_EXISTS(SQL_API_SQLNUMPARAMS);
+            SET_EXISTS(SQL_API_SQLNATIVESQL);
+            SET_EXISTS(SQL_API_SQLCLOSECURSOR);
+            // CLR_EXISTS(SQL_API_SQLBROWSECONNECT);
+            // CLR_EXISTS(SQL_API_SQLCANCEL);
+            // CLR_EXISTS(SQL_API_SQLDATASOURCES);
+            // CLR_EXISTS(SQL_API_SQLGETCURSORNAME);
+            SET_EXISTS(SQL_API_SQLGETFUNCTIONS);
+            // CLR_EXISTS(SQL_API_SQLPARAMDATA);
+            // CLR_EXISTS(SQL_API_SQLPUTDATA);
+            // CLR_EXISTS(SQL_API_SQLSETCURSORNAME);
+            // CLR_EXISTS(SQL_API_SQLSETPARAM);
+            // CLR_EXISTS(SQL_API_SQLSPECIALCOLUMNS);
+            // CLR_EXISTS(SQL_API_SQLSTATISTICS);
+            // CLR_EXISTS(SQL_API_SQLCOLUMNPRIVILEGES);
+            /// TODO: more here, but all not implemented
+        #undef SET_EXISTS
+        // #undef CLR_EXISTS
+            return SQL_SUCCESS;
+    }
+	else if (FunctionId == SQL_API_ALL_FUNCTIONS)
+	{
+		//memset(Supported, 0, sizeof(Supported[0]) * 100);
+        return SQL_ERROR;
+    }
+	else
+	{
+/*
+		switch (FunctionId)
+		{
+			case SQL_API_SQLBINDCOL:
+				*Supported = SQL_TRUE;
+				break;
+			default:
+				*Supported = SQL_FALSE;
+				break;
+		}
+*/
+        return SQL_ERROR;
+	}
+
+        return SQL_ERROR;
+    });
+
+}
 
 
 RETCODE SQL_API
