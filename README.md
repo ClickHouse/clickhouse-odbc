@@ -45,7 +45,7 @@ mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || 
 ```
 Please use cmake3 to build the project on CentOS 7. You can install it with `yum install cmake3`.
 
-2. clickhouse-odbc.so will be at ```build/driver/clickhouse-odbc.so```
+2. libclickhouseodbc.so will be at ```build/driver/libclickhouseodbc.so```
 
 ## ODBC configuration
 
