@@ -1,11 +1,10 @@
 option (USE_INTERNAL_POCO_LIBRARY "Set to FALSE to use system poco library instead of bundled" 1)
 
 if (NOT USE_INTERNAL_POCO_LIBRARY)
-
     if (WIN32 OR MSVC)
         set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
-    elseif (UNIX)
-        set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+    #elseif (UNIX)
+    #   set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
     endif ()
 
     find_package (Poco COMPONENTS Net)

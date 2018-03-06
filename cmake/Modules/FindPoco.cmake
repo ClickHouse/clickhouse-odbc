@@ -51,6 +51,7 @@
 
 set(Poco_HINTS
     /usr/local
+    /usr/local/include/Poco
     C:/AppliedInformatics
     ${Poco_DIR}
     $ENV{Poco_DIR}
