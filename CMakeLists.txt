@@ -63,6 +63,8 @@ include (cmake/find_ccache.cmake)
 include (contrib/poco/cmake/FindODBC.cmake)
 include (cmake/Modules/CheckODBCversion.cmake)
 
+message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")
+
 message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE} ; CCACHE=${CCACHE_FOUND} ${CCACHE_VERSION}")
 
 message (STATUS "${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_VERSION}")
