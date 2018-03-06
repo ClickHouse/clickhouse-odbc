@@ -15,6 +15,7 @@ set (CMAKE_CXX_STANDARD_REQUIRED         ON)
 set (CMAKE_POSITION_INDEPENDENT_CODE     ON)
 set (CMAKE_BUILD_COLOR_MAKEFILE          ON)
 set (CMAKE_CXX_FLAGS                     "${CMAKE_CXX_FLAGS} -O2 -g -fvisibility-inlines-hidden")
+set (CMAKE_DEBUG_POSTFIX                 "")
 
 include (cmake/arch.cmake)
 
