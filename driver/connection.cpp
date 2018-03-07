@@ -13,6 +13,10 @@
 
 #if USE_SSL
 #include <Poco/Net/HTTPSClientSession.h>
+#include <Poco/Net/InvalidCertificateHandler.h>
+#include <Poco/Net/AcceptCertificateHandler.h>
+#include <Poco/Net/SSLManager.h>
+#include <Poco/Net/PrivateKeyPassphraseHandler.h>
 #endif
 
 
@@ -116,7 +120,7 @@ void Connection::init(const std::string & connection_string)
             password = current_value.toString();
         else if (current_key == "PROTO")
             proto = current_value.toString();
-        else if (current_key == "SECURE")
+        else if (current_key == "SSLMODE" && current_value == "require")
             proto = "https";
         else if (current_key == "HOST" || current_key == "SERVER")
             server = current_value.toString();
@@ -173,6 +177,8 @@ void Connection::loadConfiguration()
         password = stringFromTCHAR(ci.password);
     if (database.empty())
         database = stringFromTCHAR(ci.database);
+    if (proto.empty() && (ci.sslmode == std::string("require") || port == 8443))
+        proto = "https";
 }
 
 void Connection::setDefaults()
@@ -180,11 +186,11 @@ void Connection::setDefaults()
     if (data_source.empty())
         data_source = "ClickHouse";
     if (proto.empty())
-        proto = "http";
+        proto = (port == 8443 ? "https" : "http");
     if (server.empty())
         server = "localhost";
     if (port == 0)
-        port = 8123;
+        port = (proto == "https" ? 8443 : 8123);
     if (user.empty())
         user = "default";
     if (database.empty())
@@ -200,5 +206,9 @@ void SSLInit()
     // http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
 #if USE_SSL
     Poco::Net::initializeSSL();
+    // TODO: not accept invalid cert by some settings
+    Poco::SharedPtr<Poco::Net::InvalidCertificateHandler> ptrHandler = new Poco::Net::AcceptCertificateHandler(false);
+    Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE, "", "", "", Poco::Net::Context::VERIFY_RELAXED, 9, true, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+    Poco::Net::SSLManager::instance().initializeClient(0, ptrHandler, ptrContext);
 #endif
 }
