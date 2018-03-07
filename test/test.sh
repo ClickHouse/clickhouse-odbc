@@ -64,3 +64,6 @@ q "DROP TABLE test.test_tableau;"
 
 q 'SELECT NULL'
 q 'SELECT [NULL]'
+
+echo "\n\n\nLast log:\n"
+cat /tmp/clickhouse-odbc-stderr.$USER

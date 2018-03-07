@@ -17,7 +17,7 @@ impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
 
     return doWith<Environment>(environment_handle, [&](Environment & environment)
     {
-        LOG("attr: " << attribute);
+        LOG("SetEnvAttr: " << attribute);
 
         switch (attribute)
         {
@@ -57,7 +57,7 @@ impl_SQLGetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
 
     return doWith<Environment>(environment_handle, [&](Environment & environment) -> RETCODE
     {
-        LOG("attr: " << attribute);
+        LOG("GetEnvAttr: " << attribute);
         const char * name = nullptr;
 
         switch (attribute)
@@ -87,7 +87,7 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
 
     return doWith<Connection>(connection_handle, [&](Connection & connection)
     {
-        LOG("attr: " << attribute);
+        LOG("SetConnectAttr: " << attribute);
 
         switch (attribute)
         {
@@ -137,7 +137,7 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) -> RETCODE
     {
-        LOG("attr: " << attribute);
+        LOG("GetConnectAttr: " << attribute);
 
         const char * name = nullptr;
 
@@ -181,7 +181,7 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
 
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
-        LOG("attr: " << attribute);
+        LOG("SetStmtAttr: " << attribute);
 
         switch (attribute)
         {
@@ -260,7 +260,7 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE
     {
-        LOG("attr: " << attribute);
+        LOG("GetStmtAttr: " << attribute);
 
         const char * name = nullptr;
 

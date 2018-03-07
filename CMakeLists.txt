@@ -15,6 +15,8 @@ set (CMAKE_CXX_STANDARD_REQUIRED         ON)
 set (CMAKE_POSITION_INDEPENDENT_CODE     ON)
 set (CMAKE_BUILD_COLOR_MAKEFILE          ON)
 set (CMAKE_CXX_FLAGS                     "${CMAKE_CXX_FLAGS} -O2 -g -fvisibility-inlines-hidden")
+set (CMAKE_DEBUG_POSTFIX                 "") # Dont add "d" to target lib name
+list (REVERSE CMAKE_FIND_LIBRARY_SUFFIXES) # we want static link - now .a libs have highest priority
 
 include (cmake/arch.cmake)
 
@@ -55,10 +57,13 @@ endif ()
 set (OPENSSL_LIBRARIES "-Wl,-Bdynamic ${OPENSSL_LIBRARIES} -Wl,-Bstatic")
 
 include (cmake/find_ltdl.cmake) # for odbc
+#include (cmake/find_odbc.cmake)
 include (cmake/find_poco.cmake)
 include (cmake/find_ccache.cmake)
 include (contrib/poco/cmake/FindODBC.cmake)
 include (cmake/Modules/CheckODBCversion.cmake)
+
+message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")
 
 message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE} ; CCACHE=${CCACHE_FOUND} ${CCACHE_VERSION}")
 
