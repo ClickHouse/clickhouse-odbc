@@ -47,9 +47,12 @@ Please use cmake3 to build the project on CentOS 7. You can install it with `yum
 
 2. libclickhouseodbc.so will be at ```build/driver/libclickhouseodbc.so```
 
-## Macos note:
+
+## Building (macos):
+By default strange odbc lib can be found (/usr/lib/libiodbc.dylib) - need to manually point to correct libs from unixodbc
 ```
-cmake .. -DODBC_INCLUDE_DIRECTORIES=/usr/local/include -DODBC_LIBRARIES="/usr/local/lib/libodbc.dylib;/usr/local/lib/libodbcinst.dylib"
+brew install unixodbc
+mkdir -p build; cd build && cmake .. -DODBC_INCLUDE_DIRECTORIES=/usr/local/include -DODBC_LIBRARIES="/usr/local/lib/libodbc.a;/usr/local/lib/libodbcinst.a" && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
 ```
 
 ## ODBC configuration
@@ -59,6 +62,7 @@ vim ~/.odbc.ini:
 ```(ini)
 [ClickHouse]
 Driver = $(PATH_OF_CLICKHOUSE_ODBC_SO)
+# Optional settings:
 Description = ClickHouse driver
 DATABASE = default
 SERVER = localhost
