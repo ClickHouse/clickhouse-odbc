@@ -33,7 +33,7 @@ void getDSNinfo(ConnInfo * ci, bool overwrite)
 {
 #define GET_CONFIG(NAME, INI_NAME, DEFAULT) if (ci->NAME[0] == '\0' || overwrite) \
         SQLGetPrivateProfileString(ci->dsn, INI_NAME, TEXT(DEFAULT), ci->NAME, sizeof(ci->NAME), ODBC_INI);
-    
+
     GET_CONFIG(desc, INI_KDESC, "");
     GET_CONFIG(server, INI_SERVER, "");
     GET_CONFIG(database, INI_DATABASE, "");
@@ -45,5 +45,5 @@ void getDSNinfo(ConnInfo * ci, bool overwrite)
     GET_CONFIG(sslmode, INI_SSLMODE, "");
 
 #undef GET_CONFIG
-    
+
 }
