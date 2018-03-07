@@ -47,6 +47,8 @@ endif ()
 
 option (ENABLE_SSL "Use openssl for accessing https:// interface" OFF)
 
+include (cmake/find_ssl.cmake)
+
 if (ENABLE_SSL)
     find_package (OpenSSL)
     if (OPENSSL_FOUND)
