@@ -10,6 +10,16 @@ if (NOT USE_INTERNAL_SSL_LIBRARY)
             message(WARNING "Disable USE_STATIC_LIBRARIES if you have linking problems with OpenSSL on MacOS")
         endif ()
     endif ()
+
+    set(_save ${CMAKE_FIND_LIBRARY_SUFFIXES})
+
+    # If you got error
+    # /usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/libssl.a(s23_srvr.o): relocation R_X86_64_PC32 against symbol `ssl23_get_client_hello' can not be used when making a shared object; recompile with -fPIC
+    # ues this option:
+    if (OPENSSL_USE_SHARED_LIBS)
+        list (REVERSE CMAKE_FIND_LIBRARY_SUFFIXES)
+    endif ()
+
     find_package (OpenSSL)
 
     if (NOT OPENSSL_FOUND)
@@ -24,6 +34,9 @@ if (NOT USE_INTERNAL_SSL_LIBRARY)
             set (OPENSSL_FOUND 1)
         endif ()
     endif ()
+
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ${_save})
+
 endif ()
 
 if (NOT OPENSSL_FOUND)

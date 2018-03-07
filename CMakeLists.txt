@@ -45,12 +45,10 @@ if (CLICKHOUSE_ODBC_TEST)
     enable_testing ()
 endif ()
 
-option (ENABLE_SSL "Use openssl for accessing https:// interface" OFF)
-
-include (cmake/find_ssl.cmake)
+option (ENABLE_SSL "Use openssl for accessing https:// interface" ON)
 
 if (ENABLE_SSL)
-    find_package (OpenSSL)
+    include (cmake/find_ssl.cmake)
     if (OPENSSL_FOUND)
         set (USE_SSL 1)
     endif ()
