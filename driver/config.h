@@ -15,6 +15,7 @@
 #define INI_PORT            TEXT("Port")        /* Port on which the ClickHouse is listening */
 #define INI_READONLY        TEXT("ReadOnly")    /* Database is read only */
 #define INI_TIMEOUT         TEXT("Timeout")
+#define INI_SSLMODE         TEXT("SSLMode")
 
 #ifndef WIN32
 #   define ODBC_INI         ".odbc.ini"

@@ -45,10 +45,10 @@ if (CLICKHOUSE_ODBC_TEST)
     enable_testing ()
 endif ()
 
-option (ENABLE_SSL "Use openssl for accessing https:// interface" OFF)
+option (ENABLE_SSL "Use openssl for accessing https:// interface" 0)
 
 if (ENABLE_SSL)
-    find_package (OpenSSL)
+    include (cmake/find_ssl.cmake)
     if (OPENSSL_FOUND)
         set (USE_SSL 1)
     endif ()
@@ -61,9 +61,8 @@ include (cmake/find_ltdl.cmake) # for odbc
 include (cmake/find_poco.cmake)
 include (cmake/find_ccache.cmake)
 include (contrib/poco/cmake/FindODBC.cmake)
-include (cmake/Modules/CheckODBCversion.cmake)
-
 message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")
+include (cmake/Modules/CheckODBCversion.cmake)
 
 message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE} ; CCACHE=${CCACHE_FOUND} ${CCACHE_VERSION}")
 

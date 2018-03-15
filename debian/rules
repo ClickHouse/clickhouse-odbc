@@ -10,6 +10,9 @@ ifndef DH_VERBOSE
     CMAKE_FLAGS += -DCMAKE_VERBOSE_MAKEFILE=0
 endif
 
+# libssl.a without PIC, will use .so
+CMAKE_FLAGS += -DOPENSSL_USE_SHARED_LIBS=1
+
 %:
 	dh $@ --parallel --buildsystem=cmake
 
