@@ -31,6 +31,7 @@ struct Token {
         ABS,
         TIMESTAMPDIFF,
         TIMESTAMPADD,
+        CURRENT_TIMESTAMP,
         CURDATE,
 
         // for TIMESTAMPDIFF

@@ -137,6 +137,13 @@ TEST(EscapeSequencesCase, ParseTimestampadd2) { ASSERT_EQ( replaceEscapeSequence
                                                            "SELECT addYears(today()  , 1)"
 ); }
 
+TEST(EscapeSequencesCase, ParseTimestampadd3) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,1,CAST({fn CURRENT_TIMESTAMP(0)} AS DATE))}"),
+                                                           "SELECT addDays(CAST(toUnixTimestamp(now()) AS DATE), 1)"
+); }
+
+TEST(EscapeSequencesCase, ParseTimestampadd4) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn TIMESTAMPADD( SQL_TSI_DAY , 1 , CAST( {fn CURRENT_TIMESTAMP( 0 ) }  AS  DATE ) ) } "),
+                                                           "SELECT addDays(CAST(toUnixTimestamp(now())  AS  DATE ), 1) "
+); }
 
 
 

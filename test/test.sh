@@ -16,6 +16,7 @@ function q {
 }
 
 q "SELECT * FROM system.build_options;"
+q "CREATE DATABASE IF NOT EXISTS test;"
 q "DROP TABLE IF EXISTS test.odbc1;"
 q "CREATE TABLE test.odbc1 (ui64 UInt64, string String, date Date, datetime DateTime) ENGINE = Memory;"
 q "INSERT INTO test.odbc1 VALUES (1, '2', 3, 4);"
@@ -64,6 +65,14 @@ q "DROP TABLE test.test_tableau;"
 
 q 'SELECT NULL'
 q 'SELECT [NULL]'
+
+q "DROP TABLE IF EXISTS test.adv_watch;"
+q "create table test.adv_watch (rocket_date Date, rocket_datetime dateTime, ivi_id UInt64) engine Log"
+q "insert into test.adv_watch values (1,2,3)"
+q "insert into test.adv_watch values (1, {fn TIMESTAMPADD(SQL_TSI_DAY,-8,CAST({fn CURRENT_TIMESTAMP(0)} AS DATE))}, 3)"
+q 'SELECT `test`.`adv_watch`.`rocket_date` AS `rocket_date`, COUNT(DISTINCT `test`.`adv_watch`.`ivi_id`) AS `usr_Calculation_683139814283419648_ok` FROM `test`.`adv_watch` WHERE ((`adv_watch`.`rocket_datetime` >= {fn TIMESTAMPADD(SQL_TSI_DAY,-9,CAST({fn CURRENT_TIMESTAMP(0)} AS DATE))}) AND (`test`.`adv_watch`.`rocket_datetime` < {fn TIMESTAMPADD(SQL_TSI_DAY,1,CAST({fn CURRENT_TIMESTAMP(0)} AS DATE))})) GROUP BY `test`.`adv_watch`.`rocket_date`'
+#TODO: q 'SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM `adv_watch`.`rocket_date`),0)} AS INTEGER) AS `yr_rocket_date_ok` FROM `adv_watch` GROUP BY CAST({fn TRUNCATE(EXTRACT(YEAR FROM `adv_watch`.`rocket_date`),0)} AS INTEGER)'
+q "DROP TABLE test.adv_watch;"
 
 echo "\n\n\nLast log:\n"
 cat /tmp/clickhouse-odbc-stderr.$USER
