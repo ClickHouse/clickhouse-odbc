@@ -5,24 +5,20 @@
 
 #include <Poco/Net/HTTPResponse.h>
 
-#include <sstream>
 #include <memory>
+#include <sstream>
 
 /// Information where and how to add values when reading.
-struct Binding
-{
+struct Binding {
     SQLSMALLINT target_type;
     PTR out_value;
     SQLLEN out_value_max_size;
     SQLLEN * out_value_size_or_indicator;
 };
 
-struct DescriptorClass
-{
-};
+struct DescriptorClass {};
 
-class Statement
-{
+class Statement {
 public:
     Statement(Connection & conn_);
 
@@ -52,10 +48,10 @@ public:
     bool fetchRow();
 
     /// Do all the necessary work for preparing the query.
-    void prepareQuery(const std::string& q);
+    void prepareQuery(const std::string & q);
 
     /// Set query without preparation.
-    void setQuery(const std::string& q);
+    void setQuery(const std::string & q);
 
     /// Reset statement to initial state.
     void reset();
@@ -65,7 +61,7 @@ public:
 
 public:
     Connection & connection;
-    
+
     ResultSet result;
     Row current_row;
 
@@ -82,7 +78,7 @@ public:
 private:
     std::unique_ptr<Poco::Net::HTTPResponse> response;
 
-    /// An SQLUINTEGER value that determines 
+    /// An SQLUINTEGER value that determines
     /// how the string arguments of catalog functions are treated.
     SQLUINTEGER metadata_id;
 

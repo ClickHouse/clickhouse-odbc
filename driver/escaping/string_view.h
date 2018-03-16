@@ -7,10 +7,7 @@
 /**
  * A lightweight non-owning read-only view into a subsequence of a string.
  */
-template <
-    typename TChar,
-    typename TTraits = std::char_traits<TChar>
->
+template <typename TChar, typename TTraits = std::char_traits<TChar>>
 class StringViewImpl {
 public:
     using size_type = size_t;
@@ -20,37 +17,18 @@ public:
     static constexpr size_type npos = size_type(-1);
 
 public:
-    inline StringViewImpl() noexcept
-        : data_(nullptr)
-        , size_(0)
-    {
-    }
+    inline StringViewImpl() noexcept : data_(nullptr), size_(0) {}
 
-    constexpr inline StringViewImpl(const TChar* data, size_t len) noexcept
-        : data_(data)
-        , size_(len)
-    {
-    }
+    constexpr inline StringViewImpl(const TChar * data, size_t len) noexcept : data_(data), size_(len) {}
 
     template <size_t len>
-    constexpr inline StringViewImpl(const TChar (&str)[len]) noexcept
-        : data_(str)
-        , size_(len - 1)
-    {
-    }
+    constexpr inline StringViewImpl(const TChar (&str)[len]) noexcept : data_(str), size_(len - 1) {}
 
-    inline StringViewImpl(const TChar* begin, const TChar* end) noexcept
-        : data_(begin)
-        , size_(end - begin)
-    {
+    inline StringViewImpl(const TChar * begin, const TChar * end) noexcept : data_(begin), size_(end - begin) {
         assert(begin <= end);
     }
 
-    inline StringViewImpl(const std::basic_string<TChar>& str) noexcept
-        : data_(str.data())
-        , size_(str.size())
-    {
-    }
+    inline StringViewImpl(const std::basic_string<TChar> & str) noexcept : data_(str.data()), size_(str.size()) {}
 
     inline TChar at(size_type pos) const {
         if (pos >= size_)
@@ -58,7 +36,7 @@ public:
         return data_[pos];
     }
 
-    inline const TChar* data() const noexcept {
+    inline const TChar * data() const noexcept {
         return data_;
     }
 
@@ -93,19 +71,19 @@ public:
     }
 
 public:
-    inline operator bool () const noexcept {
+    inline operator bool() const noexcept {
         return !empty();
     }
 
-    inline explicit operator const std::basic_string<TChar> () const {
+    inline explicit operator const std::basic_string<TChar>() const {
         return std::basic_string<TChar>(data_, size_);
     }
 
-    inline TChar operator [] (size_type pos) const noexcept {
+    inline TChar operator[](size_type pos) const noexcept {
         return data_[pos];
     }
 
-    inline bool operator < (const StringViewImpl& other) const noexcept {
+    inline bool operator<(const StringViewImpl & other) const noexcept {
         if (size_ < other.size_)
             return true;
         if (size_ > other.size_)
@@ -113,14 +91,14 @@ public:
         return TTraits::compare(data_, other.data_, size_) < 0;
     }
 
-    inline bool operator == (const StringViewImpl& other) const noexcept {
+    inline bool operator==(const StringViewImpl & other) const noexcept {
         if (size_ == other.size_)
             return TTraits::compare(data_, other.data_, size_) == 0;
         return false;
     }
 
 private:
-    const TChar* data_;
+    const TChar * data_;
     size_t size_;
 };
 

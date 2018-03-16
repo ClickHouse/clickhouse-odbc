@@ -1,5 +1,5 @@
-#include "config.h"
 #include "connection.h"
+#include "config.h"
 #include "string_ref.h"
 #include "utils.h"
 
@@ -12,21 +12,17 @@
 #endif
 
 #if USE_SSL
+#include <Poco/Net/AcceptCertificateHandler.h>
 #include <Poco/Net/HTTPSClientSession.h>
 #include <Poco/Net/InvalidCertificateHandler.h>
-#include <Poco/Net/AcceptCertificateHandler.h>
-#include <Poco/Net/SSLManager.h>
 #include <Poco/Net/PrivateKeyPassphraseHandler.h>
+#include <Poco/Net/SSLManager.h>
 #endif
 
 
-Connection::Connection(Environment & env_)
-    : environment(env_)
-{
-}
+Connection::Connection(Environment & env_) : environment(env_) {}
 
-std::string Connection::connectionString() const
-{
+std::string Connection::connectionString() const {
     std::string ret;
     ret += "DSN=" + data_source + ";";
     ret += "DATABASE=" + database + ";";
@@ -34,42 +30,38 @@ std::string Connection::connectionString() const
     ret += "SERVER=" + server + ";";
     ret += "PORT=" + std::to_string(port) + ";";
     ret += "UID=" + user + ";";
-    if (!password.empty())
-    {
+    if (!password.empty()) {
         ret += "PWD=" + password + ";";
     }
     return ret;
 }
 
-const std::string & Connection::getDatabase() const
-{
+const std::string & Connection::getDatabase() const {
     return database;
 }
 
-void Connection::setDatabase(const std::string & db)
-{
+void Connection::setDatabase(const std::string & db) {
     database = db;
 }
 
-void Connection::init()
-{
+void Connection::init() {
     loadConfiguration();
     setDefaults();
 
     if (user.find(':') != std::string::npos)
         throw std::runtime_error("Username couldn't contain ':' (colon) symbol.");
 
-    #if USE_SSL
+#if USE_SSL
     bool is_ssl = proto == "https";
 
     std::call_once(ssl_init_once, SSLInit);
-    #endif
+#endif
 
     session = std::unique_ptr<Poco::Net::HTTPClientSession>(
-        #if USE_SSL
-            is_ssl ? new Poco::Net::HTTPSClientSession :
-        #endif
-        new Poco::Net::HTTPClientSession);
+#if USE_SSL
+        is_ssl ? new Poco::Net::HTTPSClientSession :
+#endif
+               new Poco::Net::HTTPClientSession);
 
     session->setHost(server);
     session->setPort(port);
@@ -78,13 +70,11 @@ void Connection::init()
     session->setKeepAliveTimeout(Poco::Timespan(86400, 0));
 }
 
-void Connection::init(
-    const std::string & dsn_,
+void Connection::init(const std::string & dsn_,
     const uint16_t port_,
     const std::string & user_,
     const std::string & password_,
-    const std::string & database_)
-{
+    const std::string & database_) {
     if (session && session->connected())
         throw std::runtime_error("Already connected.");
 
@@ -102,8 +92,7 @@ void Connection::init(
     init();
 }
 
-void Connection::init(const std::string & connection_string)
-{
+void Connection::init(const std::string & connection_string) {
     /// connection_string - string of the form `DSN=ClickHouse;UID=default;PWD=password`
 
     const char * pos = connection_string.data();
@@ -112,8 +101,7 @@ void Connection::init(const std::string & connection_string)
     StringRef current_key;
     StringRef current_value;
 
-    while ((pos = nextKeyValuePair(pos, end, current_key, current_value)))
-    {
+    while ((pos = nextKeyValuePair(pos, end, current_key, current_value))) {
         if (current_key == "UID")
             user = current_value.toString();
         else if (current_key == "PWD")
@@ -124,16 +112,14 @@ void Connection::init(const std::string & connection_string)
             proto = "https";
         else if (current_key == "HOST" || current_key == "SERVER")
             server = current_value.toString();
-        else if (current_key == "PORT")
-        {
+        else if (current_key == "PORT") {
             int int_port = 0;
             if (Poco::NumberParser::tryParse(current_value.toString(), int_port))
                 port = int_port;
             else {
                 throw std::runtime_error("Cannot parse port number.");
             }
-        }
-        else if (current_key == "DATABASE")
+        } else if (current_key == "DATABASE")
             database = current_value.toString();
         else if (current_key == "DSN")
             data_source = current_value.toString();
@@ -142,8 +128,7 @@ void Connection::init(const std::string & connection_string)
     init();
 }
 
-void Connection::loadConfiguration()
-{
+void Connection::loadConfiguration() {
     if (data_source.empty())
         data_source = "ClickHouse";
 
@@ -151,19 +136,16 @@ void Connection::loadConfiguration()
     stringToTCHAR(data_source, ci.dsn);
     getDSNinfo(&ci, true);
 
-    if (!port && ci.port[0] != 0)
-    {
+    if (!port && ci.port[0] != 0) {
         int int_port = 0;
         if (Poco::NumberParser::tryParse(stringFromTCHAR(ci.port), int_port))
             port = int_port;
         else
             throw std::runtime_error("Cannot parse port number.");
     }
-    if (timeout == 0)
-    {
+    if (timeout == 0) {
         const std::string timeout_string = stringFromTCHAR(ci.timeout);
-        if (!timeout_string.empty()) 
-        {
+        if (!timeout_string.empty()) {
             if (!Poco::NumberParser::tryParse(timeout_string, this->timeout))
                 throw std::runtime_error("Cannot parse connection timeout value.");
         }
@@ -181,8 +163,7 @@ void Connection::loadConfiguration()
         proto = "https";
 }
 
-void Connection::setDefaults()
-{
+void Connection::setDefaults() {
     if (data_source.empty())
         data_source = "ClickHouse";
     if (proto.empty())
@@ -201,14 +182,14 @@ void Connection::setDefaults()
 
 std::once_flag ssl_init_once;
 
-void SSLInit()
-{
-    // http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
+void SSLInit() {
+// http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
 #if USE_SSL
     Poco::Net::initializeSSL();
     // TODO: not accept invalid cert by some settings
     Poco::SharedPtr<Poco::Net::InvalidCertificateHandler> ptrHandler = new Poco::Net::AcceptCertificateHandler(false);
-    Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE, "", "", "", Poco::Net::Context::VERIFY_RELAXED, 9, true, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+    Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(
+        Poco::Net::Context::CLIENT_USE, "", "", "", Poco::Net::Context::VERIFY_RELAXED, 9, true, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
     Poco::Net::SSLManager::instance().initializeClient(0, ptrHandler, ptrContext);
 #endif
 }
