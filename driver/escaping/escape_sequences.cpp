@@ -6,10 +6,12 @@
 
 */
 #include "escape_sequences.h"
-#include "lexer.h"
-#include <map>
 
+#include <map>
 #include <iostream>
+#include "lexer.h"
+//#include "log.h"
+
 
 using namespace std;
 
@@ -39,6 +41,10 @@ const std::map<const Token::Type, const std::string> function_map {
     {Token::CURDATE,   "today" },
     {Token::TIMESTAMPDIFF, "dateDiff" },
     //{Token::TIMESTAMPADD, "dateAdd" },
+};
+
+const std::map<const Token::Type, const std::string> function_map_strip_params {
+    {Token::CURRENT_TIMESTAMP,    "toUnixTimestamp(now())" },
 };
 
 const std::map<const Token::Type, const std::string> literal_map {
@@ -76,6 +82,30 @@ string convertFunctionByType(const StringView& typeName) {
     return string();
 }
 
+string processParentheses(const StringView seq, Lexer& lex) {
+    string result;
+    result += lex.Consume().literal.to_string(); // (
+        while (true) {
+            const Token tok(lex.Peek());
+
+            if (tok.type == Token::RPARENT) {
+                result += tok.literal.to_string();
+                lex.Consume();
+                break;
+            } else if (tok.type == Token::LCURLY) {
+                lex.SetEmitSpaces(false);
+                result += processEscapeSequencesImpl(seq, lex);
+                lex.SetEmitSpaces(true);
+            } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
+                break;
+            } else {
+                result += tok.literal.to_string();
+                lex.Consume();
+            }
+        }
+    return result;
+}
+
 string processIdentOrFunction(const StringView seq, Lexer& lex) {
     while (lex.Match(Token::SPACE)) {}
     const auto token = lex.Peek();
@@ -85,6 +115,10 @@ string processIdentOrFunction(const StringView seq, Lexer& lex) {
         lex.SetEmitSpaces ( false );
         result += processEscapeSequencesImpl ( seq, lex );
         lex.SetEmitSpaces ( true );
+    } else if (token.type == Token::IDENT && lex.LookAhead(1).type == Token::LPARENT) { // CAST( ... )
+        result += token.literal.to_string(); // func name
+        lex.Consume();
+        result += processParentheses(seq, lex);
     } else if ( token.type == Token::NUMBER || token.type == Token::IDENT ) {
         result += token.literal.to_string();
         lex.Consume();
@@ -190,6 +224,11 @@ string processFunction(const StringView seq, Lexer& lex) {
         }
         lex.SetEmitSpaces(false);
 
+        return result;
+
+    } else if (function_map_strip_params.find(fn.type) != function_map_strip_params.end()) {
+        string result = function_map_strip_params.at(fn.type);
+        processParentheses(seq, lex); // ignore anything inside ( )
         return result;
     }
 
