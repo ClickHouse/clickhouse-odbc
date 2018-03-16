@@ -46,24 +46,19 @@ struct Token {
         SQL_TSI_YEAR,
 
         // Delimiters
-        COMMA,      //  ,
-        LPARENT,    //  (
-        RPARENT,    //  )
-        LCURLY,     //  {
-        RCURLY,     //  }
+        COMMA,   //  ,
+        LPARENT, //  (
+        RPARENT, //  )
+        LCURLY,  //  {
+        RCURLY,  //  }
     };
 
     Type type;
     StringView literal;
 
-    Token()
-        : type(INVALID)
-    { }
+    Token() : type(INVALID) {}
 
-    Token(Type t, StringView l)
-        : type(t)
-        , literal(l)
-    { }
+    Token(Type t, StringView l) : type(t), literal(l) {}
 
     inline bool isInvalid() const {
         return type == INVALID;
@@ -103,12 +98,12 @@ private:
 private:
     const StringView text_;
     /// Pointer to current char in the input string.
-    const char* cur_;
-    const char* end_;
+    const char * cur_;
+    const char * end_;
     /// Recognized tokens.
     std::deque<Token> readed_;
     bool emit_space_;
 };
 
 /// Convers all letters to upper-case.
-std::string to_upper(const StringView& str);
+std::string to_upper(const StringView & str);

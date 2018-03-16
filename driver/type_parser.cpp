@@ -3,15 +3,13 @@
 #include <sstream>
 
 template <typename T>
-static inline T fromString(const std::string& s)
-{
+static inline T fromString(const std::string & s) {
     std::istringstream iss(s);
     T result;
     iss >> result;
     return result;
-
 }
-static TypeAst::Meta getTypeMeta(const std::string& name) {
+static TypeAst::Meta getTypeMeta(const std::string & name) {
     if (name == "Array") {
         return TypeAst::Array;
     }
@@ -32,21 +30,16 @@ static TypeAst::Meta getTypeMeta(const std::string& name) {
 }
 
 
-TypeParser::TypeParser(const std::string& name)
-    : cur_(name.data())
-    , end_(name.data() + name.size())
-    , type_(nullptr)
-{
-}
+TypeParser::TypeParser(const std::string & name) : cur_(name.data()), end_(name.data() + name.size()), type_(nullptr) {}
 
 TypeParser::~TypeParser() = default;
 
-bool TypeParser::parse(TypeAst* type) {
+bool TypeParser::parse(TypeAst * type) {
     type_ = type;
     open_elements_.push(type_);
 
     do {
-        const Token& token = nextToken();
+        const Token & token = nextToken();
 
         switch (token.type) {
             case Token::Name:
@@ -98,7 +91,7 @@ TypeParser::Token TypeParser::nextToken() {
                 return Token{Token::Comma, std::string(cur_++, 1)};
 
             default: {
-                const char* st = cur_;
+                const char * st = cur_;
 
                 if (isalpha(*cur_)) {
                     for (; cur_ < end_; ++cur_) {

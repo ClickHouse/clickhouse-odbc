@@ -7,8 +7,8 @@
 */
 #include "escape_sequences.h"
 
-#include <map>
 #include <iostream>
+#include <map>
 #include "lexer.h"
 //#include "log.h"
 
@@ -17,11 +17,11 @@ using namespace std;
 
 namespace {
 
-const std::map<const std::string, const std::string> fn_convert_map {
+const std::map<const std::string, const std::string> fn_convert_map{
     {"SQL_TINYINT", "toUInt8"},
     {"SQL_SMALLINT", "toUInt16"},
     {"SQL_INTEGER", "toInt32"},
-    {"SQL_BIGINT",  "toInt64"},
+    {"SQL_BIGINT", "toInt64"},
     {"SQL_REAL", "toFloat32"},
     {"SQL_DOUBLE", "toFloat64"},
     {"SQL_VARCHAR", "toString"},
@@ -31,23 +31,23 @@ const std::map<const std::string, const std::string> fn_convert_map {
     {"SQL_TYPE_TIMESTAMP", "toDateTime"},
 };
 
-const std::map<const Token::Type, const std::string> function_map {
-    {Token::ROUND,    "round" },
-    {Token::POWER,    "pow"},
+const std::map<const Token::Type, const std::string> function_map{
+    {Token::ROUND, "round"},
+    {Token::POWER, "pow"},
     {Token::TRUNCATE, "trunc"},
-    {Token::SQRT,     "sqrt" },
-    {Token::ABS,      "abs" },
-    {Token::CONCAT,   "concat" },
-    {Token::CURDATE,   "today" },
-    {Token::TIMESTAMPDIFF, "dateDiff" },
+    {Token::SQRT, "sqrt"},
+    {Token::ABS, "abs"},
+    {Token::CONCAT, "concat"},
+    {Token::CURDATE, "today"},
+    {Token::TIMESTAMPDIFF, "dateDiff"},
     //{Token::TIMESTAMPADD, "dateAdd" },
 };
 
-const std::map<const Token::Type, const std::string> function_map_strip_params {
-    {Token::CURRENT_TIMESTAMP,    "toUnixTimestamp(now())" },
+const std::map<const Token::Type, const std::string> function_map_strip_params{
+    {Token::CURRENT_TIMESTAMP, "toUnixTimestamp(now())"},
 };
 
-const std::map<const Token::Type, const std::string> literal_map {
+const std::map<const Token::Type, const std::string> literal_map{
     // {Token::SQL_TSI_FRAC_SECOND, ""},
     {Token::SQL_TSI_SECOND, "'second'"},
     {Token::SQL_TSI_MINUTE, "'minute'"},
@@ -59,7 +59,7 @@ const std::map<const Token::Type, const std::string> literal_map {
     {Token::SQL_TSI_YEAR, "'year'"},
 };
 
-const std::map<const Token::Type, const std::string> timeadd_func_map {
+const std::map<const Token::Type, const std::string> timeadd_func_map{
     // {Token::SQL_TSI_FRAC_SECOND, ""},
     {Token::SQL_TSI_SECOND, "addSeconds"},
     {Token::SQL_TSI_MINUTE, "addMinutes"},
@@ -72,9 +72,9 @@ const std::map<const Token::Type, const std::string> timeadd_func_map {
 };
 
 
-string processEscapeSequencesImpl(const StringView seq, Lexer& lex);
+string processEscapeSequencesImpl(const StringView seq, Lexer & lex);
 
-string convertFunctionByType(const StringView& typeName) {
+string convertFunctionByType(const StringView & typeName) {
     const auto type_name_string = typeName.to_string();
     if (fn_convert_map.find(type_name_string) != fn_convert_map.end())
         return fn_convert_map.at(type_name_string);
@@ -82,54 +82,56 @@ string convertFunctionByType(const StringView& typeName) {
     return string();
 }
 
-string processParentheses(const StringView seq, Lexer& lex) {
+string processParentheses(const StringView seq, Lexer & lex) {
     string result;
     result += lex.Consume().literal.to_string(); // (
-        while (true) {
-            const Token tok(lex.Peek());
+    while (true) {
+        const Token tok(lex.Peek());
 
-            if (tok.type == Token::RPARENT) {
-                result += tok.literal.to_string();
-                lex.Consume();
-                break;
-            } else if (tok.type == Token::LCURLY) {
-                lex.SetEmitSpaces(false);
-                result += processEscapeSequencesImpl(seq, lex);
-                lex.SetEmitSpaces(true);
-            } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
-                break;
-            } else {
-                result += tok.literal.to_string();
-                lex.Consume();
-            }
+        if (tok.type == Token::RPARENT) {
+            result += tok.literal.to_string();
+            lex.Consume();
+            break;
+        } else if (tok.type == Token::LCURLY) {
+            lex.SetEmitSpaces(false);
+            result += processEscapeSequencesImpl(seq, lex);
+            lex.SetEmitSpaces(true);
+        } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
+            break;
+        } else {
+            result += tok.literal.to_string();
+            lex.Consume();
         }
+    }
     return result;
 }
 
-string processIdentOrFunction(const StringView seq, Lexer& lex) {
-    while (lex.Match(Token::SPACE)) {}
+string processIdentOrFunction(const StringView seq, Lexer & lex) {
+    while (lex.Match(Token::SPACE)) {
+    }
     const auto token = lex.Peek();
     string result;
-    
-    if ( token.type == Token::LCURLY ) {
-        lex.SetEmitSpaces ( false );
-        result += processEscapeSequencesImpl ( seq, lex );
-        lex.SetEmitSpaces ( true );
+
+    if (token.type == Token::LCURLY) {
+        lex.SetEmitSpaces(false);
+        result += processEscapeSequencesImpl(seq, lex);
+        lex.SetEmitSpaces(true);
     } else if (token.type == Token::IDENT && lex.LookAhead(1).type == Token::LPARENT) { // CAST( ... )
-        result += token.literal.to_string(); // func name
+        result += token.literal.to_string();                                            // func name
         lex.Consume();
         result += processParentheses(seq, lex);
-    } else if ( token.type == Token::NUMBER || token.type == Token::IDENT ) {
+    } else if (token.type == Token::NUMBER || token.type == Token::IDENT) {
         result += token.literal.to_string();
         lex.Consume();
     } else {
         return "";
     }
-    while (lex.Match(Token::SPACE)) {}
+    while (lex.Match(Token::SPACE)) {
+    }
     return result;
 }
 
-string processFunction(const StringView seq, Lexer& lex) {
+string processFunction(const StringView seq, Lexer & lex) {
     const Token fn(lex.Consume());
 
     if (fn.type == Token::CONVERT) {
@@ -142,13 +144,15 @@ string processFunction(const StringView seq, Lexer& lex) {
             return seq.to_string();
         result += num;
 
-        while (lex.Match(Token::SPACE)) {}
+        while (lex.Match(Token::SPACE)) {
+        }
 
         if (!lex.Match(Token::COMMA)) {
             return seq.to_string();
         }
 
-        while (lex.Match(Token::SPACE)) {}
+        while (lex.Match(Token::SPACE)) {
+        }
 
         Token type = lex.Consume();
         if (type.type != Token::IDENT) {
@@ -158,7 +162,8 @@ string processFunction(const StringView seq, Lexer& lex) {
         string func = convertFunctionByType(type.literal.to_string());
 
         if (!func.empty()) {
-            while (lex.Match(Token::SPACE)) {}
+            while (lex.Match(Token::SPACE)) {
+            }
             if (!lex.Match(Token::RPARENT)) {
                 return seq.to_string();
             }
@@ -167,24 +172,25 @@ string processFunction(const StringView seq, Lexer& lex) {
 
         return result;
 
-    } else if ( fn.type == Token::TIMESTAMPADD ) {
+    } else if (fn.type == Token::TIMESTAMPADD) {
         string result;
-        if ( !lex.Match ( Token::LPARENT ) )
+        if (!lex.Match(Token::LPARENT))
             return seq.to_string();
 
         Token type = lex.Consume();
         if (timeadd_func_map.find(type.type) == timeadd_func_map.end())
-            return seq.to_string(); 
+            return seq.to_string();
         string func = timeadd_func_map.at(type.type);
-        if ( !lex.Match ( Token::COMMA ) )
+        if (!lex.Match(Token::COMMA))
             return seq.to_string();
         auto ramount = processIdentOrFunction(seq, lex);
         if (ramount.empty())
             return seq.to_string();
 
-        while ( lex.Match ( Token::SPACE ) ) {}
+        while (lex.Match(Token::SPACE)) {
+        }
 
-        if ( !lex.Match ( Token::COMMA ) )
+        if (!lex.Match(Token::COMMA))
             return seq.to_string();
 
 
@@ -192,9 +198,10 @@ string processFunction(const StringView seq, Lexer& lex) {
         if (rdate.empty())
             return seq.to_string();
 
-        if ( !func.empty() ) {
-            while ( lex.Match ( Token::SPACE ) ) {}
-            if ( !lex.Match ( Token::RPARENT ) ) {
+        if (!func.empty()) {
+            while (lex.Match(Token::SPACE)) {
+            }
+            if (!lex.Match(Token::RPARENT)) {
                 return seq.to_string();
             }
             result = func + "(" + rdate + ", " + ramount + ")";
@@ -235,7 +242,7 @@ string processFunction(const StringView seq, Lexer& lex) {
     return seq.to_string();
 }
 
-string processDate(const StringView seq, Lexer& lex) {
+string processDate(const StringView seq, Lexer & lex) {
     Token data = lex.Consume(Token::STRING);
     if (data.isInvalid()) {
         return seq.to_string();
@@ -249,9 +256,9 @@ string removeMilliseconds(const StringView token) {
         return string();
     }
 
-    const char* begin = token.data();
-    const char* p = begin + token.size() - 1;
-    const char* dot = nullptr;
+    const char * begin = token.data();
+    const char * p = begin + token.size() - 1;
+    const char * dot = nullptr;
     const bool quoted = (*p == '\'');
     if (quoted) {
         --p;
@@ -276,7 +283,7 @@ string removeMilliseconds(const StringView token) {
     return token.to_string();
 }
 
-string processDateTime(const StringView seq, Lexer& lex) {
+string processDateTime(const StringView seq, Lexer & lex) {
     Token data = lex.Consume(Token::STRING);
     if (data.isInvalid()) {
         return seq.to_string();
@@ -285,7 +292,7 @@ string processDateTime(const StringView seq, Lexer& lex) {
     }
 }
 
-string processEscapeSequencesImpl(const StringView seq, Lexer& lex) {
+string processEscapeSequencesImpl(const StringView seq, Lexer & lex) {
     string result;
 
     if (!lex.Match(Token::LCURLY)) {
@@ -293,7 +300,8 @@ string processEscapeSequencesImpl(const StringView seq, Lexer& lex) {
     }
 
     while (true) {
-        while (lex.Match(Token::SPACE)) {}
+        while (lex.Match(Token::SPACE)) {
+        }
         const Token tok(lex.Consume());
 
         switch (tok.type) {
@@ -327,11 +335,10 @@ string processEscapeSequences(const StringView seq) {
 
 } // namespace
 
-std::string replaceEscapeSequences(const std::string & query)
-{
-    const char* p = query.c_str();
-    const char* end = p + query.size();
-    const char* st = p;
+std::string replaceEscapeSequences(const std::string & query) {
+    const char * p = query.c_str();
+    const char * end = p + query.size();
+    const char * st = p;
     int level = 0;
     std::string ret;
 

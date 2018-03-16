@@ -8,8 +8,7 @@
 #include "environment.h"
 //namespace Poco { namespace Net { class HTTPClientSession; } }
 
-struct Connection
-{
+struct Connection {
     Environment & environment;
 
     std::string data_source;
@@ -37,8 +36,7 @@ struct Connection
 
     void init();
 
-    void init(
-        const std::string & dsn_,
+    void init(const std::string & dsn_,
         const uint16_t port_,
         const std::string & user_,
         const std::string & password_,
