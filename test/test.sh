@@ -74,5 +74,22 @@ q 'SELECT `test`.`adv_watch`.`rocket_date` AS `rocket_date`, COUNT(DISTINCT `tes
 #TODO: q 'SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM `adv_watch`.`rocket_date`),0)} AS INTEGER) AS `yr_rocket_date_ok` FROM `adv_watch` GROUP BY CAST({fn TRUNCATE(EXTRACT(YEAR FROM `adv_watch`.`rocket_date`),0)} AS INTEGER)'
 q "DROP TABLE test.adv_watch;"
 
+
+
+q 'DROP TABLE IF EXISTS test.increment;'
+q 'CREATE TABLE test.increment (n UInt64) engine Log;'
+
+NUM=${NUM=100}
+for i in `seq 1 ${NUM}`; do
+    q "insert into test.increment values ($i);" > /dev/null
+    q 'select * from test.increment;' > /dev/null
+done
+
+echo "should be ${NUM}:"
+q 'select count(*) from test.increment;'
+
+q 'DROP TABLE test.increment;'
+
+
 echo "\n\n\nLast log:\n"
 cat /tmp/clickhouse-odbc-stderr.$USER
