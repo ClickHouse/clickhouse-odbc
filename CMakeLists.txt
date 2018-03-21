@@ -36,9 +36,14 @@ include (cmake/sanitize.cmake)
 # use:  cmake .. -DFORCE_STATIC_LINK=
 set (FORCE_STATIC_LINK "-Bstatic," CACHE INTERNAL "")
 
-if (NOT APPLE AND NOT ARCH_FREEBSD)
-    set (CMAKE_SHARED_LINKER_FLAGS           "${CMAKE_SHARED_LINKER_FLAGS} -Wl,${FORCE_STATIC_LINK}--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
+if (NOT APPLE AND NOT ARCH_FREEBSD AND NOT WIN32)
+    set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,${FORCE_STATIC_LINK}--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
 endif ()
+if (WIN32)
+    set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /MT")
+endif ()
+
+
 
 option (CLICKHOUSE_ODBC_TEST "Enable tests" 1)
 if (CLICKHOUSE_ODBC_TEST)
