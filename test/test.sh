@@ -74,6 +74,14 @@ q 'SELECT `test`.`adv_watch`.`rocket_date` AS `rocket_date`, COUNT(DISTINCT `tes
 #TODO: q 'SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM `adv_watch`.`rocket_date`),0)} AS INTEGER) AS `yr_rocket_date_ok` FROM `adv_watch` GROUP BY CAST({fn TRUNCATE(EXTRACT(YEAR FROM `adv_watch`.`rocket_date`),0)} AS INTEGER)'
 q "DROP TABLE test.adv_watch;"
 
+# https://github.com/yandex/clickhouse-odbc/issues/43
+q 'DROP TABLE IF EXISTS test.gamoraparams;'
+q 'CREATE TABLE test.gamoraparams ( user_id Int64, date Date, dt DateTime, p1 Nullable(Int32), platforms Nullable(Int32), max_position Nullable(Int32), vv Nullable(Int32), city Nullable(String), third_party Nullable(Int8), mobile_tablet Nullable(Int8), mobile_phone Nullable(Int8), desktop Nullable(Int8), web_mobile Nullable(Int8), tv_attach Nullable(Int8), smart_tv Nullable(Int8), subsite_id Nullable(Int32), view_in_second Nullable(Int32), view_in_second_presto Nullable(Int32)) ENGINE = MergeTree(date, user_id, 8192)'
+q 'insert into test.gamoraparams values (1, {fn CURRENT_TIMESTAMP }, CAST({fn CURRENT_TIMESTAMP(0)} AS DATE), Null, Null,Null,Null,Null, Null,Null,Null,Null,Null,Null,Null,Null,Null,Null);'
+q 'SELECT `Custom_SQL_Query`.`platforms` AS `platforms` FROM (select platforms from test.gamoraparams where platforms is null limit 1) `Custom_SQL_Query` GROUP BY `platforms`'
+q 'DROP TABLE test.gamoraparams;'
+
+exit
 
 
 q 'DROP TABLE IF EXISTS test.increment;'
