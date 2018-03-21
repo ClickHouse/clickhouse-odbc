@@ -1,3 +1,4 @@
+find_package (Threads)
 
 add_executable(clickhouse-odbc-ut
     main.cpp
@@ -8,7 +9,7 @@ add_executable(clickhouse-odbc-ut
 target_link_libraries(clickhouse-odbc-ut
     clickhouse-odbc-escaping
     gtest-lib
-    pthread
+    Threads::Threads
 )
 
 add_test(NAME "clickhouse-odbc-ut" COMMAND "clickhouse-odbc-ut")
