@@ -1,4 +1,5 @@
 #include "diagnostics.h"
+#include <Poco/Exception.h>
 
 DiagnosticRecord::DiagnosticRecord()
 {
@@ -16,6 +17,13 @@ void DiagnosticRecord::fromException()
         message = e.what();
         native_error_code = 1;
         sql_state = e.sqlState();
+    }
+
+    catch (const Poco::Exception & e)
+    {
+        message = e.what() + std::string{": "} + e.message();
+        native_error_code = 1;
+        sql_state = "HY000";    /// General error.
     }
     catch (const std::exception & e)
     {

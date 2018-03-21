@@ -529,7 +529,7 @@ RETCODE SQL_API SQLDisconnect(HDBC connection_handle)
     LOG(__FUNCTION__);
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
-        connection.session.reset();
+        connection.session->reset();
         return SQL_SUCCESS;
     });
 }
