@@ -85,8 +85,11 @@ string convertFunctionByType(const StringView & typeName) {
 string processParentheses(const StringView seq, Lexer & lex) {
     string result;
     result += lex.Consume().literal.to_string(); // (
+
     while (true) {
         const Token tok(lex.Peek());
+
+        // std::cerr << __FILE__ << ":" << __LINE__ << " : "<< tok.literal.to_string() << " type=" << tok.type << " go\n";
 
         if (tok.type == Token::RPARENT) {
             result += tok.literal.to_string();
@@ -103,6 +106,7 @@ string processParentheses(const StringView seq, Lexer & lex) {
             lex.Consume();
         }
     }
+
     return result;
 }
 
@@ -123,6 +127,8 @@ string processIdentOrFunction(const StringView seq, Lexer & lex) {
     } else if (token.type == Token::NUMBER || token.type == Token::IDENT) {
         result += token.literal.to_string();
         lex.Consume();
+        } else if (function_map_strip_params.find(token.type) != function_map_strip_params.end()) {
+            result += function_map_strip_params.at(token.type);
     } else {
         return "";
     }
@@ -235,7 +241,11 @@ string processFunction(const StringView seq, Lexer & lex) {
 
     } else if (function_map_strip_params.find(fn.type) != function_map_strip_params.end()) {
         string result = function_map_strip_params.at(fn.type);
-        processParentheses(seq, lex); // ignore anything inside ( )
+
+        if (lex.Peek().type == Token::LPARENT) {
+            processParentheses(seq, lex); // ignore anything inside ( )
+        }
+
         return result;
     }
 

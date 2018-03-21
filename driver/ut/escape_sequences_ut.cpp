@@ -145,6 +145,13 @@ TEST(EscapeSequencesCase, ParseTimestampadd4) { ASSERT_EQ( replaceEscapeSequence
                                                            "SELECT addDays(CAST(toUnixTimestamp(now())  AS  DATE ), 1) "
 ); }
 
+TEST(EscapeSequencesCase, ParseCurrentTimestamp1) { ASSERT_EQ( replaceEscapeSequences("SELECT {fn CURRENT_TIMESTAMP}"),
+                                                           "SELECT toUnixTimestamp(now())"
+); }
+TEST(EscapeSequencesCase, ParseCurrentTimestamp2) { ASSERT_EQ( replaceEscapeSequences("SELECT  {fn  CURRENT_TIMESTAMP } "),
+                                                           "SELECT  toUnixTimestamp(now()) "
+); }
+
 
 
 TEST(EscapeSequencesCase, DateTime) {
