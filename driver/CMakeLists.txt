@@ -49,11 +49,14 @@ endif()
 
 if (WIN32)
   target_link_libraries(clickhouse-odbc ws2_32 Iphlpapi)
+#  libcmt msvcrt msvcmrt
 endif()
 
-install(TARGETS clickhouse-odbc LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/odbc)
-install(FILES unixodbc.ini DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/clickhouse-odbc)
-install(FILES odbc.ini DESTINATION ${CMAKE_INSTALL_DOCDIR}/examples)
+if (NOT WIN32)
+    install(TARGETS clickhouse-odbc LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/odbc)
+    install(FILES unixodbc.ini DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/clickhouse-odbc)
+    install(FILES odbc.ini DESTINATION ${CMAKE_INSTALL_DOCDIR}/examples)
+endif()
 
 if(CLICKHOUSE_ODBC_TEST)
     add_subdirectory(ut)
