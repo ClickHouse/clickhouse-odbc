@@ -2,7 +2,6 @@
 
 #include <odbcinst.h>
 #include <string.h>
-#include <log.h>
 
 
 ConnInfo::ConnInfo()
