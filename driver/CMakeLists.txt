@@ -48,8 +48,7 @@ if(APPLE)
 endif()
 
 if (WIN32)
-  target_link_libraries(clickhouse-odbc ws2_32 Iphlpapi)
-#  libcmt msvcrt msvcmrt
+  target_link_libraries(clickhouse-odbc ws2_32 Iphlpapi libcmt msvcrt msvcmrt)
 endif()
 
 if (NOT WIN32)
