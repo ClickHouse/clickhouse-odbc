@@ -60,7 +60,12 @@ include (cmake/find_ltdl.cmake) # for odbc
 #include (cmake/find_odbc.cmake)
 include (cmake/find_poco.cmake)
 include (cmake/find_ccache.cmake)
+
 include (contrib/poco/cmake/FindODBC.cmake)
+if(WIN32)
+   set(ODBC_LIBRARIES "odbc32" "odbccp32")
+   message(STATUS "Windows native ODBC Support Enabled")
+endif ()
 message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")
 if (NOT WIN32)
     include (cmake/Modules/CheckODBCversion.cmake)
