@@ -48,7 +48,7 @@ if(APPLE)
 endif()
 
 if (WIN32)
-  target_link_libraries(clickhouse-odbc ws2_32)
+  target_link_libraries(clickhouse-odbc ws2_32 Iphlpapi)
 endif()
 
 install(TARGETS clickhouse-odbc LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/odbc)
