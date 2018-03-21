@@ -61,8 +61,7 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
         "/?database=" + connection.getDatabase() + "&default_format=ODBCDriver"); /// TODO Ability to transfer settings. TODO escaping
 
     if (in && in->peek() != EOF)
-        connection.session.reset();
-
+        connection.session->reset();
     // Send request to server with finite count of retries.
     for (int i = 1;; ++i) {
         try {
@@ -70,7 +69,10 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
             response = std::make_unique<Poco::Net::HTTPResponse>();
             in = &connection.session->receiveResponse(*response);
             break;
-        } catch (const Poco::IOException &) {
+        } catch (const Poco::IOException & e) {
+            connection.session->reset(); // reset keepalived connection
+
+            LOG("Http request try=" << i << "/" << connection.retry_count << " failed: " << e.what() <<": "<< e.message());
             if (i > connection.retry_count) {
                 throw;
             }
@@ -82,7 +84,7 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
     if (status != Poco::Net::HTTPResponse::HTTP_OK) {
         std::stringstream error_message;
         error_message << "HTTP status code: " << status << std::endl << "Received error:" << std::endl << in->rdbuf() << std::endl;
-
+        LOG(error_message.str());
         throw std::runtime_error(error_message.str());
     }
 
@@ -113,7 +115,7 @@ void Statement::setQuery(const std::string & q) {
 void Statement::reset() {
     in = nullptr;
     response.reset();
-    connection.session.reset();
+    connection.session->reset();
     diagnostic_record.reset();
     result = ResultSet();
 
