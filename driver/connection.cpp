@@ -159,7 +159,7 @@ void Connection::loadConfiguration() {
         password = stringFromTCHAR(ci.password);
     if (database.empty())
         database = stringFromTCHAR(ci.database);
-    if (proto.empty() && (ci.sslmode == std::string("require") || port == 8443))
+    if (proto.empty() && (std::string(ci.sslmode) == std::string("require") || port == 8443))
         proto = "https";
 }
 
