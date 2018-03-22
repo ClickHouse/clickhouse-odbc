@@ -62,7 +62,7 @@ endif ()
 set (OPENSSL_LIBRARIES "-Wl,-Bdynamic ${OPENSSL_LIBRARIES} -Wl,-Bstatic")
 
 include (cmake/find_ltdl.cmake) # for odbc
-#include (cmake/find_odbc.cmake)
+include (cmake/find_odbc.cmake)
 include (cmake/find_poco.cmake)
 include (cmake/find_ccache.cmake)
 
@@ -73,7 +73,7 @@ if(WIN32)
 endif ()
 message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")
 if (NOT WIN32)
-    include (cmake/Modules/CheckODBCversion.cmake)
+#    include (cmake/Modules/CheckODBCversion.cmake)
 endif ()
 
 message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE} ; CCACHE=${CCACHE_FOUND} ${CCACHE_VERSION}")
