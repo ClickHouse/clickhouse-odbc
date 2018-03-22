@@ -12,7 +12,7 @@
 
 function q {
     echo "Asking [$*]"
-    echo "$*" | isql clickhouse -b -v
+    echo "$*" | isql clickhouse -v -b
 }
 
 q "SELECT * FROM system.build_options;"
