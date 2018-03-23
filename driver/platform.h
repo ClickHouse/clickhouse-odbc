@@ -42,7 +42,7 @@
 
 #       define strcpy wcscpy_s
 #       define stricmp _wcsicmp
-#       define strncpy wcsncpy
+//#       define strncpy wcsncpy
 #   else
 #       define strcpy strcpy_s
 #       define stricmp _stricmp

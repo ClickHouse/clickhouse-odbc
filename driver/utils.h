@@ -150,8 +150,11 @@ void stringToTCHAR(const std::string & data, Type (&result)[Len])
     using type_to = char*;
 #endif
     const size_t len = std::min<size_t>(Len - 1, data.size());
-    //strncpy(reinterpret_cast<std::remove_const<decltype(tmp.c_str())>::type>(result), tmp.c_str(), len);
-    strncpy(reinterpret_cast<type_to>(result), tmp.c_str(), len);
+#ifdef UNICODE
+    wcsncpy(reinterpret_cast<wchar_t*>(result), tmp.c_str(), len);
+#else
+    strncpy(reinterpret_cast<char*>(result), tmp.c_str(), len);
+#endif
     result[len] = 0;
 }
 

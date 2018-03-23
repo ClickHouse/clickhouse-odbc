@@ -75,7 +75,6 @@ Description = ClickHouse driver
 DATABASE = default
 SERVER = localhost
 PORT = 8123
-FRAMED = 0
 ```
 
 ## Testing
