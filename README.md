@@ -53,6 +53,8 @@ Build with standard libiodbc:
 ```
 brew install libiodbc
 mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
+# or
+mkdir -p build; cd build && cmake .. -DODBC_INCLUDE_DIRECTORIES=/usr/local/include -DODBC_LIBRARIES=/usr/local/lib/libiodbc.a && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
 ```
 
 Build with unixodbc:
