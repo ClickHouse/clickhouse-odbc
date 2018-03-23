@@ -59,6 +59,14 @@ if (ENABLE_SSL)
     endif ()
 endif ()
 
+option (UNICODE "Enable unicode (experimental)" 0)
+if (UNICODE)
+    set(UNICODE 1)
+    add_definitions(-DUNICODE=1)
+else ()
+    set(UNICODE 0)
+endif ()
+
 set (OPENSSL_LIBRARIES "-Wl,-Bdynamic ${OPENSSL_LIBRARIES} -Wl,-Bstatic")
 
 include (cmake/find_ltdl.cmake) # for odbc

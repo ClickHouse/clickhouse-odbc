@@ -1,5 +1,9 @@
 #pragma once
 
+#if __has_include("config_cmake.h")
+#include "config_cmake.h"
+#endif
+
 #if defined(__linux__)
 #   define _linux_
 #elif defined(_WIN64)

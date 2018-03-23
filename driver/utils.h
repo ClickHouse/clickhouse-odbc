@@ -71,9 +71,9 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols)
     if (symbols == SQL_NTS)
     {
 #ifdef UNICODE
-        symbols = (SIZE_TYPE)wcslen(reinterpret_cast<LPCTSTR>(data));
+        symbols = (SIZE_TYPE)wcslen(reinterpret_cast<const wchar_t*>(data));
 #else
-        symbols = (SIZE_TYPE)strlen(reinterpret_cast<LPCTSTR>(data));
+        symbols = (SIZE_TYPE)strlen(reinterpret_cast<const char*>(data));
 #endif
     }
     else if (symbols < 0)
@@ -97,9 +97,9 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
     if (size == SQL_NTS)
     {
 #ifdef UNICODE
-        symbols = (SIZE_TYPE)wcslen(reinterpret_cast<LPCTSTR>(data));
+        symbols = (SIZE_TYPE)wcslen(reinterpret_cast<const wchar_t*>(data));
 #else
-        symbols = (SIZE_TYPE)strlen(reinterpret_cast<LPCTSTR>(data));
+        symbols = (SIZE_TYPE)strlen(reinterpret_cast<const char*>(data));
 #endif
     }
     else if (size == SQL_IS_POINTER || size == SQL_IS_UINTEGER ||
