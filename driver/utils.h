@@ -139,8 +139,8 @@ inline std::string stringFromTCHAR(Type data)
 #endif
 }
 
-template <typename Type, size_t Len>
-void stringToTCHAR(const std::string & data, Type (&result)[Len])
+template <size_t Len>
+void stringToTCHAR(const std::string & data, SQLTCHAR (&result)[Len])
 {
 #ifdef UNICODE
     std::wstring tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(data);
