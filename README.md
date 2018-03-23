@@ -51,11 +51,8 @@ Please use cmake3 to build the project on CentOS 7. You can install it with `yum
 ## Building (macos):
 Build with standard libiodbc:
 ```
-mkdir -p build; cd build && cmake .. -DODBC_INCLUDE_DIRECTORIES=/usr/local/Cellar/libiodbc/3.52.12/include && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
-```
-or
-```
-mkdir -p build; cd build && cmake .. -DODBC_INCLUDE_DIRECTORIES=`find  /usr/local/Cellar/libiodbc/*/include/ | head -n1` && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
+brew install libiodbc
+mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
 ```
 
 Build with unixodbc:
