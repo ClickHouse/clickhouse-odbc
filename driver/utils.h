@@ -125,7 +125,8 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
 #endif
 }
 
-inline std::string stringFromTCHAR(LPCTSTR data)
+template <typename Type>
+inline std::string stringFromTCHAR(Type data)
 {
     if (!data)
         return {};
@@ -134,7 +135,7 @@ inline std::string stringFromTCHAR(LPCTSTR data)
     std::wstring wstr(data);
     return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(wstr);
 #else
-    return std::string(data);
+    return std::string(reinterpret_cast<char*>(data));
 #endif
 }
 
@@ -147,7 +148,7 @@ void stringToTCHAR(const std::string & data, Type (&result)[Len])
     const auto & tmp = data;
 #endif
     const size_t len = std::min<size_t>(Len - 1, data.size());
-    strncpy(result, tmp.c_str(), len);
+    strncpy(reinterpret_cast<char*>(result), tmp.c_str(), len);
     result[len] = 0;
 }
 

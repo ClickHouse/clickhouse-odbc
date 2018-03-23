@@ -31,21 +31,21 @@
  */
 struct ConnInfo
 {
-    char       dsn[MEDIUM_REGISTRY_LEN];
-    char       desc[MEDIUM_REGISTRY_LEN];
-    char       drivername[MEDIUM_REGISTRY_LEN];
-    char       server[MEDIUM_REGISTRY_LEN];
-    char       database[MEDIUM_REGISTRY_LEN];
-    char       username[MEDIUM_REGISTRY_LEN];
-    char       password[MEDIUM_REGISTRY_LEN];
-    char       port[SMALL_REGISTRY_LEN];
-    char       sslmode[16];
-    char       onlyread[SMALL_REGISTRY_LEN];
-    char       timeout[SMALL_REGISTRY_LEN];
-    char       show_system_tables[SMALL_REGISTRY_LEN];
-    char       translation_dll[MEDIUM_REGISTRY_LEN];
-    char       translation_option[SMALL_REGISTRY_LEN];
-    char       conn_settings[MEDIUM_REGISTRY_LEN];
+    SQLTCHAR       dsn[MEDIUM_REGISTRY_LEN];
+    SQLTCHAR       desc[MEDIUM_REGISTRY_LEN];
+    SQLTCHAR       drivername[MEDIUM_REGISTRY_LEN];
+    SQLTCHAR       server[MEDIUM_REGISTRY_LEN];
+    SQLTCHAR       database[MEDIUM_REGISTRY_LEN];
+    SQLTCHAR       username[MEDIUM_REGISTRY_LEN];
+    SQLTCHAR       password[MEDIUM_REGISTRY_LEN];
+    SQLTCHAR       port[SMALL_REGISTRY_LEN];
+    SQLTCHAR       sslmode[16];
+    SQLTCHAR       onlyread[SMALL_REGISTRY_LEN];
+    SQLTCHAR       timeout[SMALL_REGISTRY_LEN];
+    SQLTCHAR       show_system_tables[SMALL_REGISTRY_LEN];
+    SQLTCHAR       translation_dll[MEDIUM_REGISTRY_LEN];
+    SQLTCHAR       translation_option[SMALL_REGISTRY_LEN];
+    SQLTCHAR       conn_settings[MEDIUM_REGISTRY_LEN];
     signed char disallow_premature = -1;
     signed char allow_keyset = -1;
     signed char updatable_cursors = 0;

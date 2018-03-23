@@ -30,8 +30,16 @@ ConnInfo::ConnInfo()
 
 void getDSNinfo(ConnInfo * ci, bool overwrite)
 {
+#if UNICODE
+    //using to_const_char_type = LPCWSTR;
+    using to_char_type = LPWSTR;
+#else
+    //using to_const_char_type = LPCSTR;
+    using to_char_type = LPSTR;
+#endif
+
 #define GET_CONFIG(NAME, INI_NAME, DEFAULT) if (ci->NAME[0] == '\0' || overwrite) \
-        SQLGetPrivateProfileString(ci->dsn, INI_NAME, TEXT(DEFAULT), ci->NAME, sizeof(ci->NAME), ODBC_INI);
+    SQLGetPrivateProfileString(reinterpret_cast<to_char_type>(ci->dsn), INI_NAME, TEXT(DEFAULT), reinterpret_cast<to_char_type>(ci->NAME), sizeof(ci->NAME), ODBC_INI);
 
     GET_CONFIG(desc, INI_KDESC, "");
     GET_CONFIG(server, INI_SERVER, "");
