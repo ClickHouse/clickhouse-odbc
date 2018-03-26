@@ -7,7 +7,8 @@
 
 #include <Poco/Net/HTTPClientSession.h>
 
-#if __has_include("config_cmake.h")
+//#if __has_include("config_cmake.h") // requre c++17
+#if CMAKE_BUILD
 #include "config_cmake.h"
 #endif
 
