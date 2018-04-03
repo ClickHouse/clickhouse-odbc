@@ -142,7 +142,7 @@ void Connection::loadConfiguration() {
         if (Poco::NumberParser::tryParse(stringFromTCHAR(ci.port), int_port))
             port = int_port;
         else
-            throw std::runtime_error("Cannot parse port number.");
+            throw std::runtime_error(("Cannot parse port number [" + stringFromTCHAR(ci.port) + "].").c_str());
     }
     if (timeout == 0) {
         const std::string timeout_string = stringFromTCHAR(ci.timeout);
