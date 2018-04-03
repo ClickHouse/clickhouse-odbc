@@ -6,4 +6,5 @@
 
 #if !defined(UNICODE) && @UNICODE@
 #cmakedefine01 UNICODE
+#cmakedefine01 NO_OUTPUT_REDIRECT
 #endif
