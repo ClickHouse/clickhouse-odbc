@@ -25,6 +25,8 @@ else()
     set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
 endif()
 
+target_compile_definitions (clickhouse-odbc PRIVATE "-DCMAKE_BUILD=1")
+
 target_include_directories (clickhouse-odbc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 if (NOT WIN32)
@@ -41,6 +43,7 @@ target_link_libraries(clickhouse-odbc
     ${Poco_Net_LIBRARY}
     ${Poco_Foundation_LIBRARY}
     ${ODBC_LIBRARIES}
+    -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script
 )
 
 if(APPLE)

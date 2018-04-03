@@ -585,9 +585,9 @@ impl_SQLGetDiagRec(SQLSMALLINT handle_type,
     {
 #ifdef UNICODE
         std::wstring wstr = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(diagnostic_record->sql_state);
-        wcsncpy(reinterpret_cast<LPTSTR>(out_sqlstate), wstr.data(), 6);
+        wcsncpy(reinterpret_cast<LPWSTR>(out_sqlstate), wstr.data(), 6);
 #else
-        strncpy(reinterpret_cast<LPTSTR>(out_sqlstate), diagnostic_record->sql_state.data(), 6);
+        strncpy(reinterpret_cast<LPSTR>(out_sqlstate), diagnostic_record->sql_state.data(), 6);
 #endif
     }
     if (out_native_error_code)

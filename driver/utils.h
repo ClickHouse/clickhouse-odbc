@@ -71,9 +71,9 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols)
     if (symbols == SQL_NTS)
     {
 #ifdef UNICODE
-        symbols = (SIZE_TYPE)wcslen(reinterpret_cast<LPCTSTR>(data));
+        symbols = (SIZE_TYPE)wcslen(reinterpret_cast<const wchar_t*>(data));
 #else
-        symbols = (SIZE_TYPE)strlen(reinterpret_cast<LPCTSTR>(data));
+        symbols = (SIZE_TYPE)strlen(reinterpret_cast<const char*>(data));
 #endif
     }
     else if (symbols < 0)
@@ -97,9 +97,9 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
     if (size == SQL_NTS)
     {
 #ifdef UNICODE
-        symbols = (SIZE_TYPE)wcslen(reinterpret_cast<LPCTSTR>(data));
+        symbols = (SIZE_TYPE)wcslen(reinterpret_cast<const wchar_t*>(data));
 #else
-        symbols = (SIZE_TYPE)strlen(reinterpret_cast<LPCTSTR>(data));
+        symbols = (SIZE_TYPE)strlen(reinterpret_cast<const char*>(data));
 #endif
     }
     else if (size == SQL_IS_POINTER || size == SQL_IS_UINTEGER ||
@@ -125,7 +125,8 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
 #endif
 }
 
-inline std::string stringFromTCHAR(LPCTSTR data)
+template <typename Type>
+inline std::string stringFromTCHAR(Type data)
 {
     if (!data)
         return {};
@@ -134,20 +135,26 @@ inline std::string stringFromTCHAR(LPCTSTR data)
     std::wstring wstr(data);
     return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(wstr);
 #else
-    return std::string(data);
+    return std::string(reinterpret_cast<char*>(data));
 #endif
 }
 
 template <size_t Len>
-void stringToTCHAR(const std::string & data, TCHAR (&result)[Len])
+void stringToTCHAR(const std::string & data, SQLTCHAR (&result)[Len])
 {
 #ifdef UNICODE
     std::wstring tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(data);
+    using type_to = wchar_t*;
 #else
     const auto & tmp = data;
+    using type_to = char*;
 #endif
     const size_t len = std::min<size_t>(Len - 1, data.size());
-    strncpy(result, tmp.c_str(), len);
+#ifdef UNICODE
+    wcsncpy(reinterpret_cast<wchar_t*>(result), tmp.c_str(), len);
+#else
+    strncpy(reinterpret_cast<char*>(result), tmp.c_str(), len);
+#endif
     result[len] = 0;
 }
 

@@ -4,6 +4,11 @@
 #   include <stdio.h>
 #   include <unistd.h>
 #   include <pwd.h>
+
+//#if __has_include("config_cmake.h") // requre c++17
+#if CMAKE_BUILD
+#include "config_cmake.h"
+#endif
 #endif
 
 const std::map<std::string, TypeInfo> Environment::types_info =
@@ -28,6 +33,7 @@ const std::map<std::string, TypeInfo> Environment::types_info =
 Environment::Environment()
 {
 #if defined (_unix_)
+#if !NO_OUTPUT_REDIRECT
     struct passwd *pw;
     uid_t uid;
     std::string stderr_path = "/tmp/clickhouse-odbc-stderr";
@@ -39,6 +45,7 @@ Environment::Environment()
     }
     if (!freopen(stderr_path.c_str(), "w", stderr))
         throw std::logic_error("Cannot freopen stderr.");
+#endif
 #endif
 }
 

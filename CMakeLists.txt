@@ -34,7 +34,7 @@ include (cmake/sanitize.cmake)
 # to avoid this error:
 # /usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/libssl.a(s23_srvr.o): relocation R_X86_64_PC32 against symbol `ssl23_get_client_hello' can not be used when making a shared object; recompile with -fPIC
 # use:  cmake .. -DFORCE_STATIC_LINK=
-set (FORCE_STATIC_LINK "-Bstatic," CACHE INTERNAL "")
+#set (FORCE_STATIC_LINK "-Bstatic," CACHE INTERNAL "")
 
 if (NOT APPLE AND NOT ARCH_FREEBSD AND NOT WIN32)
     set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,${FORCE_STATIC_LINK}--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
@@ -59,10 +59,18 @@ if (ENABLE_SSL)
     endif ()
 endif ()
 
+option (UNICODE "Enable unicode (experimental)" 0)
+if (UNICODE)
+    set(UNICODE 1)
+    add_definitions(-DUNICODE=1)
+else ()
+    set(UNICODE 0)
+endif ()
+
 set (OPENSSL_LIBRARIES "-Wl,-Bdynamic ${OPENSSL_LIBRARIES} -Wl,-Bstatic")
 
 include (cmake/find_ltdl.cmake) # for odbc
-#include (cmake/find_odbc.cmake)
+include (cmake/find_odbc.cmake)
 include (cmake/find_poco.cmake)
 include (cmake/find_ccache.cmake)
 
@@ -72,7 +80,7 @@ if(WIN32)
    message(STATUS "Windows native ODBC Support Enabled")
 endif ()
 message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")
-if (NOT WIN32)
+if (NOT WIN32 AND NOT ODBC_LIBRARIES MATCHES "iodbc")
     include (cmake/Modules/CheckODBCversion.cmake)
 endif ()
 

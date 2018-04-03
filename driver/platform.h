@@ -1,5 +1,10 @@
 #pragma once
 
+//#if __has_include("config_cmake.h") // requre c++17
+#if CMAKE_BUILD
+#include "config_cmake.h"
+#endif
+
 #if defined(__linux__)
 #   define _linux_
 #elif defined(_WIN64)
@@ -42,7 +47,7 @@
 
 #       define strcpy wcscpy_s
 #       define stricmp _wcsicmp
-#       define strncpy wcsncpy
+//#       define strncpy wcsncpy
 #   else
 #       define strcpy strcpy_s
 #       define stricmp _stricmp

@@ -35,6 +35,6 @@ struct Environment
     static const std::map<std::string, TypeInfo> types_info;
 
     SQLUINTEGER metadata_id = SQL_FALSE;
-    int odbc_version = SQL_OV_ODBC3_80;
+    int odbc_version = SQL_OV_ODBC3;
     DiagnosticRecord diagnostic_record;
 };

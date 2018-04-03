@@ -49,7 +49,15 @@ Please use cmake3 to build the project on CentOS 7. You can install it with `yum
 
 
 ## Building (macos):
-By default strange odbc lib can be found (/usr/lib/libiodbc.dylib) - need to manually point to correct libs from unixodbc
+Build with standard libiodbc:
+```
+brew install libiodbc
+mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
+# or
+mkdir -p build; cd build && cmake .. -DODBC_INCLUDE_DIRECTORIES=/usr/local/include -DODBC_LIBRARIES=/usr/local/lib/libiodbc.a && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
+```
+
+Build with unixodbc:
 ```
 brew install unixodbc
 mkdir -p build; cd build && cmake .. -DODBC_INCLUDE_DIRECTORIES=/usr/local/include -DODBC_LIBRARIES="/usr/local/lib/libodbc.a;/usr/local/lib/libodbcinst.a" && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
@@ -67,7 +75,6 @@ Description = ClickHouse driver
 DATABASE = default
 SERVER = localhost
 PORT = 8123
-FRAMED = 0
 ```
 
 ## Testing

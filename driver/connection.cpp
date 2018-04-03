@@ -7,7 +7,8 @@
 
 #include <Poco/Net/HTTPClientSession.h>
 
-#if __has_include("config_cmake.h")
+//#if __has_include("config_cmake.h") // requre c++17
+#if CMAKE_BUILD
 #include "config_cmake.h"
 #endif
 
@@ -141,7 +142,7 @@ void Connection::loadConfiguration() {
         if (Poco::NumberParser::tryParse(stringFromTCHAR(ci.port), int_port))
             port = int_port;
         else
-            throw std::runtime_error("Cannot parse port number.");
+            throw std::runtime_error(("Cannot parse port number [" + stringFromTCHAR(ci.port) + "].").c_str());
     }
     if (timeout == 0) {
         const std::string timeout_string = stringFromTCHAR(ci.timeout);
