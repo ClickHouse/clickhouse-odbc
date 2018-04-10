@@ -1,5 +1,6 @@
 project (clickhouse-odbc)
 cmake_minimum_required (VERSION 2.6)
+cmake_policy(SET CMP0042 OLD)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${clickhouse-odbc_SOURCE_DIR}/cmake/Modules")
 
 include(GNUInstallDirs)
