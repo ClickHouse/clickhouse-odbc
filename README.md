@@ -32,7 +32,7 @@ Static libodbc is available for [Fedora 25](https://github.com/Altinity/unixODBC
 If you are running another OS, you can try to build your own RPMs from [this project](https://github.com/Altinity/unixODBC).
 
 ### DEB-based Linux
-Install unixodbc >= 2.3.0
+Install unixodbc-dev >= 2.3.0 or libiodbc2-dev
 ```bash
 sudo apt install unixodbc-dev
 ```
