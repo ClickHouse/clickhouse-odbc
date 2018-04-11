@@ -16,6 +16,11 @@ if (USE_INTERNAL_POCO_LIBRARY)
     add_subdirectory (poco)
     if (OPENSSL_FOUND AND TARGET Crypto)
         # Bug in poco https://github.com/pocoproject/poco/pull/2100 found on macos
-        target_include_directories(Crypto PUBLIC ${OPENSSL_INCLUDE_DIR})
+        target_include_directories(Crypto PUBLIC $<BUILD_INTERFACE:${OPENSSL_INCLUDE_DIR}>)
+    endif ()
+    if (USE_INTERNAL_POCO_LIBRARY)
+        # Remove pthread from linking poco's Net
+        set_property(TARGET Net PROPERTY INTERFACE_LINK_LIBRARIES "")
+        set_property(TARGET Foundation PROPERTY INTERFACE_LINK_LIBRARIES "")
     endif ()
 endif ()
