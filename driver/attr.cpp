@@ -87,7 +87,7 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
 
     return doWith<Connection>(connection_handle, [&](Connection & connection)
     {
-        LOG("SetConnectAttr: " << attribute);
+        LOG("SetConnectAttr: " << attribute << " = " << value << " (" << value_length << ")");
 
         switch (attribute)
         {

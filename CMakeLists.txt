@@ -43,16 +43,15 @@ if (WIN32)
     #set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
 endif ()
 
-
-
 option (CLICKHOUSE_ODBC_TEST "Enable tests" 1)
 if (CLICKHOUSE_ODBC_TEST)
     enable_testing ()
 endif ()
 
-option (ENABLE_SSL "Use openssl for accessing https:// interface" 0)
+option (ENABLE_SSL "Use openssl for accessing https:// interface" 1)
 
 if (ENABLE_SSL)
+    set (USE_INTERNAL_SSL_LIBRARY 1 CACHE INTERNAL "")
     include (cmake/find_ssl.cmake)
     if (OPENSSL_FOUND)
         set (USE_SSL 1)
@@ -89,14 +88,6 @@ message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE
 message (STATUS "${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_VERSION}")
 
 add_subdirectory (contrib)
-
-# after contrib/poco
-if (USE_INTERNAL_POCO_LIBRARY)
-    # Remove pthread from linking poco's Net
-    set_property(TARGET Net PROPERTY INTERFACE_LINK_LIBRARIES "")
-    set_property(TARGET Foundation PROPERTY INTERFACE_LINK_LIBRARIES "")
-endif ()
-
 add_subdirectory (driver)
 
 include (cmake/print_flags.cmake)

@@ -22,3 +22,5 @@ override_dh_auto_configure:
 override_dh_install:
 	dh_install
 	rm -rf debian/clickhouse-odbc/usr/include debian/clickhouse-odbc/usr/lib/cmake debian/clickhouse-odbc/usr/lib/libPoco*.a
+	# anything except odbc dir:
+	rm -f debian/clickhouse-odbc/usr/lib/*/* || true
