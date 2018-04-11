@@ -43,11 +43,12 @@ target_link_libraries(clickhouse-odbc
     ${Poco_Net_LIBRARY}
     ${Poco_Foundation_LIBRARY}
     ${ODBC_LIBRARIES}
-    -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script
 )
 
 if(APPLE)
     target_link_libraries(clickhouse-odbc ${LTDL_LIBRARY})
+else ()
+    target_link_libraries(clickhouse-odbc -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script)
 endif()
 
 if (WIN32)
