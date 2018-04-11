@@ -8,8 +8,6 @@ if (USE_INTERNAL_SSL_LIBRARY)
     endif ()
     set (USE_SHARED ${USE_STATIC_LIBRARIES})
     add_subdirectory (ssl)
-    target_include_directories(${OPENSSL_CRYPTO_LIBRARY} PUBLIC ${OPENSSL_INCLUDE_DIR})
-    target_include_directories(${OPENSSL_SSL_LIBRARY} PUBLIC ${OPENSSL_INCLUDE_DIR})
 endif ()
 
 if (USE_INTERNAL_POCO_LIBRARY)
