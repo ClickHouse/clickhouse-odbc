@@ -53,6 +53,7 @@ endif ()
 option (ENABLE_SSL "Use openssl for accessing https:// interface" 1)
 
 if (ENABLE_SSL)
+    set (USE_INTERNAL_SSL_LIBRARY 1 CACHE INTERNAL "")
     include (cmake/find_ssl.cmake)
     if (OPENSSL_FOUND)
         set (USE_SSL 1)
