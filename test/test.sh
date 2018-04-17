@@ -15,6 +15,7 @@ function q {
     echo "$*" | isql clickhouse -v -b
 }
 
+
 q "SELECT * FROM system.build_options;"
 q "CREATE DATABASE IF NOT EXISTS test;"
 q "DROP TABLE IF EXISTS test.odbc1;"
@@ -49,7 +50,6 @@ q 'SELECT {fn CURDATE()}'
 
 q $'SELECT `test`.`odbc1`.`ui64` AS `bannerid`, SUM((CASE WHEN `test`.`odbc1`.`ui64` = 0 THEN NULL ELSE `test`.`odbc1`.`ui64` / `test`.`odbc1`.`ui64` END)) AS `sum_Calculation_582934706662502402_ok`, SUM(`test`.`odbc1`.`ui64`) AS `sum_clicks_ok`, SUM(`test`.`odbc1`.`ui64`) AS `sum_shows_ok`, SUM(`test`.`odbc1`.`ui64`) AS `sum_true_installs_ok`, CAST(CAST(`test`.`odbc1`.`date` AS DATE) AS DATE) AS `tdy_Calculation_582934706642255872_ok` FROM `test`.`odbc1` WHERE (`test`.`odbc1`.`string` = \'YandexBrowser\') GROUP BY `test`.`odbc1`.`ui64`, CAST(CAST(`test`.`odbc1`.`date` AS DATE) AS DATE)'
 
-#TODO: q $'SELECT SUM({fn CONVERT(1, SQL_BIGINT)}) AS `sum_Number_of_Records_ok`, CAST({fn TRUNCATE(EXTRACT(YEAR FROM `m_ru_6p_v1`.`date`),0)} AS INTEGER) AS `yr_date_ok` FROM `m_ru_6p_v1` GROUP BY CAST({fn TRUNCATE(EXTRACT(YEAR FROM `m_ru_6p_v1`.`date`),0)} AS INTEGER)'
 
 q $'SELECT test.odbc1.ui64 AS BannerID,   SUM((CASE WHEN test.odbc1.ui64 = 0 THEN NULL ELSE test.odbc1.ui64 / test.odbc1.ui64 END)) AS sum_Calculation_500744014152380416_ok,   SUM(test.odbc1.ui64) AS sum_ch_installs_ok,   SUM(test.odbc1.ui64) AS sum_goodshows_ok FROM test.odbc1 GROUP BY test.odbc1.ui64'
 q $'SELECT test.odbc1.ui64 AS BannerID,   SUM((CASE WHEN test.odbc1.ui64 > 0 THEN NULL ELSE test.odbc1.ui64 / test.odbc1.ui64 END)) AS sum_Calculation_500744014152380416_ok,   SUM(test.odbc1.ui64) AS sum_ch_installs_ok,   SUM(test.odbc1.ui64) AS sum_goodshows_ok FROM test.odbc1 GROUP BY test.odbc1.ui64'
@@ -71,7 +71,7 @@ q "create table test.adv_watch (rocket_date Date, rocket_datetime dateTime, ivi_
 q "insert into test.adv_watch values (1,2,3)"
 q "insert into test.adv_watch values (1, {fn TIMESTAMPADD(SQL_TSI_DAY,-8,CAST({fn CURRENT_TIMESTAMP(0)} AS DATE))}, 3)"
 q 'SELECT `test`.`adv_watch`.`rocket_date` AS `rocket_date`, COUNT(DISTINCT `test`.`adv_watch`.`ivi_id`) AS `usr_Calculation_683139814283419648_ok` FROM `test`.`adv_watch` WHERE ((`adv_watch`.`rocket_datetime` >= {fn TIMESTAMPADD(SQL_TSI_DAY,-9,CAST({fn CURRENT_TIMESTAMP(0)} AS DATE))}) AND (`test`.`adv_watch`.`rocket_datetime` < {fn TIMESTAMPADD(SQL_TSI_DAY,1,CAST({fn CURRENT_TIMESTAMP(0)} AS DATE))})) GROUP BY `test`.`adv_watch`.`rocket_date`'
-#TODO: q 'SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM `adv_watch`.`rocket_date`),0)} AS INTEGER) AS `yr_rocket_date_ok` FROM `adv_watch` GROUP BY CAST({fn TRUNCATE(EXTRACT(YEAR FROM `adv_watch`.`rocket_date`),0)} AS INTEGER)'
+q 'SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM `test`.`adv_watch`.`rocket_date`),0)} AS INTEGER) AS `yr_rocket_date_ok` FROM `test`.`adv_watch` GROUP BY CAST({fn TRUNCATE(EXTRACT(YEAR FROM `test`.`adv_watch`.`rocket_date`),0)} AS INTEGER)'
 q "DROP TABLE test.adv_watch;"
 
 # https://github.com/yandex/clickhouse-odbc/issues/43
@@ -79,9 +79,12 @@ q 'DROP TABLE IF EXISTS test.gamoraparams;'
 q 'CREATE TABLE test.gamoraparams ( user_id Int64, date Date, dt DateTime, p1 Nullable(Int32), platforms Nullable(Int32), max_position Nullable(Int32), vv Nullable(Int32), city Nullable(String), third_party Nullable(Int8), mobile_tablet Nullable(Int8), mobile_phone Nullable(Int8), desktop Nullable(Int8), web_mobile Nullable(Int8), tv_attach Nullable(Int8), smart_tv Nullable(Int8), subsite_id Nullable(Int32), view_in_second Nullable(Int32), view_in_second_presto Nullable(Int32)) ENGINE = MergeTree(date, user_id, 8192)'
 q 'insert into test.gamoraparams values (1, {fn CURRENT_TIMESTAMP }, CAST({fn CURRENT_TIMESTAMP(0)} AS DATE), Null, Null,Null,Null,Null, Null,Null,Null,Null,Null,Null,Null,Null,Null,Null);'
 q 'SELECT `Custom_SQL_Query`.`platforms` AS `platforms` FROM (select platforms from test.gamoraparams where platforms is null limit 1) `Custom_SQL_Query` GROUP BY `platforms`'
+q 'SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM `test`.`gamoraparams`.`dt`),0)} AS INTEGER) AS `yr_date_ok` FROM `test`.`gamoraparams` GROUP BY `yr_date_ok`';
 q 'DROP TABLE test.gamoraparams;'
 
-exit
+q $'SELECT CAST(EXTRACT(YEAR FROM `odbc1`.`date`) AS INTEGER) AS `yr_date_ok` FROM `test`.`odbc1`'
+q $'SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM `odbc1`.`date`),0)} AS INTEGER) AS `yr_date_ok` FROM `test`.`odbc1`'
+q $'SELECT SUM({fn CONVERT(1, SQL_BIGINT)}) AS `sum_Number_of_Records_ok`, CAST({fn TRUNCATE(EXTRACT(YEAR FROM `odbc1`.`date`),0)} AS INTEGER) AS `yr_date_ok` FROM `test`.`odbc1` GROUP BY CAST({fn TRUNCATE(EXTRACT(YEAR FROM `odbc1`.`date`),0)} AS INTEGER)'
 
 
 q 'DROP TABLE IF EXISTS test.increment;'

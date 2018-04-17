@@ -40,7 +40,8 @@ const std::map<const Token::Type, const std::string> function_map{
     {Token::CONCAT, "concat"},
     {Token::CURDATE, "today"},
     {Token::TIMESTAMPDIFF, "dateDiff"},
-    //{Token::TIMESTAMPADD, "dateAdd" },
+
+    {Token::EXTRACT, "EXTRACT"}, // Do not touch extract inside {fn ... }
 };
 
 const std::map<const Token::Type, const std::string> function_map_strip_params{
@@ -215,6 +216,7 @@ string processFunction(const StringView seq, Lexer & lex) {
         return result;
     } else if (function_map.find(fn.type) != function_map.end()) {
         string result = function_map.at(fn.type);
+        auto func  = result;
         lex.SetEmitSpaces(true);
         while (true) {
             const Token tok(lex.Peek());
@@ -227,8 +229,10 @@ string processFunction(const StringView seq, Lexer & lex) {
                 lex.SetEmitSpaces(true);
             } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
                 break;
+            } else if (tok.type == Token::EXTRACT) {
+                result += processFunction(seq, lex);
             } else {
-                if (literal_map.find(tok.type) != literal_map.end()) {
+                if (func != "EXTRACT" && literal_map.find(tok.type) != literal_map.end()) {
                     result += literal_map.at(tok.type);
                 } else
                     result += tok.literal.to_string();

@@ -34,6 +34,8 @@ struct Token {
         CURRENT_TIMESTAMP,
         CURDATE,
 
+        EXTRACT,
+
         // for TIMESTAMPDIFF
         SQL_TSI_FRAC_SECOND,
         SQL_TSI_SECOND,

@@ -11,6 +11,7 @@ if (USE_INTERNAL_SSL_LIBRARY)
 endif ()
 
 if (USE_INTERNAL_POCO_LIBRARY)
+    set (POCO_UNBUNDLED_ZLIB 1 CACHE INTERNAL "")
     add_subdirectory (poco)
     if (OPENSSL_FOUND AND TARGET Crypto)
         # Bug in poco https://github.com/pocoproject/poco/pull/2100 found on macos

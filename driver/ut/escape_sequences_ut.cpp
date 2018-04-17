@@ -152,6 +152,9 @@ TEST(EscapeSequencesCase, ParseCurrentTimestamp2) { ASSERT_EQ( replaceEscapeSequ
                                                            "SELECT  toUnixTimestamp(now()) "
 ); }
 
+TEST(EscapeSequencesCase, ParseEXTRACT1) { ASSERT_EQ( replaceEscapeSequences("SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM `odbc1`.`date`),0)} AS INTEGER) AS `yr_date_ok` FROM `test`.`odbc1`"),
+                                                           "SELECT CAST(trunc(EXTRACT(YEAR FROM `odbc1`.`date`),0) AS INTEGER) AS `yr_date_ok` FROM `test`.`odbc1`"
+); }
 
 
 TEST(EscapeSequencesCase, DateTime) {

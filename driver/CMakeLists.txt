@@ -47,7 +47,7 @@ target_link_libraries(clickhouse-odbc
 
 if(APPLE)
     target_link_libraries(clickhouse-odbc ${LTDL_LIBRARY})
-else ()
+elseif (NOT WIN32)
     target_link_libraries(clickhouse-odbc -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script)
 endif()
 
