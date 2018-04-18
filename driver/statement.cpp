@@ -72,7 +72,7 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
         } catch (const Poco::IOException & e) {
             connection.session->reset(); // reset keepalived connection
 
-            LOG("Http request try=" << i << "/" << connection.retry_count << " failed: " << e.what() <<": "<< e.message());
+            LOG("Http request try=" << i << "/" << connection.retry_count << " failed: " << e.what() << ": " << e.message());
             if (i > connection.retry_count) {
                 throw;
             }
