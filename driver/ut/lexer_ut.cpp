@@ -6,7 +6,6 @@ TEST(LexerCase, ParseString) {
 
     ASSERT_EQ(tok.type, Token::STRING);
     ASSERT_EQ(tok.literal, "'2017-01-01'");
-
 }
 
 TEST(LexerCase, ParseIdent) {

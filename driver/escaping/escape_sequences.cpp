@@ -39,11 +39,11 @@ const std::map<const Token::Type, const std::string> function_map{
     {Token::ABS, "abs"},
     {Token::CONCAT, "concat"},
     {Token::CURDATE, "today"},
-    {Token::CURRENT_DATE, "today" },
+    {Token::CURRENT_DATE, "today"},
     {Token::TIMESTAMPDIFF, "dateDiff"},
     {Token::SQL_TSI_QUARTER, "toQuarter"},
-    {Token::DAYOFWEEK, "toDayOfWeek" },
-    {Token::LCASE, "lower" },
+    {Token::DAYOFWEEK, "toDayOfWeek"},
+    {Token::LCASE, "lower"},
 
     {Token::EXTRACT, "EXTRACT"}, // Do not touch extract inside {fn ... }
 };
@@ -253,7 +253,7 @@ string processFunction(const StringView seq, Lexer & lex) {
 
     } else if (function_map.find(fn.type) != function_map.end()) {
         string result = function_map.at(fn.type);
-        auto func  = result;
+        auto func = result;
         lex.SetEmitSpaces(true);
         while (true) {
             const Token tok(lex.Peek());
