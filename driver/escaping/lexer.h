@@ -31,8 +31,13 @@ struct Token {
         ABS,
         TIMESTAMPDIFF,
         TIMESTAMPADD,
-        CURRENT_TIMESTAMP,
         CURDATE,
+        CURRENT_TIMESTAMP,
+        CURRENT_DATE,
+        DAYOFWEEK,
+        LOCATE,
+        LCASE,
+        LTRIM,
 
         EXTRACT,
 

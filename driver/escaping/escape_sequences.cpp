@@ -39,13 +39,17 @@ const std::map<const Token::Type, const std::string> function_map{
     {Token::ABS, "abs"},
     {Token::CONCAT, "concat"},
     {Token::CURDATE, "today"},
+    {Token::CURRENT_DATE, "today" },
     {Token::TIMESTAMPDIFF, "dateDiff"},
+    {Token::SQL_TSI_QUARTER, "toQuarter"},
+    {Token::DAYOFWEEK, "toDayOfWeek" },
+    {Token::LCASE, "lower" },
 
     {Token::EXTRACT, "EXTRACT"}, // Do not touch extract inside {fn ... }
 };
 
 const std::map<const Token::Type, const std::string> function_map_strip_params{
-    {Token::CURRENT_TIMESTAMP, "toUnixTimestamp(now())"},
+    {Token::CURRENT_TIMESTAMP, "now()"},
 };
 
 const std::map<const Token::Type, const std::string> literal_map{
@@ -125,11 +129,11 @@ string processIdentOrFunction(const StringView seq, Lexer & lex) {
         result += token.literal.to_string();                                            // func name
         lex.Consume();
         result += processParentheses(seq, lex);
-    } else if (token.type == Token::NUMBER || token.type == Token::IDENT) {
+    } else if (token.type == Token::NUMBER || token.type == Token::IDENT || token.type == Token::STRING) {
         result += token.literal.to_string();
         lex.Consume();
-        } else if (function_map_strip_params.find(token.type) != function_map_strip_params.end()) {
-            result += function_map_strip_params.at(token.type);
+    } else if (function_map_strip_params.find(token.type) != function_map_strip_params.end()) {
+        result += function_map_strip_params.at(token.type);
     } else {
         return "";
     }
@@ -214,6 +218,39 @@ string processFunction(const StringView seq, Lexer & lex) {
             result = func + "(" + rdate + ", " + ramount + ")";
         }
         return result;
+
+    } else if (fn.type == Token::LOCATE) {
+        string result;
+        if (!lex.Match(Token::LPARENT))
+            return seq.to_string();
+
+        auto needle = processIdentOrFunction(seq, lex /*, false */);
+        if (needle.empty())
+            return seq.to_string();
+        lex.Consume();
+
+        auto haystack = processIdentOrFunction(seq, lex /*, false*/);
+        if (haystack.empty())
+            return seq.to_string();
+        lex.Consume();
+
+        auto offset = processIdentOrFunction(seq, lex /*, false */);
+        lex.Consume();
+
+        result = "position(" + haystack + "," + needle + ")";
+
+        return result;
+
+    } else if (fn.type == Token::LTRIM) {
+        if (!lex.Match(Token::LPARENT))
+            return seq.to_string();
+
+        auto param = processIdentOrFunction(seq, lex /*, false*/);
+        if (param.empty())
+            return seq.to_string();
+        lex.Consume();
+        return "replaceRegexpOne(" + param + ", '^\\\\s+', '')";
+
     } else if (function_map.find(fn.type) != function_map.end()) {
         string result = function_map.at(fn.type);
         auto func  = result;
