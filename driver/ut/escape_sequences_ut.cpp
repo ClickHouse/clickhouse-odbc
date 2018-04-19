@@ -126,7 +126,7 @@ TEST(EscapeSequencesCase, ParseTimestampadd3) {
 
 TEST(EscapeSequencesCase, ParseTimestampadd4) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD( SQL_TSI_DAY , 1 , CAST( {fn CURRENT_TIMESTAMP( 0 ) }  AS  DATE ) ) } "),
-        "SELECT addDays(CAST(now()  AS  DATE ), 1) ");
+        "SELECT addDays(CAST( now()  AS  DATE ), 1) ");
 }
 
 
@@ -156,10 +156,16 @@ TEST(EscapeSequencesCase, ParseQuarter) {
         "SELECT toQuarter(`Custom_SQL_Query`.`date`) AS `qr_sentDate_ok`");
 }
 
-TEST(EscapeSequencesCase, ParseDayOfWeek) {
+TEST(EscapeSequencesCase, ParseDayOfWeek1) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn DAYOFWEEK(`Custom_SQL_Query`.`date`)} AS `dw_sentDate_ok`"),
-        "SELECT toDayOfWeek(`Custom_SQL_Query`.`date`) AS `dw_sentDate_ok`");
+        "SELECT if(toDayOfWeek(`Custom_SQL_Query`.`date`) = 7, 1, toDayOfWeek(`Custom_SQL_Query`.`date`) + 1) AS `dw_sentDate_ok`");
 }
+
+TEST(EscapeSequencesCase, ParseDayOfWeek2) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn DAYOFWEEK(CAST('2018-04-15' AS DATE))}, 1, 'sun'"),
+        "SELECT if(toDayOfWeek(CAST('2018-04-15' AS DATE)) = 7, 1, toDayOfWeek(CAST('2018-04-15' AS DATE)) + 1), 1, 'sun'");
+}
+
 
 TEST(EscapeSequencesCase, ParseCurrentTimestamp) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn CURRENT_TIMESTAMP(0)} AS `timeStamp`"), "SELECT now() AS `timeStamp`");
