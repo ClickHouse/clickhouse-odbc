@@ -86,6 +86,17 @@ q $'SELECT CAST(EXTRACT(YEAR FROM `odbc1`.`date`) AS INTEGER) AS `yr_date_ok` FR
 q $'SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM `odbc1`.`date`),0)} AS INTEGER) AS `yr_date_ok` FROM `test`.`odbc1`'
 q $'SELECT SUM({fn CONVERT(1, SQL_BIGINT)}) AS `sum_Number_of_Records_ok`, CAST({fn TRUNCATE(EXTRACT(YEAR FROM `odbc1`.`date`),0)} AS INTEGER) AS `yr_date_ok` FROM `test`.`odbc1` GROUP BY CAST({fn TRUNCATE(EXTRACT(YEAR FROM `odbc1`.`date`),0)} AS INTEGER)'
 
+# todo: test with fail on comparsion:
+q $"SELECT {fn DAYOFWEEK(CAST('2018-04-16' AS DATE))}, 7, 'sat'"
+q $"SELECT {fn DAYOFWEEK(CAST('2018-04-15' AS DATE))}, 1, 'sun'"
+q $"SELECT {fn DAYOFWEEK(CAST('2018-04-16' AS DATE))}, 2, 'mon'"
+q $"SELECT {fn DAYOFWEEK(CAST('2018-04-17' AS DATE))}, 3, 'thu'"
+q $"SELECT {fn DAYOFWEEK(CAST('2018-04-18' AS DATE))}, 4, 'wed'"
+q $"SELECT {fn DAYOFWEEK(CAST('2018-04-19' AS DATE))}, 5, 'thu'"
+q $"SELECT {fn DAYOFWEEK(CAST('2018-04-20' AS DATE))}, 6, 'fri'"
+q $"SELECT {fn DAYOFWEEK(CAST('2018-04-21' AS DATE))}, 7, 'sat'"
+q $"SELECT {fn DAYOFWEEK(CAST('2018-04-22' AS DATE))}, 1, 'sun'"
+
 
 q 'DROP TABLE IF EXISTS test.increment;'
 q 'CREATE TABLE test.increment (n UInt64) engine Log;'
