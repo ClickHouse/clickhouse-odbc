@@ -58,7 +58,11 @@ endif ()
 
 # part from /usr/share/cmake-*/Modules/FindOpenSSL.cmake, with removed all "EXISTS "
 if(OPENSSL_FOUND)
-  if( NOT TARGET OpenSSL::Crypto AND (OPENSSL_CRYPTO_LIBRARY OR LIB_EAY_LIBRARY_DEBUG OR LIB_EAY_LIBRARY_RELEASE) )
+  if(NOT TARGET OpenSSL::Crypto AND
+      (EXISTS OPENSSL_CRYPTO_LIBRARY OR
+        EXISTS LIB_EAY_LIBRARY_DEBUG OR
+        EXISTS LIB_EAY_LIBRARY_RELEASE)
+      )
     add_library(OpenSSL::Crypto UNKNOWN IMPORTED)
     set_target_properties(OpenSSL::Crypto PROPERTIES
       INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}")
