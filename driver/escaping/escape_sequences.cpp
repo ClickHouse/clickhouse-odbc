@@ -42,7 +42,6 @@ const std::map<const Token::Type, const std::string> function_map{
     {Token::CURRENT_DATE, "today"},
     {Token::TIMESTAMPDIFF, "dateDiff"},
     {Token::SQL_TSI_QUARTER, "toQuarter"},
-    //{Token::DAYOFWEEK, "toDayOfWeek"}, // sun=1 mon=2 .. sat=7
     {Token::LCASE, "lower"},
 
     {Token::EXTRACT, "EXTRACT"}, // Do not touch extract inside {fn ... }
@@ -261,6 +260,17 @@ string processFunction(const StringView seq, Lexer & lex) {
             return seq.to_string();
         lex.Consume();
         return "if(toDayOfWeek(" + param + ") = 7, 1, toDayOfWeek(" + param + ") + 1)";
+
+    } else if (fn.type == Token::DAYOFYEAR) {
+        if (!lex.Match(Token::LPARENT))
+            return seq.to_string();
+
+        auto param = processIdentOrFunction(seq, lex /*, false*/);
+        if (param.empty())
+            return seq.to_string();
+        lex.Consume();
+        //return "if(toDayOfWeek(" + param + ") = 7, 1, toDayOfWeek(" + param + ") + 1)";
+        return "( toRelativeDayNum(" + param + ") - toRelativeDayNum(toStartOfYear(" + param + ")) + 1 )";
 
     } else if (function_map.find(fn.type) != function_map.end()) {
         string result = function_map.at(fn.type);

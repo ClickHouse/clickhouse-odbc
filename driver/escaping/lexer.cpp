@@ -28,6 +28,7 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
     DECLARE(CURRENT_TIMESTAMP),
     DECLARE(CURRENT_DATE),
     DECLARE(DAYOFWEEK),
+    DECLARE(DAYOFYEAR),
     DECLARE(LOCATE),
     DECLARE(LCASE),
     DECLARE(LTRIM),

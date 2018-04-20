@@ -10,6 +10,9 @@
 # test https:
 # cd .. && debuild -eDH_VERBOSE=1 -eCMAKE_FLAGS="-DENABLE_SSL=1 -DFORCE_STATIC_LINK=" -us -uc -i --source-option=--format="3.0 (native)" && sudo dpkg -i `ls ../clickhouse-odbc_*_amd64.deb | tail -n1`
 
+# Should not have any errors:
+# ./test.sh | grep -i error
+
 function q {
     echo "Asking [$*]"
     echo "$*" | isql clickhouse -v -b
@@ -86,6 +89,9 @@ q $'SELECT CAST(EXTRACT(YEAR FROM `odbc1`.`date`) AS INTEGER) AS `yr_date_ok` FR
 q $'SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM `odbc1`.`date`),0)} AS INTEGER) AS `yr_date_ok` FROM `test`.`odbc1`'
 q $'SELECT SUM({fn CONVERT(1, SQL_BIGINT)}) AS `sum_Number_of_Records_ok`, CAST({fn TRUNCATE(EXTRACT(YEAR FROM `odbc1`.`date`),0)} AS INTEGER) AS `yr_date_ok` FROM `test`.`odbc1` GROUP BY CAST({fn TRUNCATE(EXTRACT(YEAR FROM `odbc1`.`date`),0)} AS INTEGER)'
 
+q 'SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM CAST(`test`.`odbc1`.`date` AS DATE)),0)} AS INTEGER) AS `yr_Calculation_860750537261912064_ok` FROM `test`.`odbc1` GROUP BY `yr_Calculation_860750537261912064_ok`'
+q 'SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,CAST({fn TRUNCATE((-1 * ({fn DAYOFYEAR(`test`.`odbc1`.`date`)} - 1)),0)} AS INTEGER),CAST(`test`.`odbc1`.`date` AS DATE))} AS `tyr__date_ok` FROM `test`.`odbc1` GROUP BY `tyr__date_ok`'
+
 # todo: test with fail on comparsion:
 q $"SELECT {fn DAYOFWEEK(CAST('2018-04-16' AS DATE))}, 7, 'sat'"
 q $"SELECT {fn DAYOFWEEK(CAST('2018-04-15' AS DATE))}, 1, 'sun'"
@@ -96,6 +102,12 @@ q $"SELECT {fn DAYOFWEEK(CAST('2018-04-19' AS DATE))}, 5, 'thu'"
 q $"SELECT {fn DAYOFWEEK(CAST('2018-04-20' AS DATE))}, 6, 'fri'"
 q $"SELECT {fn DAYOFWEEK(CAST('2018-04-21' AS DATE))}, 7, 'sat'"
 q $"SELECT {fn DAYOFWEEK(CAST('2018-04-22' AS DATE))}, 1, 'sun'"
+
+q $"SELECT {fn DAYOFYEAR(CAST('2018-01-01' AS DATE))}, 1"
+q $"SELECT {fn DAYOFYEAR(CAST('2018-04-20' AS DATE))}, 110"
+q $"SELECT {fn DAYOFYEAR(CAST('2018-12-31' AS DATE))}, 365"
+
+
 
 
 q 'DROP TABLE IF EXISTS test.increment;'

@@ -35,6 +35,7 @@ struct Token {
         CURRENT_TIMESTAMP,
         CURRENT_DATE,
         DAYOFWEEK,
+        DAYOFYEAR,
         LOCATE,
         LCASE,
         LTRIM,

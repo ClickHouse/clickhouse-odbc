@@ -4,6 +4,7 @@
 :: http://wixtoolset.org/releases/ - WiX Toolset Visual Studio 2017 Extension
 :: https://www.visualstudio.com/downloads/ - Visual Studio Community 2017 - Desktop development with C++
 ::                                                                           + Windows 8.1 SDK and UCRT SDK
+::                                                                           + MFC and ATL support (x86 and x64)
 ::                                                                           ? C++/CLI support
 
 :: call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x64 8.1
