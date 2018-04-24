@@ -63,6 +63,14 @@ brew install unixodbc
 mkdir -p build; cd build && cmake .. -DODBC_INCLUDE_DIRECTORIES=/usr/local/include -DODBC_LIBRARIES="/usr/local/lib/libodbc.a;/usr/local/lib/libodbcinst.a" && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
 ```
 
+## Building (windows visual studio)
+```cd vs && build_all.bat```
+
+
+## Building (windows cmake) (Developer only: setup window still not working)
+```md build && cd build && cmake .. && cmake --build . -- /m```
+
+
 ## ODBC configuration
 
 vim ~/.odbc.ini:

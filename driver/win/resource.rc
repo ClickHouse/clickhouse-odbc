@@ -1,8 +1,6 @@
-
-#include "version.h"
-
 // Microsoft Visual C++ generated resource script.
 //
+#include "version.h"
 #include "resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -16,10 +14,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Русский (Россия) resources
+// Russian (Russia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
 LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
+#pragma code_page(65001)
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -52,13 +51,13 @@ END
 // Dialog
 //
 
-IDD_DIALOG1 DIALOGEX 0, 0, 309, 224
+IDD_DIALOG1 DIALOGEX 0, 0, 309, 245
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Create datasource for ClickHouse"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "ОК",IDOK,198,203,50,14
-    PUSHBUTTON      "Отмена",IDCANCEL,252,203,50,14
+    DEFPUSHBUTTON   "Ok",IDOK,198,224,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,252,224,50,14
     LTEXT           "Name",IDC_STATIC,18,27,44,8
     EDITTEXT        IDC_DSN_NAME,77,26,96,14,ES_AUTOHSCROLL
     LTEXT           "Host",IDC_STATIC,18,71,16,8
@@ -75,6 +74,8 @@ BEGIN
     EDITTEXT        IDC_DESCRIPTION,77,46,96,14,ES_AUTOHSCROLL
     LTEXT           "Timeout",IDC_STATIC,18,180,26,8
     EDITTEXT        IDC_TIMEOUT,77,178,98,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "SSLMode",IDC_STATIC,18,204,32,8
+    EDITTEXT        IDC_SSLMODE,77,201,98,14,ES_AUTOHSCROLL
 END
 
 
@@ -88,10 +89,10 @@ GUIDELINES DESIGNINFO
 BEGIN
     IDD_DIALOG1, DIALOG
     BEGIN
-        LEFTMARGIN, 7
+        LEFTMARGIN, 18
         RIGHTMARGIN, 302
         TOPMARGIN, 7
-        BOTTOMMARGIN, 217
+        BOTTOMMARGIN, 238
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -107,21 +108,6 @@ BEGIN
     0
 END
 
-#endif    // Русский (Россия) resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-
-#ifndef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// Generated from the TEXTINCLUDE 3 resource.
-//
-
-
-/////////////////////////////////////////////////////////////////////////////
-#endif    // not APSTUDIO_INVOKED
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -131,8 +117,16 @@ END
 1 VERSIONINFO
  FILEVERSION VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,VERSION_TWEAK
  PRODUCTVERSION VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,VERSION_TWEAK
-
- BEGIN
+ FILEFLAGSMASK 0x0L
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x0L
+ FILETYPE 0x0L
+ FILESUBTYPE 0x0L
+BEGIN
     BLOCK "StringFileInfo"
     BEGIN
         BLOCK "040904b0"
@@ -152,3 +146,19 @@ END
         END
     END
 END
+
+#endif    // Russian (Russia) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

@@ -56,6 +56,8 @@ if (NOT OPENSSL_FOUND)
     set (OPENSSL_FOUND 1 CACHE INTERNAL "")
 endif ()
 
+#TODO: to use with new poco
+if (0)
 # part from /usr/share/cmake-*/Modules/FindOpenSSL.cmake, with removed all "EXISTS "
 if(OPENSSL_FOUND)
   if(NOT TARGET OpenSSL::Crypto AND
@@ -119,6 +121,6 @@ if(OPENSSL_FOUND)
     endif()
   endif()
 endif()
-
+endif()
 
 message (STATUS "Using ssl=${OPENSSL_FOUND}: ${OPENSSL_INCLUDE_DIR} : ${OPENSSL_LIBRARIES}")

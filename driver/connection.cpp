@@ -190,7 +190,12 @@ void SSLInit() {
     // TODO: not accept invalid cert by some settings
     Poco::SharedPtr<Poco::Net::InvalidCertificateHandler> ptrHandler = new Poco::Net::AcceptCertificateHandler(false);
     Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(
-        Poco::Net::Context::CLIENT_USE, "", "", "", Poco::Net::Context::VERIFY_RELAXED, 9, true, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+		Poco::Net::Context::CLIENT_USE, ""
+#if !defined(SECURITY_WIN32)
+                // Do not work with poco/NetSSL_Win:
+                , "", "", Poco::Net::Context::VERIFY_RELAXED, 9, true, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH"
+#endif
+	);
     Poco::Net::SSLManager::instance().initializeClient(0, ptrHandler, ptrContext);
 #endif
 }

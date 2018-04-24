@@ -66,3 +66,8 @@
 #else
 #   define SIZEOF_CHAR sizeof(char)
 #endif
+
+#if defined(_MSC_VER) && !defined(USE_SSL)
+// Enabled by default, but you can disable
+#   define USE_SSL 1
+#endif
