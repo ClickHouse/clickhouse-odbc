@@ -1,4 +1,8 @@
 add_subdirectory(escaping)
+if (WIN32)
+    add_subdirectory(win)
+    #TODO: set(WIN_SOURCES "win/export.def")
+endif()
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/config_cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/config_cmake.h)
 
@@ -14,16 +18,10 @@ add_library(clickhouse-odbc SHARED
     result_set.cpp
     statement.cpp
     type_parser.cpp
+    ${WIN_SOURCES}
 )
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set_target_properties(clickhouse-odbc
-        PROPERTIES PREFIX ""
-               OUTPUT_NAME "clickhouse-odbc"
-    )
-else()
-    set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
-endif()
+set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc") # TODO: w for UNICODE
 
 target_compile_definitions (clickhouse-odbc PRIVATE "-DCMAKE_BUILD=1")
 
@@ -52,7 +50,7 @@ elseif (NOT WIN32)
 endif()
 
 if (WIN32)
-  target_link_libraries(clickhouse-odbc ws2_32 Iphlpapi libcmt msvcrt msvcmrt)
+  target_link_libraries(clickhouse-odbc clickhouse-odbc-win ws2_32 Iphlpapi legacy_stdio_definitions)
 endif()
 
 if (NOT WIN32)

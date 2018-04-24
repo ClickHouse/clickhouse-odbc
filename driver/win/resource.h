@@ -11,8 +11,8 @@
 #define IDC_USER                        1005
 #define IDC_PASSWORD                    1006
 #define IDC_DESCRIPTION                 1007
-#define IDC_PASSWORD2                   1008
 #define IDC_TIMEOUT                     1008
+#define IDC_SSLMODE                     1009
 
 // Next default values for new objects
 // 

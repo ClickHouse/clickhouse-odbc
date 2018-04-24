@@ -40,6 +40,7 @@ namespace
 #define INI_READONLY        TEXT("ReadOnly")    /* Database is read only */
 #define INI_PROTOCOL        TEXT("Protocol")    /* What protocol (6.2) */
 #define INI_TIMEOUT         TEXT("Timeout")
+#define INI_SSLMODE         TEXT("SSLMode")     /* Use 'require' for https connections */
 #define INI_DSN             TEXT("ClickHouse")
 
 #define ABBR_PROTOCOL		TEXT("A1")
@@ -147,6 +148,9 @@ copyAttributes(ConnInfo *ci, LPCTSTR attribute, LPCTSTR value)
     else if (stricmp(attribute, INI_TIMEOUT) == 0)
         strcpy(ci->timeout, value);
 
+    else if (stricmp(attribute, INI_SSLMODE) == 0)
+        strcpy(ci->sslmode, value);
+
     else
         found = FALSE;
 
@@ -226,6 +230,9 @@ void getDSNinfo(ConnInfo *ci, bool overwrite)
 
     if (ci->timeout[0] == '\0' || overwrite)
         SQLGetPrivateProfileString(DSN, INI_TIMEOUT, TEXT("30"), ci->timeout, sizeof(ci->timeout), ODBC_INI);
+
+    if (ci->sslmode[0] == '\0' || overwrite)
+        SQLGetPrivateProfileString(DSN, INI_SSLMODE, TEXT(""), ci->sslmode, sizeof(ci->sslmode), ODBC_INI);
 }
 
 /*	This is for datasource based options only */
@@ -274,6 +281,11 @@ void writeDSNinfo(const ConnInfo * ci)
     SQLWritePrivateProfileString(DSN,
                                  INI_TIMEOUT,
                                  ci->timeout,
+                                 ODBC_INI);
+
+    SQLWritePrivateProfileString(DSN,
+                                 INI_SSLMODE,
+                                 ci->sslmode,
                                  ODBC_INI);
 }
 
@@ -400,6 +412,7 @@ INT_PTR	CALLBACK
             SetDlgItemText(hdlg, IDC_USER, ci->username);
             SetDlgItemText(hdlg, IDC_PASSWORD, ci->password);
             SetDlgItemText(hdlg, IDC_TIMEOUT, ci->timeout);
+            SetDlgItemText(hdlg, IDC_SSLMODE, ci->sslmode);
 
             return TRUE;		/* Focus was not set */
         }
@@ -419,6 +432,7 @@ INT_PTR	CALLBACK
                     GetDlgItemText(hdlg, IDC_USER, ci->username, sizeof(ci->username));
                     GetDlgItemText(hdlg, IDC_PASSWORD, ci->password, sizeof(ci->password));
                     GetDlgItemText(hdlg, IDC_TIMEOUT, ci->timeout, sizeof(ci->timeout));
+                    GetDlgItemText(hdlg, IDC_SSLMODE, ci->sslmode, sizeof(ci->sslmode));
 
                     /* Return to caller */
                 case IDCANCEL:
