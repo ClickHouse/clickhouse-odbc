@@ -54,7 +54,7 @@
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="$(var.PGFOLDER)">
         <Directory Id="INSTALLFOLDER" Name="ClickHouse ODBC">
-          <Component Id ="PocoLibs" Guid="$(var.POCOLIB_ID)" Win64='$(var.BIT64)'>
+          <!--Component Id ="PocoLibs" Guid="$(var.POCOLIB_ID)" Win64='$(var.BIT64)'>
             <File Id='PocoFoundationDll'
                   Name='$(var.POCO_FOUNDATION)'
                   DiskId='1'
@@ -75,7 +75,7 @@
 			<?endif ?>	
 
 				  
-          </Component>
+          </Component-->
           
           <Component Id="AnsiDriver" Guid="$(var.ANSI_ID)" Win64='$(var.BIT64)'>
             <File Id='AnsiDriverDll'
@@ -155,13 +155,13 @@
                Title="ANSI drivers"
                Level="1" >
         <ComponentRef Id="AnsiDriver" />
-        <ComponentRef Id="PocoLibs" />
+        <!--ComponentRef Id="PocoLibs" /-->
       </Feature>
       <Feature Id="UnicodeDrivers"
                Title="Unicode drivers"
                Level="1" >
         <ComponentRef Id="UnicodeDriver" />
-        <ComponentRef Id="PocoLibs" />
+        <!--ComponentRef Id="PocoLibs" /-->
       </Feature>
       <Feature Id="CRT" AllowAdvertise="no" Display="hidden" Level="1" Title="Microsoft Visual C++ 2015 Runtime Components">
         <MergeRef Id="CRT"/>

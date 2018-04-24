@@ -3,10 +3,8 @@ if (CLICKHOUSE_ODBC_TEST)
 endif ()
 
 if (USE_INTERNAL_SSL_LIBRARY)
-    if (NOT MAKE_STATIC_LIBRARIES)
-        set (BUILD_SHARED 1)
-    endif ()
-    set (USE_SHARED ${USE_STATIC_LIBRARIES})
+    set (BUILD_SHARED 0)
+    set (USE_SHARED 0)
     add_subdirectory (ssl)
 endif ()
 
