@@ -19,6 +19,7 @@ function q {
 }
 
 
+
 q "SELECT * FROM system.build_options;"
 q "CREATE DATABASE IF NOT EXISTS test;"
 q "DROP TABLE IF EXISTS test.odbc1;"
@@ -92,6 +93,12 @@ q $'SELECT SUM({fn CONVERT(1, SQL_BIGINT)}) AS `sum_Number_of_Records_ok`, CAST(
 q 'SELECT CAST({fn TRUNCATE(EXTRACT(YEAR FROM CAST(`test`.`odbc1`.`date` AS DATE)),0)} AS INTEGER) AS `yr_Calculation_860750537261912064_ok` FROM `test`.`odbc1` GROUP BY `yr_Calculation_860750537261912064_ok`'
 q 'SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,CAST({fn TRUNCATE((-1 * ({fn DAYOFYEAR(`test`.`odbc1`.`date`)} - 1)),0)} AS INTEGER),CAST(`test`.`odbc1`.`date` AS DATE))} AS `tyr__date_ok` FROM `test`.`odbc1` GROUP BY `tyr__date_ok`'
 
+q 'SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,(-1 * ({fn MOD((7 + {fn DAYOFWEEK(CAST(`test`.`odbc1`.`date` AS DATE))} - 2), 7)})),CAST(CAST(`test`.`odbc1`.`date` AS DATE) AS DATE))} AS `twk_date_ok` FROM `test`.`odbc1` GROUP BY `twk_date_ok`'
+q 'SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,CAST({fn TRUNCATE((-1 * ({fn DAYOFYEAR(CAST(`test`.`odbc1`.`date` AS DATE))} - 1)),0)} AS INTEGER),CAST(CAST(`test`.`odbc1`.`date` AS DATE) AS DATE))} AS `tyr_Calculation_681450978608578560_ok` FROM `test`.`odbc1` GROUP BY `tyr_Calculation_681450978608578560_ok`'
+q 'SELECT {fn TIMESTAMPADD(SQL_TSI_MONTH,CAST({fn TRUNCATE((3 * (CAST({fn TRUNCATE({fn QUARTER(CAST(`test`.`odbc1`.`date` AS DATE))},0)} AS INTEGER) - 1)),0)} AS INTEGER),{fn TIMESTAMPADD(SQL_TSI_DAY,CAST({fn TRUNCATE((-1 * ({fn DAYOFYEAR(CAST(`test`.`odbc1`.`date` AS DATE))} - 1)),0)} AS INTEGER),CAST(CAST(`test`.`odbc1`.`date` AS DATE) AS DATE))})} AS `tqr_Calculation_681450978608578560_ok` FROM `test`.`odbc1` GROUP BY `tqr_Calculation_681450978608578560_ok`'
+q 'SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,CAST({fn TRUNCATE((-1 * (EXTRACT(DAY FROM CAST(`test`.`odbc1`.`date` AS DATE)) - 1)),0)} AS INTEGER),CAST(CAST(`test`.`odbc1`.`date` AS DATE) AS DATE))} AS `tmn_Calculation_681450978608578560_ok` FROM `test`.`odbc1` GROUP BY `tmn_Calculation_681450978608578560_ok`'
+
+
 # todo: test with fail on comparsion:
 q $"SELECT {fn DAYOFWEEK(CAST('2018-04-16' AS DATE))}, 7, 'sat'"
 q $"SELECT {fn DAYOFWEEK(CAST('2018-04-15' AS DATE))}, 1, 'sun'"
@@ -123,7 +130,6 @@ echo "should be ${NUM}:"
 q 'select count(*) from test.increment;'
 
 q 'DROP TABLE test.increment;'
-
 
 echo "\n\n\nLast log:\n"
 cat /tmp/clickhouse-odbc-stderr.$USER

@@ -21,6 +21,7 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
     DECLARE(POWER),
     DECLARE(SQRT),
     DECLARE(ABS),
+    DECLARE(MOD),
     DECLARE(TRUNCATE),
     DECLARE(TIMESTAMPDIFF),
     DECLARE(TIMESTAMPADD),

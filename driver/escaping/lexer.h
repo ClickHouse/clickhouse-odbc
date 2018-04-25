@@ -29,6 +29,7 @@ struct Token {
         TRUNCATE,
         SQRT,
         ABS,
+        MOD,
         TIMESTAMPDIFF,
         TIMESTAMPADD,
         CURDATE,
