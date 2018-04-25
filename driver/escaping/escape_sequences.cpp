@@ -37,6 +37,7 @@ const std::map<const Token::Type, const std::string> function_map{
     {Token::TRUNCATE, "trunc"},
     {Token::SQRT, "sqrt"},
     {Token::ABS, "abs"},
+    {Token::MOD, "modulo"},
     {Token::CONCAT, "concat"},
     {Token::CURDATE, "today"},
     {Token::CURRENT_DATE, "today"},
@@ -92,22 +93,24 @@ string processParentheses(const StringView seq, Lexer & lex) {
     result += lex.Consume().literal.to_string(); // (
 
     while (true) {
-        const Token tok(lex.Peek());
+        const Token token(lex.Peek());
 
-        // std::cerr << __FILE__ << ":" << __LINE__ << " : "<< tok.literal.to_string() << " type=" << tok.type << " go\n";
+        // std::cerr << __FILE__ << ":" << __LINE__ << " : "<< token.literal.to_string() << " type=" << token.type << " go\n";
 
-        if (tok.type == Token::RPARENT) {
-            result += tok.literal.to_string();
+        if (token.type == Token::RPARENT) {
+            result += token.literal.to_string();
             lex.Consume();
             break;
-        } else if (tok.type == Token::LCURLY) {
+        } else if (token.type == Token::LPARENT) {
+            result += processParentheses(seq, lex);
+        } else if (token.type == Token::LCURLY) {
             lex.SetEmitSpaces(false);
             result += processEscapeSequencesImpl(seq, lex);
             lex.SetEmitSpaces(true);
-        } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
+        } else if (token.type == Token::EOS || token.type == Token::INVALID) {
             break;
         } else {
-            result += tok.literal.to_string();
+            result += token.literal.to_string();
             lex.Consume();
         }
     }
@@ -125,6 +128,8 @@ string processIdentOrFunction(const StringView seq, Lexer & lex) {
         lex.SetEmitSpaces(false);
         result += processEscapeSequencesImpl(seq, lex);
         lex.SetEmitSpaces(true);
+    } else if (token.type == Token::LPARENT) {
+        result += processParentheses(seq, lex);
     } else if (token.type == Token::IDENT && lex.LookAhead(1).type == Token::LPARENT) { // CAST( ... )
         result += token.literal.to_string();                                            // func name
         lex.Consume();
@@ -139,6 +144,7 @@ string processIdentOrFunction(const StringView seq, Lexer & lex) {
     }
     while (lex.Match(Token::SPACE)) {
     }
+
     return result;
 }
 

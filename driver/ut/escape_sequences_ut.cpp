@@ -129,6 +129,17 @@ TEST(EscapeSequencesCase, ParseTimestampadd4) {
         "SELECT addDays(CAST( now()  AS  DATE ), 1) ");
 }
 
+TEST(EscapeSequencesCase, ParseTimestampadd5) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD(SQL_TSI_DAY, CAST(CAST(1 AS DATE) AS DATE), 1)}"),
+        "SELECT addDays(1, CAST(CAST(1 AS DATE) AS DATE))");
+}
+
+TEST(EscapeSequencesCase, ParseTimestampadd6) {
+    ASSERT_EQ(replaceEscapeSequences(      "SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,(({fn MOD(({fn DAYOFWEEK(CAST(`publishers_report`.`install_date` AS DATE))}), 7)})),1)}"
+    ), "SELECT addDays(1, ((modulo((if(toDayOfWeek(CAST(`publishers_report`.`install_date` AS DATE)) = 7, 1, toDayOfWeek(CAST(`publishers_report`.`install_date` AS DATE)) + 1)), 7))))");
+}
+
+
 
 TEST(EscapeSequencesCase, ParseCurrentTimestamp1) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn CURRENT_TIMESTAMP}"), "SELECT now()");
