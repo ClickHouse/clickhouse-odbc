@@ -60,6 +60,8 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
     request.setURI(
         "/?database=" + connection.getDatabase() + "&default_format=ODBCDriver"); /// TODO Ability to transfer settings. TODO escaping
 
+    LOG(request.getMethod() << " " << connection.session->getHost() << request.getURI() <<  " body=" << prepared_query);
+
     if (in && in->peek() != EOF)
         connection.session->reset();
     // Send request to server with finite count of retries.
