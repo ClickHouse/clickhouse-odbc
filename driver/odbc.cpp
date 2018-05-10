@@ -427,7 +427,6 @@ impl_SQLFetch(HSTMT statement_handle)
             else if (code != SQL_SUCCESS)
                 return code;
         }
-
         return res;
     });
 }
@@ -509,8 +508,10 @@ RETCODE SQL_API SQLRowCount(HSTMT statement_handle, SQLLEN * out_row_count)
     LOG(__FUNCTION__);
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
-        if (out_row_count)
+        if (out_row_count) {
             *out_row_count = statement.result.getNumRows();
+            LOG("getNumRows=" << *out_row_count);
+        }
         return SQL_SUCCESS;
     });
 }
@@ -978,8 +979,9 @@ RETCODE SQL_API SQLBrowseConnect(HDBC connection_handle,
 
 RETCODE SQL_API SQLCancel(HSTMT StatementHandle)
 {
-    LOG(__FUNCTION__);
-    return SQL_ERROR;
+    LOG(__FUNCTION__ << "Ignoring SQLCancel " << StatementHandle);
+    return SQL_SUCCESS;
+    //return SQL_ERROR;
 }
 
 
@@ -1061,7 +1063,7 @@ RETCODE SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionId,
             SET_EXISTS(SQL_API_SQLNATIVESQL);
             SET_EXISTS(SQL_API_SQLCLOSECURSOR);
             // CLR_EXISTS(SQL_API_SQLBROWSECONNECT);
-            // SET_EXISTS(SQL_API_SQLCANCEL);
+            SET_EXISTS(SQL_API_SQLCANCEL);
             // SET_EXISTS(SQL_API_SQLCANCELHANDLE);
             // CLR_EXISTS(SQL_API_SQLDATASOURCES);
             // CLR_EXISTS(SQL_API_SQLGETCURSORNAME);
@@ -1086,7 +1088,7 @@ RETCODE SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionId,
         }
         else
         {
-            /*
+        /*
 		switch (FunctionId)
 		{
 			case SQL_API_SQLBINDCOL:
@@ -1096,7 +1098,7 @@ RETCODE SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionId,
 				*Supported = SQL_FALSE;
 				break;
 		}
-*/
+        */
             return SQL_ERROR;
         }
 

@@ -10,6 +10,11 @@ set (COMMON_WARNING_FLAGS "-Wall")	# -Werror is also added inside directories wi
 set (CXX_WARNING_FLAGS "-Wnon-virtual-dtor")
 
 set (CMAKE_CXX_STANDARD 14)
+# For iostream_debug_helpers.h :
+#if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+#    set (CMAKE_CXX_STANDARD 17)
+#endif ()
+
 set (CMAKE_CXX_EXTENSIONS 0)
 set (CMAKE_CXX_STANDARD_REQUIRED         ON)
 set (CMAKE_POSITION_INDEPENDENT_CODE     ON)
@@ -86,6 +91,7 @@ endif ()
 include (cmake/find_ltdl.cmake) # for odbc
 include (cmake/find_odbc.cmake)
 include (cmake/find_poco.cmake)
+include (cmake/find_nanoodbc.cmake)
 include (cmake/find_ccache.cmake)
 
 include (contrib/poco/cmake/FindODBC.cmake)

@@ -21,7 +21,12 @@ add_library(clickhouse-odbc SHARED
     ${WIN_SOURCES}
 )
 
-set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc") # TODO: w for UNICODE
+
+if (UNICODE)
+    set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbcw")
+else()
+    set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
+endif()
 
 target_compile_definitions (clickhouse-odbc PRIVATE "-DCMAKE_BUILD=1")
 

@@ -176,6 +176,9 @@ Row ResultSet::fetch()
         return{};
 
     ++rows;
+    if (statement->rows_fetched_ptr)
+        *statement->rows_fetched_ptr = rows;
+
     const Row & row = *iterator;
     ++iterator;
     return row;

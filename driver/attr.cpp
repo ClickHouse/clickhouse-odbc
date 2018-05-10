@@ -29,8 +29,12 @@ impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
             case SQL_ATTR_ODBC_VERSION:
             {
                 intptr_t int_value = reinterpret_cast<intptr_t>(value);
-                if (int_value != SQL_OV_ODBC2 && int_value != SQL_OV_ODBC3)
-                    throw std::runtime_error("Unsupported ODBC version.");
+                if (int_value != SQL_OV_ODBC2 && int_value != SQL_OV_ODBC3
+#if defined(SQL_OV_ODBC3_80)
+                    && int_value != SQL_OV_ODBC3_80
+#endif
+                )
+                    throw std::runtime_error("Unsupported ODBC version." + std::to_string(int_value));
 
                 environment.odbc_version = int_value;
                 LOG("Set ODBC version to " << int_value);
@@ -43,6 +47,7 @@ impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
                 return SQL_SUCCESS;
 
             default:
+                LOG("SetEnvAttr: Unsupported attribute (throw) " << attribute);
                 throw std::runtime_error("Unsupported environment attribute.");
         }
     });
@@ -72,6 +77,7 @@ impl_SQLGetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
             case SQL_ATTR_CP_MATCH:
             case SQL_ATTR_OUTPUT_NTS:
             default:
+                LOG("GetEnvAttr: Unsupported attribute (throw) " << attribute);
                 throw std::runtime_error("Unsupported environment attribute.");
         }
     });
@@ -123,6 +129,7 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
                 return SQL_SUCCESS;
 
             default:
+                LOG("SetConnectAttr: Unsupported attribute (throw) " << attribute);
                 throw SqlException("Unsupported connection attribute.", "HY092");
         }
     });
@@ -165,6 +172,7 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             case SQL_ATTR_TRANSLATE_OPTION:
             case SQL_ATTR_TXN_ISOLATION:
             default:
+                LOG("GetConnectAttr: Unsupported attribute (throw) " << attribute);
                 throw std::runtime_error("Unsupported connection attribute.");
         }
 
@@ -181,7 +189,7 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
 
     return doWith<Statement>(statement_handle, [&](Statement & statement)
     {
-        LOG("SetStmtAttr: " << attribute);
+        LOG("SetStmtAttr: " << attribute << " value=" << value << " value_length=" << value_length);
 
         switch (attribute)
         {
@@ -191,6 +199,10 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
 
             case SQL_ATTR_METADATA_ID:
                 statement.setMetadataId(reinterpret_cast<intptr_t>(value));
+                return SQL_SUCCESS;
+
+            case SQL_ATTR_ROWS_FETCHED_PTR:
+                statement.rows_fetched_ptr = static_cast<SQLULEN*>(value);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_APP_ROW_DESC:
@@ -216,7 +228,6 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_ROW_NUMBER:
             case SQL_ATTR_ROW_OPERATION_PTR:
             case SQL_ATTR_ROW_STATUS_PTR:       /// Libreoffice Base
-            case SQL_ATTR_ROWS_FETCHED_PTR:
             case SQL_ATTR_ROW_ARRAY_SIZE:
             case SQL_ATTR_SIMULATE_CURSOR:
             case SQL_ATTR_USE_BOOKMARKS:
@@ -229,6 +240,7 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_ROW_BIND_OFFSET_PTR:
             case SQL_ATTR_ROW_BIND_TYPE:
             default:
+                LOG("SetStmtAttr: Unsupported attribute (throw) " << attribute);
                 throw std::runtime_error("Unsupported statement attribute.");
         }
     });
@@ -260,7 +272,7 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE
     {
-        LOG("GetStmtAttr: " << attribute);
+        LOG("GetStmtAttr: " << attribute << " out_value=" << out_value << " out_value_max_length=" << out_value_max_length);
 
         const char * name = nullptr;
 
@@ -273,6 +285,14 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
                 if (out_value_length)
                     *out_value_length = sizeof(HSTMT *);
                 *((HSTMT *)out_value) = (HSTMT *)descHandleFromStatementHandle(statement, attribute);
+                break;
+
+            CASE_FALLTHROUGH(SQL_ATTR_ROWS_FETCHED_PTR)
+                if (out_value)
+                    out_value = static_cast<SQLPOINTER>(statement.rows_fetched_ptr); 
+                else
+                    LOG("GetStmtAttr: " << name << " no pointer passed.");
+                    return SQL_ERROR;
                 break;
 
             CASE_NUM(SQL_ATTR_CURSOR_SCROLLABLE, SQLULEN, SQL_NONSCROLLABLE);
@@ -291,6 +311,7 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             CASE_NUM(SQL_ATTR_USE_BOOKMARKS, SQLULEN, SQL_UB_OFF);
             CASE_NUM(SQL_ATTR_ROW_BIND_TYPE, SQLULEN, SQL_BIND_TYPE_DEFAULT);
 
+
             case SQL_ATTR_FETCH_BOOKMARK_PTR:
             case SQL_ATTR_KEYSET_SIZE:
             case SQL_ATTR_PARAM_BIND_OFFSET_PTR:
@@ -302,11 +323,11 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_ROW_BIND_OFFSET_PTR:
             case SQL_ATTR_ROW_OPERATION_PTR:
             case SQL_ATTR_ROW_STATUS_PTR:
-            case SQL_ATTR_ROWS_FETCHED_PTR:
             case SQL_ATTR_ROW_ARRAY_SIZE:
             case SQL_ATTR_SIMULATE_CURSOR:
             default:
-                throw std::runtime_error("Unsupported statement attribute.");
+                LOG("GetStmtAttr: Unsupported attribute (throw) " << attribute);
+                throw std::runtime_error("Unsupported statement attribute. " + std::to_string(attribute));
         }
 
         return SQL_SUCCESS;

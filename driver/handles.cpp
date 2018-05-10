@@ -83,7 +83,7 @@ RETCODE SQL_API SQLAllocStmt(SQLHDBC input_handle, SQLHSTMT * output_handle) {
 
 
 RETCODE SQL_API SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE handle) {
-    LOG(__FUNCTION__);
+    LOG(__FUNCTION__ << " handleType=" << handleType <<" handle=" << handle);
 
     switch (handleType) {
         case SQL_HANDLE_ENV:
@@ -93,6 +93,7 @@ RETCODE SQL_API SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE handle) {
         case SQL_HANDLE_STMT:
             return freeHandle<Statement>(handle);
         default:
+            LOG("FreeHandle: Unknown handleType=" << handleType);
             return SQL_ERROR;
     }
 }
