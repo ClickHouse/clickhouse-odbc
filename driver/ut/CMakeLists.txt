@@ -13,3 +13,13 @@ target_link_libraries(clickhouse-odbc-ut
 )
 
 add_test(NAME "clickhouse-odbc-ut" COMMAND "clickhouse-odbc-ut")
+
+if (NANOODBC_LIBRARY)
+    add_executable(clickhouse-odbc-nano nano.cpp)
+    target_link_libraries(clickhouse-odbc-nano ${NANOODBC_LIBRARY})
+    add_dependencies(clickhouse-odbc-nano clickhouse-odbc)
+    if (TEST_DSN)
+        add_test(NAME "clickhouse-odbc-nano" COMMAND "clickhouse-odbc-nano" "DSN=${TEST_DSN}")
+    endif ()
+    # gdb -ex "catch throw" -ex run --args ./clickhouse-odbc-nano DSN=clickhouse_localhost_system
+endif ()

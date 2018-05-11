@@ -1,5 +1,10 @@
 if (CLICKHOUSE_ODBC_TEST)
     add_subdirectory (gtest)
+    if (USE_INTERNAL_NANOODBC_LIBRARY)
+        # git clone --recursive https://github.com/lexicalunit/nanodbc.git
+        set (NANODBC_DISABLE_TESTS 1 CACHE INTERNAL "")
+        add_subdirectory (nanodbc)
+    endif ()
 endif ()
 
 if (USE_INTERNAL_SSL_LIBRARY)
