@@ -126,6 +126,8 @@ for i in `seq 1 ${NUM}`; do
     q 'select * from test.increment;' > /dev/null
 done
 
+q 'select * from test.increment;'
+
 echo "should be ${NUM}:"
 q 'select count(*) from test.increment;'
 
