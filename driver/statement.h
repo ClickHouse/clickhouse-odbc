@@ -76,6 +76,7 @@ public:
     std::map<SQLUSMALLINT, Binding> bindings;
 
     SQLULEN * rows_fetched_ptr = nullptr;
+    SQLULEN row_array_size = 1;
 
 private:
     std::unique_ptr<Poco::Net::HTTPResponse> response;

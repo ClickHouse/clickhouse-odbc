@@ -138,7 +138,7 @@ void run_test(nanodbc::string const& connection_string)
         }
         execute(connection, NANODBC_TEXT("DROP TABLE IF EXISTS test.strings;"));
         execute(connection, NANODBC_TEXT("CREATE TABLE test.strings (id UInt64, str String, dt DateTime DEFAULT now()) engine = Log;"));
-        execute(connection, NANODBC_TEXT("INSERT INTO test.strings SELECT number, hex(number+100000), 1 FROM system.numbers LIMIT 100000;"));
+        execute(connection, NANODBC_TEXT("INSERT INTO test.strings SELECT number, hex(number+100000), 1 FROM system.numbers LIMIT 100;"));
         {
             auto results = execute(connection, NANODBC_TEXT("SELECT COUNT(*) FROM test.strings;"));
             show(results);

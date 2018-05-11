@@ -205,6 +205,10 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
                 statement.rows_fetched_ptr = static_cast<SQLULEN*>(value);
                 return SQL_SUCCESS;
 
+            case SQL_ATTR_ROW_ARRAY_SIZE:
+                statement.row_array_size = reinterpret_cast<decltype(statement.row_array_size)>(value);
+                return SQL_SUCCESS;
+
             case SQL_ATTR_APP_ROW_DESC:
             case SQL_ATTR_APP_PARAM_DESC:
             case SQL_ATTR_CURSOR_SCROLLABLE:
@@ -228,7 +232,6 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_ROW_NUMBER:
             case SQL_ATTR_ROW_OPERATION_PTR:
             case SQL_ATTR_ROW_STATUS_PTR:       /// Libreoffice Base
-            case SQL_ATTR_ROW_ARRAY_SIZE:
             case SQL_ATTR_SIMULATE_CURSOR:
             case SQL_ATTR_USE_BOOKMARKS:
                 return SQL_SUCCESS;
@@ -310,7 +313,7 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             CASE_NUM(SQL_ATTR_ROW_NUMBER, SQLULEN, statement.result.getNumRows());
             CASE_NUM(SQL_ATTR_USE_BOOKMARKS, SQLULEN, SQL_UB_OFF);
             CASE_NUM(SQL_ATTR_ROW_BIND_TYPE, SQLULEN, SQL_BIND_TYPE_DEFAULT);
-
+            CASE_NUM(SQL_ATTR_ROW_ARRAY_SIZE, SQLULEN, statement.row_array_size);
 
             case SQL_ATTR_FETCH_BOOKMARK_PTR:
             case SQL_ATTR_KEYSET_SIZE:
@@ -323,7 +326,6 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_ROW_BIND_OFFSET_PTR:
             case SQL_ATTR_ROW_OPERATION_PTR:
             case SQL_ATTR_ROW_STATUS_PTR:
-            case SQL_ATTR_ROW_ARRAY_SIZE:
             case SQL_ATTR_SIMULATE_CURSOR:
             default:
                 LOG("GetStmtAttr: Unsupported attribute (throw) " << attribute);
