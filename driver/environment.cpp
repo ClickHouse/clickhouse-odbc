@@ -1,7 +1,9 @@
 #include "environment.h"
 
+#include <cstdio>
+#include <ctime>
+
 #if defined (_unix_)
-#   include <stdio.h>
 #   include <unistd.h>
 #   include <pwd.h>
 
@@ -46,6 +48,14 @@ Environment::Environment()
 #endif
     if (!freopen(stderr_path.c_str(), "w", stderr))
         throw std::logic_error("Cannot freopen stderr.");
+
+    {
+        auto t = std::time(nullptr);
+        char mbstr[100];
+        if (std::strftime(mbstr, sizeof(mbstr), "%Y.%m.%d %T", std::localtime(&t))) {
+            std::cerr  << mbstr << " Driver started =====================" << std::endl;
+        }
+    }
 #endif
 }
 
