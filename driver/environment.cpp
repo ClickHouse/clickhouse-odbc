@@ -33,18 +33,16 @@ const std::map<std::string, TypeInfo> Environment::types_info =
 Environment::Environment()
 {
 #if !NO_OUTPUT_REDIRECT
+    std::string stderr_path = "/tmp/clickhouse-odbc-stderr";
 #if defined (_unix_)
     struct passwd *pw;
     uid_t uid;
-    std::string stderr_path = "/tmp/clickhouse-odbc-stderr";
     uid = geteuid();
     pw = getpwuid(uid);
     if (pw)
     {
         stderr_path += "." + std::string(pw->pw_name);
     }
-#else
-    stderr_path = "/clickhouse-odbc-stderr.log"
 #endif
     if (!freopen(stderr_path.c_str(), "w", stderr))
         throw std::logic_error("Cannot freopen stderr.");
