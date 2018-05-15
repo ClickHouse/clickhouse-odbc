@@ -11,9 +11,9 @@ set (CXX_WARNING_FLAGS "-Wnon-virtual-dtor")
 
 set (CMAKE_CXX_STANDARD 14)
 # For iostream_debug_helpers.h :
-#if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-#    set (CMAKE_CXX_STANDARD 17)
-#endif ()
+if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND USE_DEBUG_17)
+    set (CMAKE_CXX_STANDARD 17)
+endif ()
 
 set (CMAKE_CXX_EXTENSIONS 0)
 set (CMAKE_CXX_STANDARD_REQUIRED         ON)
