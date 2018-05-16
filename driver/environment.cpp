@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <ctime>
+#include <string>
 
 #if defined (_unix_)
 #   include <unistd.h>
@@ -36,16 +37,19 @@ Environment::Environment()
 {
 #if !NO_OUTPUT_REDIRECT
     std::string stderr_path = "/tmp/clickhouse-odbc-stderr";
-#if defined (_unix_)
+#if _unix_
     struct passwd *pw;
     uid_t uid;
     uid = geteuid();
     pw = getpwuid(uid);
     if (pw)
-    {
         stderr_path += "." + std::string(pw->pw_name);
-    }
 #endif
+#if _win_
+    unsigned int pid = GetCurrentProcessId();
+    stderr_path += "." + std::to_string(pid);
+#endif
+
     if (!freopen(stderr_path.c_str(), "a", stderr))
         throw std::logic_error("Cannot freopen stderr.");
 
