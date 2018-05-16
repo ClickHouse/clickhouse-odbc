@@ -6,11 +6,11 @@
 #if defined (_unix_)
 #   include <unistd.h>
 #   include <pwd.h>
+#endif
 
 //#if __has_include("config_cmake.h") // requre c++17
 #if CMAKE_BUILD
 #include "config_cmake.h"
-#endif
 #endif
 
 const std::map<std::string, TypeInfo> Environment::types_info =
@@ -46,7 +46,7 @@ Environment::Environment()
         stderr_path += "." + std::string(pw->pw_name);
     }
 #endif
-    if (!freopen(stderr_path.c_str(), "w", stderr))
+    if (!freopen(stderr_path.c_str(), "a", stderr))
         throw std::logic_error("Cannot freopen stderr.");
 
     {
