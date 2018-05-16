@@ -1,4 +1,4 @@
--- sqlcmd -S .\SQLExpress -i mssql.linked.server.sql
+-- sqlcmd -S .\MSSQLSERVER -i mssql.linked.server.sql
 
 EXEC master.dbo.sp_addlinkedserver
         @server = N'clickhouse_link_test'
