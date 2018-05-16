@@ -112,6 +112,9 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
                 connection.setDatabase(stringFromSQLBytes((SQLTCHAR *)value, value_length));
                 return SQL_SUCCESS;
 
+            case SQL_ATTR_ANSI_APP:
+                return SQL_ERROR;
+
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:
             case SQL_ATTR_AUTO_IPD:
@@ -157,6 +160,9 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             case SQL_ATTR_CURRENT_CATALOG:
                 fillOutputPlatformString(connection.getDatabase(), out_value, out_value_max_length, out_value_length);
                 return SQL_SUCCESS;
+
+            case SQL_ATTR_ANSI_APP:
+                return SQL_ERROR;
 
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:
