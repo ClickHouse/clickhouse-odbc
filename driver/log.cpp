@@ -6,6 +6,6 @@ std::ofstream logstream("/tmp/clickhouse-odbc.log", std::ios::out | std::ios::ap
 
 #else 
 
-const auto & logstream = std::cerr;
+decltype(std::cerr) & logstream = std::cerr;
 
 #endif

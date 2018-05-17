@@ -19,7 +19,7 @@
 
 #else 
 
-    extern const auto & logstream;
+    extern decltype(std::cerr) & logstream;
 
     #define LOG(message)
 
