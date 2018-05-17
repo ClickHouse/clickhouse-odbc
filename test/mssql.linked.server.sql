@@ -9,4 +9,6 @@ EXEC master.dbo.sp_addlinkedserver
 
 EXEC sp_serveroption 'clickhouse_link_test','rpc','true';
 EXEC sp_serveroption 'clickhouse_link_test','rpc out','true';
+EXEC('select * from system.numbers limit 10;') at [clickhouse_link_test];
+EXEC("select 'Just string'") at [clickhouse_link_test];
 EXEC('select name from system.databases;') at [clickhouse_link_test];
