@@ -33,12 +33,11 @@ const std::map<std::string, TypeInfo> Environment::types_info =
     { "Array",       TypeInfo{ "TEXT",      true,    SQL_VARCHAR,         0xFFFFFF, (1 << 20) } },
 };
 
-Environment::Environment()
-{
+Environment::Environment() {
 #if !NO_OUTPUT_REDIRECT
     std::string stderr_path = "/tmp/clickhouse-odbc-stderr";
 #if _unix_
-    struct passwd *pw;
+    struct passwd * pw;
     uid_t uid;
     uid = geteuid();
     pw = getpwuid(uid);
@@ -66,5 +65,6 @@ Environment::Environment()
     }
 }
 
-Environment::~Environment()
-{ }
+Environment::~Environment() {
+    LOG("========== ======== Driver stopped =====================");
+}
