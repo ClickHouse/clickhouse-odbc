@@ -3,18 +3,24 @@
 #include <iostream>
 
 #ifndef NDEBUG
+    #include <fstream>
 
-#if CMAKE_BUILD
-    #include "config_cmake.h"
-#endif
+    #if CMAKE_BUILD
+        #include "config_cmake.h"
+    #endif
 
-#if USE_DEBUG_17
-    #include <iostream_debug_helpers.h>
-#endif
+    #if USE_DEBUG_17
+        #include <iostream_debug_helpers.h>
+    #endif
 
-#define LOG(message) \
-    do { std::cerr << __FILE__ << ":" << __LINE__ << " " << message << std::endl; } while (false)
+    extern std::ofstream logstream;
+
+    #define LOG(message) do { logstream << __FILE__ << ":" << __LINE__ << " " << message << std::endl; } while (false)
 
 #else 
-#   define LOG(message)
+
+    extern const auto & logstream;
+
+    #define LOG(message)
+
 #endif

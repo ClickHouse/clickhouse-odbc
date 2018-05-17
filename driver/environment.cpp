@@ -53,14 +53,17 @@ Environment::Environment()
     if (!freopen(stderr_path.c_str(), "a", stderr))
         throw std::logic_error("Cannot freopen stderr.");
 
+#endif
     {
         auto t = std::time(nullptr);
         char mbstr[100];
         if (std::strftime(mbstr, sizeof(mbstr), "%Y.%m.%d %T", std::localtime(&t))) {
-            std::cerr  << mbstr << " Driver started =====================" << std::endl;
+#if !NO_OUTPUT_REDIRECT
+            std::cerr << mbstr << " Driver started =====================" << std::endl;
+#endif
+            LOG(mbstr << " Driver started =====================");
         }
     }
-#endif
 }
 
 Environment::~Environment()
