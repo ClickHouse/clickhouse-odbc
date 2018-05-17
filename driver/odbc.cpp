@@ -327,11 +327,13 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
     SQLLEN out_value_max_size,
     SQLLEN * out_value_size_or_indicator)
 {
-    LOG(__FUNCTION__);
+    LOG(__FUNCTION__ << " column_or_param_number=" << column_or_param_number << " target_type=" << target_type);
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
-        if (column_or_param_number < 1 || column_or_param_number > statement.result.getNumColumns())
+        if (column_or_param_number < 1 || column_or_param_number > statement.result.getNumColumns()) {
+            LOG(__FUNCTION__ << ": Column number is out of range (throw)." << column_or_param_number);
             throw std::runtime_error("Column number is out of range.");
+        }
 
         size_t column_idx = column_or_param_number - 1;
 
@@ -393,9 +395,11 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
 
             case SQL_ARD_TYPE:
             case SQL_C_DEFAULT:
+                LOG(__FUNCTION__ << ": Unsupported type requested (throw)." << target_type);
                 throw std::runtime_error("Unsupported type requested.");
 
             default:
+                LOG(__FUNCTION__ << ": Unknown type requested (throw)." << target_type);
                 throw std::runtime_error("Unknown type requested.");
         }
     });
