@@ -48,7 +48,8 @@ impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
 
             default:
                 LOG("SetEnvAttr: Unsupported attribute (throw) " << attribute);
-                throw std::runtime_error("Unsupported environment attribute.");
+                //throw std::runtime_error("Unsupported environment attribute.");
+                return SQL_ERROR;
         }
     });
 }
@@ -78,7 +79,8 @@ impl_SQLGetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
             case SQL_ATTR_OUTPUT_NTS:
             default:
                 LOG("GetEnvAttr: Unsupported attribute (throw) " << attribute);
-                throw std::runtime_error("Unsupported environment attribute.");
+                //throw std::runtime_error("Unsupported environment attribute.");
+                return SQL_ERROR;
         }
     });
 }
@@ -133,7 +135,8 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
 
             default:
                 LOG("SetConnectAttr: Unsupported attribute (throw) " << attribute);
-                throw SqlException("Unsupported connection attribute.", "HY092");
+                //throw SqlException("Unsupported connection attribute.", "HY092");
+                return SQL_ERROR;
         }
     });
 }
@@ -155,7 +158,8 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
         {
             CASE_NUM(SQL_ATTR_CONNECTION_DEAD, SQLUINTEGER, SQL_CD_FALSE);
             CASE_FALLTHROUGH(SQL_ATTR_CONNECTION_TIMEOUT)
-            CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout)
+            CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout);
+            CASE_NUM(SQL_ATTR_TXN_ISOLATION, SQLINTEGER, SQL_TXN_SERIALIZABLE); // mssql linked server
 
             case SQL_ATTR_CURRENT_CATALOG:
                 fillOutputPlatformString(connection.getDatabase(), out_value, out_value_max_length, out_value_length);
@@ -163,6 +167,7 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
 
             case SQL_ATTR_ANSI_APP:
                 return SQL_ERROR;
+
 
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:
@@ -176,10 +181,10 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             case SQL_ATTR_TRACEFILE:
             case SQL_ATTR_TRANSLATE_LIB:
             case SQL_ATTR_TRANSLATE_OPTION:
-            case SQL_ATTR_TXN_ISOLATION:
             default:
                 LOG("GetConnectAttr: Unsupported attribute (throw) " << attribute);
-                throw std::runtime_error("Unsupported connection attribute.");
+                //throw std::runtime_error("Unsupported connection attribute.");
+                return SQL_ERROR;
         }
 
         return SQL_SUCCESS;
@@ -250,7 +255,8 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_ROW_BIND_TYPE:
             default:
                 LOG("SetStmtAttr: Unsupported attribute (throw) " << attribute);
-                throw std::runtime_error("Unsupported statement attribute.");
+                //throw std::runtime_error("Unsupported statement attribute.");
+                return SQL_ERROR;
         }
     });
 }
@@ -335,7 +341,8 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_SIMULATE_CURSOR:
             default:
                 LOG("GetStmtAttr: Unsupported attribute (throw) " << attribute);
-                throw std::runtime_error("Unsupported statement attribute. " + std::to_string(attribute));
+                //throw std::runtime_error("Unsupported statement attribute. " + std::to_string(attribute));
+                return SQL_ERROR;
         }
 
         return SQL_SUCCESS;
