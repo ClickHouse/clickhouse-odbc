@@ -160,8 +160,10 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
     LOG(__FUNCTION__ << "(col=" << column_number << ", field=" << field_identifier << ")");
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
-        if (column_number < 1 || column_number > statement.result.getNumColumns())
+        if (column_number < 1 || column_number > statement.result.getNumColumns()) {
+            LOG(__FUNCTION__ << ": Column number is out of range.");
             throw SqlException("Column number is out of range.", "07009");
+        }
 
         size_t column_idx = column_number - 1;
 
@@ -274,11 +276,14 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
                 num_value = SQL_FALSE;
                 break;
             default:
+                LOG(__FUNCTION__ << ": Unsupported FieldIdentifier = " + std::to_string(field_identifier));
                 throw SqlException("Unsupported FieldIdentifier = " + std::to_string(field_identifier), "HYC00");
         }
 
         if (out_num_value)
             memcpy(out_num_value, &num_value, sizeof(SQLLEN));
+
+        LOG(__FUNCTION__ << " num_value=" << num_value << " str_value=" << str_value);
 
         return fillOutputPlatformString(str_value, out_string_value, out_string_value_max_size, out_string_value_size);
     });
@@ -295,7 +300,7 @@ RETCODE SQL_API SQLDescribeCol(HSTMT statement_handle,
     SQLSMALLINT * out_decimal_digits,
     SQLSMALLINT * out_is_nullable)
 {
-    LOG(__FUNCTION__);
+    LOG(__FUNCTION__ << " column_number=" << column_number);
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
         if (column_number < 1 || column_number > statement.result.getNumColumns())
