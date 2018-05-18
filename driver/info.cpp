@@ -1,6 +1,7 @@
 #include "connection.h"
 #include "log.h"
 #include "utils.h"
+#include "win/version.h"
 
 #include <Poco/NumberFormatter.h>
 
@@ -67,7 +68,7 @@ SQLGetInfo(HDBC connection_handle,
 
         switch (info_type)
         {
-            CASE_STRING(SQL_DRIVER_VER, "1.0")
+            CASE_STRING(SQL_DRIVER_VER, VERSION_STRING)
             CASE_STRING(SQL_DRIVER_ODBC_VER, "03.80")
             CASE_STRING(SQL_DM_VER, "03.80.0000.0000")
             CASE_STRING(SQL_DRIVER_NAME, DRIVER_FILE_NAME)
