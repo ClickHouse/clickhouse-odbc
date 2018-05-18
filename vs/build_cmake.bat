@@ -11,7 +11,7 @@ cmake .. -G "Visual Studio 15 2017" && cmake --build . -- /m
 cd ..
 
 md buildw
-cd build
+cd buildw
 cmake .. -G "Visual Studio 15 2017 Win64" -DUNICODE=1 && cmake --build . -- /m
 cd ..
 
