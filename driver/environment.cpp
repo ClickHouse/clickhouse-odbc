@@ -1,14 +1,17 @@
 #include "environment.h"
 
+#include <cstdio>
+#include <ctime>
+#include <string>
+
 #if defined (_unix_)
-#   include <stdio.h>
 #   include <unistd.h>
 #   include <pwd.h>
+#endif
 
 //#if __has_include("config_cmake.h") // requre c++17
 #if CMAKE_BUILD
 #include "config_cmake.h"
-#endif
 #endif
 
 const std::map<std::string, TypeInfo> Environment::types_info =
@@ -30,24 +33,39 @@ const std::map<std::string, TypeInfo> Environment::types_info =
     { "Array",       TypeInfo{ "TEXT",      true,    SQL_VARCHAR,         0xFFFFFF, (1 << 20) } },
 };
 
-Environment::Environment()
-{
-#if defined (_unix_)
+Environment::Environment() {
 #if !NO_OUTPUT_REDIRECT
-    struct passwd *pw;
-    uid_t uid;
     std::string stderr_path = "/tmp/clickhouse-odbc-stderr";
+#if _unix_
+    struct passwd * pw;
+    uid_t uid;
     uid = geteuid();
     pw = getpwuid(uid);
     if (pw)
-    {
         stderr_path += "." + std::string(pw->pw_name);
-    }
-    if (!freopen(stderr_path.c_str(), "w", stderr))
+#endif
+
+#if _win_
+    // unsigned int pid = GetCurrentProcessId();
+    // stderr_path += "." + std::to_string(pid);
+#endif
+
+    if (!freopen(stderr_path.c_str(), "a", stderr))
         throw std::logic_error("Cannot freopen stderr.");
+
 #endif
+    {
+        auto t = std::time(nullptr);
+        char mbstr[100];
+        if (std::strftime(mbstr, sizeof(mbstr), "%Y.%m.%d %T", std::localtime(&t))) {
+#if !NO_OUTPUT_REDIRECT
+            std::cerr << mbstr << " Driver started =====================" << std::endl;
 #endif
+            LOG(mbstr << " Driver started =====================");
+        }
+    }
 }
 
-Environment::~Environment()
-{ }
+Environment::~Environment() {
+    LOG("========== ======== Driver stopped =====================");
+}

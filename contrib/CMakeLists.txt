@@ -3,6 +3,7 @@ if (CLICKHOUSE_ODBC_TEST)
     if (USE_INTERNAL_NANOODBC_LIBRARY)
         # git clone --recursive https://github.com/lexicalunit/nanodbc.git
         set (NANODBC_DISABLE_TESTS 1 CACHE INTERNAL "")
+        set (NANODBC_ENABLE_UNICODE ${UNICODE} CACHE INTERNAL "")
         add_subdirectory (nanodbc)
     endif ()
 endif ()
