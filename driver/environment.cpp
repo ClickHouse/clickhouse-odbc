@@ -44,9 +44,10 @@ Environment::Environment() {
     if (pw)
         stderr_path += "." + std::string(pw->pw_name);
 #endif
+
 #if _win_
-    unsigned int pid = GetCurrentProcessId();
-    stderr_path += "." + std::to_string(pid);
+    // unsigned int pid = GetCurrentProcessId();
+    // stderr_path += "." + std::to_string(pid);
 #endif
 
     if (!freopen(stderr_path.c_str(), "a", stderr))

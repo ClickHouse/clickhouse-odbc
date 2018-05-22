@@ -4,7 +4,7 @@
 
 std::ofstream logstream("/tmp/clickhouse-odbc.log", std::ios::out | std::ios::app);
 
-#else 
+#else
 
 decltype(std::cerr) & logstream = std::cerr;
 
