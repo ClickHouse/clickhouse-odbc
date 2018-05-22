@@ -7,7 +7,15 @@ use DBI;
 use Data::Dumper;
 
 my $config = {DSN => $ENV{DSN} || 'clickhouse_localhost'};
-my $dbh = DBI->connect('dbi:ODBC:DSN=' . $config->{DSN}, $config->{'user'}, $config->{'password'});
+
+say 'Data sources: ', join '; ', DBI->data_sources('dbi:ODBC:DSN=' . $config->{DSN},);
+
+my $dbh = DBI->connect('dbi:ODBC:DSN=' . $config->{DSN},
+$config->{'user'}, $config->{'password'}, {
+    RaiseError => 1,
+    PrintError=>1,
+    #HandleError=>sub{my ($msg) = @_; warn "connect error:", $msg; return 0;     },
+ });
 
 sub prepare_execute_hash ($) {
     my $sth = $dbh->prepare($_[0]);
