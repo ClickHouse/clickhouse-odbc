@@ -1,0 +1,5 @@
+if (TEST_DSN)
+        add_test(NAME "test.pl" COMMAND env DSN=${TEST_DSN} ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
+        add_test(NAME "test.py" COMMAND env DSN=${TEST_DSN} ${CMAKE_CURRENT_SOURCE_DIR}/test.py)
+        add_test(NAME "test.sh" COMMAND env DSN=${TEST_DSN} ${CMAKE_CURRENT_SOURCE_DIR}/test.sh)
+endif ()

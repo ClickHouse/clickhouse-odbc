@@ -111,4 +111,9 @@ message (STATUS "${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_SYSTEM} 
 add_subdirectory (contrib)
 add_subdirectory (driver)
 
+if(CLICKHOUSE_ODBC_TEST)
+    message(STATUS "TEST_DSN=${TEST_DSN}")
+    add_subdirectory(test)
+endif()
+
 include (cmake/print_flags.cmake)

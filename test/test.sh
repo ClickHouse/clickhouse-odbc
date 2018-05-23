@@ -13,9 +13,11 @@
 # Should not have any errors:
 # ./test.sh | grep -i error
 
+DSN=${DSN=clickhouse_localhost}
+
 function q {
     echo "Asking [$*]"
-    echo "$*" | isql clickhouse_localhost -v -b
+    echo "$*" | isql $DSN -v -b
 }
 
 
