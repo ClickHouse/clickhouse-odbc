@@ -5,10 +5,10 @@
 cd ..
 for compiler in clang gcc; do
     if [ "$compiler" = "clang" ]; then
-        CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-6.0 clang++60 clang++` -DCMAKE_C_COMPILER=`which clang-6.0 clang60 clang`"
+        CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-6.0 clang++60 clang++ | head -n1` -DCMAKE_C_COMPILER=`which clang-6.0 clang60 clang | head -n1`"
     fi
     if [ "$compiler" = "gcc" ]; then
-        CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which g++-8 g++8 g++` -DCMAKE_C_COMPILER=`which gcc-8 gcc8 gcc`"
+        CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which g++-8 g++8 g++ | head -n1` -DCMAKE_C_COMPILER=`which gcc-8 gcc8 gcc | head -n1`"
     fi
     for type in asan tsan ubsan msan release relwithdebinfo debug; do
         mkdir -p build_${compiler}_$type
