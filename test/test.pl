@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 
 # sudo apt install -y libdbd-odbc-perl
+# sudo pkg install -y p5-dbd-odbc
 
 use 5.16.0;
 use DBI;

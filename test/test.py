@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # sudo apt install -y python-pyodbc
+# sudo pkg install -y py36-pyodbc
 
 import pyodbc
 
