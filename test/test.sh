@@ -134,4 +134,5 @@ q 'select count(*) from test.increment;'
 q 'DROP TABLE test.increment;'
 
 echo "\n\n\nLast log:\n"
-cat /tmp/clickhouse-odbc-stderr.$USER
+#cat /tmp/clickhouse-odbc-stderr.$USER
+tail -n200  /tmp/clickhouse-odbc.log
