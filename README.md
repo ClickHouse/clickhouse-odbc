@@ -79,11 +79,12 @@ vim ~/.odbc.ini:
 [ClickHouse]
 Driver = $(PATH_OF_CLICKHOUSE_ODBC_SO)
 # Optional settings:
-Description = ClickHouse driver
-#DATABASE = default
-#SERVER = localhost
-#PORT = 8123
-#SSLMODE=require
+#Description = ClickHouse driver
+#server = localhost
+#database = default
+#uid = default
+#port = 8123
+#sslmode = require
 ```
 
 ## Testing
