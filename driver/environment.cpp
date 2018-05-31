@@ -34,7 +34,7 @@ const std::map<std::string, TypeInfo> Environment::types_info =
 };
 
 Environment::Environment() {
-#if !NO_OUTPUT_REDIRECT
+#if OUTPUT_REDIRECT
     std::string stderr_path = "/tmp/clickhouse-odbc-stderr";
 #if _unix_
     struct passwd * pw;
@@ -58,7 +58,7 @@ Environment::Environment() {
         auto t = std::time(nullptr);
         char mbstr[100];
         if (std::strftime(mbstr, sizeof(mbstr), "%Y.%m.%d %T", std::localtime(&t))) {
-#if !NO_OUTPUT_REDIRECT
+#if OUTPUT_REDIRECT
             std::cerr << mbstr << " Driver started =====================" << std::endl;
 #endif
             LOG(mbstr << " Driver started =====================");

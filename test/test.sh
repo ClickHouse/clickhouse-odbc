@@ -8,14 +8,16 @@
 # cd .. && debuild -us -uc -i --source-option=--format="3.0 (native)" && sudo dpkg -i `ls ../clickhouse-odbc_*_amd64.deb | tail -n1`
 
 # test https:
-# cd .. && debuild -eDH_VERBOSE=1 -eCMAKE_FLAGS="-DENABLE_SSL=1 -DFORCE_STATIC_LINK=" -us -uc -i --source-option=--format="3.0 (native)" && sudo dpkg -i `ls ../clickhouse-odbc_*_amd64.deb | tail -n1`
+# cd .. && debuild -eDH_VERBOSE=1 -eCMAKE_FLAGS="-DFORCE_STATIC_LINK=" -us -uc -i --source-option=--format="3.0 (native)" && sudo dpkg -i `ls ../clickhouse-odbc_*_amd64.deb | tail -n1`
 
 # Should not have any errors:
 # ./test.sh | grep -i error
 
+DSN=${DSN=clickhouse_localhost}
+
 function q {
     echo "Asking [$*]"
-    echo "$*" | isql clickhouse -v -b
+    echo "$*" | isql $DSN -v -b
 }
 
 
@@ -134,4 +136,5 @@ q 'select count(*) from test.increment;'
 q 'DROP TABLE test.increment;'
 
 echo "\n\n\nLast log:\n"
-cat /tmp/clickhouse-odbc-stderr.$USER
+#cat /tmp/clickhouse-odbc-stderr.$USER
+tail -n200  /tmp/clickhouse-odbc.log
