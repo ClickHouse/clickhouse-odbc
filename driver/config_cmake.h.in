@@ -6,6 +6,9 @@
 #cmakedefine01 OUTPUT_REDIRECT
 #cmakedefine01 USE_DEBUG_17
 
+#cmakedefine ODBC_LIBRARIES "@ODBC_LIBRARIES@"
+#cmakedefine ODBC_INCLUDE_DIRECTORIES "@ODBC_INCLUDE_DIRECTORIES@"
+
 #if !defined(UNICODE) && @UNICODE@
 #cmakedefine01 UNICODE
 #endif
