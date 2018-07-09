@@ -44,6 +44,7 @@ const std::map<const Token::Type, const std::string> function_map{
     {Token::TIMESTAMPDIFF, "dateDiff"},
     {Token::SQL_TSI_QUARTER, "toQuarter"},
     {Token::LCASE, "lower"},
+    {Token::REPLACE, "replaceAll"},
 
     {Token::EXTRACT, "EXTRACT"}, // Do not touch extract inside {fn ... }
 };

@@ -21,7 +21,6 @@ function q {
 }
 
 
-
 q "SELECT * FROM system.build_options;"
 q "CREATE DATABASE IF NOT EXISTS test;"
 q "DROP TABLE IF EXISTS test.odbc1;"
@@ -116,8 +115,8 @@ q $"SELECT {fn DAYOFYEAR(CAST('2018-01-01' AS DATE))}, 1"
 q $"SELECT {fn DAYOFYEAR(CAST('2018-04-20' AS DATE))}, 110"
 q $"SELECT {fn DAYOFYEAR(CAST('2018-12-31' AS DATE))}, 365"
 
-
-
+q $'SELECT name, {fn REPLACE(`name`, \'E\',\'!\')} AS `r1` FROM system.build_options'
+q $'SELECT {fn REPLACE(\'ABCDABCD\' , \'B\',\'E\')} AS `r1`'
 
 q 'DROP TABLE IF EXISTS test.increment;'
 q 'CREATE TABLE test.increment (n UInt64) engine Log;'

@@ -33,6 +33,7 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
     DECLARE(LOCATE),
     DECLARE(LCASE),
     DECLARE(LTRIM),
+    DECLARE(REPLACE),
 
     DECLARE(EXTRACT),
 

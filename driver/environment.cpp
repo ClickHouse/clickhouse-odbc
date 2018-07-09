@@ -59,9 +59,22 @@ Environment::Environment() {
         char mbstr[100];
         if (std::strftime(mbstr, sizeof(mbstr), "%Y.%m.%d %T", std::localtime(&t))) {
 #if OUTPUT_REDIRECT
-            std::cerr << mbstr << " Driver started =====================" << std::endl;
+            std::cerr << mbstr << " === Driver started =====================" << std::endl;
 #endif
-            LOG(mbstr << " Driver started =====================");
+            LOG(std::endl << mbstr << " === Driver started ==="
+#if defined(UNICODE)
+                      << " UNICODE=" << UNICODE
+#endif
+#if ODBCVER
+                      << " ODBCVER=" << std::hex << ODBCVER << std::dec
+#endif
+#if defined(ODBC_LIBRARIES)
+                      << " ODBC_LIBRARIES=" << ODBC_LIBRARIES
+#endif
+#if defined(ODBC_INCLUDE_DIRECTORIES)
+                      << " ODBC_INCLUDE_DIRECTORIES=" << ODBC_INCLUDE_DIRECTORIES
+#endif
+            );
         }
     }
 }
