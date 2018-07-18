@@ -180,6 +180,12 @@ void run_test(nanodbc::string const& connection_string)
         cout << endl << results.get<int>(NANODBC_TEXT("first")) << ", " << convert(value) << endl;
     }
 
+
+    {
+        auto results = execute(connection, NANODBC_TEXT("SELECT (CASE WHEN 1>0 THEN 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' ELSE NULL);"));
+        show(results);
+    }
+
     // Binding parameters
     if (0) // Not supported. TODO.
     {
