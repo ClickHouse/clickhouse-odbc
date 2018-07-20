@@ -182,7 +182,12 @@ void run_test(nanodbc::string const& connection_string)
 
 
     {
-        auto results = execute(connection, NANODBC_TEXT("SELECT (CASE WHEN 1>0 THEN 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' ELSE NULL);"));
+        auto results = execute(connection, NANODBC_TEXT("SELECT (CASE WHEN 1>0 THEN 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' ELSE NULL END);"));
+        show(results);
+    }
+
+    {
+        auto results = execute(connection, NANODBC_TEXT("SELECT *, (CASE WHEN 1>0 THEN 'ABC' ELSE 'ABCDEFG' END) FROM system.build_options;"));
         show(results);
     }
 
