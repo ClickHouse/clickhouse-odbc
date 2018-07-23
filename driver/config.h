@@ -18,8 +18,8 @@
 #define INI_SSLMODE         TEXT("SSLMode")
 
 #ifndef WIN32
-#   define ODBC_INI         ".odbc.ini"
-#   define ODBCINST_INI     "odbcinst.ini"
+#   define ODBC_INI         TEXT(".odbc.ini")
+#   define ODBCINST_INI     TEXT("odbcinst.ini")
 #else
 #   define ODBC_INI         TEXT("ODBC.INI")
 #   define ODBCINST_INI     TEXT("ODBCINST.INI")
