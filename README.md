@@ -64,11 +64,11 @@ mkdir -p build; cd build && cmake .. -DODBC_INCLUDE_DIRECTORIES=/usr/local/inclu
 ```
 
 ## Building (windows visual studio)
-```cd vs && build_all.bat```
+```cd vs && build_vs.bat```
 
 
 ## Building (windows cmake) (Developer only: setup window still not working)
-```md build && cd build && cmake .. && cmake --build . -- /m```
+```md build && cd build && cmake .. -G "Visual Studio 15 2017 Win64" && cmake --build . -- /m```
 
 
 ## ODBC configuration
@@ -79,11 +79,12 @@ vim ~/.odbc.ini:
 [ClickHouse]
 Driver = $(PATH_OF_CLICKHOUSE_ODBC_SO)
 # Optional settings:
-Description = ClickHouse driver
-#DATABASE = default
-#SERVER = localhost
-#PORT = 8123
-#SSLMODE=require
+#Description = ClickHouse driver
+#server = localhost
+#database = default
+#uid = default
+#port = 8123
+#sslmode = require
 ```
 
 ## Testing

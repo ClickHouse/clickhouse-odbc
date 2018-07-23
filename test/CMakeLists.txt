@@ -1,0 +1,7 @@
+if (TEST_DSN)
+    if (NOT (CMAKE_BUILD_TYPE_UC STREQUAL "TSAN" AND APPLE))
+        add_test(NAME "test.pl" COMMAND env DSN=${TEST_DSN} ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
+        add_test(NAME "test.sh" COMMAND env DSN=${TEST_DSN} ${CMAKE_CURRENT_SOURCE_DIR}/test.sh)
+        add_test(NAME "test.py" COMMAND env DSN=${TEST_DSN} ${CMAKE_CURRENT_SOURCE_DIR}/test.py)
+    endif ()
+endif ()

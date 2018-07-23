@@ -18,6 +18,7 @@ static RETCODE allocEnv(SQLHENV * out_environment) {
 }
 
 static RETCODE allocConnect(SQLHENV environment, SQLHDBC * out_connection) {
+    LOG(__FUNCTION__ << " environment=" << environment << " out_connection=" << out_connection);
     if (nullptr == out_connection)
         return SQL_INVALID_HANDLE;
 
@@ -52,7 +53,7 @@ static RETCODE freeHandle(SQLHANDLE handle_opaque) {
 extern "C" {
 
 RETCODE SQL_API SQLAllocHandle(SQLSMALLINT handle_type, SQLHANDLE input_handle, SQLHANDLE * output_handle) {
-    LOG(__FUNCTION__);
+    LOG(__FUNCTION__ << " handle_type=" << handle_type << " input_handle=" << input_handle);
 
     switch (handle_type) {
         case SQL_HANDLE_ENV:
@@ -72,12 +73,12 @@ RETCODE SQL_API SQLAllocEnv(SQLHDBC * output_handle) {
 }
 
 RETCODE SQL_API SQLAllocConnect(SQLHENV input_handle, SQLHDBC * output_handle) {
-    LOG(__FUNCTION__);
+    LOG(__FUNCTION__ << " input_handle=" << input_handle);
     return allocConnect(input_handle, output_handle);
 }
 
 RETCODE SQL_API SQLAllocStmt(SQLHDBC input_handle, SQLHSTMT * output_handle) {
-    LOG(__FUNCTION__);
+    LOG(__FUNCTION__ << " input_handle=" << input_handle);
     return allocStmt(input_handle, output_handle);
 }
 

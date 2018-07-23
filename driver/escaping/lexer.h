@@ -40,6 +40,7 @@ struct Token {
         LOCATE,
         LCASE,
         LTRIM,
+        REPLACE,
 
         EXTRACT,
 

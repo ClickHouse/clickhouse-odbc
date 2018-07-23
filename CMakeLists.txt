@@ -11,9 +11,9 @@ set (CXX_WARNING_FLAGS "-Wnon-virtual-dtor")
 
 set (CMAKE_CXX_STANDARD 14)
 # For iostream_debug_helpers.h :
-#if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-#    set (CMAKE_CXX_STANDARD 17)
-#endif ()
+if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND USE_DEBUG_17)
+    set (CMAKE_CXX_STANDARD 17)
+endif ()
 
 set (CMAKE_CXX_EXTENSIONS 0)
 set (CMAKE_CXX_STANDARD_REQUIRED         ON)
@@ -79,7 +79,7 @@ endif ()
 option (UNICODE "Enable unicode (experimental)" 0)
 if (UNICODE)
     set(UNICODE 1)
-    add_definitions(-DUNICODE=1)
+    add_definitions(-DUNICODE=1 -D_UNICODE=1)
 else ()
     set(UNICODE 0)
 endif ()
@@ -110,5 +110,10 @@ message (STATUS "${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_SYSTEM} 
 
 add_subdirectory (contrib)
 add_subdirectory (driver)
+
+if(CLICKHOUSE_ODBC_TEST)
+    message(STATUS "TEST_DSN=${TEST_DSN}")
+    add_subdirectory(test)
+endif()
 
 include (cmake/print_flags.cmake)
