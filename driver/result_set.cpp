@@ -191,7 +191,7 @@ std::istream & ResultSet::in()
 
 bool ResultSet::readNextBlock()
 {
-    static constexpr auto max_block_size = 8192;
+    auto max_block_size = statement->row_array_size;
 
     current_block.data.clear();
     current_block.data.reserve(max_block_size);

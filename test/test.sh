@@ -8,16 +8,17 @@
 # cd .. && debuild -us -uc -i --source-option=--format="3.0 (native)" && sudo dpkg -i `ls ../clickhouse-odbc_*_amd64.deb | tail -n1`
 
 # test https:
-# cd .. && debuild -eDH_VERBOSE=1 -eCMAKE_FLAGS="-DENABLE_SSL=1 -DFORCE_STATIC_LINK=" -us -uc -i --source-option=--format="3.0 (native)" && sudo dpkg -i `ls ../clickhouse-odbc_*_amd64.deb | tail -n1`
+# cd .. && debuild -eDH_VERBOSE=1 -eCMAKE_FLAGS="-DFORCE_STATIC_LINK=" -us -uc -i --source-option=--format="3.0 (native)" && sudo dpkg -i `ls ../clickhouse-odbc_*_amd64.deb | tail -n1`
 
 # Should not have any errors:
 # ./test.sh | grep -i error
 
+DSN=${DSN=clickhouse_localhost}
+
 function q {
     echo "Asking [$*]"
-    echo "$*" | isql clickhouse -v -b
+    echo "$*" | isql $DSN -v -b
 }
-
 
 
 q "SELECT * FROM system.build_options;"
@@ -114,8 +115,8 @@ q $"SELECT {fn DAYOFYEAR(CAST('2018-01-01' AS DATE))}, 1"
 q $"SELECT {fn DAYOFYEAR(CAST('2018-04-20' AS DATE))}, 110"
 q $"SELECT {fn DAYOFYEAR(CAST('2018-12-31' AS DATE))}, 365"
 
-
-
+q $'SELECT name, {fn REPLACE(`name`, \'E\',\'!\')} AS `r1` FROM system.build_options'
+q $'SELECT {fn REPLACE(\'ABCDABCD\' , \'B\',\'E\')} AS `r1`'
 
 q 'DROP TABLE IF EXISTS test.increment;'
 q 'CREATE TABLE test.increment (n UInt64) engine Log;'
@@ -126,10 +127,13 @@ for i in `seq 1 ${NUM}`; do
     q 'select * from test.increment;' > /dev/null
 done
 
+q 'select * from test.increment;'
+
 echo "should be ${NUM}:"
 q 'select count(*) from test.increment;'
 
 q 'DROP TABLE test.increment;'
 
 echo "\n\n\nLast log:\n"
-cat /tmp/clickhouse-odbc-stderr.$USER
+#cat /tmp/clickhouse-odbc-stderr.$USER
+tail -n200  /tmp/clickhouse-odbc.log
