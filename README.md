@@ -41,7 +41,7 @@ sudo apt install unixodbc-dev
 
 1. At the root of source directory:
 ```bash
-mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 2)
+mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
 ```
 Please use cmake3 to build the project on CentOS 7. You can install it with `yum install cmake3`.
 
@@ -69,6 +69,13 @@ mkdir -p build; cd build && cmake .. -DODBC_INCLUDE_DIRECTORIES=/usr/local/inclu
 
 ## Building (windows cmake) (Developer only: setup window still not working)
 ```md build && cd build && cmake .. -G "Visual Studio 15 2017 Win64" && cmake --build . -- /m```
+
+
+## Build with tests (needs configured ~/.odbc.ini with DSN=clickhouse_localhost)
+```mkdir -p build; cd build
+( cd ../contrib && git clone https://github.com/lexicalunit/nanodbc.git )
+cmake -G Ninja -DTEST_DSN=clickhouse_localhost -DCMAKE_BUILD_TYPE=Debug -DUSE_DEBUG_17=1 .. && ninja
+ctest -V```
 
 
 ## ODBC configuration
