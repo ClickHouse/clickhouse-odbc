@@ -53,8 +53,12 @@
 #       define stricmp _stricmp
 #   endif
 #else
-#   define LPCTSTR const char*
-#   define TEXT(value)  value
+//#    define LPCTSTR const char*
+#   ifdef UNICODE
+#      define TEXT(value)  L"" value
+#   else
+#      define TEXT(value)  value
+#   endif
 #endif
 
 #if defined (UNICODE)
