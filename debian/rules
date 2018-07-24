@@ -6,6 +6,14 @@
 
 export DEB_BUILD_MAINT_OPTIONS=hardening=+all
 
+ifndef DISABLE_NINJA
+    NINJA=$(shell which ninja)
+ifneq ($(NINJA),)
+        CMAKE_FLAGS += -GNinja
+        export MAKE=$(NINJA)
+endif
+endif
+
 ifndef DH_VERBOSE
     CMAKE_FLAGS += -DCMAKE_VERBOSE_MAKEFILE=0
 endif
@@ -18,6 +26,12 @@ CMAKE_FLAGS += -DOPENSSL_USE_SHARED_LIBS=1
 
 override_dh_auto_configure:
 	dh_auto_configure -- $(CMAKE_FLAGS)
+
+override_dh_auto_build:
+	# Fix for ninja. Do not add -O.
+	#cd $(BUILDDIR) && $(MAKE) -j$(THREADS_COUNT)
+	cd $(BUILDDIR) && cmake --build . -- -j$(THREADS_COUNT)
+
 
 override_dh_install:
 	dh_install

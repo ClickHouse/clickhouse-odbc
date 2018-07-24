@@ -118,6 +118,9 @@ q $"SELECT {fn DAYOFYEAR(CAST('2018-12-31' AS DATE))}, 365"
 q $'SELECT name, {fn REPLACE(`name`, \'E\',\'!\')} AS `r1` FROM system.build_options'
 q $'SELECT {fn REPLACE(\'ABCDABCD\' , \'B\',\'E\')} AS `r1`'
 
+q $"SELECT (CASE WHEN 1>0 THEN 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' ELSE NULL END);"
+q $"SELECT {fn REPLACE(\'ABCDEFGHIJKLMNOPQRSTUVWXY\', \'E\',\'!\')} AS r1;"
+
 q 'DROP TABLE IF EXISTS test.increment;'
 q 'CREATE TABLE test.increment (n UInt64) engine Log;'
 
