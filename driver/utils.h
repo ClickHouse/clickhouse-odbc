@@ -118,8 +118,15 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
     }
 
 #ifdef UNICODE
+// todo if constexpr sizeof(SQLTCHAR) == 4
+#   if defined(_IODBCUNIX_H)
     return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>()
         .to_bytes(std::wstring(data, symbols));
+#   else
+    // TODO test me!
+    return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>()
+        .to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols));
+#   endif
 #else
     return{ (const char*)data, (size_t)symbols };
 #endif
@@ -139,8 +146,8 @@ inline std::string stringFromTCHAR(Type data)
 #endif
 }
 
-template <size_t Len>
-void stringToTCHAR(const std::string & data, SQLTCHAR (&result)[Len])
+template <size_t Len, typename STRING>
+void stringToTCHAR(const std::string & data, STRING (&result)[Len])
 {
 #ifdef UNICODE
     std::wstring tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(data);

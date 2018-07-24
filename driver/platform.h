@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 //#if __has_include("config_cmake.h") // requre c++17
 #if CMAKE_BUILD
 #include "config_cmake.h"
@@ -53,7 +55,20 @@
 #       define stricmp _stricmp
 #   endif
 #else
-//#    define LPCTSTR const char*
+
+// Fix missing declarations in iodbc
+#if defined(_IODBCUNIX_H)
+#   if defined(UNICODE)
+//#      define LPCTSTR LPCWSTR
+#      define LPTSTR LPWSTR
+#   else
+//#      define LPCTSTR LPCSTR
+#      define LPTSTR LPSTR
+#   endif
+#   endif
+
+typedef std::remove_pointer<LPTSTR>::type MYTCHAR;
+
 #   ifdef UNICODE
 #      define TEXT(value)  L"" value
 #   else

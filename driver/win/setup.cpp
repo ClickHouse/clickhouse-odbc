@@ -446,12 +446,7 @@ INT_PTR	CALLBACK
     return FALSE;
 }
 
-BOOL CALLBACK
-#ifdef UNICODE
-ConfigDSNW(
-#else
-ConfigDSN(
-#endif
+BOOL CALLBACK DEFINE_FUNCTION_MAYBE_W(ConfigDSN)(
     HWND hwnd,
     WORD fRequest,
     LPCTSTR lpszDriver,
@@ -552,12 +547,7 @@ ConfigDSN(
     return fSuccess;
 }
 
-BOOL CALLBACK
-#ifdef UNICODE
-ConfigDriverW(
-#else
-ConfigDriver(
-#endif
+BOOL CALLBACK DEFINE_FUNCTION_MAYBE_W(ConfigDriver)(
     HWND hwnd,
     WORD fRequest,
     LPCTSTR lpszDriver,

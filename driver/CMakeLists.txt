@@ -23,7 +23,7 @@ add_library(clickhouse-odbc SHARED
 )
 
 
-if (UNICODE)
+if (UNICODE AND NOT LIB_NAME_NO_W)
     set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbcw")
 else()
     set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
