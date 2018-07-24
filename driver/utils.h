@@ -282,3 +282,9 @@ RETCODE fillOutputNumber(NUM num,
         if (!name) name = #NAME; \
         LOG("GetInfo " << name << ", type: " << #TYPE << ", value: " << #VALUE << " = " << (VALUE)); \
         return fillOutputNumber<TYPE>(VALUE, out_value, out_value_max_length, out_value_length);
+
+#ifdef UNICODE
+#   define DEFINE_FUNCTION_MAYBE_W(NAME) NAME ## W
+#else
+#   define DEFINE_FUNCTION_MAYBE_W(NAME) NAME
+#endif

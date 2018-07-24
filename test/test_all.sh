@@ -3,7 +3,8 @@
 # env CMAKE_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-6.0` -DCMAKE_C_COMPILER=`which clang-6.0`" sh -x ./test_all.sh
 
 cd ..
-for compiler in clang gcc; do
+for option in "" "-DUNICODE=1" ; do
+  for compiler in clang gcc; do
     if [ "$compiler" = "clang" ]; then
         CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-6.0 clang++60 clang++ | head -n1` -DCMAKE_C_COMPILER=`which clang-6.0 clang60 clang | head -n1`"
     fi
@@ -15,7 +16,8 @@ for compiler in clang gcc; do
         rm -rf build
         ln -sf build_${compiler}_$type build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS && make -j ${MAKEJ=$(nproc || sysctl -n hw.ncpu || echo 4)} && ctest -V
+        cmake .. $option -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS && make -j ${MAKEJ=$(nproc || sysctl -n hw.ncpu || echo 4)} && ctest -V
         cd ..
     done
+  done
 done
