@@ -138,13 +138,6 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_)
     mutator->UpdateColumnInfo(&columns_info);
 
     readNextBlock();
-
-    /// The displayed column sizes are calculated from the first block.
-    for (const auto & row : current_block.data)
-    {
-        for (size_t i = 0; i < num_columns; ++i)
-            columns_info[i].display_size = std::max(row.data[i].data.size(), columns_info[i].display_size);
-    }
 }
 
 bool ResultSet::empty() const
@@ -205,6 +198,10 @@ bool ResultSet::readNextBlock()
             readString(row.data[j].data, in());
 
         mutator->UpdateRow(columns_info, &row);
+
+        // TODO: Calculate maximum length for whole result, maybe on server
+        for (size_t i = 0; i < num_columns; ++i)
+            columns_info[i].display_size = std::max(row.data[i].data.size(), columns_info[i].display_size);
 
         current_block.data.emplace_back(std::move(row));
     }
