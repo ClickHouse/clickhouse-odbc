@@ -15,7 +15,7 @@ for compiler in clang gcc; do
         rm -rf build
         ln -sf build_${compiler}_$type build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS && make -j ${MAKEJ=$(nproc || sysctl -n hw.ncpu || echo 4)} && ctest -V
+        cmake .. -G Ninja -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS && cmake --build . -- -j ${MAKEJ=$(distcc -j || nproc || sysctl -n hw.ncpu || echo 4)} && ctest -V
         cd ..
     done
 done

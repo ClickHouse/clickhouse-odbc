@@ -160,6 +160,7 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             CASE_FALLTHROUGH(SQL_ATTR_CONNECTION_TIMEOUT);
             CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout);
             CASE_NUM(SQL_ATTR_TXN_ISOLATION, SQLINTEGER, SQL_TXN_SERIALIZABLE); // mssql linked server
+            CASE_NUM(SQL_ATTR_AUTOCOMMIT, SQLINTEGER, SQL_AUTOCOMMIT_ON);
 
             case SQL_ATTR_CURRENT_CATALOG:
                 fillOutputPlatformString(connection.getDatabase(), out_value, out_value_max_length, out_value_length);
@@ -168,11 +169,9 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             case SQL_ATTR_ANSI_APP:
                 return SQL_ERROR;
 
-
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:
             case SQL_ATTR_AUTO_IPD:
-            case SQL_ATTR_AUTOCOMMIT:
             case SQL_ATTR_METADATA_ID:
             case SQL_ATTR_ODBC_CURSORS:
             case SQL_ATTR_PACKET_SIZE:
