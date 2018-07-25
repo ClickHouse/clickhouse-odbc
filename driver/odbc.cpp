@@ -45,6 +45,8 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
         std::string user_str = stringFromSQLSymbols(user, user_size);
         std::string password_str = stringFromSQLSymbols(password, password_size);
 
+    LOG(__FUNCTION__ << dsn_str <<" : "<< user_str << " : "<< password_str);
+
         connection.init(dsn_str, 0, user_str, password_str, "");
         return SQL_SUCCESS;
     });
@@ -68,12 +70,23 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle
 //std::wcerr << "str=" << std::wstring{connection_str_in, connection_str_in_size} << std::endl;
 //std::cerr << "str=" << stringFromSQLBytes(connection_str_in, connection_str_in_size) << ";"<< std::endl;
 
-   size_t nmlen1 = 0;
 //OG("pree");
 #if UNICODE
+/*
+std::cerr << "cnvstr0=" << std::string{reinterpret_cast<char*>(connection_str_in), connection_str_in_size} << " ;" << std::endl;
+
+   size_t nmlen1 = 0;
    auto cstr = ucs2_to_utf8(connection_str_in, connection_str_in_size, &nmlen1, false);
-std::cerr << "cnvstr=" << std::string{cstr, nmlen1} << " ;" << std::endl;
+    auto su1 = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(std::u16string(reinterpret_cast<const char16_t*>(connection_str_in), connection_str_in_size));
+std::cerr << "cnvstr4=" << su1 << " ;" << std::endl;
+
+
+std::cerr << "cnvstr1=" << std::string{cstr, nmlen1} << " ;" << std::endl;
+//std::cerr << "cnvstr3=" << stringFromTCHAR(connection_str_in)<< " ;" << std::endl;
+*/
+//std::cerr << "cnvstr2=" << stringFromSQLSymbols(connection_str_in, connection_str_in_size)<< " ;" << std::endl;
 #endif
+
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
         connection.init(stringFromSQLSymbols(connection_str_in, connection_str_in_size));
@@ -122,6 +135,8 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, S
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
         const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
+
+    LOG(__FUNCTION__ << "query=" << query);
 
         if (!statement.isEmpty())
         {

@@ -9,7 +9,7 @@
 #include <string.h>
 
 //SQLULEN        ucs2strlen(const SQLWCHAR *ucs2str);
-char *ucs2_to_utf8(const SQLWCHAR *ucs2str, SQLLEN ilen, size_t *olen, bool lower_identifier);
+//char *ucs2_to_utf8(const SQLWCHAR *ucs2str, SQLLEN ilen, size_t *olen, bool lower_identifier);
 
 
 /** Checks `handle`. Catches exceptions and puts them into the DiagnosticRecord.
@@ -68,8 +68,8 @@ static const char * nextKeyValuePair(const char * data, const char * end, String
     return value_end;
 }
 
-template <typename SIZE_TYPE>
-std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols)
+template <typename SIZE_TYPE = decltype(SQL_NTS)>
+std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
 {
     if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
         return{};
@@ -84,8 +84,12 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols)
     else if (symbols < 0)
         throw std::runtime_error("invalid size of string : " + std::to_string(symbols));
 #ifdef UNICODE
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>()
-        .to_bytes(std::wstring(data, symbols));
+#   if(_win_)
+    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols));
+#   else
+    return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols));
+#endif
+
 #else
     return{ (const char*)data, (size_t)symbols };
 #endif
@@ -123,6 +127,14 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
     }
 
 #ifdef UNICODE
+
+#   if(_win_)
+    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols));
+#   else
+    return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols));
+#endif
+
+/*
 // todo if constexpr sizeof(SQLTCHAR) == 4
 #   if defined(_IODBCUNIX_H)
     return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>()
@@ -132,6 +144,7 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
     return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>()
         .to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols));
 #   endif
+*/
 #else
     return{ (const char*)data, (size_t)symbols };
 #endif
@@ -140,6 +153,8 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
 template <typename Type>
 inline std::string stringFromTCHAR(Type data)
 {
+    return stringFromSQLSymbols(data);
+/*
     if (!data)
         return {};
 
@@ -149,6 +164,7 @@ inline std::string stringFromTCHAR(Type data)
 #else
     return std::string(reinterpret_cast<char*>(data));
 #endif
+*/
 }
 
 template <size_t Len, typename STRING>
@@ -235,6 +251,11 @@ RETCODE fillOutputUSC2String(const std::string & value,
     using CharType = uint_least16_t;
 #else
     using CharType = char16_t;
+
+/*    return fillOutputStringImpl(
+        std::wstring_convert<std::codecvt_utf8_utf16<CharType>, CharType>().from_bytes(value),
+        out_value, out_value_max_length, out_value_length, length_in_bytes);*/
+
 #endif
     return fillOutputStringImpl(
         std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value),
