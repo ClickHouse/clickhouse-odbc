@@ -2,10 +2,15 @@
 
 #include "log.h"
 #include "string_ref.h"
+#include "platform.h"
 
 #include <codecvt>
 #include <locale>
 #include <string.h>
+
+//SQLULEN        ucs2strlen(const SQLWCHAR *ucs2str);
+char *ucs2_to_utf8(const SQLWCHAR *ucs2str, SQLLEN ilen, size_t *olen, bool lower_identifier);
+
 
 /** Checks `handle`. Catches exceptions and puts them into the DiagnosticRecord.
   */

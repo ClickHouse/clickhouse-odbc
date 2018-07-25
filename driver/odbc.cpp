@@ -62,6 +62,19 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle
     SQLUSMALLINT driver_completion)
 {
     LOG(__FUNCTION__);
+
+    LOG(__FUNCTION__ << " connection_str_in=" << connection_str_in << " : " << connection_str_in_size << " connection_str_out=" << connection_str_out << " : " << connection_str_out_max_size);
+
+//std::wcerr << "str=" << std::wstring{connection_str_in, connection_str_in_size} << std::endl;
+//std::cerr << "str=" << stringFromSQLBytes(connection_str_in, connection_str_in_size) << ";"<< std::endl;
+
+   size_t nmlen1 = 0;
+//OG("pree");
+#if UNICODE
+   auto cstr = ucs2_to_utf8(connection_str_in, connection_str_in_size, &nmlen1, false);
+std::cerr << "cnvstr=" << std::string{cstr, nmlen1} << " ;" << std::endl;
+#endif
+
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
         connection.init(stringFromSQLSymbols(connection_str_in, connection_str_in_size));
         // Copy complete connection string.

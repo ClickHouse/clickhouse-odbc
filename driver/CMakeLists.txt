@@ -19,6 +19,7 @@ add_library(clickhouse-odbc SHARED
     statement.cpp
     type_parser.cpp
     log.cpp
+    utils.cpp
     ${WIN_SOURCES}
 )
 
