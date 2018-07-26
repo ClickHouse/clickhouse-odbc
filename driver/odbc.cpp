@@ -100,7 +100,7 @@ std::cerr << "cnvstr1=" << std::string{cstr, nmlen1} << " ;" << std::endl;
 
 RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size)
 {
-    LOG(__FUNCTION__);
+    LOG(__FUNCTION__ << " statement_text=" << statement_text << " statement_text_size=" << statement_text_size);
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
         const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
@@ -112,7 +112,7 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLT
 
         statement.prepareQuery(query);
 
-        LOG(query);
+        LOG("query(" << query.size() << ") = [" << query << "]");
         return SQL_SUCCESS;
     });
 }

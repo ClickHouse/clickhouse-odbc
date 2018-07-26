@@ -8,10 +8,6 @@
 #include <locale>
 #include <string.h>
 
-//SQLULEN        ucs2strlen(const SQLWCHAR *ucs2str);
-//char *ucs2_to_utf8(const SQLWCHAR *ucs2str, SQLLEN ilen, size_t *olen, bool lower_identifier);
-
-
 /** Checks `handle`. Catches exceptions and puts them into the DiagnosticRecord.
   */
 template <typename Handle, typename F>
@@ -85,24 +81,24 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
         throw std::runtime_error("invalid size of string : " + std::to_string(symbols));
 #ifdef UNICODE
 #   if(_win_)
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols));
+    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols)); // maybe * sizeof(wchar_t) ?
 #   else
-    return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols));
-#endif
+    return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols * sizeof(char16_t)));
+#   endif
 
 #else
     return{ (const char*)data, (size_t)symbols };
 #endif
 }
 
-template <typename SIZE_TYPE>
-std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
+template <typename SIZE_TYPE = decltype(SQL_NTS)>
+std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size = SQL_NTS)
 {
     if (!data || size == 0)
         return {};
     // Count of symblols in the string
     size_t symbols = 0;
-
+/*
     if (size == SQL_NTS)
     {
 #ifdef UNICODE
@@ -111,7 +107,9 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
         symbols = (SIZE_TYPE)strlen(reinterpret_cast<const char*>(data));
 #endif
     }
-    else if (size == SQL_IS_POINTER || size == SQL_IS_UINTEGER ||
+    else 
+*/
+    if (size == SQL_IS_POINTER || size == SQL_IS_UINTEGER ||
              size == SQL_IS_INTEGER || size == SQL_IS_USMALLINT ||
              size == SQL_IS_SMALLINT)
     {
@@ -125,7 +123,10 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
     {
         symbols = static_cast<size_t>(size) / sizeof(SQLTCHAR);
     }
-
+    
+    return stringFromSQLSymbols(data, symbols);
+    
+#if 0
 #ifdef UNICODE
 
 #   if(_win_)
@@ -147,6 +148,7 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
 */
 #else
     return{ (const char*)data, (size_t)symbols };
+#endif
 #endif
 }
 
