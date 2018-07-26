@@ -488,7 +488,7 @@ RETCODE SQL_API SQLFetchScroll(HSTMT statement_handle, SQLSMALLINT orientation, 
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLGetData)(HSTMT statement_handle,
+RETCODE SQL_API SQLGetData(HSTMT statement_handle,
     SQLUSMALLINT column_or_param_number,
     SQLSMALLINT target_type,
     PTR out_value,
