@@ -8,6 +8,10 @@ if (CLICKHOUSE_ODBC_TEST)
         set (NANODBC_DISABLE_INSTALL 1 CACHE INTERNAL "")
         set (NANODBC_ENABLE_UNICODE ${UNICODE} CACHE INTERNAL "")
         add_subdirectory (nanodbc)
+
+        # Fix iodbc include bug
+        set_target_properties(nanodbc PROPERTIES INCLUDE_DIRECTORIES "${ODBC_INCLUDE_DIRECTORIES};${CMAKE_CURRENT_SOURCE_DIR}/nanodbc")
+        set_target_properties(nanodbc PROPERTIES INTERFACE_LINK_LIBRARIES "${ODBC_LIBRARIES}")
     endif ()
 endif ()
 

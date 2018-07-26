@@ -150,8 +150,16 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size)
 #endif
 }
 
-template <typename Type>
-inline std::string stringFromTCHAR(Type data)
+/*
+inline std::string stringFromTCHAR(MYTCHAR * data)
+{
+    return stringFromSQLSymbols(reinterpret_cast<SQLTCHAR*>(data));
+}
+*/
+
+//template <typename Type>
+//inline std::string stringFromTCHAR(Type data)
+inline std::string stringFromTCHAR(SQLTCHAR * data)
 {
     return stringFromSQLSymbols(data);
 /*
