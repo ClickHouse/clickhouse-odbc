@@ -72,7 +72,7 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
     if (symbols == SQL_NTS)
     {
 #ifdef UNICODE
-        symbols = (SIZE_TYPE)wcslen(reinterpret_cast<const wchar_t*>(data));
+        symbols = wcslen(reinterpret_cast<const wchar_t*>(data));
 #else
         symbols = (SIZE_TYPE)strlen(reinterpret_cast<const char*>(data));
 #endif
@@ -83,7 +83,15 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
 #   if(_win_)
     return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols)); // maybe * sizeof(wchar_t) ?
 #   else
-    return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols * sizeof(char16_t)));
+
+// TODO: WTF!?
+#ifdef _darwin_
+    SIZE_TYPE char_size = sizeof(char16_t);
+#else
+    SIZE_TYPE char_size = 1;
+#endif
+
+    return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols * char_size));
 #   endif
 
 #else

@@ -29,6 +29,7 @@
 
 extern "C" {
 
+
 /// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlconnect-function
 RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     SQLTCHAR * dsn,
@@ -38,14 +39,15 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     SQLTCHAR * password,
     SQLSMALLINT password_size)
 {
-    LOG(__FUNCTION__);
+    LOG(__FUNCTION__ << " dsn=" << dsn << " dsn_size=" << dsn_size << " user=" << user << " user_size=" << " password=" << password << " password_size=" << password_size);
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
+
         std::string dsn_str = stringFromSQLSymbols(dsn, dsn_size);
         std::string user_str = stringFromSQLSymbols(user, user_size);
         std::string password_str = stringFromSQLSymbols(password, password_size);
 
-    LOG(__FUNCTION__ << dsn_str <<" : "<< user_str << " : "<< password_str);
+        //LOG(__FUNCTION__ << " dsn="<< dsn_str <<", user="<< user_str << ", pwd="<< password_str);
 
         connection.init(dsn_str, 0, user_str, password_str, "");
         return SQL_SUCCESS;
