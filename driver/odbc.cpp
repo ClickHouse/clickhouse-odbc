@@ -631,7 +631,10 @@ impl_SQLGetDiagRec(SQLSMALLINT handle_type,
         strncpy(reinterpret_cast<LPSTR>(out_sqlstate), diagnostic_record->sql_state.data(), 6);
 #endif
 */
-        fillOutputPlatformString(diagnostic_record->sql_state, out_sqlstate, 6)
+        size_t size = 6;
+        size_t written = 0;
+        
+        fillOutputPlatformString(diagnostic_record->sql_state, out_sqlstate, size, &written, true);
     }
     if (out_native_error_code)
         *out_native_error_code = diagnostic_record->native_error_code;

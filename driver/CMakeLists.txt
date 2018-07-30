@@ -50,7 +50,7 @@ target_link_libraries(clickhouse-odbc
     ${ODBC_LIBRARIES}
 )
 
-target_link_libraries(clickhouse-odbc ${LTDL_LIBRARY}) # apple, linux + unixodbc
+#target_link_libraries(clickhouse-odbc ${LTDL_LIBRARY}) # apple, linux + unixodbc
 
 if(APPLE)
 elseif (NOT WIN32)

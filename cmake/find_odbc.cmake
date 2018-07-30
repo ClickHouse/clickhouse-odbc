@@ -54,8 +54,11 @@ find_library(ODBC_LIBRARIES
 	DOC "Specify the ODBC driver manager library here."
 )
 
-find_library(ODBCINST_LIBRIES NAMES iodbcinst odbcinst PATHS ${ODBC_LIBRARIES_PATHS})
-list(APPEND ODBC_LIBRARIES ${ODBCINST_LIBRIES})
+#if (NOT WIN32 AND ODBC_LIBRARIES MATCHES "iodbc")
+    find_library(ODBCINST_LIBRIES NAMES iodbcinst odbcinst PATHS ${ODBC_LIBRARIES_PATHS})
+    list(APPEND ODBC_LIBRARIES ${ODBCINST_LIBRIES})
+    list(APPEND ODBC_LIBRARIES ${LTDL_LIBRARY})
+#endif()
 
 # MinGW find usually fails
 if(MINGW)
