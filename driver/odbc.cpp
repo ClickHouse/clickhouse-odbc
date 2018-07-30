@@ -133,12 +133,12 @@ RETCODE SQL_API SQLExecute(HSTMT statement_handle)
 
 RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size)
 {
-    LOG(__FUNCTION__);
+    //LOG(__FUNCTION__);
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
         const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
 
-    LOG(__FUNCTION__ << "query=" << query);
+        LOG(__FUNCTION__ << " statement_text=" << query << " statement_text_size");
 
         if (!statement.isEmpty())
         {
@@ -155,7 +155,7 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, S
             statement.prepareQuery(query);
         }
 
-        LOG(query);
+        //LOG(query);
         statement.sendRequest();
         return SQL_SUCCESS;
     });
