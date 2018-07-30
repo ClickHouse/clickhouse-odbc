@@ -142,13 +142,13 @@ void Connection::loadConfiguration() {
 
     if (!port && ci.port[0] != 0) {
         int int_port = 0;
-        if (Poco::NumberParser::tryParse(stringFromTCHAR(ci.port), int_port))
+        if (Poco::NumberParser::tryParse(stringFromMYTCHAR(ci.port), int_port))
             port = int_port;
         else
-            throw std::runtime_error(("Cannot parse port number [" + stringFromTCHAR(ci.port) + "].").c_str());
+            throw std::runtime_error(("Cannot parse port number [" + stringFromMYTCHAR(ci.port) + "].").c_str());
     }
     if (timeout == 0) {
-        const std::string timeout_string = stringFromTCHAR(ci.timeout);
+        const std::string timeout_string = stringFromMYTCHAR(ci.timeout);
         if (!timeout_string.empty()) {
             if (!Poco::NumberParser::tryParse(timeout_string, this->timeout))
                 throw std::runtime_error("Cannot parse connection timeout value.");
@@ -156,14 +156,14 @@ void Connection::loadConfiguration() {
     }
 
     if (server.empty())
-        server = stringFromTCHAR(ci.server);
+        server = stringFromMYTCHAR(ci.server);
     if (user.empty())
-        user = stringFromTCHAR(ci.username);
+        user = stringFromMYTCHAR(ci.username);
     if (password.empty())
-        password = stringFromTCHAR(ci.password);
+        password = stringFromMYTCHAR(ci.password);
     if (database.empty())
-        database = stringFromTCHAR(ci.database);
-    if (proto.empty() && (stringFromTCHAR(ci.sslmode) == "require" || port == 8443))
+        database = stringFromMYTCHAR(ci.database);
+    if (proto.empty() && (stringFromMYTCHAR(ci.sslmode) == "require" || port == 8443))
         proto = "https";
 }
 

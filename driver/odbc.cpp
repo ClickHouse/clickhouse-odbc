@@ -623,12 +623,15 @@ impl_SQLGetDiagRec(SQLSMALLINT handle_type,
     /// The five-letter SQLSTATE and the trailing zero.
     if (out_sqlstate)
     {
+/*
 #ifdef UNICODE
         std::wstring wstr = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(diagnostic_record->sql_state);
         wcsncpy(reinterpret_cast<LPWSTR>(out_sqlstate), wstr.data(), 6);
 #else
         strncpy(reinterpret_cast<LPSTR>(out_sqlstate), diagnostic_record->sql_state.data(), 6);
 #endif
+*/
+        fillOutputPlatformString(diagnostic_record->sql_state, out_sqlstate, 6)
     }
     if (out_native_error_code)
         *out_native_error_code = diagnostic_record->native_error_code;

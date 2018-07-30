@@ -5,7 +5,8 @@
 cd ..
  for lib in libiodbc2-dev unixodbc-dev; do
   sudo apt install -y $lib
-  for compiler in gcc clang; do
+  #for compiler in gcc clang; do
+  for compiler in gcc; do
     if [ "$compiler" = "clang" ]; then
         CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-6.0 clang++-5.0 clang++60 clang++50 clang++ | head -n1` -DCMAKE_C_COMPILER=`which clang-6.0 clang-5.0 clang60 clang50 clang | head -n1`"
     fi
