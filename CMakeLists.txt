@@ -34,7 +34,7 @@ if (MSVC)
 endif ()
 set (CMAKE_DEBUG_POSTFIX                 "") # Dont add "d" to target lib name
 
-if (NOT SHARED)
+if (NOT BUILD_SHARED)
     list (REVERSE CMAKE_FIND_LIBRARY_SUFFIXES) # we want static link - now .a libs have highest priority
 endif ()
 
