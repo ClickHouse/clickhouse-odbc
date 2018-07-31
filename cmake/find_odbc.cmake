@@ -54,6 +54,17 @@ find_library(ODBC_LIBRARIES
 	DOC "Specify the ODBC driver manager library here."
 )
 
+if(NOT WIN32)
+    if(ODBC_LIBRARIES MATCHES "iodbc")
+	set(ODBC_IODBC 1)
+	set(ODBC_UNIXODBC 0)
+    else() # TODO maybe better check
+	set(ODBC_IODBC 0)
+	set(ODBC_UNIXODBC 1)
+    endif()
+endif()
+
+
 #if (NOT WIN32 AND ODBC_LIBRARIES MATCHES "iodbc")
     find_library(ODBCINST_LIBRIES NAMES iodbcinst odbcinst PATHS ${ODBC_LIBRARIES_PATHS})
     list(APPEND ODBC_LIBRARIES ${ODBCINST_LIBRIES})

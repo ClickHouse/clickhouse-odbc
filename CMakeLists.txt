@@ -83,14 +83,15 @@ option (UNICODE "Enable unicode (experimental)" 0)
 if (UNICODE)
     set(UNICODE 1)
     add_definitions(-DUNICODE=1 -D_UNICODE=1)
-    set(SQL_WCHART_CONVERT 1)
+    if (ODBC_UNIXODBC)
+        set(SQL_WCHART_CONVERT 1)
+    endif ()
+    # Mode for unixodbc for working wuth wcar as in iodbc
+    if (SQL_WCHART_CONVERT)
+        add_definitions(-DSQL_WCHART_CONVERT=1)
+    endif ()
 else ()
     set(UNICODE 0)
-endif ()
-
-# Mode for unixodbc for working wuth wcar as in iodbc
-if (SQL_WCHART_CONVERT)
-    add_definitions(-DSQL_WCHART_CONVERT=1)
 endif ()
 
 message (STATUS "UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_CONVERT}")
