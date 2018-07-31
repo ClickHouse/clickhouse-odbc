@@ -33,7 +33,10 @@ if (MSVC)
 	set (CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
 endif ()
 set (CMAKE_DEBUG_POSTFIX                 "") # Dont add "d" to target lib name
-list (REVERSE CMAKE_FIND_LIBRARY_SUFFIXES) # we want static link - now .a libs have highest priority
+
+if (NOT SHARED)
+    list (REVERSE CMAKE_FIND_LIBRARY_SUFFIXES) # we want static link - now .a libs have highest priority
+endif ()
 
 
 include (cmake/arch.cmake)
@@ -80,7 +83,7 @@ option (UNICODE "Enable unicode (experimental)" 0)
 if (UNICODE)
     set(UNICODE 1)
     add_definitions(-DUNICODE=1 -D_UNICODE=1)
-    #set(SQL_WCHART_CONVERT 1)
+    set(SQL_WCHART_CONVERT 1)
 else ()
     set(UNICODE 0)
 endif ()
@@ -89,6 +92,8 @@ endif ()
 if (SQL_WCHART_CONVERT)
     add_definitions(-DSQL_WCHART_CONVERT=1)
 endif ()
+
+message (STATUS "UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_CONVERT}")
 
 if (NOT WIN32)
     set (OPENSSL_LIBRARIES "-Wl,-Bdynamic ${OPENSSL_LIBRARIES} -Wl,-Bstatic")
