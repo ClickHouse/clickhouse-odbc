@@ -7,7 +7,7 @@ os: linux
 
 compiler:
   - gcc
-  - clang
+#  - clang
 
 cache:
   ccache: true
