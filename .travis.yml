@@ -15,7 +15,8 @@ cache:
 addons:
   apt:
     sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
-    packages: [ gcc-7, g++-7, clang-5.0, ninja-build ]
+    packages: [ gcc-7, g++-7, ninja-build ]
+# clang-5.0,
 
 
 # TODO:
