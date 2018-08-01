@@ -17,7 +17,7 @@ addons:
     packages: [ gcc-7, g++-7, clang-5.0, ninja-build ]
 
 
-env
+env:
     - UNICODE=0
     - UNICODE=1
 
