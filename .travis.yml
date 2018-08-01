@@ -21,8 +21,10 @@ addons:
 
 # TODO:
 env:
-    - UNICODE=0
-    - UNICODE=1
+    - MATRIX_EVAL="export UNICODE=0 && export CC=clang-5.0 && export CXX=clang++-5.0"
+    - MATRIX_EVAL="export UNICODE=0 && export CC=gcc-7 && CXX=g++-7"
+    - MATRIX_EVAL="export UNICODE=1 && export CC=clang-5.0 && export CXX=clang++-5.0"
+    - MATRIX_EVAL="export UNICODE=1 && export CC=gcc-7 && CXX=g++-7"
 
 #matrix:
 #  include:
@@ -37,10 +39,12 @@ env:
 #    - compiler: gcc
 
 install:
-  - env
   - sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe"
   - sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1)
   - sudo apt-get install -y unixodbc-dev libssl-dev binutils libpoco-dev | tee build.log 2>&1 || (cat build.log && exit 1)
+
+before_script:
+    - eval "${MATRIX_EVAL}"
 
 script:
   - mkdir -p build
