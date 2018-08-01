@@ -19,7 +19,7 @@ cd ..
         ln -sf ${build_dir} build
         cd build
         rm CMakeCache.txt
-        cmake .. -G Ninja $option -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} -DBUILD_SHARED=$BUILD_SHARED -DLIB_NAME_NO_W=1 $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS && cmake --build . -- -j ${MAKEJ=$(distcc -j || nproc || sysctl -n hw.ncpu || echo 4)} && ctest -V
+        cmake .. -G Ninja $option -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} -DLIB_NAME_NO_W=1 $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS && cmake --build . -- -j ${MAKEJ=$(distcc -j || nproc || sysctl -n hw.ncpu || echo 4)} && ctest -V
         cd ..
       done
     done
