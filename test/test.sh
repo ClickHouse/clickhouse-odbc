@@ -14,10 +14,13 @@
 # ./test.sh | grep -i error
 
 DSN=${DSN=clickhouse_localhost}
+[ -z $RUNNER ] && RUNNER=`which isql` && [ -n $RUNNER ] && RUNNER_PARAMS="-v -b"
+[ -z $RUNNER ] && RUNNER=`which iodbctestw`
+[ -z $RUNNER ] && RUNNER=`which iodbctest`
 
 function q {
     echo "Asking [$*]"
-    echo "$*" | isql $DSN -v -b
+    echo "$*" | $RUNNER $DSN $RUNNER_PARAMS
 }
 
 q "SELECT * FROM system.build_options;"
