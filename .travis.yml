@@ -33,9 +33,9 @@ matrix:
     - compiler: gcc
 
 install:
-  - sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu xenial main universe"
+  - sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu bionic main universe"
   - sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1)
-  - sudo apt-get install unixodbc-dev libssl-dev binutils -y > build.log 2>&1 || (cat build.log && exit 1)
+  - sudo apt-get install -y unixodbc-dev libssl-dev binutils libpoco-dev > build.log 2>&1 || (cat build.log && exit 1)
 
 script:
   - mkdir -p build
