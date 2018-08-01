@@ -40,4 +40,4 @@ install:
 script:
   - mkdir -p build
   - cd build
-  - cmake .. -G Ninja -DUNICODE=$UNICODE -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` && ninja all test
+  - cmake .. -G Ninja -DUNICODE=$UNICODE -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` && ninja all && ninja test
