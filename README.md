@@ -73,7 +73,7 @@ mkdir -p build; cd build && cmake .. -DODBC_INCLUDE_DIRECTORIES=/usr/local/inclu
 
 ## Build with tests (needs configured ~/.odbc.ini with DSN=clickhouse_localhost)
 ```mkdir -p build; cd build
-( cd ../contrib && git clone https://github.com/lexicalunit/nanodbc.git )
+( cd ../contrib && git clone https://github.com/nanodbc/nanodbc )
 cmake -G Ninja -DTEST_DSN=clickhouse_localhost -DCMAKE_BUILD_TYPE=Debug -DUSE_DEBUG_17=1 .. && ninja
 ctest -V```
 
