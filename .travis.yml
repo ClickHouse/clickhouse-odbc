@@ -7,33 +7,36 @@ os: linux
 
 compiler:
   - gcc
+  - clang
 
 cache:
   ccache: true
 
 addons:
   apt:
-    sources: [ ubuntu-toolchain-r-test, llvm-toolchain-precise ]
-    packages: [ gcc-7, g++-7, clang-5.0, ninja-build ]
+    sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
+    packages: [ gcc-7, g++-7, clang-6.0, ninja-build ]
 
 
+# TODO:
 env:
     - UNICODE=0
     - UNICODE=1
 
-matrix:
-  include:
-    - compiler: ": gcc-7"
-      before_install:
-        - export CC="gcc-7" CXX="g++-7"
-    - compiler: ": clang-5.0"
-      before_install:
-        - export CC="clang-5.0" CXX="clang++-5.0"
-
-  exclude:
-    - compiler: gcc
+#matrix:
+#  include:
+#    - compiler: ": gcc-7"
+#      before_install:
+#        - export CC="gcc-7" CXX="g++-7"
+#    - compiler: ": clang-5.0"
+#      before_install:
+#        - export CC="clang-5.0" CXX="clang++-5.0"
+#
+#  exclude:
+#    - compiler: gcc
 
 install:
+  - env
   - sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe"
   - sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1)
   - sudo apt-get install -y unixodbc-dev libssl-dev binutils libpoco-dev | tee build.log 2>&1 || (cat build.log && exit 1)
