@@ -36,8 +36,10 @@ set (CMAKE_DEBUG_POSTFIX                 "") # Dont add "d" to target lib name
 
 if (NOT BUILD_SHARED)
     list (REVERSE CMAKE_FIND_LIBRARY_SUFFIXES) # we want static link - now .a libs have highest priority
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
-    set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -static-libstdc++")
+    if (COMPILER_GCC)
+        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
+        set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -static-libstdc++")
+    endif ()
 endif ()
 
 message (STATUS "BUILD_SHARED=${BUILD_SHARED}")
@@ -137,7 +139,7 @@ if (NOT WIN32 AND NOT ODBC_LIBRARIES MATCHES "iodbc")
     include (cmake/Modules/CheckODBCversion.cmake)
 endif ()
 
-message (STATUS "Building for: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_VERSION} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE} ; CCACHE=${CCACHE_FOUND} ${CCACHE_VERSION}")
+message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE} ; CCACHE=${CCACHE_FOUND} ${CCACHE_VERSION}")
 
 add_subdirectory (contrib)
 add_subdirectory (driver)
