@@ -14,16 +14,21 @@ cache:
 addons:
   apt:
     sources: [ ubuntu-toolchain-r-test, llvm-toolchain-precise ]
-    packages: [ gcc-6, g++-6, clang-5.0 ]
+    packages: [ gcc-7, g++-7, clang-6.0, ninja-build ]
 
 matrix:
   include:
-    - compiler: ": gcc-6"
+    - compiler: ": gcc-7"
       before_install:
-        - export CC="gcc-6" CXX="g++-6"
-    - compiler: ": clang-5.0"
+        - export CC="gcc-7" CXX="g++-7"
+    - compiler: ": clang-6.0"
       before_install:
-        - export CC="clang-5.0" CXX="clang++-5.0"
+        - export CC="clang-6.0" CXX="clang++-6.0"
+    - before_install:
+        - export UNICODE=1
+    - before_install:
+        - export UNICODE=0
+
   exclude:
     - compiler: gcc
 
@@ -33,6 +38,6 @@ install:
   - sudo apt-get install unixodbc-dev libssl-dev binutils -y > build.log 2>&1 || (cat build.log && exit 1)
 
 script:
-  - mkdir build
+  - mkdir -p build
   - cd build
-  - cmake .. -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` && make -j `nproc || grep -c ^processor /proc/cpuinfo` all test
+  - cmake .. -G Ninja -DUNICODE=$UNICODE -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` && ninja all test
