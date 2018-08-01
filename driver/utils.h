@@ -74,26 +74,20 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
 #ifdef UNICODE
         symbols = wcslen(reinterpret_cast<const wchar_t*>(data));
 #else
-        symbols = (SIZE_TYPE)strlen(reinterpret_cast<const char*>(data));
+        symbols = strlen(reinterpret_cast<const char*>(data));
 #endif
+        // LOG(__FUNCTION__ << " NTS symbols=" << symbols << " sizeof(SQLTCHAR)=" << sizeof(SQLTCHAR) );
     }
     else if (symbols < 0)
         throw std::runtime_error("invalid size of string : " + std::to_string(symbols));
 #ifdef UNICODE
-#   if(_win_)
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols)); // maybe * sizeof(wchar_t) ?
+#   if _win_
+    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols));
+#   elif ODBC_IODBC
+    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols));
 #   else
-
-// TODO: WTF!?
-#ifdef _darwin_
-    SIZE_TYPE char_size = sizeof(char16_t);
-#else
-    SIZE_TYPE char_size = 1;
-#endif
-
-    return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols * char_size));
+    return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols));
 #   endif
-
 #else
     return{ (const char*)data, (size_t)symbols };
 #endif
@@ -244,8 +238,6 @@ RETCODE fillOutputStringImpl(const STRING & value,
                 reinterpret_cast<CharType*>(out_value)[(max_length_in_bytes / sizeof(CharType)) - 1] = 0;
             }
             return SQL_SUCCESS_WITH_INFO;
-
-            ;
         }
     }
 
@@ -263,16 +255,30 @@ template <typename PTR, typename LENGTH>
 RETCODE fillOutputUSC2String(const std::string & value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true)
 {
-#if defined (_win_)
+#if _win_
     using CharType = uint_least16_t;
+//LOG("USING win");
+#elif ODBC_IODBC
+    using CharType = wchar_t;
+//LOG( "USING wchar_t");
 #else
     using CharType = char16_t;
-
-/*    return fillOutputStringImpl(
+//LOG("USING char16_t");
+// tableu test 1
+/*
+    return fillOutputStringImpl(
         std::wstring_convert<std::codecvt_utf8_utf16<CharType>, CharType>().from_bytes(value),
-        out_value, out_value_max_length, out_value_length, length_in_bytes);*/
+        out_value, out_value_max_length, out_value_length, length_in_bytes);
+*/
 
 #endif
+/*
+const auto str = std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value);
+//std::wcerr << "";
+//LOG("USING win");
+    return fillOutputStringImpl(str, out_value, out_value_max_length, out_value_length, length_in_bytes);
+*/
+
     return fillOutputStringImpl(
         std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value),
         out_value, out_value_max_length, out_value_length, length_in_bytes);
