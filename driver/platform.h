@@ -76,6 +76,7 @@ typedef std::remove_pointer<LPTSTR>::type MYTCHAR;
 #   endif
 #endif
 
+/*
 #if defined (UNICODE)
 #   if defined (_win_)
 #       define SIZEOF_CHAR  sizeof(uint_least16_t)
@@ -85,6 +86,8 @@ typedef std::remove_pointer<LPTSTR>::type MYTCHAR;
 #else
 #   define SIZEOF_CHAR sizeof(char)
 #endif
+*/
+#define SIZEOF_CHAR sizeof(SQLTCHAR)
 
 #if defined(_MSC_VER) && !defined(USE_SSL)
 // Enabled by default, but you can disable
