@@ -5,6 +5,7 @@
 #cmakedefine01 USE_SSL
 #cmakedefine01 OUTPUT_REDIRECT
 #cmakedefine01 USE_DEBUG_17
+#cmakedefine01 ODBC_WCHAR
 
 #cmakedefine ODBC_LIBRARIES "@ODBC_LIBRARIES@"
 #cmakedefine ODBC_INCLUDE_DIRECTORIES "@ODBC_INCLUDE_DIRECTORIES@"

@@ -79,6 +79,9 @@ if (ENABLE_SSL)
     endif ()
 endif ()
 
+include (cmake/find_ltdl.cmake) # for odbc
+include (cmake/find_odbc.cmake)
+
 option (UNICODE "Enable unicode (experimental)" 0)
 if (UNICODE)
     set(UNICODE 1)
@@ -94,14 +97,30 @@ else ()
     set(UNICODE 0)
 endif ()
 
-message (STATUS "UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_CONVERT}")
+# Hell matrix
+#               TCHAR       sizeof()    note
+# not unicode   char        1
+# unicode:
+# win           wchar_t     2
+# iodbc         wchar_t     4
+# unixodbc      wchar_t     4           true == SQL_WCHART_CONVERT
+# unixodbc      char16_t    2           false == SQL_WCHART_CONVERT
+
+if (UNICODE)
+    if (ODBC_UNIXODBC AND NOT SQL_WCHART_CONVERT)
+        # char16
+    else()
+        set(ODBC_WCHAR 1)
+    endif()
+endif()
+
+message (STATUS "UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_CONVERT} ODBC_WCHAR=${ODBC_WCHAR}")
+
 
 if (NOT WIN32)
     set (OPENSSL_LIBRARIES "-Wl,-Bdynamic ${OPENSSL_LIBRARIES} -Wl,-Bstatic")
 endif ()
 
-include (cmake/find_ltdl.cmake) # for odbc
-include (cmake/find_odbc.cmake)
 include (cmake/find_poco.cmake)
 include (cmake/find_nanoodbc.cmake)
 include (cmake/find_ccache.cmake)
