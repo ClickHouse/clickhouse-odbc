@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
-# env CMAKE_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-6.0` -DCMAKE_C_COMPILER=`which clang-6.0`" sh -x ./test_all.sh
+# env CMAKE_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-6.0` -DCMAKE_C_COMPILER=`which clang-6.0`" sh -x test_all.sh
+# env CMAKE_FLAGS="-DUSE_INTERNAL_POCO_LIBRARY=0 -DUSE_INTERNAL_SSL_LIBRARY=0 -DCMAKE_CXX_COMPILER=`which clang++60` -DCMAKE_C_COMPILER=`which clang60`" sh -x test_all.sh
 
 cd ..
   for compiler in gcc clang; do
