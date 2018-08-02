@@ -60,8 +60,6 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
     request.setURI(
         "/?database=" + connection.getDatabase() + "&default_format=ODBCDriver"); /// TODO Ability to transfer settings. TODO escaping
 
-    //std::replace(prepared_query.begin(), prepared_query.end(), '\n', ' ');
-
     LOG(request.getMethod() << " " << connection.session->getHost() << request.getURI() <<  " body=" << prepared_query);
 
     //LOG("curl 'http://" << connection.session->getHost() << ":" << connection.session->getPort() << request.getURI() << "' -d '" << prepared_query << "'");

@@ -19,7 +19,6 @@ add_library(clickhouse-odbc SHARED
     statement.cpp
     type_parser.cpp
     log.cpp
-    utils.cpp
     ${WIN_SOURCES}
 )
 
@@ -49,8 +48,6 @@ target_link_libraries(clickhouse-odbc
     ${Poco_Foundation_LIBRARY}
     ${ODBC_LIBRARIES}
 )
-
-#target_link_libraries(clickhouse-odbc ${LTDL_LIBRARY}) # apple, linux + unixodbc
 
 if(APPLE)
 elseif (NOT WIN32)

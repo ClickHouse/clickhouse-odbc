@@ -100,17 +100,6 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size = SQL_NTS)
         return {};
     // Count of symblols in the string
     size_t symbols = 0;
-/*
-    if (size == SQL_NTS)
-    {
-#ifdef UNICODE
-        symbols = (SIZE_TYPE)wcslen(reinterpret_cast<const wchar_t*>(data));
-#else
-        symbols = (SIZE_TYPE)strlen(reinterpret_cast<const char*>(data));
-#endif
-    }
-    else 
-*/
     if (size == SQL_IS_POINTER || size == SQL_IS_UINTEGER ||
              size == SQL_IS_INTEGER || size == SQL_IS_USMALLINT ||
              size == SQL_IS_SMALLINT)
@@ -127,31 +116,6 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size = SQL_NTS)
     }
     
     return stringFromSQLSymbols(data, symbols);
-    
-#if 0
-#ifdef UNICODE
-
-#   if(_win_)
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols));
-#   else
-    return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols));
-#endif
-
-/*
-// todo if constexpr sizeof(SQLTCHAR) == 4
-#   if defined(_IODBCUNIX_H)
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>()
-        .to_bytes(std::wstring(data, symbols));
-#   else
-    // TODO test me!
-    return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>()
-        .to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols));
-#   endif
-*/
-#else
-    return{ (const char*)data, (size_t)symbols };
-#endif
-#endif
 }
 
 inline std::string stringFromMYTCHAR(MYTCHAR * data)
@@ -159,27 +123,15 @@ inline std::string stringFromMYTCHAR(MYTCHAR * data)
     return stringFromSQLSymbols(reinterpret_cast<SQLTCHAR*>(data));
 }
 
-//template <typename Type>
-//inline std::string stringFromTCHAR(Type data)
 inline std::string stringFromTCHAR(SQLTCHAR * data)
 {
     return stringFromSQLSymbols(data);
-/*
-    if (!data)
-        return {};
-
-#ifdef UNICODE
-    std::wstring wstr(data);
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(wstr);
-#else
-    return std::string(reinterpret_cast<char*>(data));
-#endif
-*/
 }
 
 template <size_t Len, typename STRING>
 void stringToTCHAR(const std::string & data, STRING (&result)[Len])
 {
+// TODO also char16_t ?!
 #ifdef UNICODE
     std::wstring tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(data);
     using type_to = wchar_t*;
@@ -257,28 +209,11 @@ RETCODE fillOutputUSC2String(const std::string & value,
 {
 #if _win_
     using CharType = uint_least16_t;
-//LOG("USING win");
 #elif ODBC_IODBC
     using CharType = wchar_t;
-//LOG( "USING wchar_t");
 #else
     using CharType = char16_t;
-//LOG("USING char16_t");
-// tableu test 1
-/*
-    return fillOutputStringImpl(
-        std::wstring_convert<std::codecvt_utf8_utf16<CharType>, CharType>().from_bytes(value),
-        out_value, out_value_max_length, out_value_length, length_in_bytes);
-*/
-
 #endif
-/*
-const auto str = std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value);
-//std::wcerr << "";
-//LOG("USING win");
-    return fillOutputStringImpl(str, out_value, out_value_max_length, out_value_length, length_in_bytes);
-*/
-
     return fillOutputStringImpl(
         std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value),
         out_value, out_value_max_length, out_value_length, length_in_bytes);

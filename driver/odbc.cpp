@@ -65,30 +65,7 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle
     SQLSMALLINT FAR * connection_str_out_size,
     SQLUSMALLINT driver_completion)
 {
-    LOG(__FUNCTION__);
-
     LOG(__FUNCTION__ << " connection_str_in=" << connection_str_in << " : " << connection_str_in_size << " connection_str_out=" << connection_str_out << " : " << connection_str_out_max_size);
-
-//std::wcerr << "str=" << std::wstring{connection_str_in, connection_str_in_size} << std::endl;
-//std::cerr << "str=" << stringFromSQLBytes(connection_str_in, connection_str_in_size) << ";"<< std::endl;
-
-//OG("pree");
-#if UNICODE
-/*
-std::cerr << "cnvstr0=" << std::string{reinterpret_cast<char*>(connection_str_in), connection_str_in_size} << " ;" << std::endl;
-
-   size_t nmlen1 = 0;
-   auto cstr = ucs2_to_utf8(connection_str_in, connection_str_in_size, &nmlen1, false);
-    auto su1 = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(std::u16string(reinterpret_cast<const char16_t*>(connection_str_in), connection_str_in_size));
-std::cerr << "cnvstr4=" << su1 << " ;" << std::endl;
-
-
-std::cerr << "cnvstr1=" << std::string{cstr, nmlen1} << " ;" << std::endl;
-//std::cerr << "cnvstr3=" << stringFromTCHAR(connection_str_in)<< " ;" << std::endl;
-*/
-//std::cerr << "cnvstr2=" << stringFromSQLSymbols(connection_str_in, connection_str_in_size)<< " ;" << std::endl;
-#endif
-
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
         connection.init(stringFromSQLSymbols(connection_str_in, connection_str_in_size));
@@ -102,7 +79,7 @@ std::cerr << "cnvstr1=" << std::string{cstr, nmlen1} << " ;" << std::endl;
 
 RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size)
 {
-    LOG(__FUNCTION__ << " statement_text=" << statement_text << " statement_text_size=" << statement_text_size);
+    LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
         const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
@@ -138,7 +115,7 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, S
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
         const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
 
-        LOG(__FUNCTION__ << " statement_text=" << query << " statement_text_size");
+        LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << query );
 
         if (!statement.isEmpty())
         {
@@ -623,17 +600,8 @@ impl_SQLGetDiagRec(SQLSMALLINT handle_type,
     /// The five-letter SQLSTATE and the trailing zero.
     if (out_sqlstate)
     {
-/*
-#ifdef UNICODE
-        std::wstring wstr = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(diagnostic_record->sql_state);
-        wcsncpy(reinterpret_cast<LPWSTR>(out_sqlstate), wstr.data(), 6);
-#else
-        strncpy(reinterpret_cast<LPSTR>(out_sqlstate), diagnostic_record->sql_state.data(), 6);
-#endif
-*/
         size_t size = 6;
         size_t written = 0;
-        
         fillOutputPlatformString(diagnostic_record->sql_state, out_sqlstate, size, &written, true);
     }
     if (out_native_error_code)

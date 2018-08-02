@@ -53,7 +53,6 @@ void Connection::init() {
         throw std::runtime_error("Username couldn't contain ':' (colon) symbol.");
 
     LOG("Creating session with " << proto << "://" << server << ":" << port);
-port = 8123;
 
 #if USE_SSL
     bool is_ssl = proto == "https";
