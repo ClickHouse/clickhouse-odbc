@@ -20,9 +20,9 @@ addons:
 
 # TODO:
 env:
-    - MATRIX_EVAL="export UNICODE=0 && export CC=clang-5.0 && export CXX=clang++-5.0"
+    - MATRIX_EVAL="export UNICODE=0 && export CC=clang-7 && export CXX=clang++-7"
     - MATRIX_EVAL="export UNICODE=0 && export CC=gcc-7 && CXX=g++-7"
-    - MATRIX_EVAL="export UNICODE=1 && export CC=clang-5.0 && export CXX=clang++-5.0"
+    - MATRIX_EVAL="export UNICODE=1 && export CC=clang-7 && export CXX=clang++-7"
     - MATRIX_EVAL="export UNICODE=1 && export CC=gcc-7 && CXX=g++-7"
 
 #matrix:
@@ -30,9 +30,9 @@ env:
 #    - compiler: ": gcc-7"
 #      before_install:
 #        - export CC="gcc-7" CXX="g++-7"
-#    - compiler: ": clang-5.0"
+#    - compiler: ": clang-7"
 #      before_install:
-#        - export CC="clang-5.0" CXX="clang++-5.0"
+#        - export CC="clang-7" CXX="clang++-7"
 #
 #  exclude:
 #    - compiler: gcc
