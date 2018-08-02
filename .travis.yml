@@ -17,25 +17,11 @@ addons:
     sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
     packages: [ gcc-7, g++-7, ninja-build, clang ]
 
-
-# TODO:
 env:
-    - MATRIX_EVAL="export UNICODE=0 && export CC=clang-7 && export CXX=clang++-7"
-    - MATRIX_EVAL="export UNICODE=0 && export CC=gcc-7 && CXX=g++-7"
-    - MATRIX_EVAL="export UNICODE=1 && export CC=clang-7 && export CXX=clang++-7"
-    - MATRIX_EVAL="export UNICODE=1 && export CC=gcc-7 && CXX=g++-7"
-
-#matrix:
-#  include:
-#    - compiler: ": gcc-7"
-#      before_install:
-#        - export CC="gcc-7" CXX="g++-7"
-#    - compiler: ": clang-7"
-#      before_install:
-#        - export CC="clang-7" CXX="clang++-7"
-#
-#  exclude:
-#    - compiler: gcc
+    - MATRIX_EVAL="export UNICODE=0 CC=clang-7 CXX=clang++-7"
+    - MATRIX_EVAL="export UNICODE=0 CC=gcc-7   CXX=g++-7"
+    - MATRIX_EVAL="export UNICODE=1 CC=clang-7 CXX=clang++-7"
+    - MATRIX_EVAL="export UNICODE=1 CC=gcc-7   CXX=g++-7"
 
 install:
   - sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe"
