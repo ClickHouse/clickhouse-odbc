@@ -54,15 +54,14 @@
 #        define strcpy strcpy_s
 #        define stricmp _stricmp
 #    endif
+#    define ODBC_WCHAR 1
 #else
 
 // Fix missing declarations in iodbc
 #    if defined(_IODBCUNIX_H)
 #        if defined(UNICODE)
-//#      define LPCTSTR LPCWSTR
 #            define LPTSTR LPWSTR
 #        else
-//#      define LPCTSTR LPCSTR
 #            define LPTSTR LPSTR
 #        endif
 #    endif
@@ -74,18 +73,6 @@
 #endif
 
 typedef std::remove_pointer<LPTSTR>::type MYTCHAR;
-
-/*
-#if defined (UNICODE)
-#   if defined (_win_)
-#       define SIZEOF_CHAR  sizeof(uint_least16_t)
-#   else
-#       define SIZEOF_CHAR  sizeof(char16_t)
-#   endif
-#else
-#   define SIZEOF_CHAR sizeof(char)
-#endif
-*/
 #define SIZEOF_CHAR sizeof(SQLTCHAR)
 
 #if defined(_MSC_VER) && !defined(USE_SSL)

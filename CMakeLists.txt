@@ -94,7 +94,7 @@ if (UNICODE)
     if (ODBC_UNIXODBC)
         set(SQL_WCHART_CONVERT 1)
     endif ()
-    # Mode for unixodbc for working wuth wcar as in iodbc
+    # Mode for unixodbc for working with wchar as in iodbc
     if (SQL_WCHART_CONVERT)
         add_definitions(-DSQL_WCHART_CONVERT=1)
     endif ()

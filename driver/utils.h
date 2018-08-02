@@ -114,7 +114,7 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size = SQL_NTS)
     {
         symbols = static_cast<size_t>(size) / sizeof(SQLTCHAR);
     }
-    
+
     return stringFromSQLSymbols(data, symbols);
 }
 
