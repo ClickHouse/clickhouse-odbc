@@ -65,11 +65,11 @@ if(NOT WIN32)
 endif()
 
 
-#if (NOT WIN32 AND ODBC_LIBRARIES MATCHES "iodbc")
+if (NOT WIN32 AND ODBC_IODBC OR (NOT UNICODE AND ODBC_UNIXODBC) )
     find_library(ODBCINST_LIBRIES NAMES iodbcinst odbcinst PATHS ${ODBC_LIBRARIES_PATHS})
     list(APPEND ODBC_LIBRARIES ${ODBCINST_LIBRIES})
     list(APPEND ODBC_LIBRARIES ${LTDL_LIBRARY})
-#endif()
+endif()
 
 # MinGW find usually fails
 if(MINGW)
