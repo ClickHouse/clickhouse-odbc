@@ -195,6 +195,10 @@ void run_test(nanodbc::string const& connection_string)
         auto results = execute(connection, NANODBC_TEXT("SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'"));
         show(results);
     }
+    {
+        auto results = execute(connection, NANODBC_TEXT("SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long string' WHEN (number == 3) THEN 'r' ELSE '-' END)  FROM system.numbers LIMIT 5"));
+        show(results);
+    }
 
     // Binding parameters
     if (0) // Not supported. TODO.
