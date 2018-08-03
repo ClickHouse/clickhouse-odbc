@@ -220,7 +220,12 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
                     }
                     else
                     {
+                    // TODO: fixme! calc with fetch
+#if USE_WRONG_STRING_LENGTH
+                        num_value = std::max<decltype(column_info.display_size)>(4096, column_info.display_size);
+#else
                         num_value = column_info.display_size;
+#endif
                     }
                 }
                 break;
