@@ -274,7 +274,7 @@ RETCODE fillOutputNumber(NUM num,
         return fillOutputNumber<TYPE>(VALUE, out_value, out_value_max_length, out_value_length);
 
 #if UNICODE && !_win_
-#   define DEFINE_FUNCTION_MAYBE_W(NAME) NAME ## W
+#   define FUNCTION_MAYBE_W(NAME) NAME ## W
 #else
-#   define DEFINE_FUNCTION_MAYBE_W(NAME) NAME
+#   define FUNCTION_MAYBE_W(NAME) NAME
 #endif

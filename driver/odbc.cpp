@@ -31,7 +31,7 @@ extern "C" {
 
 
 /// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlconnect-function
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     SQLTCHAR * dsn,
     SQLSMALLINT dsn_size,
     SQLTCHAR * user,
@@ -56,7 +56,7 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
 
 
 /// Description: https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqldriverconnect
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
     HWND unused_window,
     SQLTCHAR FAR * connection_str_in,
     SQLSMALLINT connection_str_in_size,
@@ -77,7 +77,7 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size)
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size)
 {
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
@@ -108,7 +108,7 @@ RETCODE SQL_API SQLExecute(HSTMT statement_handle)
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size)
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size)
 {
     //LOG(__FUNCTION__);
 
@@ -297,7 +297,7 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
     SQLUSMALLINT column_number,
     SQLTCHAR * out_column_name,
     SQLSMALLINT out_column_name_max_size,
@@ -611,7 +611,7 @@ impl_SQLGetDiagRec(SQLSMALLINT handle_type,
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLGetDiagRec)(SQLSMALLINT handle_type,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLGetDiagRec)(SQLSMALLINT handle_type,
     SQLHANDLE handle,
     SQLSMALLINT record_number,
     SQLTCHAR * out_sqlstate,
@@ -647,7 +647,7 @@ RETCODE SQL_API SQLGetDiagField(SQLSMALLINT handle_type,
 }
 
 /// Description: https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqltables
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
     SQLTCHAR * catalog_name,
     SQLSMALLINT catalog_name_length,
     SQLTCHAR * schema_name,
@@ -735,7 +735,7 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
     SQLTCHAR * catalog_name,
     SQLSMALLINT catalog_name_length,
     SQLTCHAR * schema_name,
@@ -948,7 +948,7 @@ RETCODE SQL_API SQLNumParams(HSTMT statement_handle, SQLSMALLINT * out_params_co
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle,
     SQLTCHAR * query,
     SQLINTEGER query_length,
     SQLTCHAR * out_query,
@@ -975,7 +975,7 @@ RETCODE SQL_API SQLCloseCursor(HSTMT statement_handle)
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLBrowseConnect)(HDBC connection_handle,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLBrowseConnect)(HDBC connection_handle,
     SQLTCHAR * szConnStrIn,
     SQLSMALLINT cbConnStrIn,
     SQLTCHAR * szConnStrOut,
@@ -998,7 +998,7 @@ RETCODE SQL_API SQLCancel(HSTMT StatementHandle)
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLDataSources)(HENV EnvironmentHandle,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLDataSources)(HENV EnvironmentHandle,
     SQLUSMALLINT Direction,
     SQLTCHAR * ServerName,
     SQLSMALLINT BufferLength1,
@@ -1012,7 +1012,7 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLDataSources)(HENV EnvironmentHandle,
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLGetCursorName)(HSTMT StatementHandle, SQLTCHAR * CursorName, SQLSMALLINT BufferLength, SQLSMALLINT * NameLength)
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLGetCursorName)(HSTMT StatementHandle, SQLTCHAR * CursorName, SQLSMALLINT BufferLength, SQLSMALLINT * NameLength)
 {
     LOG(__FUNCTION__);
     return SQL_ERROR;
@@ -1134,7 +1134,7 @@ RETCODE SQL_API SQLPutData(HSTMT StatementHandle, PTR Data, SQLLEN StrLen_or_Ind
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLSetCursorName)(HSTMT StatementHandle, SQLTCHAR * CursorName, SQLSMALLINT NameLength)
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLSetCursorName)(HSTMT StatementHandle, SQLTCHAR * CursorName, SQLSMALLINT NameLength)
 {
     LOG(__FUNCTION__);
     return SQL_ERROR;
@@ -1155,7 +1155,7 @@ RETCODE SQL_API SQLSetParam(HSTMT StatementHandle,
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLSpecialColumns)(HSTMT StatementHandle,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLSpecialColumns)(HSTMT StatementHandle,
     SQLUSMALLINT IdentifierType,
     SQLTCHAR * CatalogName,
     SQLSMALLINT NameLength1,
@@ -1171,7 +1171,7 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLSpecialColumns)(HSTMT StatementHandle
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLStatistics)(HSTMT StatementHandle,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLStatistics)(HSTMT StatementHandle,
     SQLTCHAR * CatalogName,
     SQLSMALLINT NameLength1,
     SQLTCHAR * SchemaName,
@@ -1186,7 +1186,7 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLStatistics)(HSTMT StatementHandle,
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLColumnPrivileges)(HSTMT hstmt,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLColumnPrivileges)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1224,7 +1224,7 @@ RETCODE SQL_API SQLExtendedFetch(HSTMT hstmt,
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLForeignKeys)(HSTMT hstmt,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLForeignKeys)(HSTMT hstmt,
     SQLTCHAR * szPkCatalogName,
     SQLSMALLINT cbPkCatalogName,
     SQLTCHAR * szPkSchemaName,
@@ -1243,7 +1243,7 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLForeignKeys)(HSTMT hstmt,
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLPrimaryKeys)(HSTMT hstmt,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrimaryKeys)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1256,7 +1256,7 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLPrimaryKeys)(HSTMT hstmt,
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLProcedureColumns)(HSTMT hstmt,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLProcedureColumns)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1271,7 +1271,7 @@ RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLProcedureColumns)(HSTMT hstmt,
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLProcedures)(HSTMT hstmt,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLProcedures)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1291,7 +1291,7 @@ RETCODE SQL_API SQLSetPos(HSTMT hstmt, SQLSETPOSIROW irow, SQLUSMALLINT fOption,
 }
 
 
-RETCODE SQL_API DEFINE_FUNCTION_MAYBE_W(SQLTablePrivileges)(HSTMT hstmt,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLTablePrivileges)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
