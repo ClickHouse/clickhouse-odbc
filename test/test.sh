@@ -20,6 +20,7 @@ DSN=${DSN=clickhouse_localhost}
 
 function q {
     echo "Asking [$*]"
+    # DYLD_INSERT_LIBRARIES=/usr/local/opt/gcc/lib/gcc/8/libasan.5.dylib
     echo "$*" | $RUNNER $DSN $RUNNER_PARAMS
 }
 
@@ -28,6 +29,8 @@ q "CREATE DATABASE IF NOT EXISTS test;"
 q "DROP TABLE IF EXISTS test.odbc1;"
 q "CREATE TABLE test.odbc1 (ui64 UInt64, string String, date Date, datetime DateTime) ENGINE = Memory;"
 q "INSERT INTO test.odbc1 VALUES (1, '2', 3, 4);"
+q "INSERT INTO test.odbc1 VALUES (10, '20', 30, 40);"
+q "INSERT INTO test.odbc1 VALUES (100, '200', 300, 400);"
 q "SELECT * FROM test.odbc1 WHERE ui64=1;"
 
 q 'SELECT {fn CONVERT(1, SQL_BIGINT)}'
@@ -101,6 +104,8 @@ q 'SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,CAST({fn TRUNCATE((-1 * ({fn DAYOFYEAR(CA
 q 'SELECT {fn TIMESTAMPADD(SQL_TSI_MONTH,CAST({fn TRUNCATE((3 * (CAST({fn TRUNCATE({fn QUARTER(CAST(`test`.`odbc1`.`date` AS DATE))},0)} AS INTEGER) - 1)),0)} AS INTEGER),{fn TIMESTAMPADD(SQL_TSI_DAY,CAST({fn TRUNCATE((-1 * ({fn DAYOFYEAR(CAST(`test`.`odbc1`.`date` AS DATE))} - 1)),0)} AS INTEGER),CAST(CAST(`test`.`odbc1`.`date` AS DATE) AS DATE))})} AS `tqr_Calculation_681450978608578560_ok` FROM `test`.`odbc1` GROUP BY `tqr_Calculation_681450978608578560_ok`'
 q 'SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,CAST({fn TRUNCATE((-1 * (EXTRACT(DAY FROM CAST(`test`.`odbc1`.`date` AS DATE)) - 1)),0)} AS INTEGER),CAST(CAST(`test`.`odbc1`.`date` AS DATE) AS DATE))} AS `tmn_Calculation_681450978608578560_ok` FROM `test`.`odbc1` GROUP BY `tmn_Calculation_681450978608578560_ok`'
 
+q $'SELECT (CASE WHEN (`test`.`odbc1`.`ui64` < 5) THEN replaceRegexpOne(toString(`test`.`odbc1`.`ui64`), \'^\\s+\', \'\') WHEN (`test`.`odbc1`.`ui64` < 10) THEN \'5-9\' WHEN (`test`.`odbc1`.`ui64` < 20) THEN \'10-19\' WHEN (`test`.`odbc1`.`ui64` >= 20) THEN \'20+\' ELSE NULL END) AS `Calculation_582653228063055875`, SUM(`test`.`odbc1`.`ui64`) AS `sum_traf_se_ok` FROM `test`.`odbc1` GROUP BY `Calculation_582653228063055875` ORDER BY `Calculation_582653228063055875`'
+q $"SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long string' WHEN (number == 3) THEN 'r' ELSE '-' END)  FROM system.numbers LIMIT 5"
 
 # todo: test with fail on comparsion:
 q $"SELECT {fn DAYOFWEEK(CAST('2018-04-16' AS DATE))}, 7, 'sat'"
