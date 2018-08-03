@@ -74,10 +74,16 @@ if (CLICKHOUSE_ODBC_TEST)
     enable_testing ()
 endif ()
 
+option (UNBUNDLED "Try find all libraries in system (if fail - use bundled from contrib/)" OFF)
+if (UNBUNDLED)
+    set(NOT_UNBUNDLED 0)
+else ()
+    set(NOT_UNBUNDLED 1)
+endif ()
+
 option (ENABLE_SSL "Use openssl for accessing https:// interface" 1)
 
 if (ENABLE_SSL)
-    set (USE_INTERNAL_SSL_LIBRARY 1 CACHE INTERNAL "")
     include (cmake/find_ssl.cmake)
     if (OPENSSL_FOUND)
         set (USE_SSL 1)

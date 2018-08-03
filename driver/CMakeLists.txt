@@ -40,7 +40,8 @@ endif()
 target_link_libraries(clickhouse-odbc clickhouse-odbc-escaping)
 
 if(USE_SSL)
-    target_link_libraries(clickhouse-odbc ${Poco_NetSSL_LIBRARY} ${Poco_Util_LIBRARY})
+    target_link_libraries(clickhouse-odbc ${Poco_NetSSL_LIBRARY} ${Poco_Crypto_LIBRARY} ${Poco_Util_LIBRARY})
+    target_include_directories (clickhouse-odbc PRIVATE ${OPENSSL_INCLUDE_DIR})
 endif()
 
 target_link_libraries(clickhouse-odbc

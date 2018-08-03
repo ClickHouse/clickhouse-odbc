@@ -1,4 +1,4 @@
-option (USE_INTERNAL_POCO_LIBRARY "Set to FALSE to use system poco library instead of bundled" 1)
+option (USE_INTERNAL_POCO_LIBRARY "Set to FALSE to use system poco library instead of bundled" ${NOT_UNBUNDLED})
 
 if (NOT USE_INTERNAL_POCO_LIBRARY)
     if (WIN32 OR MSVC)
@@ -7,7 +7,12 @@ if (NOT USE_INTERNAL_POCO_LIBRARY)
     #   set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
     endif ()
 
-    find_package (Poco COMPONENTS Net)
+    set (POCO_COMPONENTS Net)
+    if (NOT DEFINED ENABLE_POCO_NETSSL OR ENABLE_POCO_NETSSL)
+        list (APPEND POCO_COMPONENTS Crypto NetSSL)
+    endif ()
+
+    find_package (Poco COMPONENTS ${POCO_COMPONENTS})
 endif ()
 
 if (Poco_INCLUDE_DIRS AND Poco_Foundation_LIBRARY)
