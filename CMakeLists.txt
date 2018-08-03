@@ -87,7 +87,8 @@ endif ()
 include (cmake/find_ltdl.cmake) # for odbc
 include (cmake/find_odbc.cmake)
 
-option (UNICODE "Enable unicode (experimental)" 0)
+
+option (UNICODE "Enable unicode" 1)
 if (UNICODE)
     set(UNICODE 1)
     add_definitions(-DUNICODE=1 -D_UNICODE=1)
@@ -120,6 +121,7 @@ if (UNICODE)
 endif()
 
 message (STATUS "UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_CONVERT} ODBC_WCHAR=${ODBC_WCHAR}")
+
 
 if (NOT WIN32)
     set (OPENSSL_LIBRARIES "-Wl,-Bdynamic ${OPENSSL_LIBRARIES} -Wl,-Bstatic")
