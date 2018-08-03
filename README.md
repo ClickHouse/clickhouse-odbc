@@ -39,7 +39,7 @@ sudo apt install unixodbc-dev
 
 ## Building (Linux)
 
-By default UNICODE version built. To switch to ansi add -DUNICODE=0 to cmake
+By default ansi version built. To switch to unicode add -DUNICODE=1 to cmake
 
 1. At the root of source directory:
 ```bash
@@ -47,7 +47,7 @@ mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || 
 ```
 Please use cmake3 to build the project on CentOS 7. You can install it with `yum install cmake3`.
 
-2. libclickhouseodbcw.so will be at ```build/driver/libclickhouseodbcw.so```
+2. libclickhouseodbc.so will be at ```build/driver/libclickhouseodbc.so```
 
 
 ## Building (macos):

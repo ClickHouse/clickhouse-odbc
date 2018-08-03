@@ -88,7 +88,7 @@ include (cmake/find_ltdl.cmake) # for odbc
 include (cmake/find_odbc.cmake)
 
 
-option (UNICODE "Enable unicode" 1)
+option (UNICODE "Enable unicode" 0)
 if (UNICODE)
     set(UNICODE 1)
     add_definitions(-DUNICODE=1 -D_UNICODE=1)
