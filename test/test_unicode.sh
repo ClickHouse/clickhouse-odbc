@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# !!! WARNING! THIS SCRIPT WILL UNINSTALL PACKAGES DEPEND ON libiodbc2-dev unixodbc-dev !!!
+# !!! WARNING! THIS SCRIPT WILL UNINSTALL ALL PACKAGES DEPEND ON libiodbc2-dev unixodbc-dev !!!
 
 # env CMAKE_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-6.0` -DCMAKE_C_COMPILER=`which clang-6.0`" sh -x ./test_all.sh
 
