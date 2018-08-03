@@ -49,9 +49,8 @@ target_link_libraries(clickhouse-odbc
     ${ODBC_LIBRARIES}
 )
 
-if(APPLE)
-elseif (NOT WIN32)
-    target_link_libraries(clickhouse-odbc -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script)
+if(NOT APPLE AND NOT WIN32)
+    target_link_libraries(clickhouse-odbc "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script")
 endif()
 
 if (WIN32)
