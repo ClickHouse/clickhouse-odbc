@@ -33,8 +33,16 @@ if (MSVC)
 	set (CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
 endif ()
 set (CMAKE_DEBUG_POSTFIX                 "") # Dont add "d" to target lib name
-list (REVERSE CMAKE_FIND_LIBRARY_SUFFIXES) # we want static link - now .a libs have highest priority
 
+if (NOT BUILD_SHARED)
+    list (REVERSE CMAKE_FIND_LIBRARY_SUFFIXES) # we want static link - now .a libs have highest priority
+    if (COMPILER_GCC)
+        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
+        set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -static-libstdc++")
+    endif ()
+endif ()
+
+message (STATUS "BUILD_SHARED=${BUILD_SHARED}")
 
 include (cmake/arch.cmake)
 
@@ -76,21 +84,49 @@ if (ENABLE_SSL)
     endif ()
 endif ()
 
-option (UNICODE "Enable unicode (experimental)" 0)
+include (cmake/find_ltdl.cmake) # for odbc
+include (cmake/find_odbc.cmake)
+
+
+option (UNICODE "Enable unicode" 0)
 if (UNICODE)
     set(UNICODE 1)
     add_definitions(-DUNICODE=1 -D_UNICODE=1)
-    #add_definitions(-DSQL_WCHART_CONVERT=1)
+    if (ODBC_UNIXODBC)
+        set(SQL_WCHART_CONVERT 1)
+    endif ()
+    # Mode for unixodbc for working with wchar as in iodbc
+    if (SQL_WCHART_CONVERT)
+        add_definitions(-DSQL_WCHART_CONVERT=1)
+    endif ()
 else ()
     set(UNICODE 0)
 endif ()
+
+# Hell matrix
+#               TCHAR       sizeof()    note
+# not unicode   char        1
+# unicode:
+# win           wchar_t     2
+# iodbc         wchar_t     4
+# unixodbc      wchar_t     4           true == SQL_WCHART_CONVERT
+# unixodbc      char16_t    2           false == SQL_WCHART_CONVERT
+
+if (UNICODE)
+    if (ODBC_UNIXODBC AND NOT SQL_WCHART_CONVERT)
+        # char16
+    else()
+        set(ODBC_WCHAR 1)
+    endif()
+endif()
+
+message (STATUS "UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_CONVERT} ODBC_WCHAR=${ODBC_WCHAR}")
+
 
 if (NOT WIN32)
     set (OPENSSL_LIBRARIES "-Wl,-Bdynamic ${OPENSSL_LIBRARIES} -Wl,-Bstatic")
 endif ()
 
-include (cmake/find_ltdl.cmake) # for odbc
-include (cmake/find_odbc.cmake)
 include (cmake/find_poco.cmake)
 include (cmake/find_nanoodbc.cmake)
 include (cmake/find_ccache.cmake)
@@ -106,8 +142,6 @@ if (NOT WIN32 AND NOT ODBC_LIBRARIES MATCHES "iodbc")
 endif ()
 
 message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE} ; CCACHE=${CCACHE_FOUND} ${CCACHE_VERSION}")
-
-message (STATUS "${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_VERSION}")
 
 add_subdirectory (contrib)
 add_subdirectory (driver)

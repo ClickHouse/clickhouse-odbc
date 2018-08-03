@@ -191,6 +191,11 @@ void run_test(nanodbc::string const& connection_string)
         show(results);
     }
 
+    {
+        auto results = execute(connection, NANODBC_TEXT("SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'"));
+        show(results);
+    }
+
     // Binding parameters
     if (0) // Not supported. TODO.
     {

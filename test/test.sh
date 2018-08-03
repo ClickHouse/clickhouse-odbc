@@ -14,12 +14,14 @@
 # ./test.sh | grep -i error
 
 DSN=${DSN=clickhouse_localhost}
+[ -z $RUNNER ] && RUNNER=`which isql` && [ -n $RUNNER ] && RUNNER_PARAMS="-v -b"
+[ -z $RUNNER ] && RUNNER=`which iodbctestw`
+[ -z $RUNNER ] && RUNNER=`which iodbctest`
 
 function q {
     echo "Asking [$*]"
-    echo "$*" | isql $DSN -v -b
+    echo "$*" | $RUNNER $DSN $RUNNER_PARAMS
 }
-
 
 q "SELECT * FROM system.build_options;"
 q "CREATE DATABASE IF NOT EXISTS test;"
@@ -119,7 +121,9 @@ q $'SELECT name, {fn REPLACE(`name`, \'E\',\'!\')} AS `r1` FROM system.build_opt
 q $'SELECT {fn REPLACE(\'ABCDABCD\' , \'B\',\'E\')} AS `r1`'
 
 q $"SELECT (CASE WHEN 1>0 THEN 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' ELSE NULL END);"
-q $"SELECT {fn REPLACE(\'ABCDEFGHIJKLMNOPQRSTUVWXY\', \'E\',\'!\')} AS r1;"
+q $'SELECT {fn REPLACE(\'ABCDEFGHIJKLMNOPQRSTUVWXYZ\', \'E\',\'!\')} AS `r1`'
+
+q $"SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'"
 
 q 'DROP TABLE IF EXISTS test.increment;'
 q 'CREATE TABLE test.increment (n UInt64) engine Log;'

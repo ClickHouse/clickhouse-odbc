@@ -23,7 +23,7 @@ add_library(clickhouse-odbc SHARED
 )
 
 
-if (UNICODE)
+if (UNICODE AND NOT LIB_NAME_NO_W)
     set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbcw")
 else()
     set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
@@ -49,10 +49,8 @@ target_link_libraries(clickhouse-odbc
     ${ODBC_LIBRARIES}
 )
 
-if(APPLE)
-    target_link_libraries(clickhouse-odbc ${LTDL_LIBRARY})
-elseif (NOT WIN32)
-    target_link_libraries(clickhouse-odbc -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script)
+if(NOT APPLE AND NOT WIN32)
+    target_link_libraries(clickhouse-odbc "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script")
 endif()
 
 if (WIN32)

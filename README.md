@@ -39,6 +39,8 @@ sudo apt install unixodbc-dev
 
 ## Building (Linux)
 
+By default ansi version built. To switch to unicode add -DUNICODE=1 to cmake
+
 1. At the root of source directory:
 ```bash
 mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
@@ -49,18 +51,17 @@ Please use cmake3 to build the project on CentOS 7. You can install it with `yum
 
 
 ## Building (macos):
-Build with standard libiodbc:
+Before build with standard libiodbc:
 ```
 brew install libiodbc
-mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
-# or
-mkdir -p build; cd build && cmake .. -DODBC_INCLUDE_DIRECTORIES=/usr/local/include -DODBC_LIBRARIES=/usr/local/lib/libiodbc.a && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
 ```
-
-Build with unixodbc:
+Or for build with unixodbc:
 ```
 brew install unixodbc
-mkdir -p build; cd build && cmake .. -DODBC_INCLUDE_DIRECTORIES=/usr/local/include -DODBC_LIBRARIES="/usr/local/lib/libodbc.a;/usr/local/lib/libodbcinst.a" && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
+```
+
+```
+mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
 ```
 
 ## Building (windows visual studio)
@@ -68,12 +69,12 @@ mkdir -p build; cd build && cmake .. -DODBC_INCLUDE_DIRECTORIES=/usr/local/inclu
 
 
 ## Building (windows cmake) (Developer only: setup window still not working)
-```md build && cd build && cmake .. -G "Visual Studio 15 2017 Win64" && cmake --build . -- /m```
+```cd vs && build_cmake.bat```
 
 
 ## Build with tests (needs configured ~/.odbc.ini with DSN=clickhouse_localhost)
 ```mkdir -p build; cd build
-( cd ../contrib && git clone https://github.com/lexicalunit/nanodbc.git )
+( cd ../contrib && git clone https://github.com/nanodbc/nanodbc )
 cmake -G Ninja -DTEST_DSN=clickhouse_localhost -DCMAKE_BUILD_TYPE=Debug -DUSE_DEBUG_17=1 .. && ninja
 ctest -V```
 
