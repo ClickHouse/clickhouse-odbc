@@ -123,6 +123,7 @@ q $'SELECT {fn REPLACE(\'ABCDABCD\' , \'B\',\'E\')} AS `r1`'
 q $"SELECT (CASE WHEN 1>0 THEN 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' ELSE NULL END);"
 q $'SELECT {fn REPLACE(\'ABCDEFGHIJKLMNOPQRSTUVWXYZ\', \'E\',\'!\')} AS `r1`'
 
+q $"SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'"
 
 q 'DROP TABLE IF EXISTS test.increment;'
 q 'CREATE TABLE test.increment (n UInt64) engine Log;'

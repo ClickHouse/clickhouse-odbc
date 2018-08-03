@@ -39,3 +39,4 @@ say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1+1';
 say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options';
 say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) ASC';
 say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) DESC';
+say Data::Dumper::Dumper prepare_execute_hash q{SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'};
