@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # !!! WARNING! THIS SCRIPT WILL UNINSTALL ALL PACKAGES DEPEND ON libiodbc2-dev unixodbc-dev !!!
 
