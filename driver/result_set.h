@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <memory>
+#include <deque>
 
 class Statement;
 
@@ -91,11 +92,13 @@ private:
     void throwIncompleteResult() const;
 
     bool readNextBlock();
+    bool readNextBlockCache();
 
 private:
     Statement * statement = nullptr;
     IResultMutatorPtr mutator;
     std::vector<ColumnInfo> columns_info;
+    std::deque<Row> current_block_buffer;
     Block current_block;
     Block::Data::const_iterator iterator;
     size_t rows = 0;
