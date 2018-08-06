@@ -180,6 +180,26 @@ void run_test(nanodbc::string const& connection_string)
         cout << endl << results.get<int>(NANODBC_TEXT("first")) << ", " << convert(value) << endl;
     }
 
+
+    {
+        auto results = execute(connection, NANODBC_TEXT("SELECT (CASE WHEN 1>0 THEN 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' ELSE NULL END);"));
+        show(results);
+    }
+
+    {
+        auto results = execute(connection, NANODBC_TEXT("SELECT *, (CASE WHEN 1>0 THEN 'ABC' ELSE 'ABCDEFG' END) FROM system.build_options;"));
+        show(results);
+    }
+
+    {
+        auto results = execute(connection, NANODBC_TEXT("SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'"));
+        show(results);
+    }
+    {
+        auto results = execute(connection, NANODBC_TEXT("SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long string' WHEN (number == 3) THEN 'r' ELSE '-' END)  FROM system.numbers LIMIT 5"));
+        show(results);
+    }
+
     // Binding parameters
     if (0) // Not supported. TODO.
     {

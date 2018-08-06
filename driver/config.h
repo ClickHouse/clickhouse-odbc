@@ -18,8 +18,8 @@
 #define INI_SSLMODE         TEXT("SSLMode")
 
 #ifndef WIN32
-#   define ODBC_INI         ".odbc.ini"
-#   define ODBCINST_INI     "odbcinst.ini"
+#   define ODBC_INI         TEXT(".odbc.ini")
+#   define ODBCINST_INI     TEXT("odbcinst.ini")
 #else
 #   define ODBC_INI         TEXT("ODBC.INI")
 #   define ODBCINST_INI     TEXT("ODBCINST.INI")
@@ -31,21 +31,21 @@
  */
 struct ConnInfo
 {
-    SQLTCHAR       dsn[MEDIUM_REGISTRY_LEN];
-    SQLTCHAR       desc[MEDIUM_REGISTRY_LEN];
-    SQLTCHAR       drivername[MEDIUM_REGISTRY_LEN];
-    SQLTCHAR       server[MEDIUM_REGISTRY_LEN];
-    SQLTCHAR       database[MEDIUM_REGISTRY_LEN];
-    SQLTCHAR       username[MEDIUM_REGISTRY_LEN];
-    SQLTCHAR       password[MEDIUM_REGISTRY_LEN];
-    SQLTCHAR       port[SMALL_REGISTRY_LEN];
-    SQLTCHAR       sslmode[16];
-    SQLTCHAR       onlyread[SMALL_REGISTRY_LEN];
-    SQLTCHAR       timeout[SMALL_REGISTRY_LEN];
-    SQLTCHAR       show_system_tables[SMALL_REGISTRY_LEN];
-    SQLTCHAR       translation_dll[MEDIUM_REGISTRY_LEN];
-    SQLTCHAR       translation_option[SMALL_REGISTRY_LEN];
-    SQLTCHAR       conn_settings[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       dsn[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       desc[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       drivername[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       server[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       database[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       username[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       password[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       port[SMALL_REGISTRY_LEN];
+    MYTCHAR       sslmode[16];
+    MYTCHAR       onlyread[SMALL_REGISTRY_LEN];
+    MYTCHAR       timeout[SMALL_REGISTRY_LEN];
+    MYTCHAR       show_system_tables[SMALL_REGISTRY_LEN];
+    MYTCHAR       translation_dll[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       translation_option[SMALL_REGISTRY_LEN];
+    MYTCHAR       conn_settings[MEDIUM_REGISTRY_LEN];
     signed char disallow_premature = -1;
     signed char allow_keyset = -1;
     signed char updatable_cursors = 0;
