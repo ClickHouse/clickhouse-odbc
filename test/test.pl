@@ -39,3 +39,5 @@ say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1+1';
 say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options';
 say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) ASC';
 say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) DESC';
+say Data::Dumper::Dumper prepare_execute_hash q{SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'};
+say Data::Dumper::Dumper prepare_execute_hash q{SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long string' WHEN (number == 3) THEN 'r' ELSE '-' END)  FROM system.numbers LIMIT 5};

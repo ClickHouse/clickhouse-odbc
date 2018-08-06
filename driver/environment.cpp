@@ -1,4 +1,5 @@
 #include "environment.h"
+#include "win/version.h"
 
 #include <cstdio>
 #include <ctime>
@@ -11,7 +12,7 @@
 
 //#if __has_include("config_cmake.h") // requre c++17
 #if CMAKE_BUILD
-#include "config_cmake.h"
+#   include "config_cmake.h"
 #endif
 
 const std::map<std::string, TypeInfo> Environment::types_info =
@@ -36,19 +37,19 @@ const std::map<std::string, TypeInfo> Environment::types_info =
 Environment::Environment() {
 #if OUTPUT_REDIRECT
     std::string stderr_path = "/tmp/clickhouse-odbc-stderr";
-#if _unix_
+#   if _unix_
     struct passwd * pw;
     uid_t uid;
     uid = geteuid();
     pw = getpwuid(uid);
     if (pw)
         stderr_path += "." + std::string(pw->pw_name);
-#endif
+#   endif
 
-#if _win_
+#   if _win_
     // unsigned int pid = GetCurrentProcessId();
     // stderr_path += "." + std::to_string(pid);
-#endif
+#   endif
 
     if (!freopen(stderr_path.c_str(), "a", stderr))
         throw std::logic_error("Cannot freopen stderr.");
@@ -62,8 +63,14 @@ Environment::Environment() {
             std::cerr << mbstr << " === Driver started =====================" << std::endl;
 #endif
             LOG(std::endl << mbstr << " === Driver started ==="
+                      << " VERSION=" << VERSION_STRING
 #if defined(UNICODE)
                       << " UNICODE=" << UNICODE
+#   if defined(ODBC_WCHAR)
+                      << " ODBC_WCHAR=" << ODBC_WCHAR
+#   endif
+                      << " sizeof(SQLTCHAR)=" << sizeof(SQLTCHAR)
+                      << " sizeof(wchar_t)=" << sizeof(wchar_t)
 #endif
 #if ODBCVER
                       << " ODBCVER=" << std::hex << ODBCVER << std::dec
