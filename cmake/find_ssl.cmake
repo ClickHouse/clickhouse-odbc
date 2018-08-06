@@ -4,8 +4,6 @@ endif ()
 
 set (OPENSSL_USE_STATIC_LIBS ${USE_STATIC_LIBRARIES})
 
-set (OPENSSL_FOUND)
-
 if (NOT USE_INTERNAL_SSL_LIBRARY)
     if (APPLE)
         set (OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
@@ -59,13 +57,13 @@ if (NOT OPENSSL_FOUND)
 endif ()
 
 #TODO: to use with new poco
-#if (0)
+if (0)
 # part from /usr/share/cmake-*/Modules/FindOpenSSL.cmake, with removed all "EXISTS "
 if(OPENSSL_FOUND)
   if(NOT TARGET OpenSSL::Crypto AND
-      (EXISTS OPENSSL_CRYPTO_LIBRARY OR
-        EXISTS LIB_EAY_LIBRARY_DEBUG OR
-        EXISTS LIB_EAY_LIBRARY_RELEASE)
+      (OPENSSL_CRYPTO_LIBRARY OR
+        LIB_EAY_LIBRARY_DEBUG OR
+        LIB_EAY_LIBRARY_RELEASE)
       )
     add_library(OpenSSL::Crypto UNKNOWN IMPORTED)
     set_target_properties(OpenSSL::Crypto PROPERTIES
@@ -123,6 +121,6 @@ if(OPENSSL_FOUND)
     endif()
   endif()
 endif()
-#endif()
+endif()
 
 message (STATUS "Using ssl=${OPENSSL_FOUND}: ${OPENSSL_INCLUDE_DIR} : ${OPENSSL_LIBRARIES}")
