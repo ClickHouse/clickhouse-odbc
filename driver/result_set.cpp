@@ -184,7 +184,7 @@ std::istream & ResultSet::in()
 
 bool ResultSet::readNextBlockCache()
 {
-    auto max_block_size = 1000;
+    size_t max_block_size = 1000; // How many rows read to calculate max columns sizes
     size_t readed = 0;
     for (size_t i = 0; i < max_block_size && in().peek() != EOF; ++i)
     {
