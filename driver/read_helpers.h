@@ -5,8 +5,10 @@
 #include <iostream>
 #include <stdexcept>
 
+#include <log.h>
+
 /// In the format of VarUInt.
-inline void readSize(Poco::UInt64 & res, std::istream & istr)
+inline void readSize(std::int64_t & res, std::istream & istr)
 {
     static constexpr auto MAX_LENGTH_OF_SIZE = 4;   /// Limits the size to 256 megabytes (2 ^ (7 * 4)).
 
@@ -18,7 +20,7 @@ inline void readSize(Poco::UInt64 & res, std::istream & istr)
         if (byte == EOF)
             throw std::runtime_error("Incomplete result received.");
 
-        res |= (static_cast<Poco::UInt64>(byte) & 0x7F) << (7 * i);
+        res |= (static_cast<std::int64_t>(byte) & 0x7F) << (7 * i);
 
         if (!(byte & 0x80))
             return;
@@ -30,11 +32,13 @@ inline void readSize(Poco::UInt64 & res, std::istream & istr)
 
 inline void readString(std::string & res, std::istream & istr)
 {
-    Poco::UInt64 size = 0;
+    std::int64_t size = 0;
     readSize(size, istr);
 
     res.resize(size);
     istr.read(&res[0], size);
+
+LOG("rrrread size=" << size << " res=" << res);
 
     if (!istr.good())
         throw std::runtime_error("Incomplete result received.");

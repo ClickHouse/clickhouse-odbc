@@ -109,7 +109,7 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_)
         return;
 
     /// Title: number of columns, their names and types.
-    Poco::UInt64 num_columns = 0;
+    std::int64_t num_columns = 0;
     readSize(num_columns, in());
 
     if (!num_columns)

@@ -388,7 +388,7 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
                 return fillOutputNumber<Poco::Int64>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_UBIGINT:
-                return fillOutputNumber<Poco::UInt64>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputNumber<uint64_t>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_FLOAT:
                 return fillOutputNumber<float>(field.getFloat(), out_value, out_value_max_size, out_value_size_or_indicator);
