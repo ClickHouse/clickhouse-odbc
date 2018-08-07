@@ -54,6 +54,11 @@ else ()
         set (Poco_NetSSL_FOUND 1)
         set (Poco_NetSSL_LIBRARY PocoNetSSL)
         set (Poco_Crypto_LIBRARY PocoCrypto)
+        list (APPEND Poco_INCLUDE_DIRS
+            "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/NetSSL_OpenSSL/include"
+            "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Crypto/include"
+        )
+
     endif ()
 
     set (Poco_Foundation_LIBRARY PocoFoundation)
