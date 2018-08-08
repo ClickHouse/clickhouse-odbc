@@ -260,6 +260,13 @@ RETCODE fillOutputNumber(NUM num,
     return res;
 }
 
+inline RETCODE fillOutputNULL(PTR out_value, SQLLEN out_value_max_length, SQLLEN * out_value_length)
+{
+    if (out_value_length)
+        *out_value_length = SQL_NULL_DATA;
+    return SQL_SUCCESS;
+}
+
 
 /// See for example info.cpp
 

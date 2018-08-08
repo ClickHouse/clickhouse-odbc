@@ -17,6 +17,7 @@ class Field
 {
 public:
     std::string data;
+    bool is_null = false;
 
     Poco::UInt64 getUInt() const{ return Poco::NumberParser::parseUnsigned64(data); }
     Poco::Int64 getInt() const  { return Poco::NumberParser::parse64(data); }

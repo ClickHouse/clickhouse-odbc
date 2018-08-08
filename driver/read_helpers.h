@@ -8,8 +8,10 @@
 #include <log.h>
 
 /// In the format of VarUInt.
-inline void readSize(std::int64_t & res, std::istream & istr)
-{
+inline void readSize(std::istream & istr, int32_t & res) {
+    istr.read(reinterpret_cast<char *>(&res), sizeof(res));
+
+    /*
     static constexpr auto MAX_LENGTH_OF_SIZE = 4;   /// Limits the size to 256 megabytes (2 ^ (7 * 4)).
 
     res = 0;
@@ -21,24 +23,34 @@ inline void readSize(std::int64_t & res, std::istream & istr)
             throw std::runtime_error("Incomplete result received.");
 
         res |= (static_cast<std::int64_t>(byte) & 0x7F) << (7 * i);
+        
+LOG("byte=" << byte << " res=" << res<< " end=" << (byte & 0x80));
 
         if (!(byte & 0x80))
             return;
     }
 
     throw std::runtime_error("Too large size.");
+*/
 }
 
 
-inline void readString(std::string & res, std::istream & istr)
-{
-    std::int64_t size = 0;
-    readSize(size, istr);
+inline void readString(std::istream & istr, std::string & res, bool * is_null = nullptr) {
+    int32_t size = 0;
+    readSize(istr, size);
 
-    res.resize(size);
-    istr.read(&res[0], size);
-
-LOG("rrrread size=" << size << " res=" << res);
+    LOG("rrrread size=" << size);
+    if (size >= 0) {
+        res.resize(size);
+        if (size > 0)
+            istr.read(&res[0], size);
+    } else if (size == -1) {
+        res.clear();
+        if (is_null)
+            *is_null = true;
+        res = "N0LL";
+    }
+    LOG("rrrread res=" << size << " res=" << res);
 
     if (!istr.good())
         throw std::runtime_error("Incomplete result received.");

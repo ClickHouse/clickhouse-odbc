@@ -24,6 +24,12 @@ function q {
     echo "$*" | $RUNNER $DSN $RUNNER_PARAMS
 }
 
+q "SELECT toNullable(42), toNullable('abc'), NULL"
+q "SELECT 1, 'string', NULL"
+q "SELECT 1, NULL, 2, 3, NULL, 4"
+q "SELECT 'stringlong', NULL, 2, NULL"
+#exit
+
 q "SELECT * FROM system.build_options;"
 q "CREATE DATABASE IF NOT EXISTS test;"
 q "DROP TABLE IF EXISTS test.odbc1;"

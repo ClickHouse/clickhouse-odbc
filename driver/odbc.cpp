@@ -307,7 +307,6 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
     SQLSMALLINT * out_decimal_digits,
     SQLSMALLINT * out_is_nullable)
 {
-    LOG(__FUNCTION__ << " column_number=" << column_number);
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
         if (column_number < 1 || column_number > statement.result.getNumColumns())
@@ -318,6 +317,8 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
         const ColumnInfo & column_info = statement.result.getColumnInfo(column_idx);
         const TypeInfo & type_info = statement.connection.environment.types_info.at(column_info.type_without_parameters);
 
+        LOG(__FUNCTION__ << " column_number=" << column_number << "name=" << column_info.name <<" type=" << type_info.sql_type << " size=" << type_info.column_size << " nullable=" << column_info.is_nullable);
+
         if (out_type)
             *out_type = type_info.sql_type;
         if (out_column_size)
@@ -325,7 +326,8 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
         if (out_decimal_digits)
             *out_decimal_digits = 0;
         if (out_is_nullable)
-            *out_is_nullable = SQL_NO_NULLS;
+            *out_is_nullable = column_info.is_nullable ? SQL_NULLABLE : SQL_NO_NULLS;
+            //*out_is_nullable = SQL_NO_NULLS;
 
         return fillOutputPlatformString(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size, false);
     });
@@ -349,9 +351,12 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
 
         size_t column_idx = column_or_param_number - 1;
 
-        LOG("column: " << column_idx << ", target_type: " << target_type << ", out_value_max_size: " << out_value_max_size);
-
         const Field & field = statement.current_row.data[column_idx];
+
+        LOG("column: " << column_idx << ", target_type: " << target_type << ", out_value_max_size: " << out_value_max_size << " null=" << field.is_null);
+
+        if (field.is_null)
+            return fillOutputNULL(out_value, out_value_max_size, out_value_size_or_indicator);
 
         switch (target_type)
         {
