@@ -89,7 +89,6 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_) {
 
     int32_t num_header_rows = 0;
     readSize(in(), num_header_rows);
-    //DUMP(num_header_rows);
     if (!num_header_rows)
         return;
 
@@ -97,7 +96,6 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_) {
         /// Title: number of columns, their names and types.
         int32_t num_columns = 0;
         readSize(in(), num_columns);
-        DUMP(row_n, num_columns);
 
         if (num_columns <= 1)
             return;
@@ -106,18 +104,15 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_) {
         readString(in(), row_name);
         --num_columns;
 
-        DUMP(row_name);
         if (row_name == "name") {
             columns_info.resize(num_columns);
             for (size_t i = 0; i < num_columns; ++i) {
                 readString(in(), columns_info[i].name);
-                DUMP(columns_info[i].name);
             }
         } else if (row_name == "type") {
             columns_info.resize(num_columns);
             for (size_t i = 0; i < num_columns; ++i) {
                 readString(in(), columns_info[i].type);
-                DUMP(columns_info[i].type);
                 {
                     TypeAst ast;
                     if (TypeParser(columns_info[i].type).parse(&ast)) {
@@ -142,7 +137,7 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_) {
         // TODO: max_length
 
         } else {
-            LOG("Unknown header " << row_name << " Columns left " << num_columns);
+            LOG("Unknown header " << row_name << "; Columns left: " << num_columns);
             for (size_t i = 0; i < num_columns; ++i) {
                 std::string dummy;
                 readString(in(), dummy);
