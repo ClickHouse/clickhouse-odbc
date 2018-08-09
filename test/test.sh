@@ -24,11 +24,6 @@ function q {
     echo "$*" | $RUNNER $DSN $RUNNER_PARAMS
 }
 
-q "SELECT toNullable(42), toNullable('abc'), NULL"
-q "SELECT 1, 'string', NULL"
-q "SELECT 1, NULL, 2, 3, NULL, 4"
-q "SELECT 'stringlong', NULL, 2, NULL"
-#exit
 
 q "SELECT * FROM system.build_options;"
 q "CREATE DATABASE IF NOT EXISTS test;"
@@ -135,6 +130,12 @@ q $"SELECT (CASE WHEN 1>0 THEN 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' ELSE NULL END);"
 q $'SELECT {fn REPLACE(\'ABCDEFGHIJKLMNOPQRSTUVWXYZ\', \'E\',\'!\')} AS `r1`'
 
 q $"SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'"
+
+q "SELECT toNullable(42), toNullable('abc'), NULL"
+q "SELECT 1, 'string', NULL"
+q "SELECT 1, NULL, 2, 3, NULL, 4"
+q "SELECT 'stringlong', NULL, 2, NULL"
+
 
 q 'DROP TABLE IF EXISTS test.increment;'
 q 'CREATE TABLE test.increment (n UInt64) engine Log;'
