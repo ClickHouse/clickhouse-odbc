@@ -12,7 +12,8 @@ cd ..
         CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which g++-8 g++-7 g++8 g++7 g++ | head -n1` -DCMAKE_C_COMPILER=`which gcc-8 gcc-7 gcc8 gcc7 gcc | head -n1`"
     fi
     for type in debug asan tsan ubsan msan release relwithdebinfo; do
-      for option in "-DUNICODE=1" ""; do
+      #for option in "-DUNICODE=1" ""; do
+      for option in ""; do
         build_dir=build${compiler}_$type$option
         echo build $compiler $type $option in ${build_dir}
         mkdir -p ${build_dir}
