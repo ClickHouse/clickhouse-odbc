@@ -29,9 +29,6 @@ install:
   - sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1)
   - sudo apt-get install -y $ODBC_LIB libssl-dev binutils libpoco-dev | tee build.log 2>&1 || (cat build.log && exit 1)
 
-#before_script:
-#    - eval "${MATRIX_EVAL}"
-
 script:
   - mkdir -p build
   - cd build
