@@ -64,6 +64,8 @@ Environment::Environment() {
 #endif
             LOG(std::endl << mbstr << " === Driver started ==="
                       << " VERSION=" << VERSION_STRING
+#if !defined(_MSC_VER) // TODO: wtf with preprocessor here?
+
 #if defined(UNICODE)
                       << " UNICODE=" << UNICODE
 #   if defined(ODBC_WCHAR)
@@ -80,6 +82,7 @@ Environment::Environment() {
 #endif
 #if defined(ODBC_INCLUDE_DIRECTORIES)
                       << " ODBC_INCLUDE_DIRECTORIES=" << ODBC_INCLUDE_DIRECTORIES
+#endif
 #endif
             );
         }

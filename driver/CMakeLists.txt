@@ -34,6 +34,10 @@ target_compile_definitions (clickhouse-odbc PRIVATE "-DCMAKE_BUILD=1")
 
 target_include_directories (clickhouse-odbc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
+if (NOT USE_INTERNAL_POCO_LIBRARY)
+    target_include_directories (clickhouse-odbc PRIVATE ${Poco_INCLUDE_DIRS})
+endif()
+
 if (NOT WIN32)
     target_include_directories (clickhouse-odbc PRIVATE ${ODBC_INCLUDE_DIRECTORIES})
 endif()
