@@ -23,13 +23,14 @@ env:
     - MATRIX_EVAL="export CC=clang-7 CXX=clang++-7 ODBC_LIB=unixodbc-dev"
     - MATRIX_EVAL="export CC=gcc-7   CXX=g++-7     ODBC_LIB=unixodbc-dev"
 
-before_install:
+install:
+  - eval "${MATRIX_EVAL}"
   - sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe"
   - sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1)
   - sudo apt-get install -y $ODBC_LIB libssl-dev binutils libpoco-dev | tee build.log 2>&1 || (cat build.log && exit 1)
 
-before_script:
-    - eval "${MATRIX_EVAL}"
+#before_script:
+#    - eval "${MATRIX_EVAL}"
 
 script:
   - mkdir -p build
