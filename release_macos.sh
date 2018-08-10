@@ -18,7 +18,7 @@ brew install gcc ninja libiodbc
         mkdir -p ${build_dir}
         cd ${build_dir}
         rm CMakeCache.txt
-        cmake .. -G Ninja -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} $CMAKE_FLAGS_ADD $CMAKE_FLAGS && cmake --build . -- -j ${MAKEJ=$(distcc -j || nproc || sysctl -n hw.ncpu || echo 4)}
+        cmake .. -G Ninja -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} -DTEST_DSN_W=${TEST_DSN=clickhouse_localhost_w} $CMAKE_FLAGS_ADD $CMAKE_FLAGS && cmake --build . -- -j ${MAKEJ=$(distcc -j || nproc || sysctl -n hw.ncpu || echo 4)}
         cd ..
         rm -rf build
         ln -sf ${build_dir} build
