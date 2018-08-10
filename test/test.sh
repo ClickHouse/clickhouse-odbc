@@ -106,7 +106,7 @@ q 'SELECT {fn TIMESTAMPADD(SQL_TSI_MONTH,CAST({fn TRUNCATE((3 * (CAST({fn TRUNCA
 q 'SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,CAST({fn TRUNCATE((-1 * (EXTRACT(DAY FROM CAST(`test`.`odbc1`.`date` AS DATE)) - 1)),0)} AS INTEGER),CAST(CAST(`test`.`odbc1`.`date` AS DATE) AS DATE))} AS `tmn_Calculation_681450978608578560_ok` FROM `test`.`odbc1` GROUP BY `tmn_Calculation_681450978608578560_ok`'
 
 q $'SELECT (CASE WHEN (`test`.`odbc1`.`ui64` < 5) THEN replaceRegexpOne(toString(`test`.`odbc1`.`ui64`), \'^\\s+\', \'\') WHEN (`test`.`odbc1`.`ui64` < 10) THEN \'5-9\' WHEN (`test`.`odbc1`.`ui64` < 20) THEN \'10-19\' WHEN (`test`.`odbc1`.`ui64` >= 20) THEN \'20+\' ELSE NULL END) AS `Calculation_582653228063055875`, SUM(`test`.`odbc1`.`ui64`) AS `sum_traf_se_ok` FROM `test`.`odbc1` GROUP BY `Calculation_582653228063055875` ORDER BY `Calculation_582653228063055875`'
-q $"SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long string' WHEN (number == 3) THEN 'r' ELSE '-' END)  FROM system.numbers LIMIT 5"
+q $"SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long string' WHEN (number == 3) THEN 'r' WHEN (number == 4) THEN NULL ELSE '-' END)  FROM system.numbers LIMIT 6"
 
 # todo: test with fail on comparsion:
 q $"SELECT {fn DAYOFWEEK(CAST('2018-04-16' AS DATE))}, 7, 'sat'"
