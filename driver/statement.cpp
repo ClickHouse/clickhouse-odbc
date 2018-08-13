@@ -1,6 +1,6 @@
 #include "statement.h"
 #include "escaping/escape_sequences.h"
-
+#include "win/version.h"
 #include <Poco/Base64Encoder.h>
 #include <Poco/Exception.h>
 #include <Poco/Net/HTTPRequest.h>
@@ -59,6 +59,11 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
     request.setCredentials("Basic", user_password_base64.str());
     request.setURI(
         "/?database=" + connection.getDatabase() + "&default_format=ODBCDriver"); /// TODO Ability to transfer settings. TODO escaping
+    request.set("User-Agent", "clickhouse-odbc/" VERSION_STRING
+#if UNICODE
+        " UNICODE"
+#endif
+    );
 
     LOG(request.getMethod() << " " << connection.session->getHost() << request.getURI() <<  " body=" << prepared_query);
 
