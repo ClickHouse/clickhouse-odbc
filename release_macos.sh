@@ -1,8 +1,12 @@
 #!/usr/bin/env sh
 
 brew install gcc ninja libiodbc
+brew unlink unixodbc
+brew link libiodbc
+#brew install unixodbc;brew unlink libiodbc;brew link unixodbc
 
-  for compiler in gcc; do
+  #for compiler in gcc; do
+  for compiler in ""; do
     for type in relwithdebinfo; do
       for option in ""; do
         CMAKE_FLAGS_ADD=""
