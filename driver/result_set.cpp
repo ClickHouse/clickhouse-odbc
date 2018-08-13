@@ -123,18 +123,8 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_) {
                     }
                 }
             }
-/*
-        } else if (row_name == "nullable") {
-            columns_info.resize(num_columns);
-            for (size_t i = 0; i < num_columns; ++i) {
-                std::string nullable;
-                readString(in(), nullable);
-                columns_info[i].is_nullable = (nullable == "1");
-                //DUMP(nullable, columns_info[i].is_nullable);
-            }
-*/
 
-        // TODO: max_length
+            // TODO: max_length
 
         } else {
             LOG("Unknown header " << row_name << "; Columns left: " << num_columns);
