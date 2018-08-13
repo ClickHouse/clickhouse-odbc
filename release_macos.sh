@@ -4,15 +4,11 @@ brew install gcc ninja libiodbc
 
   for compiler in gcc; do
     for type in relwithdebinfo; do
-      #for option in _unicode ""; do
       for option in ""; do
         CMAKE_FLAGS_ADD=""
         if [ "$compiler" = "gcc" ]; then
            CMAKE_FLAGS_ADD="${CMAKE_FLAGS_ADD} -DCMAKE_CXX_COMPILER=`which g++-8 g++-7 g++8 g++7 g++ | head -n1` -DCMAKE_C_COMPILER=`which gcc-7 gcc-8 gcc8 gcc7 gcc | head -n1`"
         fi
-        #if [ "$option" = "_unicode" ]; then
-        #   CMAKE_FLAGS_ADD="${CMAKE_FLAGS_ADD} -DUNICODE=1"
-        #fi
         build_dir=build_${compiler}_$type$option
         echo build $compiler $type $option in ${build_dir}
         mkdir -p ${build_dir}
