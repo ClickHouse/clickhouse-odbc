@@ -60,7 +60,7 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
     request.setCredentials("Basic", user_password_base64.str());
     request.setURI(
         "/?database=" + connection.getDatabase() + "&default_format=ODBCDriver"); /// TODO Ability to transfer settings. TODO escaping
-    request.set("User-Agent", "clickhouse-odbc/" VERSION_STRING " (" CMAKE_LIBRARY_ARCHITECTURE ")"
+    request.set("User-Agent", "clickhouse-odbc/" VERSION_STRING " (" CMAKE_SYSTEM ")"
 #if UNICODE
         " UNICODE"
 #endif

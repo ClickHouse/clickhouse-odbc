@@ -80,6 +80,6 @@ typedef std::remove_pointer<LPTSTR>::type MYTCHAR;
 #    define USE_SSL 1
 #endif
 
-#if !defined(CMAKE_LIBRARY_ARCHITECTURE) && _win_
-#   define CMAKE_LIBRARY_ARCHITECTURE "windows"
+#if !defined(CMAKE_SYSTEM) && _win_
+#   define CMAKE_SYSTEM "windows"
 #endif
