@@ -105,14 +105,8 @@ endfunction()
 makelib(clickhouse-odbc 0)
 makelib(clickhouse-odbcw 1)
 
-if (LIB_NAME_NO_W) # for autotests only
-    set_target_properties(clickhouse-odbcw PROPERTIES OUTPUT_NAME "clickhouseodbc")
-    set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbca")
-else()
-    set_target_properties(clickhouse-odbcw PROPERTIES OUTPUT_NAME "clickhouseodbcw")
-    set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
-endif()
-
+set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
+set_target_properties(clickhouse-odbcw PROPERTIES OUTPUT_NAME "clickhouseodbcw")
 
 if (NOT WIN32)
     install(FILES unixodbc.ini DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/clickhouse-odbc)

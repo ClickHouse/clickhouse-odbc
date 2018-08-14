@@ -99,14 +99,14 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
 
         switch (attribute)
         {
+
             case SQL_ATTR_CONNECTION_TIMEOUT:
-            case SQL_ATTR_LOGIN_TIMEOUT:
             {
-                auto timeout = static_cast<SQLUSMALLINT>(reinterpret_cast<intptr_t>(value));
-                LOG("Timeout: " << timeout);
-                connection.timeout = timeout;
+                auto connection_timeout = static_cast<SQLUSMALLINT>(reinterpret_cast<intptr_t>(value));
+                LOG("Set connection timeout: " << connection_timeout);
+                connection.connection_timeout = connection.timeout;
                 if (connection.session)
-                    connection.session->setTimeout(Poco::Timespan(connection.timeout, 0));
+                    connection.session->setTimeout(Poco::Timespan(connection.connection_timeout, 0), Poco::Timespan(connection.timeout, 0), Poco::Timespan(connection.timeout, 0));
                 return SQL_SUCCESS;
             }
 
@@ -122,6 +122,7 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             case SQL_ATTR_AUTO_IPD:
             case SQL_ATTR_AUTOCOMMIT:
             case SQL_ATTR_CONNECTION_DEAD:
+            case SQL_ATTR_LOGIN_TIMEOUT: // We have no special login procedure - cant set login timeout separately
             case SQL_ATTR_METADATA_ID:
             case SQL_ATTR_ODBC_CURSORS:
             case SQL_ATTR_PACKET_SIZE:
