@@ -100,7 +100,6 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
         switch (attribute)
         {
 
-            //case SQL_ATTR_LOGIN_TIMEOUT: // We have no special login procedure - cant set login timeout separately
             case SQL_ATTR_CONNECTION_TIMEOUT:
             {
                 auto connection_timeout = static_cast<SQLUSMALLINT>(reinterpret_cast<intptr_t>(value));
@@ -123,6 +122,7 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             case SQL_ATTR_AUTO_IPD:
             case SQL_ATTR_AUTOCOMMIT:
             case SQL_ATTR_CONNECTION_DEAD:
+            case SQL_ATTR_LOGIN_TIMEOUT: // We have no special login procedure - cant set login timeout separately
             case SQL_ATTR_METADATA_ID:
             case SQL_ATTR_ODBC_CURSORS:
             case SQL_ATTR_PACKET_SIZE:
