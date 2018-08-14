@@ -5,15 +5,15 @@ brew unlink unixodbc
 brew link libiodbc
 #brew install unixodbc;brew unlink libiodbc;brew link unixodbc
 
-  #for compiler in gcc; do
+  #for compiler in _gcc; do
   for compiler in ""; do
     for type in relwithdebinfo; do
       for option in ""; do
         CMAKE_FLAGS_ADD=""
-        if [ "$compiler" = "gcc" ]; then
+        if [ "$compiler" = "_gcc" ]; then
            CMAKE_FLAGS_ADD="${CMAKE_FLAGS_ADD} -DCMAKE_CXX_COMPILER=`which g++-8 g++-7 g++8 g++7 g++ | head -n1` -DCMAKE_C_COMPILER=`which gcc-7 gcc-8 gcc8 gcc7 gcc | head -n1`"
         fi
-        build_dir=build_${compiler}_$type$option
+        build_dir=build${compiler}_$type$option
         echo build $compiler $type $option in ${build_dir}
         mkdir -p ${build_dir}
         cd ${build_dir}
