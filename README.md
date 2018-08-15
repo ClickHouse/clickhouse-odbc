@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/yandex/ClickHouse.svg?branch=master)](https://travis-ci.org/yandex/clickhouse-odbc)
+[![Build Status](https://travis-ci.org/yandex/clickhouse-odbc.svg?branch=master)](https://travis-ci.org/yandex/clickhouse-odbc)
 
 ## Cloning a Project with Submodules
 
@@ -36,10 +36,12 @@ Install unixodbc-dev >= 2.3.0 or libiodbc2-dev
 ```bash
 sudo apt install unixodbc-dev
 ```
+or
+```bash
+sudo apt install libiodbc2-dev
+```
 
 ## Building (Linux)
-
-By default ansi version built. To switch to unicode add -DUNICODE=1 to cmake
 
 1. At the root of source directory:
 ```bash
