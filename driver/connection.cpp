@@ -3,7 +3,7 @@
 #include "string_ref.h"
 #include "utils.h"
 
-#include <Poco/NumberParser.h>
+#include <Poco/NumberParser.h> // TODO: switch to std
 
 #include <Poco/Net/HTTPClientSession.h>
 
@@ -69,7 +69,7 @@ void Connection::init() {
     session->setHost(server);
     session->setPort(port);
     session->setKeepAlive(true);
-    session->setTimeout(Poco::Timespan(timeout, 0));
+    session->setTimeout(Poco::Timespan(connection_timeout, 0), Poco::Timespan(timeout, 0),Poco::Timespan(timeout, 0) );
     session->setKeepAliveTimeout(Poco::Timespan(86400, 0));
 }
 
@@ -105,26 +105,37 @@ void Connection::init(const std::string & connection_string) {
     StringRef current_value;
 
     while ((pos = nextKeyValuePair(pos, end, current_key, current_value))) {
-        if (current_key == "UID")
+        auto key_lower = current_key.toString();
+        std::transform(key_lower.begin(), key_lower.end(), key_lower.begin(), ::tolower);
+        LOG("Parse DSN: key=" << key_lower << " value=" << current_value.toString());
+        if (key_lower == "uid")
             user = current_value.toString();
-        else if (current_key == "PWD")
+        else if (key_lower == "pwd")
             password = current_value.toString();
-        else if (current_key == "PROTO")
+        else if (key_lower == "proto")
             proto = current_value.toString();
-        else if (current_key == "SSLMODE" && current_value == "require")
+        else if (key_lower == "sslmode" && current_value == "require")
             proto = "https";
-        else if (current_key == "HOST" || current_key == "SERVER")
+        else if (key_lower == "host" || key_lower == "server")
             server = current_value.toString();
-        else if (current_key == "PORT") {
-            int int_port = 0;
-            if (Poco::NumberParser::tryParse(current_value.toString(), int_port))
-                port = int_port;
+        else if (key_lower == "port") {
+            int int_val = 0;
+            if (Poco::NumberParser::tryParse(current_value.toString(), int_val))
+                port = int_val;
             else {
                 throw std::runtime_error("Cannot parse port number.");
             }
-        } else if (current_key == "DATABASE")
+        } else if (key_lower == "database")
             database = current_value.toString();
-        else if (current_key == "DSN")
+        else if (key_lower == "timeout") {
+            int int_val = 0;
+            if (Poco::NumberParser::tryParse(current_value.toString(), int_val))
+                connection_timeout = timeout = int_val;
+            else {
+                throw std::runtime_error("Cannot parse timeout.");
+            }
+        }
+        else if (key_lower == "dsn")
             data_source = current_value.toString();
     }
 
@@ -151,6 +162,7 @@ void Connection::loadConfiguration() {
         if (!timeout_string.empty()) {
             if (!Poco::NumberParser::tryParse(timeout_string, this->timeout))
                 throw std::runtime_error("Cannot parse connection timeout value.");
+            this->connection_timeout = this->timeout;
         }
     }
 
@@ -181,6 +193,8 @@ void Connection::setDefaults() {
         database = "default";
     if (timeout == 0)
         timeout = 30;
+    if (connection_timeout == 0)
+        connection_timeout = timeout;
 }
 
 std::once_flag ssl_init_once;

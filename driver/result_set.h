@@ -4,9 +4,6 @@
 #include "platform.h"
 #include "type_parser.h"
 
-#include <Poco/NumberParser.h>
-#include <Poco/Types.h>
-
 #include <vector>
 #include <memory>
 #include <deque>
@@ -19,10 +16,10 @@ public:
     std::string data;
     bool is_null = false;
 
-    Poco::UInt64 getUInt() const{ return Poco::NumberParser::parseUnsigned64(data); }
-    Poco::Int64 getInt() const  { return Poco::NumberParser::parse64(data); }
-    float getFloat() const      { return Poco::NumberParser::parseFloat(data); }
-    double getDouble() const    { return Poco::NumberParser::parseFloat(data); }
+    uint64_t getUInt() const;
+    int64_t getInt() const;
+    float getFloat() const;
+    double getDouble() const;
 
     SQL_DATE_STRUCT getDate() const;
     SQL_TIMESTAMP_STRUCT getDateTime() const;

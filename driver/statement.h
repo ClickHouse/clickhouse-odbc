@@ -2,9 +2,7 @@
 
 #include "connection.h"
 #include "result_set.h"
-
 #include <Poco/Net/HTTPResponse.h>
-
 #include <memory>
 #include <sstream>
 

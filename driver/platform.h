@@ -79,3 +79,7 @@ typedef std::remove_pointer<LPTSTR>::type MYTCHAR;
 // Enabled by default, but you can disable
 #    define USE_SSL 1
 #endif
+
+#if !defined(CMAKE_SYSTEM) && _win_
+#   define CMAKE_SYSTEM "windows"
+#endif

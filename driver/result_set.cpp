@@ -15,6 +15,35 @@ public:
 
 } // namespace
 
+uint64_t Field::getUInt() const {
+    try {
+        return std::stoull(data);
+    } catch (std::exception & e) {
+        throw std::runtime_error("Cannot interpret '" + data + "' as uint64: " + e.what());
+    }
+}
+int64_t Field::getInt() const {
+    try {
+        return std::stoll(data);
+    } catch (std::exception & e) {
+        throw std::runtime_error("Cannot interpret '" + data + "' as int64: " + e.what());
+    }
+}
+float Field::getFloat() const {
+    try {
+        return std::stof(data);
+    } catch (std::exception & e) {
+        throw std::runtime_error("Cannot interpret '" + data + "' as float: " + e.what());
+    }
+}
+double Field::getDouble() const {
+    try {
+        return std::stod(data);
+    } catch (std::exception & e) {
+        throw std::runtime_error("Cannot interpret '" + data + "' as double: " + e.what());
+    }
+}
+
 SQL_DATE_STRUCT Field::getDate() const {
     if (data.size() != 10)
         throw std::runtime_error("Cannot interpret '" + data + "' as Date");
@@ -133,6 +162,8 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_) {
                 readString(in(), dummy);
             }
         }
+
+        LOG("Row " << i << " name=" << columns_info[i].name << " type=" << columns_info[i].type << " -> " << columns_info[i].type << " typenoparams=" << columns_info[i].type_without_parameters);
     }
     mutator->UpdateColumnInfo(&columns_info);
 
