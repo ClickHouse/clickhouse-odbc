@@ -19,6 +19,7 @@ const std::map<std::string, TypeInfo> Environment::types_info =
 {
     { "UInt8",       TypeInfo{ "TINYINT",   true,    SQL_TINYINT,         3,  1 } },
     { "UInt16",      TypeInfo{ "SMALLINT",  true,    SQL_SMALLINT,        5,  2 } },
+    { "UInt32",      TypeInfo{ "INT",       true,    SQL_BIGINT /* was SQL_INTEGER */,         10, 4 } }, // With perl, python ODBC drivers INT is uint32 and it cant store values bigger than 2147483647: 2147483648 -> -2147483648 4294967295 -> -1
     { "UInt32",      TypeInfo{ "INT",       true,    SQL_INTEGER,         10, 4 } },
     { "UInt64",      TypeInfo{ "BIGINT",    true,    SQL_BIGINT,          19, 8 } },
     { "Int8",        TypeInfo{ "TINYINT",   false,   SQL_TINYINT,         3,  1 } },

@@ -139,6 +139,8 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_)
                 columns_info[i].type_without_parameters = "String";
             }
         }
+
+        LOG("Row " << i << " name=" << columns_info[i].name << " type=" << columns_info[i].type << " -> " << columns_info[i].type << " typenoparams=" << columns_info[i].type_without_parameters);
     }
 
     mutator->UpdateColumnInfo(&columns_info);

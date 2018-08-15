@@ -213,6 +213,12 @@ void run_test(nanodbc::string const& connection_string)
         show(results);
     }
 
+    {
+        auto results = execute(connection, NANODBC_TEXT("SELECT 2147483647, 2147483648, 2147483647+1, 2147483647+10, 4294967295"));
+        show(results);
+    }
+
+
     // Binding parameters
     if (0) // Not supported. TODO.
     {
