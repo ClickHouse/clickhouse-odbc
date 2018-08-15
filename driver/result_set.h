@@ -18,10 +18,18 @@ class Field
 public:
     std::string data;
 
-    uint64_t getUInt() const{ return std::stoull(data); }
-    int64_t getInt() const  { return std::stoll(data); }
-    float getFloat() const      { return std::stof(data);  }
-    double getDouble() const    { return std::stod(data); }
+    uint64_t getUInt() const; // { return std::stoull(data); }
+    int64_t getInt() const; // { return std::stoll(data); }
+    float getFloat() const; //     { return std::stof(data);  }
+    double getDouble() const; //   { return std::stod(data); }
+
+/*
+    Poco::UInt64 getUInt() const{ return Poco::NumberParser::parseUnsigned64(data); }
+    Poco::Int64 getInt() const  { return Poco::NumberParser::parse64(data); }
+    float getFloat() const      { return Poco::NumberParser::parseFloat(data); }
+    double getDouble() const    { return Poco::NumberParser::parseFloat(data); }
+*/
+
 
     SQL_DATE_STRUCT getDate() const;
     SQL_TIMESTAMP_STRUCT getDateTime() const;

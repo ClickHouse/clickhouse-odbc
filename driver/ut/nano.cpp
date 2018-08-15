@@ -180,7 +180,6 @@ void run_test(nanodbc::string const& connection_string)
         cout << endl << results.get<int>(NANODBC_TEXT("first")) << ", " << convert(value) << endl;
     }
 
-
     {
         auto results = execute(connection, NANODBC_TEXT("SELECT (CASE WHEN 1>0 THEN 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' ELSE NULL END);"));
         show(results);
@@ -195,8 +194,22 @@ void run_test(nanodbc::string const& connection_string)
         auto results = execute(connection, NANODBC_TEXT("SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'"));
         show(results);
     }
+
     {
         auto results = execute(connection, NANODBC_TEXT("SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long string' WHEN (number == 3) THEN 'r' ELSE '-' END)  FROM system.numbers LIMIT 5"));
+        show(results);
+    }
+
+    {
+        cout << "Will fail:" << endl;
+        try {
+            auto results = execute(connection, NANODBC_TEXT("SELECT -9223372036854775809,9223372036854775806,9223372036854775807,9223372036854775808,18446744073709551615,18446744073709551616,18446744073709551617"));
+            show(results);
+        } catch (...) {
+        }
+    }
+    {
+        auto results = execute(connection, NANODBC_TEXT("SELECT -127,-128,-129,126,127,128,255,256,257,-32767,-32768,-32769,32766,32767,32768,65535,65536,65537,-2147483647,-2147483648,-2147483649,2147483646,2147483647,2147483648,4294967295,4294967296,4294967297,-9223372036854775807,-9223372036854775808,9223372036854775806,9223372036854775807"));
         show(results);
     }
 
