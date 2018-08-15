@@ -8,8 +8,6 @@
 #include "type_parser.h"
 #include "utils.h"
 
-#include <Poco/Types.h>
-
 #include <stdio.h>
 //#include <malloc.h>
 #include <string.h>
