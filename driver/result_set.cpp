@@ -22,10 +22,34 @@ public:
 } // namespace
 
 
-    uint64_t Field::getUInt() const { try { return std::stoull(data); } catch (std::exception & e) { throw std::runtime_error("Cannot interpret '" + data + "' as uint64: " + e.what()); } }
-    int64_t Field::getInt() const { try { return std::stoll(data); } catch (std::exception & e) { throw std::runtime_error("Cannot interpret '" + data + "' as int64: " + e.what()); } }
-    float Field::getFloat() const   { try { return std::stof(data); } catch (std::exception & e) { throw std::runtime_error("Cannot interpret '" + data + "' as float: " + e.what()); } }
-    double Field::getDouble() const { try { return std::stod(data); } catch (std::exception & e) { throw std::runtime_error("Cannot interpret '" + data + "' as double: " + e.what()); } }
+uint64_t Field::getUInt() const {
+    try {
+        return std::stoull(data);
+    } catch (std::exception & e) {
+        throw std::runtime_error("Cannot interpret '" + data + "' as uint64: " + e.what());
+    }
+}
+int64_t Field::getInt() const {
+    try {
+        return std::stoll(data);
+    } catch (std::exception & e) {
+        throw std::runtime_error("Cannot interpret '" + data + "' as int64: " + e.what());
+    }
+}
+float Field::getFloat() const {
+    try {
+        return std::stof(data);
+    } catch (std::exception & e) {
+        throw std::runtime_error("Cannot interpret '" + data + "' as float: " + e.what());
+    }
+}
+double Field::getDouble() const {
+    try {
+        return std::stod(data);
+    } catch (std::exception & e) {
+        throw std::runtime_error("Cannot interpret '" + data + "' as double: " + e.what());
+    }
+}
 
 SQL_DATE_STRUCT Field::getDate() const
 {
