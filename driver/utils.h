@@ -208,7 +208,7 @@ RETCODE fillOutputUSC2String(const std::string & value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true)
 {
 #if _win_
-    using CharType = uint_least16_t;
+    using CharType = wchar_t;
 #elif ODBC_IODBC
     using CharType = wchar_t;
 #else
