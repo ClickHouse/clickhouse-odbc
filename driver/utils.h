@@ -274,7 +274,7 @@ RETCODE fillOutputNumber(NUM num,
         LOG("GetInfo " << name << ", type: " << #TYPE << ", value: " << #VALUE << " = " << (VALUE)); \
         return fillOutputNumber<TYPE>(VALUE, out_value, out_value_max_length, out_value_length);
 
-#if UNICODE && !_win_
+#if defined(UNICODE) && !_win_
 #   define FUNCTION_MAYBE_W(NAME) NAME ## W
 #else
 #   define FUNCTION_MAYBE_W(NAME) NAME

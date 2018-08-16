@@ -44,7 +44,7 @@
 #include <sqltypes.h>
 
 #if defined(_win_)
-#    ifdef UNICODE
+#    if defined(UNICODE)
 #        define ODBC_WCHAR 1
 #        include <sqlucode.h>
 
@@ -65,7 +65,7 @@
 #            define LPTSTR LPSTR
 #        endif
 #    endif
-#    ifdef UNICODE
+#    if defined(UNICODE)
 #        define TEXT(value) L"" value
 #    else
 #        define TEXT(value) value
