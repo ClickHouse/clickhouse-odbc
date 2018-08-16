@@ -24,3 +24,8 @@ msbuild /m /p:Configuration=Release odbc64.sln
 msbuild /m /p:Configuration=Release odbc32.sln
 msbuild /m /p:Configuration=Debug odbc64.sln
 msbuild /m /p:Configuration=Debug odbc32.sln
+
+:: installer64\bin\Debug\clickhouse_odbc_x64.msi /quiet
+:: installer32\bin\Debug\clickhouse_odbc_x32.msi /quiet
+:: installer64\bin\Release\clickhouse_odbc_x64.msi /quiet
+:: installer32\bin\Release\clickhouse_odbc_x32.msi /quiet
