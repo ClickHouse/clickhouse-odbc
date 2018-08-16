@@ -36,11 +36,23 @@ sub prepare_execute_hash ($) {
     return $ret;
 }
 
+sub test_one_string_value($) {
+    my ($n) = @_;
+    my $row = prepare_execute_hash("SELECT '$n'")->[0];
+    my ($value) = values %$row;
+    my ($key) = keys %$row;
+    is $value, $n, "value eq " . $n . " " . Data::Dumper->new([$row])->Indent(0)->Terse(1)->Sortkeys(1)->Dump();
+    is $key, qq{'$n'}, "header eq " . $n . " " . Data::Dumper->new([$row])->Indent(0)->Terse(1)->Sortkeys(1)->Dump();
+}
+
+
 say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1+1';
-say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options';
+#say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options';
 say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) ASC';
-say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) DESC';
-say Data::Dumper::Dumper prepare_execute_hash q{SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'};
+#say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) DESC';
+#say Data::Dumper::Dumper prepare_execute_hash q{SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'};
+test_one_string_value(q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ});
+
 say Data::Dumper::Dumper prepare_execute_hash q{SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long string' WHEN (number == 3) THEN 'r' ELSE '-' END)  FROM system.numbers LIMIT 5};
 
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1, sleep(25), sleep(15), 2'; # Default timeout is 30. Maximum allowed clickhouse sleep is 30s. We want to test 30+s

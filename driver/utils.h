@@ -81,9 +81,7 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
     else if (symbols < 0)
         throw std::runtime_error("invalid size of string : " + std::to_string(symbols));
 #ifdef UNICODE
-#   if _win_
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols));
-#   elif ODBC_IODBC
+#   if ODBC_WCHAR
     return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols));
 #   else
     return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols));
@@ -207,9 +205,7 @@ template <typename PTR, typename LENGTH>
 RETCODE fillOutputUSC2String(const std::string & value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true)
 {
-#if _win_
-    using CharType = wchar_t;
-#elif ODBC_IODBC
+#if ODBC_WCHAR
     using CharType = wchar_t;
 #else
     using CharType = char16_t;

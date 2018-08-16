@@ -227,6 +227,8 @@ bool ResultSet::readNextBlockCache()
         {
             readString(row.data[j].data, in());
             columns_info[j].display_size = std::max<decltype(columns_info[j].display_size)>(row.data[j].data.size(), columns_info[j].display_size);
+
+            LOG("read Row/Col " << i <<":"<< j << " name=" << row.data[j].data << " display_size=" << columns_info[j].display_size);
         }
 
         current_block_buffer.emplace_back(std::move(row));

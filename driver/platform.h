@@ -45,6 +45,7 @@
 
 #if defined(_win_)
 #    ifdef UNICODE
+#        define ODBC_WCHAR 1
 #        include <sqlucode.h>
 
 #        define strcpy wcscpy_s
@@ -54,7 +55,6 @@
 #        define strcpy strcpy_s
 #        define stricmp _stricmp
 #    endif
-#    define ODBC_WCHAR 1
 #else
 
 // Fix missing declarations in iodbc
