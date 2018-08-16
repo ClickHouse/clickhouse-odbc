@@ -447,7 +447,7 @@ INT_PTR	CALLBACK
 }
 
 BOOL CALLBACK
-#ifdef UNICODE
+#if defined(UNICODE)
 ConfigDSNW(
 #else
 ConfigDSN(
@@ -553,7 +553,7 @@ ConfigDSN(
 }
 
 BOOL CALLBACK
-#ifdef UNICODE
+#if defined(UNICODE)
 ConfigDriverW(
 #else
 ConfigDriver(

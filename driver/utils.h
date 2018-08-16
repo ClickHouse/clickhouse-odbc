@@ -71,7 +71,7 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
         return{};
     if (symbols == SQL_NTS)
     {
-#ifdef UNICODE
+#if defined(UNICODE)
         symbols = wcslen(reinterpret_cast<const wchar_t*>(data));
 #else
         symbols = strlen(reinterpret_cast<const char*>(data));
@@ -80,7 +80,7 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
     }
     else if (symbols < 0)
         throw std::runtime_error("invalid size of string : " + std::to_string(symbols));
-#ifdef UNICODE
+#if defined(UNICODE)
 #   if ODBC_WCHAR
     return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols));
 #   else
@@ -129,7 +129,7 @@ inline std::string stringFromTCHAR(SQLTCHAR * data)
 template <size_t Len, typename STRING>
 void stringToTCHAR(const std::string & data, STRING (&result)[Len])
 {
-#ifdef UNICODE
+#if defined(UNICODE)
 #   if ODBC_WCHAR
     using CharType = wchar_t;
 #   else
@@ -143,7 +143,7 @@ void stringToTCHAR(const std::string & data, STRING (&result)[Len])
     //using type_to = char*;
 #endif
     const size_t len = std::min<size_t>(Len - 1, data.size());
-#ifdef UNICODE
+#if defined(UNICODE)
     wcsncpy(reinterpret_cast<wchar_t*>(result), tmp.c_str(), len);
 #else
     strncpy(reinterpret_cast<char*>(result), tmp.c_str(), len);
@@ -225,7 +225,7 @@ RETCODE fillOutputPlatformString(
     const std::string & value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true)
 {
-#ifdef UNICODE
+#if defined(UNICODE)
     return fillOutputUSC2String(value, out_value, out_value_max_length, out_value_length, length_in_bytes);
 #else
     return fillOutputRawString(value, out_value, out_value_max_length, out_value_length);

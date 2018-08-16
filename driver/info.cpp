@@ -18,7 +18,7 @@
 #   define SQL_ASYNC_NOTIFICATION_CAPABLE       0x00000001L
 #endif // ODBCVER >= 0x0380
 
-#ifdef UNICODE
+#if defined(UNICODE)
 #   define DRIVER_FILE_NAME "CLICKHOUSEODBCW.DLL"
 #else
 #   define DRIVER_FILE_NAME "CLICKHOUSEODBC.DLL"
@@ -35,7 +35,7 @@ SQLGetInfo(HDBC connection_handle,
     LOG(__FUNCTION__);
     LOG("GetInfo with info_type: " << info_type << ", out_value_max_length: " << out_value_max_length);
 
-#ifdef UNICODE
+#if defined(UNICODE)
 #define CASE_STRING(NAME, VALUE) \
     case NAME: \
         if ((out_value_max_length % 2) != 0) \
