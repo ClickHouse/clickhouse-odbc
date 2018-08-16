@@ -20,10 +20,10 @@ SET PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Co
 devenv /upgrade odbc64.sln
 devenv /upgrade odbc32.sln
 
-msbuild /m /p:Configuration=Release odbc64.sln
-msbuild /m /p:Configuration=Release odbc32.sln
-msbuild /m /p:Configuration=Debug odbc64.sln
-msbuild /m /p:Configuration=Debug odbc32.sln
+msbuild /m /p:Configuration=Release odbc64.sln || exit
+msbuild /m /p:Configuration=Release odbc32.sln || exit
+msbuild /m /p:Configuration=Debug odbc64.sln || exit
+msbuild /m /p:Configuration=Debug odbc32.sln || exit
 copy Debug\*.dll "C:\Program Files (x86)\ClickHouse ODBC"
 copy x64\Debug\*.dll "C:\Program Files\ClickHouse ODBC"
 
