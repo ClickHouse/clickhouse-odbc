@@ -6,10 +6,7 @@
 # pip install pyodbc
 
 import pyodbc
-#import sys
-#reload(sys)
-#sys.setdefaultencoding('utf8')
-
+import sys
 
 if len(sys.argv) >= 2:
     dsn = sys.argv[1]
@@ -18,6 +15,11 @@ else:
 print("Using DSN=" + dsn)
 
 connection = pyodbc.connect('DSN=' + dsn + ';')
+try:
+    connection.setencoding(str, encoding='utf-8')
+    connection.setencoding(unicode, encoding='utf-8')
+except BaseException:
+    connection.setencoding(encoding='utf-8')
 
 def query(q):
     print(q + " :")
