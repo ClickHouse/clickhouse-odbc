@@ -44,7 +44,8 @@
 #include <sqltypes.h>
 
 #if defined(_win_)
-#    ifdef UNICODE
+#    if defined(UNICODE)
+#        define ODBC_WCHAR 1
 #        include <sqlucode.h>
 
 #        define strcpy wcscpy_s
@@ -54,7 +55,6 @@
 #        define strcpy strcpy_s
 #        define stricmp _stricmp
 #    endif
-#    define ODBC_WCHAR 1
 #else
 
 // Fix missing declarations in iodbc
@@ -65,7 +65,7 @@
 #            define LPTSTR LPSTR
 #        endif
 #    endif
-#    ifdef UNICODE
+#    if defined(UNICODE)
 #        define TEXT(value) L"" value
 #    else
 #        define TEXT(value) value

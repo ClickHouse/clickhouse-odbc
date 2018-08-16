@@ -1,6 +1,6 @@
 #pragma once
 
-#if UNICODE && !CONFIG_CMAKE_H
+#if defined(UNICODE) && !CONFIG_CMAKE_H
 #    define CONFIG_CMAKE_H 1
 #    include "config_cmakew.h"
 #else
