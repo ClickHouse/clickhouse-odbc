@@ -7,6 +7,11 @@
 ::                                                                           + MFC and ATL support (x86 and x64)
 ::                                                                           ? C++/CLI support
 
+:: Also useful for tests:
+:: https://msdn.microsoft.com/en-us/data/aa937730  - Microsoft Data Access Components (MDAC) 2.8 Software Development Kit
+
+
+
 :: call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x64 8.1
 
 SET PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\
