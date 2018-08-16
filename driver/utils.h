@@ -129,13 +129,18 @@ inline std::string stringFromTCHAR(SQLTCHAR * data)
 template <size_t Len, typename STRING>
 void stringToTCHAR(const std::string & data, STRING (&result)[Len])
 {
-// TODO also char16_t ?!
 #ifdef UNICODE
-    std::wstring tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(data);
-    using type_to = wchar_t*;
+#   if ODBC_WCHAR
+    using CharType = wchar_t;
+#   else
+    using CharType = char16_t;
+#   endif
+
+    std::wstring tmp = std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(data);
+    //using type_to = wchar_t*;
 #else
     const auto & tmp = data;
-    using type_to = char*;
+    //using type_to = char*;
 #endif
     const size_t len = std::min<size_t>(Len - 1, data.size());
 #ifdef UNICODE
