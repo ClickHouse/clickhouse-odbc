@@ -12,6 +12,7 @@ use Data::Dumper;
 $Data::Dumper::Sortkeys=1;
 
 my $config = {DSN => $ARGV[0] || $ENV{DSN} || 'clickhouse_localhost'};
+my $is_wide = 1 if $config->{DSN} =~ /w$/; # bad magic
 
 say 'Data sources: ', join '; ', DBI->data_sources('dbi:ODBC:DSN=' . $config->{DSN},);
 
@@ -24,8 +25,8 @@ my $dbh = DBI->connect(
         #HandleError=>sub{my ($msg) = @_; warn "connect error:", $msg; return 0;     },
     }
 );
-$dbh->{odbc_utf8_on} = 1;
-say "odbc_has_unicode=$dbh->{odbc_has_unicode}";
+$dbh->{odbc_utf8_on} = 1 if $is_wide;
+say "odbc_has_unicode=$dbh->{odbc_has_unicode} is_wide=$is_wide";
 
 sub prepare_execute_hash ($) {
     my $sth = $dbh->prepare($_[0]);
@@ -49,24 +50,36 @@ sub test_one_string_value($) {
     is $key, qq{'$n'}, "header eq " . $n . " " . Data::Dumper->new([$row])->Indent(0)->Terse(1)->Sortkeys(1)->Dump();
 }
 
-sub test_one_string_value_as($) {
-    my ($n) = @_;
+sub test_one_string_value_as($;$) {
+    my ($n, $expected) = @_;
+    $expected //= $n;
     my $row = prepare_execute_hash("SELECT '$n' AS value")->[0];
     my ($value) = values %$row;
-    is $value, $n, "valueas eq " . $n . " " . Data::Dumper->new([$row])->Indent(0)->Terse(1)->Sortkeys(1)->Dump();
+    is $value, $expected, "valueas eq " . $n . " " . Data::Dumper->new([$row])->Indent(0)->Terse(1)->Sortkeys(1)->Dump();
 }
 
-say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1+1';
+sub test_one_value_as($;$) {
+    my ($n, $expected) = @_;
+    $expected //= $n;
+    my $row = prepare_execute_hash("SELECT $n AS value")->[0];
+    my ($value) = values %$row;
+    is $value, $expected, "valueas eq " . $n . " " . Data::Dumper->new([$row])->Indent(0)->Terse(1)->Sortkeys(1)->Dump();
+}
+
+#say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1+1';
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options';
 say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) ASC';
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) DESC';
 #say Data::Dumper::Dumper prepare_execute_hash q{SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'};
-
-#TODO! test_one_string_value(q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ});
-
-test_one_string_value_as(q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ});
-
 say Data::Dumper::Dumper prepare_execute_hash q{SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long string' WHEN (number == 3) THEN 'r' ELSE '-' END)  FROM system.numbers LIMIT 5};
+
+test_one_value_as(q{1+1}, 2);
+
+#TODO! 
+test_one_string_value(q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ}) if $is_wide;
+
+test_one_string_value_as(q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ}) if $is_wide;
+
 
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1, sleep(25), sleep(15), 2'; # Default timeout is 30. Maximum allowed clickhouse sleep is 30s. We want to test 30+s
 
