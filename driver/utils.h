@@ -210,7 +210,7 @@ template <typename PTR, typename LENGTH>
 RETCODE fillOutputUSC2String(const std::string & value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true)
 {
-#if ODBC_WCHAR
+#if ODBC_WCHAR || !defined(UNICODE)
     using CharType = wchar_t;
 #else
     using CharType = char16_t;
