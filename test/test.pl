@@ -9,7 +9,7 @@ use DBI;
 use Data::Dumper;
 $Data::Dumper::Sortkeys=1;
 
-my $config = {DSN => $ENV{DSN} || 'clickhouse_localhost'};
+my $config = {DSN => $ARGV[0] || $ENV{DSN} || 'clickhouse_localhost'};
 
 say 'Data sources: ', join '; ', DBI->data_sources('dbi:ODBC:DSN=' . $config->{DSN},);
 

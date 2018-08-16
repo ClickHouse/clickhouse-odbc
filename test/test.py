@@ -10,7 +10,13 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 
-connection = pyodbc.connect('DSN=clickhouse_localhost;')
+if len(sys.argv) >= 2:
+    dsn = sys.argv[1]
+else:
+    dsn = 'clickhouse_localhost'
+print "Using DSN=" + dsn
+
+connection = pyodbc.connect('DSN=' + dsn + ';')
 
 def query(q):
     print(q + " :")
