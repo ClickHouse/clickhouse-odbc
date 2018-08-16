@@ -303,7 +303,7 @@ SQLGetInfo(HDBC connection_handle,
             #endif
 
             default:
-                throw std::runtime_error("Unsupported info type: " + Poco::NumberFormatter::format(info_type));
+                throw std::runtime_error("Unsupported info type: " + std::to_string(info_type));
         }
     });
 
