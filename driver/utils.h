@@ -71,7 +71,7 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
         return{};
     if (symbols == SQL_NTS)
     {
-#ifdef UNICODE
+#if defined(UNICODE)
         symbols = wcslen(reinterpret_cast<const wchar_t*>(data));
 #else
         symbols = strlen(reinterpret_cast<const char*>(data));
@@ -80,10 +80,8 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
     }
     else if (symbols < 0)
         throw std::runtime_error("invalid size of string : " + std::to_string(symbols));
-#ifdef UNICODE
-#   if _win_
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols));
-#   elif ODBC_IODBC
+#if defined(UNICODE)
+#   if ODBC_WCHAR
     return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols));
 #   else
     return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(std::u16string(reinterpret_cast<const char16_t*>(data), symbols));
@@ -131,16 +129,21 @@ inline std::string stringFromTCHAR(SQLTCHAR * data)
 template <size_t Len, typename STRING>
 void stringToTCHAR(const std::string & data, STRING (&result)[Len])
 {
-// TODO also char16_t ?!
-#ifdef UNICODE
-    std::wstring tmp = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(data);
-    using type_to = wchar_t*;
+#if defined(UNICODE)
+#   if ODBC_WCHAR
+    using CharType = wchar_t;
+#   else
+    using CharType = char16_t;
+#   endif
+
+    std::wstring tmp = std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(data);
+    //using type_to = wchar_t*;
 #else
     const auto & tmp = data;
-    using type_to = char*;
+    //using type_to = char*;
 #endif
     const size_t len = std::min<size_t>(Len - 1, data.size());
-#ifdef UNICODE
+#if defined(UNICODE)
     wcsncpy(reinterpret_cast<wchar_t*>(result), tmp.c_str(), len);
 #else
     strncpy(reinterpret_cast<char*>(result), tmp.c_str(), len);
@@ -207,9 +210,7 @@ template <typename PTR, typename LENGTH>
 RETCODE fillOutputUSC2String(const std::string & value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true)
 {
-#if _win_
-    using CharType = uint_least16_t;
-#elif ODBC_IODBC
+#if ODBC_WCHAR || !defined(UNICODE)
     using CharType = wchar_t;
 #else
     using CharType = char16_t;
@@ -224,7 +225,7 @@ RETCODE fillOutputPlatformString(
     const std::string & value,
     PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true)
 {
-#ifdef UNICODE
+#if defined(UNICODE)
     return fillOutputUSC2String(value, out_value, out_value_max_length, out_value_length, length_in_bytes);
 #else
     return fillOutputRawString(value, out_value, out_value_max_length, out_value_length);
@@ -280,7 +281,7 @@ inline RETCODE fillOutputNULL(PTR out_value, SQLLEN out_value_max_length, SQLLEN
         LOG("GetInfo " << name << ", type: " << #TYPE << ", value: " << #VALUE << " = " << (VALUE)); \
         return fillOutputNumber<TYPE>(VALUE, out_value, out_value_max_length, out_value_length);
 
-#if UNICODE && !_win_
+#if defined(UNICODE)
 #   define FUNCTION_MAYBE_W(NAME) NAME ## W
 #else
 #   define FUNCTION_MAYBE_W(NAME) NAME

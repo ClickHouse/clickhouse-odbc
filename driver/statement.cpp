@@ -62,7 +62,7 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
         "/?database=" + connection.getDatabase() + "&default_format=ODBCDriver2"); /// TODO Ability to transfer settings. TODO escaping
 
     request.set("User-Agent", "clickhouse-odbc/" VERSION_STRING " (" CMAKE_SYSTEM ")"
-#if UNICODE
+#if defined(UNICODE)
         " UNICODE"
 #endif
     );

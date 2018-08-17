@@ -323,7 +323,6 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
             *out_decimal_digits = 0;
         if (out_is_nullable)
             *out_is_nullable = column_info.is_nullable ? SQL_NULLABLE : SQL_NO_NULLS;
-            //*out_is_nullable = SQL_NO_NULLS;
 
         return fillOutputPlatformString(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size, false);
     });
