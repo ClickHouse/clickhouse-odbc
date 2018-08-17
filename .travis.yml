@@ -7,32 +7,29 @@ os: linux
 
 compiler:
   - gcc
+#  - clang
 
 cache:
   ccache: true
 
 addons:
   apt:
-    sources: [ ubuntu-toolchain-r-test, llvm-toolchain-precise ]
-    packages: [ gcc-6, g++-6, clang-5.0 ]
+    sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
+    packages: [ gcc-7, g++-7, ninja-build, clang ]
 
-matrix:
-  include:
-    - compiler: ": gcc-6"
-      before_install:
-        - export CC="gcc-6" CXX="g++-6"
-    - compiler: ": clang-5.0"
-      before_install:
-        - export CC="clang-5.0" CXX="clang++-5.0"
-  exclude:
-    - compiler: gcc
+env:
+    - MATRIX_EVAL="export CC=clang-7 CXX=clang++-7 ODBC_LIB=libiodbc2-dev"
+    - MATRIX_EVAL="export CC=gcc-7   CXX=g++-7     ODBC_LIB=libiodbc2-dev"
+    - MATRIX_EVAL="export CC=clang-7 CXX=clang++-7 ODBC_LIB=unixodbc-dev"
+    - MATRIX_EVAL="export CC=gcc-7   CXX=g++-7     ODBC_LIB=unixodbc-dev"
 
 install:
-  - sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu xenial main universe"
+  - eval "${MATRIX_EVAL}"
+  - sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe"
   - sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1)
-  - sudo apt-get install unixodbc-dev libssl-dev binutils -y > build.log 2>&1 || (cat build.log && exit 1)
+  - sudo apt-get install -y $ODBC_LIB libssl-dev binutils libpoco-dev | tee build.log 2>&1 || (cat build.log && exit 1)
 
 script:
-  - mkdir build
+  - mkdir -p build
   - cd build
-  - cmake .. -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` && make -j `nproc || grep -c ^processor /proc/cpuinfo` all test
+  - cmake .. -G Ninja -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` && ninja all && ninja test

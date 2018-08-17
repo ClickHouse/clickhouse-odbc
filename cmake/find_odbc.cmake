@@ -17,7 +17,7 @@
 
 find_path(ODBC_INCLUDE_DIRECTORIES
 	NAMES sql.h
-	HINTS
+	PATHS
 	/usr/include
 	/usr/include/odbc
 	/usr/include/iodbc
@@ -34,9 +34,7 @@ find_path(ODBC_INCLUDE_DIRECTORIES
 	DOC "Specify the directory containing sql.h."
 )
 
-find_library(ODBC_LIBRARIES
-	NAMES iodbc odbc iodbcinst odbcinst odbc32
-	HINTS
+set(ODBC_LIBRARIES_PATHS
 	/usr/lib
 	/usr/lib/odbc
 	/usr/lib/iodbc
@@ -48,8 +46,30 @@ find_library(ODBC_LIBRARIES
 	"C:/Program Files/ODBC/lib"
 	"C:/ODBC/lib/debug"
 	"C:/Program Files (x86)/Microsoft SDKs/Windows/v7.0A/Lib"
+)
+
+find_library(ODBC_LIBRARIES
+	NAMES iodbc odbc odbc32
+	PATHS ${ODBC_LIBRARIES_PATHS}
 	DOC "Specify the ODBC driver manager library here."
 )
+
+if(NOT WIN32)
+    if(ODBC_LIBRARIES MATCHES "iodbc")
+	set(ODBC_IODBC 1)
+	set(ODBC_UNIXODBC 0)
+    else() # TODO maybe better check
+	set(ODBC_IODBC 0)
+	set(ODBC_UNIXODBC 1)
+    endif()
+endif()
+
+
+if (NOT WIN32 AND ODBC_IODBC OR (NOT UNICODE AND ODBC_UNIXODBC) )
+    find_library(ODBCINST_LIBRARIES NAMES iodbcinst odbcinst PATHS ${ODBC_LIBRARIES_PATHS})
+    list(APPEND ODBC_LIBRARIES ${ODBCINST_LIBRARIES})
+    list(APPEND ODBC_LIBRARIES ${LTDL_LIBRARY})
+endif()
 
 # MinGW find usually fails
 if(MINGW)
@@ -67,5 +87,3 @@ find_package_handle_standard_args(ODBC
 mark_as_advanced(ODBC_FOUND ODBC_LIBRARIES ODBC_INCLUDE_DIRECTORIES)
 
 message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")
-
-# message (STATUS "CMAKE_FIND_LIBRARY_SUFFIXES=${CMAKE_FIND_LIBRARY_SUFFIXES}")

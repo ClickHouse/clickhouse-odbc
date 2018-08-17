@@ -1,13 +1,19 @@
 if (CLICKHOUSE_ODBC_TEST)
     add_subdirectory (gtest)
     if (USE_INTERNAL_NANOODBC_LIBRARY)
-        # git clone --recursive https://github.com/lexicalunit/nanodbc.git
+        # git clone --recursive https://github.com/nanodbc/nanodbc.git
         set (NANODBC_DISABLE_EXAMPLES 1 CACHE INTERNAL "")
         set (NANODBC_DISABLE_LIBCXX 1 CACHE INTERNAL "")
         set (NANODBC_DISABLE_TESTS 1 CACHE INTERNAL "")
         set (NANODBC_DISABLE_INSTALL 1 CACHE INTERNAL "")
         set (NANODBC_ENABLE_UNICODE ${UNICODE} CACHE INTERNAL "")
         add_subdirectory (nanodbc)
+
+        # Fix iodbc include bug
+        if (NOT MSVC)
+            set_target_properties(nanodbc PROPERTIES INCLUDE_DIRECTORIES "${ODBC_INCLUDE_DIRECTORIES};${CMAKE_CURRENT_SOURCE_DIR}/nanodbc")
+        endif ()
+        set_target_properties(nanodbc PROPERTIES INTERFACE_LINK_LIBRARIES "${ODBC_LIBRARIES}")
     endif ()
 endif ()
 

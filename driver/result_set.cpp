@@ -21,6 +21,36 @@ public:
 
 } // namespace
 
+
+uint64_t Field::getUInt() const {
+    try {
+        return std::stoull(data);
+    } catch (std::exception & e) {
+        throw std::runtime_error("Cannot interpret '" + data + "' as uint64: " + e.what());
+    }
+}
+int64_t Field::getInt() const {
+    try {
+        return std::stoll(data);
+    } catch (std::exception & e) {
+        throw std::runtime_error("Cannot interpret '" + data + "' as int64: " + e.what());
+    }
+}
+float Field::getFloat() const {
+    try {
+        return std::stof(data);
+    } catch (std::exception & e) {
+        throw std::runtime_error("Cannot interpret '" + data + "' as float: " + e.what());
+    }
+}
+double Field::getDouble() const {
+    try {
+        return std::stod(data);
+    } catch (std::exception & e) {
+        throw std::runtime_error("Cannot interpret '" + data + "' as double: " + e.what());
+    }
+}
+
 SQL_DATE_STRUCT Field::getDate() const
 {
     if (data.size() != 10)
@@ -133,6 +163,8 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_)
                 columns_info[i].type_without_parameters = "String";
             }
         }
+
+        LOG("Row " << i << " name=" << columns_info[i].name << " type=" << columns_info[i].type << " -> " << columns_info[i].type << " typenoparams=" << columns_info[i].type_without_parameters);
     }
 
     mutator->UpdateColumnInfo(&columns_info);
@@ -182,6 +214,30 @@ std::istream & ResultSet::in()
     return *statement->in;
 }
 
+bool ResultSet::readNextBlockCache()
+{
+    size_t max_block_size = 1000; // How many rows read to calculate max columns sizes
+    size_t readed = 0;
+    for (size_t i = 0; i < max_block_size && in().peek() != EOF; ++i)
+    {
+        size_t num_columns = getNumColumns();
+        Row row(num_columns);
+
+        for (size_t j = 0; j < num_columns; ++j)
+        {
+            readString(row.data[j].data, in());
+            columns_info[j].display_size = std::max<decltype(columns_info[j].display_size)>(row.data[j].data.size(), columns_info[j].display_size);
+
+            LOG("read Row/Col " << i <<":"<< j << " name=" << row.data[j].data << " display_size=" << columns_info[j].display_size);
+        }
+
+        current_block_buffer.emplace_back(std::move(row));
+        ++readed;
+    }
+
+    return readed;
+}
+
 bool ResultSet::readNextBlock()
 {
     auto max_block_size = statement->row_array_size;
@@ -189,19 +245,12 @@ bool ResultSet::readNextBlock()
     current_block.data.clear();
     current_block.data.reserve(max_block_size);
 
-    for (size_t i = 0; i < max_block_size && in().peek() != EOF; ++i)
+    for (size_t i = 0; i < max_block_size && (current_block_buffer.size() || readNextBlockCache()); ++i)
     {
-        size_t num_columns = getNumColumns();
-        Row row(num_columns);
-
-        for (size_t j = 0; j < num_columns; ++j)
-            readString(row.data[j].data, in());
+        auto row = current_block_buffer.front();
+        current_block_buffer.pop_front();
 
         mutator->UpdateRow(columns_info, &row);
-
-        // TODO: Calculate maximum length for whole result, maybe on server
-        for (size_t i = 0; i < num_columns; ++i)
-            columns_info[i].display_size = std::max(row.data[i].data.size(), columns_info[i].display_size);
 
         current_block.data.emplace_back(std::move(row));
     }

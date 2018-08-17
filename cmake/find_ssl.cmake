@@ -1,4 +1,6 @@
-option (USE_INTERNAL_SSL_LIBRARY "Set to FALSE to use system *ssl library instead of bundled" ${MSVC})
+if (NOT MSVC)
+    option (USE_INTERNAL_SSL_LIBRARY "Set to FALSE to use system *ssl library instead of bundled" ${NOT_UNBUNDLED})
+endif ()
 
 set (OPENSSL_USE_STATIC_LIBS ${USE_STATIC_LIBRARIES})
 
@@ -54,32 +56,31 @@ if (NOT OPENSSL_FOUND)
     set (OPENSSL_FOUND 1 CACHE INTERNAL "")
 endif ()
 
-
 #TODO: to use with new poco
 if (0)
-# part from /usr/share/cmake-*/Modules/FindOpenSSL.cmake
+# part from /usr/share/cmake-*/Modules/FindOpenSSL.cmake, with removed all "EXISTS "
 if(OPENSSL_FOUND)
   if(NOT TARGET OpenSSL::Crypto AND
-      (EXISTS "${OPENSSL_CRYPTO_LIBRARY}" OR
-        EXISTS "${LIB_EAY_LIBRARY_DEBUG}" OR
-        EXISTS "${LIB_EAY_LIBRARY_RELEASE}")
+      (OPENSSL_CRYPTO_LIBRARY OR
+        LIB_EAY_LIBRARY_DEBUG OR
+        LIB_EAY_LIBRARY_RELEASE)
       )
     add_library(OpenSSL::Crypto UNKNOWN IMPORTED)
     set_target_properties(OpenSSL::Crypto PROPERTIES
       INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}")
-    if(EXISTS "${OPENSSL_CRYPTO_LIBRARY}")
+    if(OPENSSL_CRYPTO_LIBRARY)
       set_target_properties(OpenSSL::Crypto PROPERTIES
         IMPORTED_LINK_INTERFACE_LANGUAGES "C"
         IMPORTED_LOCATION "${OPENSSL_CRYPTO_LIBRARY}")
     endif()
-    if(EXISTS "${LIB_EAY_LIBRARY_RELEASE}")
+    if(LIB_EAY_LIBRARY_RELEASE)
       set_property(TARGET OpenSSL::Crypto APPEND PROPERTY
         IMPORTED_CONFIGURATIONS RELEASE)
       set_target_properties(OpenSSL::Crypto PROPERTIES
         IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
         IMPORTED_LOCATION_RELEASE "${LIB_EAY_LIBRARY_RELEASE}")
     endif()
-    if(EXISTS "${LIB_EAY_LIBRARY_DEBUG}")
+    if(LIB_EAY_LIBRARY_DEBUG)
       set_property(TARGET OpenSSL::Crypto APPEND PROPERTY
         IMPORTED_CONFIGURATIONS DEBUG)
       set_target_properties(OpenSSL::Crypto PROPERTIES
@@ -88,26 +89,26 @@ if(OPENSSL_FOUND)
     endif()
   endif()
   if(NOT TARGET OpenSSL::SSL AND
-      (EXISTS "${OPENSSL_SSL_LIBRARY}" OR
-        EXISTS "${SSL_EAY_LIBRARY_DEBUG}" OR
-        EXISTS "${SSL_EAY_LIBRARY_RELEASE}")
+      (OPENSSL_SSL_LIBRARY OR
+        SSL_EAY_LIBRARY_DEBUG OR
+        SSL_EAY_LIBRARY_RELEASE)
       )
     add_library(OpenSSL::SSL UNKNOWN IMPORTED)
     set_target_properties(OpenSSL::SSL PROPERTIES
       INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}")
-    if(EXISTS "${OPENSSL_SSL_LIBRARY}")
+    if(OPENSSL_SSL_LIBRARY)
       set_target_properties(OpenSSL::SSL PROPERTIES
         IMPORTED_LINK_INTERFACE_LANGUAGES "C"
         IMPORTED_LOCATION "${OPENSSL_SSL_LIBRARY}")
     endif()
-    if(EXISTS "${SSL_EAY_LIBRARY_RELEASE}")
+    if(SSL_EAY_LIBRARY_RELEASE)
       set_property(TARGET OpenSSL::SSL APPEND PROPERTY
         IMPORTED_CONFIGURATIONS RELEASE)
       set_target_properties(OpenSSL::SSL PROPERTIES
         IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "C"
         IMPORTED_LOCATION_RELEASE "${SSL_EAY_LIBRARY_RELEASE}")
     endif()
-    if(EXISTS "${SSL_EAY_LIBRARY_DEBUG}")
+    if(SSL_EAY_LIBRARY_DEBUG)
       set_property(TARGET OpenSSL::SSL APPEND PROPERTY
         IMPORTED_CONFIGURATIONS DEBUG)
       set_target_properties(OpenSSL::SSL PROPERTIES
@@ -121,6 +122,5 @@ if(OPENSSL_FOUND)
   endif()
 endif()
 endif()
-
 
 message (STATUS "Using ssl=${OPENSSL_FOUND}: ${OPENSSL_INCLUDE_DIR} : ${OPENSSL_LIBRARIES}")
