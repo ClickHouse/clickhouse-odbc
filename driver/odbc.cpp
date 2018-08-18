@@ -238,7 +238,7 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
                     if (column_info.fixed_size)
                         num_value = column_info.fixed_size * SIZEOF_CHAR;
                     else
-                        num_value = column_info.display_size * SIZEOF_CHAR;
+                        num_value = 32768 * SIZEOF_CHAR;
                 }
                 else
                 {
