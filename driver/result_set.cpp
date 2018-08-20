@@ -2,8 +2,6 @@
 #include "log.h"
 #include "statement.h"
 
-#include <Poco/Types.h>
-
 namespace {
 
 class EmptyMutator : public IResultMutator {
