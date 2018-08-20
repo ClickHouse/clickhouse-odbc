@@ -231,6 +231,7 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
                 break;
             case SQL_DESC_NULLABLE:
                 num_value = column_info.is_nullable;
+LOG("SQL_DESC_NULLABLE: " << column_info.is_nullable);
                 break;
             case SQL_DESC_OCTET_LENGTH:
                 if (type_info.IsStringType())
