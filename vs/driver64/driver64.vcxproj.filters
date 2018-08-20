@@ -80,6 +80,9 @@
     <ClCompile Include="..\..\driver\result_set.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\driver\read_helpers.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\driver\statement.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
