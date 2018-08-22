@@ -26,6 +26,7 @@ struct Environment {
     Environment();
     ~Environment();
 
+    static const auto string_max_size = 0xFFFFFF;
     static const std::map<std::string, TypeInfo> types_info;
 
     SQLUINTEGER metadata_id = SQL_FALSE;

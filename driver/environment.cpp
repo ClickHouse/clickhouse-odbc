@@ -16,7 +16,6 @@
 #    include "config_cmake.h"
 #endif
 
-const auto string_max_size = 0xFFFFFF;
 const std::map<std::string, TypeInfo> Environment::types_info = {
     {"UInt8", TypeInfo{"TINYINT", true, SQL_TINYINT, 3, 1}},
     {"UInt16", TypeInfo{"SMALLINT", true, SQL_SMALLINT, 5, 2}},
@@ -34,11 +33,11 @@ const std::map<std::string, TypeInfo> Environment::types_info = {
     {"Int64", TypeInfo{"BIGINT", false, SQL_BIGINT, 1 + 19, 8}},
     {"Float32", TypeInfo{"REAL", false, SQL_REAL, 7, 4}},
     {"Float64", TypeInfo{"DOUBLE", false, SQL_DOUBLE, 15, 8}},
-    {"String", TypeInfo{"TEXT", true, SQL_VARCHAR, string_max_size, string_max_size}},
-    {"FixedString", TypeInfo{"TEXT", true, SQL_VARCHAR, string_max_size, string_max_size}},
+    {"String", TypeInfo{"TEXT", true, SQL_VARCHAR, Environment::string_max_size, Environment::string_max_size}},
+    {"FixedString", TypeInfo{"TEXT", true, SQL_VARCHAR, Environment::string_max_size, Environment::string_max_size}},
     {"Date", TypeInfo{"DATE", true, SQL_TYPE_DATE, 10, 6}},
     {"DateTime", TypeInfo{"TIMESTAMP", true, SQL_TYPE_TIMESTAMP, 19, 16}},
-    {"Array", TypeInfo{"TEXT", true, SQL_VARCHAR, string_max_size, string_max_size}},
+    {"Array", TypeInfo{"TEXT", true, SQL_VARCHAR, Environment::string_max_size, Environment::string_max_size}},
 };
 
 Environment::Environment() {

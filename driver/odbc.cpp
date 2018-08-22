@@ -209,10 +209,7 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
                 break;
             case SQL_DESC_LENGTH:
                 if (type_info.IsStringType())
-                {
                     num_value = std::min<int32_t>(statement.connection.stringmaxlength, column_info.fixed_size ? column_info.fixed_size : column_info.display_size);
-LOG("SQL_DESC_LENGTH=" << num_value << " fixed_size=" << column_info.fixed_size);
-                }
                 break;
             case SQL_DESC_LITERAL_PREFIX:
                 break;
@@ -228,23 +225,16 @@ LOG("SQL_DESC_LENGTH=" << num_value << " fixed_size=" << column_info.fixed_size)
                 break;
             case SQL_DESC_OCTET_LENGTH:
                 if (type_info.IsStringType())
-                {
                     num_value = std::min<int32_t>(statement.connection.stringmaxlength, column_info.fixed_size ? column_info.fixed_size : column_info.display_size) * SIZEOF_CHAR;
-LOG("SQL_DESC_OCTET_LENGTH=" << num_value);
-                }
                 else
-                {
                     num_value = type_info.octet_length;
-                }
                 break;
             case SQL_DESC_PRECISION:
                 num_value = 0;
                 break;
             case SQL_DESC_NUM_PREC_RADIX:
                 if (type_info.IsIntegerType())
-                {
                     num_value = 10;
-                }
                 break;
             case SQL_DESC_SCALE:
                 break;
@@ -309,11 +299,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
         if (out_type)
             *out_type = type_info.sql_type;
         if (out_column_size)
-{
             *out_column_size = std::min<int32_t>(statement.connection.stringmaxlength, column_info.fixed_size ? column_info.fixed_size : type_info.column_size);
-LOG("*out_column_size="<<*out_column_size << " column_info.fixed_size=" << column_info.fixed_size);
- //           *out_column_size = 1000;
-}
         if (out_decimal_digits)
             *out_decimal_digits = 0;
         if (out_is_nullable)

@@ -205,7 +205,7 @@ void Connection::setDefaults() {
     if (port == 0)
         port = (proto == "https" ? 8443 : 8123);
     if (stringmaxlength == 0)
-        stringmaxlength = 1048575;
+        stringmaxlength = Environment::string_max_size;
     if (user.empty())
         user = "default";
     if (database.empty())
