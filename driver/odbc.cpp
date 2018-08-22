@@ -239,6 +239,8 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
                         num_value = column_info.fixed_size * SIZEOF_CHAR;
                     else
                         num_value = column_info.display_size * SIZEOF_CHAR;
+//num_value = 31;
+LOG("SQL_DESC_OCTET_LENGTH=" << num_value);
                 }
                 else
                 {
@@ -317,7 +319,11 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
         if (out_type)
             *out_type = type_info.sql_type;
         if (out_column_size)
+{
             *out_column_size = type_info.column_size;
+LOG("*out_column_size="<<*out_column_size);
+ //           *out_column_size = 1000;
+}
         if (out_decimal_digits)
             *out_decimal_digits = 0;
         if (out_is_nullable)
@@ -345,9 +351,9 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
 
         size_t column_idx = column_or_param_number - 1;
 
-        LOG("column: " << column_idx << ", target_type: " << target_type << ", out_value_max_size: " << out_value_max_size);
-
         const Field & field = statement.current_row.data[column_idx];
+
+        LOG("column: " << column_idx << ", target_type: " << target_type << ", out_value_max_size: " << out_value_max_size << " data=" << field.data);
 
         switch (target_type)
         {
