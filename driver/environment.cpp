@@ -16,7 +16,7 @@
 #    include "config_cmake.h"
 #endif
 
-const auto string_max_size = 1000;
+const auto string_max_size = 0xFFFFFF;
 const std::map<std::string, TypeInfo> Environment::types_info = {
     {"UInt8", TypeInfo{"TINYINT", true, SQL_TINYINT, 3, 1}},
     {"UInt16", TypeInfo{"SMALLINT", true, SQL_SMALLINT, 5, 2}},

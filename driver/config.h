@@ -16,6 +16,7 @@
 #define INI_READONLY        TEXT("ReadOnly")    /* Database is read only */
 #define INI_TIMEOUT         TEXT("Timeout")
 #define INI_SSLMODE         TEXT("SSLMode")
+#define INI_STRINGMAXLENGTH TEXT("StringMaxLength")
 
 #ifndef WIN32
 #   define ODBC_INI         TEXT(".odbc.ini")
@@ -42,6 +43,7 @@ struct ConnInfo
     MYTCHAR       sslmode[16];
     MYTCHAR       onlyread[SMALL_REGISTRY_LEN];
     MYTCHAR       timeout[SMALL_REGISTRY_LEN];
+    MYTCHAR       stringmaxlength[SMALL_REGISTRY_LEN];
     MYTCHAR       show_system_tables[SMALL_REGISTRY_LEN];
     MYTCHAR       translation_dll[MEDIUM_REGISTRY_LEN];
     MYTCHAR       translation_option[SMALL_REGISTRY_LEN];
