@@ -117,6 +117,7 @@ void assignTypeInfo(const TypeAst & ast, ColumnInfo * info)
     {
         info->type_without_parameters = ast.name;
         info->fixed_size = ast.size;
+LOG("info->type_without_parameters=" << info->type_without_parameters << " info->fixed_size?=" << info->fixed_size);
     }
     else if (ast.meta == TypeAst::Nullable)
     {
@@ -127,6 +128,7 @@ void assignTypeInfo(const TypeAst & ast, ColumnInfo * info)
     {
         // Interprete all unsupported types as String.
         info->type_without_parameters = "String";
+LOG("info->type_without_parameters=" << info->type_without_parameters);
     }
 }
 
@@ -156,6 +158,7 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_)
             if (TypeParser(columns_info[i].type).parse(&ast))
             {
                 assignTypeInfo(ast, &columns_info[i]);
+LOG("addtypeinfo");
             }
             else
             {
@@ -164,7 +167,7 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_)
             }
         }
 
-        LOG("Row " << i << " name=" << columns_info[i].name << " type=" << columns_info[i].type << " -> " << columns_info[i].type << " typenoparams=" << columns_info[i].type_without_parameters);
+        LOG("Row " << i << " name=" << columns_info[i].name << " type=" << columns_info[i].type << " -> " << columns_info[i].type << " typenoparams=" << columns_info[i].type_without_parameters << " fixedsize=" << columns_info[i].fixed_size);
     }
 
     mutator->UpdateColumnInfo(&columns_info);

@@ -210,8 +210,8 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
             case SQL_DESC_LENGTH:
                 if (type_info.IsStringType())
                 {
-                    num_value = std::min<int32_t>(statement.connection.stringmaxlength, column_info.fixed_size ?  column_info.fixed_size : column_info.display_size);
-LOG("SQL_DESC_LENGTH=" << num_value);
+                    num_value = std::min<int32_t>(statement.connection.stringmaxlength, column_info.fixed_size ? column_info.fixed_size : column_info.display_size);
+LOG("SQL_DESC_LENGTH=" << num_value << " fixed_size=" << column_info.fixed_size);
                 }
                 break;
             case SQL_DESC_LITERAL_PREFIX:
@@ -311,7 +311,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
         if (out_column_size)
 {
             *out_column_size = std::min<int32_t>(statement.connection.stringmaxlength, column_info.fixed_size ? column_info.fixed_size : type_info.column_size);
-LOG("*out_column_size="<<*out_column_size);
+LOG("*out_column_size="<<*out_column_size << " column_info.fixed_size=" << column_info.fixed_size);
  //           *out_column_size = 1000;
 }
         if (out_decimal_digits)
