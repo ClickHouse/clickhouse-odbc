@@ -9,4 +9,7 @@ if (NOT (CMAKE_BUILD_TYPE_UC STREQUAL "TSAN" AND APPLE))
         add_test(NAME "test.pl-w" COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/test.pl ${TEST_DSN_W})
         add_test(NAME "test.py-w" COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test.py ${TEST_DSN_W})
     endif ()
+    if(COMMAND sqlcmd) # MS SQL server need change server in file:
+        add_test(NAME "sqlcmd" COMMAND sqlcmd -i ${CMAKE_CURRENT_SOURCE_DIR}/mssql.linked.server.sql)
+    endif ()
 endif ()
