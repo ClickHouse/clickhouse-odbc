@@ -24,11 +24,6 @@ function q {
     echo "$*" | $RUNNER $DSN $RUNNER_PARAMS
 }
 
-q "CREATE TABLE IF NOT EXISTS test.fixedstring ( xx FixedString(100)) ENGINE = Memory;"
-q "INSERT INTO test.fixedstring VALUES ('a'), ('abcdefg'), ('абвгдеёжзийклмнопрстуфхцч')";
-q "select xx as x from test.fixedstring;"
-q "DROP TABLE test.fixedstring;"
-exit
 
 q "SELECT * FROM system.build_options;"
 q "CREATE DATABASE IF NOT EXISTS test;"
@@ -138,6 +133,13 @@ q $"SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяА
 
 q $"SELECT -127,-128,-129,126,127,128,255,256,257,-32767,-32768,-32769,32766,32767,32768,65535,65536,65537,-2147483647,-2147483648,-2147483649,2147483646,2147483647,2147483648,4294967295,4294967296,4294967297,-9223372036854775807,-9223372036854775808,-9223372036854775809,9223372036854775806,9223372036854775807,9223372036854775808,18446744073709551615,18446744073709551616,18446744073709551617"
 q $"SELECT 2147483647, 2147483648, 2147483647+1, 2147483647+10, 4294967295"
+
+
+q "CREATE TABLE IF NOT EXISTS test.fixedstring ( xx FixedString(100)) ENGINE = Memory;"
+q "INSERT INTO test.fixedstring VALUES ('a'), ('abcdefg'), ('абвгдеёжзийклмнопрстуфхцч')";
+q "select xx as x from test.fixedstring;"
+q "DROP TABLE test.fixedstring;"
+
 
 q 'DROP TABLE IF EXISTS test.increment;'
 q 'CREATE TABLE test.increment (n UInt64) engine Log;'
