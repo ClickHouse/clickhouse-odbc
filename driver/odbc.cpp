@@ -35,7 +35,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     SQLTCHAR * password,
     SQLSMALLINT password_size)
 {
-    LOG(__FUNCTION__ << " dsn=" << dsn << " dsn_size=" << dsn_size << " user=" << user << " user_size=" << " password=" << password << " password_size=" << password_size);
+    //LOG(__FUNCTION__ << " dsn_size=" << dsn_size << " dsn=" << dsn << " user_size=" << user_size << " user=" << user << " password_size=" << password_size << " password=" << password);
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
 
@@ -43,7 +43,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
         std::string user_str = stringFromSQLSymbols(user, user_size);
         std::string password_str = stringFromSQLSymbols(password, password_size);
 
-        //LOG(__FUNCTION__ << " dsn="<< dsn_str <<", user="<< user_str << ", pwd="<< password_str);
+        LOG(__FUNCTION__ << " dsn=" << dsn_str << " user=" << user_str << " pwd=" << password_str);
 
         connection.init(dsn_str, 0, user_str, password_str, "");
         return SQL_SUCCESS;

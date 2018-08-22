@@ -24,6 +24,12 @@ function q {
     echo "$*" | $RUNNER $DSN $RUNNER_PARAMS
 }
 
+q "CREATE TABLE IF NOT EXISTS test.fixedstring ( xx FixedString(100)) ENGINE = Memory;"
+q "INSERT INTO test.fixedstring VALUES ('a'), ('abcdefg'), ('абвгдеёжзийклмнопрстуфхцч')";
+q "select xx as x from test.fixedstring;"
+q "DROP TABLE test.fixedstring;"
+exit
+
 q "SELECT * FROM system.build_options;"
 q "CREATE DATABASE IF NOT EXISTS test;"
 q "DROP TABLE IF EXISTS test.odbc1;"
