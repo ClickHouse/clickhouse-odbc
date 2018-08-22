@@ -3,6 +3,8 @@ version: 1.0.{build}
 clone_script:
   - cmd: git clone --recursive --branch=%APPVEYOR_REPO_BRANCH% https://github.com/%APPVEYOR_REPO_NAME%.git %APPVEYOR_BUILD_FOLDER%
 
+image: Visual Studio 2017
+
 platform: [ x86, x64 ]
 
 configuration: [ Release, Debug ]

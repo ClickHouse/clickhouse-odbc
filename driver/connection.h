@@ -18,6 +18,7 @@ struct Connection {
     std::string password;
     uint16_t port = 0;
     int timeout = 0;
+    int connection_timeout = 0;
 
     std::unique_ptr<Poco::Net::HTTPClientSession> session;
     DiagnosticRecord diagnostic_record;

@@ -12,7 +12,7 @@ cd ..
         CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which g++-8 g++-7 g++8 g++7 g++ | head -n1` -DCMAKE_C_COMPILER=`which gcc-8 gcc-7 gcc8 gcc7 gcc | head -n1`"
     fi
     for type in debug asan tsan ubsan msan release relwithdebinfo; do
-      for option in "-DUNICODE=1" ""; do
+      for option in ""; do
         build_dir=build${compiler}_$type$option
         echo build $compiler $type $option in ${build_dir}
         mkdir -p ${build_dir}
@@ -20,7 +20,7 @@ cd ..
         ln -sf ${build_dir} build
         cd build
         rm CMakeCache.txt
-        cmake .. -G Ninja $option -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} -DLIB_NAME_NO_W=1 $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS && cmake --build . -- -j ${MAKEJ=$(distcc -j || nproc || sysctl -n hw.ncpu || echo 4)} && ctest -V
+        cmake .. -G Ninja $option -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} -DTEST_DSN_W=${TEST_DSN=clickhouse_localhost_w} $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS | tee log_cmake.log && ninja -j ${MAKEJ=$(distcc -j || nproc || sysctl -n hw.ncpu || echo 4)} | tee log_build.log && ctest -V | log_test.log
         cd ..
       done
     done
