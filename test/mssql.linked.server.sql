@@ -16,7 +16,7 @@ EXEC('select name from system.databases;') at [clickhouse_link_test];
 EXEC('select * from system.build_options;') at [clickhouse_link_test];
 
 
-exec('CREATE TABLE IF NOT EXISTS test.fixedstring ( xx FixedString(100)) ENGINE = TinyLog;') at [clickhouse_link_test];
+exec('CREATE TABLE IF NOT EXISTS test.fixedstring ( xx FixedString(100)) ENGINE = Memory;') at [clickhouse_link_test];
 exec(N'INSERT INTO test.fixedstring VALUES (''a''), (''abcdefg''), (''абвгдеёжзийклмнопрстуфх'');') at [clickhouse_link_test];
 --exec('INSERT INTO test.fixedstring VALUES (''a''),(''abcdefg'');') at [clickhouse_link_test];
 exec('select xx as x from test.fixedstring;') at [clickhouse_link_test];
