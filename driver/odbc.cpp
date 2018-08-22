@@ -310,7 +310,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
             *out_type = type_info.sql_type;
         if (out_column_size)
 {
-            *out_column_size = std::min<int32_t>(statement.connection.stringmaxlength, type_info.column_size);
+            *out_column_size = std::min<int32_t>(statement.connection.stringmaxlength, column_info.fixed_size ? column_info.fixed_size : type_info.column_size);
 LOG("*out_column_size="<<*out_column_size);
  //           *out_column_size = 1000;
 }
