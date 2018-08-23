@@ -47,7 +47,7 @@ bool Statement::isPrepared() const {
 
 void Statement::sendRequest(IResultMutatorPtr mutator) {
     std::ostringstream user_password_base64;
-    Poco::Base64Encoder base64_encoder(user_password_base64);
+    Poco::Base64Encoder base64_encoder(user_password_base64, Poco::BASE64_URL_ENCODING);
     base64_encoder << connection.user << ":" << connection.password;
     base64_encoder.close();
 
