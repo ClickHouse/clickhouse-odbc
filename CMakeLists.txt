@@ -102,7 +102,12 @@ include (cmake/find_poco.cmake)
 include (cmake/find_nanoodbc.cmake)
 include (cmake/find_ccache.cmake)
 
-include (contrib/poco/cmake/FindODBC.cmake)
+if (EXISTS contrib/poco/cmake/FindODBC.cmake)
+    include (contrib/poco/cmake/FindODBC.cmake)
+else ()
+    include (cmake/find_odbc.cmake)
+endif ()
+
 if(WIN32)
    set(ODBC_LIBRARIES "odbc32" "odbccp32")
    message(STATUS "Windows native ODBC Support Enabled")
