@@ -97,7 +97,8 @@ void Field::normalizeDate(T & date) const {
 void assignTypeInfo(const TypeAst & ast, ColumnInfo * info) {
     if (ast.meta == TypeAst::Terminal) {
         info->type_without_parameters = ast.name;
-        info->fixed_size = ast.size;
+        if (ast.elements.size() == 1)
+            info->fixed_size = ast.elements.front().size;
     } else if (ast.meta == TypeAst::Nullable) {
         info->is_nullable = true;
         assignTypeInfo(ast.elements.front(), info);
@@ -149,7 +150,7 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_) {
                         columns_info[i].type_without_parameters = "String";
                     }
                 }
-                LOG("Row " << i << " name=" << columns_info[i].name << " type=" << columns_info[i].type << " -> " << columns_info[i].type << " typenoparams=" << columns_info[i].type_without_parameters);
+                LOG("Row " << i << " name=" << columns_info[i].name << " type=" << columns_info[i].type << " -> " << columns_info[i].type << " typenoparams=" << columns_info[i].type_without_parameters << " fixedsize=" << columns_info[i].fixed_size);
             }
 
             // TODO: max_length
@@ -161,7 +162,6 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_) {
                 readString(in(), dummy);
             }
         }
-
     }
     mutator->UpdateColumnInfo(&columns_info);
 

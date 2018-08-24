@@ -1,6 +1,6 @@
 project (clickhouse-odbc)
 cmake_minimum_required (VERSION 2.6)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${clickhouse-odbc_SOURCE_DIR}/cmake/Modules")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 
 include(GNUInstallDirs)
 
@@ -102,7 +102,12 @@ include (cmake/find_poco.cmake)
 include (cmake/find_nanoodbc.cmake)
 include (cmake/find_ccache.cmake)
 
-include (contrib/poco/cmake/FindODBC.cmake)
+if (EXISTS contrib/poco/cmake/FindODBC.cmake)
+    include (contrib/poco/cmake/FindODBC.cmake)
+else ()
+    include (cmake/find_odbc.cmake)
+endif ()
+
 if(WIN32)
    set(ODBC_LIBRARIES "odbc32" "odbccp32")
    message(STATUS "Windows native ODBC Support Enabled")

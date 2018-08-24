@@ -22,7 +22,8 @@ except BaseException:
     connection.setencoding(encoding='utf-8')
 
 def query(q):
-    print(q + " :")
+    sys.stdout.write(q)
+    print(" :")
     cursor = connection.cursor()
     cursor.execute(q)
     rows = cursor.fetchall()

@@ -1,5 +1,13 @@
 option (USE_INTERNAL_POCO_LIBRARY "Set to FALSE to use system poco library instead of bundled" ${NOT_UNBUNDLED})
 
+if (NOT EXISTS "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/CMakeLists.txt")
+   if (USE_INTERNAL_POCO_LIBRARY)
+      message (WARNING "submodule contrib/poco is missing. to fix try run: \n git submodule update --init --recursive")
+   endif ()
+   set (USE_INTERNAL_POCO_LIBRARY 0)
+   set (MISSING_INTERNAL_POCO_LIBRARY 1)
+endif ()
+
 if (NOT USE_INTERNAL_POCO_LIBRARY)
     if (WIN32 OR MSVC)
         set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
@@ -17,7 +25,7 @@ endif ()
 
 if (Poco_INCLUDE_DIRS AND Poco_Foundation_LIBRARY)
     #include_directories (${Poco_INCLUDE_DIRS})
-else ()
+elseif (NOT MISSING_INTERNAL_POCO_LIBRARY)
     set (POCO_STATIC 1 CACHE BOOL "")
 
     set (ENABLE_CPPUNIT 0 CACHE BOOL "")
