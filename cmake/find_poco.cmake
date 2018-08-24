@@ -1,6 +1,6 @@
 option (USE_INTERNAL_POCO_LIBRARY "Set to FALSE to use system poco library instead of bundled" ${NOT_UNBUNDLED})
 
-if (NOT EXISTS "${Clickhouse-odbc_SOURCE_DIR}/contrib/poco/CMakeLists.txt")
+if (NOT EXISTS "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/CMakeLists.txt")
    if (USE_INTERNAL_POCO_LIBRARY)
       message (WARNING "submodule contrib/poco is missing. to fix try run: \n git submodule update --init --recursive")
    endif ()

@@ -4,7 +4,7 @@ endif ()
 
 set (OPENSSL_USE_STATIC_LIBS ${USE_STATIC_LIBRARIES})
 
-if (USE_INTERNAL_SSL_LIBRARY AND NOT EXISTS "${Clickhouse-odbc_SOURCE_DIR}/contrib/ssl/CMakeLists.txt")
+if (USE_INTERNAL_SSL_LIBRARY AND NOT EXISTS "${clickhouse-odbc_SOURCE_DIR}/contrib/ssl/CMakeLists.txt")
    message (WARNING "submodule contrib/ssl is missing. to fix try run: \n git submodule update --init --recursive")
    set (USE_INTERNAL_SSL_LIBRARY 0)
    set (MISSING_INTERNAL_SSL_LIBRARY 1)
