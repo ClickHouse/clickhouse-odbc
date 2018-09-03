@@ -47,6 +47,7 @@ add_library(${libname} SHARED
     handles.cpp
     info.cpp
     odbc.cpp
+    read_helpers.cpp
     result_set.cpp
     statement.cpp
     type_parser.cpp

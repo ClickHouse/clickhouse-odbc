@@ -14,6 +14,7 @@ class Field
 {
 public:
     std::string data;
+    bool is_null = false;
 
     uint64_t getUInt() const;
     int64_t getInt() const;

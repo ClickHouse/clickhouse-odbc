@@ -34,8 +34,8 @@
 #    define ssize_t SSIZE_T
 #    define HAVE_SSIZE_T 1
 #
+#    include <winsock2.h>
 #    include <windows.h>
-//#    include <winsock2.h>
 //#    include <ws2tcpip.h>
 #endif
 
