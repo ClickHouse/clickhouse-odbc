@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/yandex/clickhouse-odbc.svg?branch=master)](https://travis-ci.org/yandex/clickhouse-odbc)
 
+If you are macos user see [MACOS.md](MACOS.md)
+
 ## Cloning a Project with Submodules
 
 Please note - [git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules) are used in this project. 
@@ -25,11 +27,6 @@ You'll need to have installed:
     * static **libodbc**
   * cmake >= 3
 
-### RPM-based Linux
-CentOS is shipped with gcc 4.X, which is not suitable for this task.
-Fedora and CentOS do not have static libodbc provided, so you'll need either to build your own, or download 3-rd party packages.
-Static libodbc is available for [Fedora 25](https://github.com/Altinity/unixODBC/tree/master/RPMS/Fedora25) and [Fedora 26](https://github.com/Altinity/unixODBC/tree/master/RPMS/Fedora26).
-If you are running another OS, you can try to build your own RPMs from [this project](https://github.com/Altinity/unixODBC).
 
 ### DEB-based Linux
 Install unixodbc-dev >= 2.3.0 or libiodbc2-dev
@@ -41,6 +38,13 @@ or
 sudo apt install libiodbc2-dev
 ```
 
+### RPM-based Linux
+CentOS is shipped with gcc 4.X, which is not suitable for this task.
+Fedora and CentOS do not have static libodbc provided, so you'll need either to build your own, or download 3-rd party packages.
+Static libodbc is available for [Fedora 25](https://github.com/Altinity/unixODBC/tree/master/RPMS/Fedora25) and [Fedora 26](https://github.com/Altinity/unixODBC/tree/master/RPMS/Fedora26).
+If you are running another OS, you can try to build your own RPMs from [this project](https://github.com/Altinity/unixODBC).
+
+
 ## Building (Linux)
 
 1. At the root of source directory:
@@ -51,27 +55,9 @@ Please use cmake3 to build the project on CentOS 7. You can install it with `yum
 
 2. libclickhouseodbc.so will be at ```build/driver/libclickhouseodbc.so```
 
-
-## Building (macos):
-Before build with standard libiodbc:
-```
-brew install libiodbc
-```
-Or for build with unixodbc:
-```
-brew install unixodbc
-```
-
 ```
 mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
 ```
-
-## Building (macos brew):
-```brew install https://raw.githubusercontent.com/proller/homebrew-core/chodbc/Formula/clickhouse-odbc.rb```
-
-
-/Library/ODBC/odbcinst.ini
-
 
 ## Building (windows visual studio)
 ```cd vs && build_vs.bat```
@@ -90,7 +76,7 @@ ctest -V```
 
 ## ODBC configuration
 
-vim ~/.odbc.ini:
+edit ~/.odbc.ini :
 
 ```(ini)
 [ClickHouse]
@@ -104,7 +90,12 @@ Driver = $(PATH_OF_CLICKHOUSE_ODBC_SO)
 #sslmode = require
 ```
 
-
+Sometimes you should change ~/.odbcinst.ini or /etc/odbcinst.ini or /Library/ODBC/odbcinst.ini :
+```(ini)
+[Clickhouse]
+Driver=$(PATH_OF_CLICKHOUSE_ODBC_SO)
+```
 
 ## Testing
 Run ```isql -v ClickHouse```
+Also look [test](test)/ contents
