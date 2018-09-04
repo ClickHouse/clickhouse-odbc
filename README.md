@@ -66,6 +66,13 @@ brew install unixodbc
 mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
 ```
 
+## Building (macos brew):
+```brew install https://raw.githubusercontent.com/proller/homebrew-core/chodbc/Formula/clickhouse-odbc.rb```
+
+
+/Library/ODBC/odbcinst.ini
+
+
 ## Building (windows visual studio)
 ```cd vs && build_vs.bat```
 
@@ -96,6 +103,8 @@ Driver = $(PATH_OF_CLICKHOUSE_ODBC_SO)
 #port = 8123
 #sslmode = require
 ```
+
+
 
 ## Testing
 Run ```isql -v ClickHouse```
