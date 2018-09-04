@@ -98,4 +98,5 @@ Driver=$(PATH_OF_CLICKHOUSE_ODBC_SO)
 
 ## Testing
 Run ```isql -v ClickHouse```
+
 Also look [test](test)/ contents
