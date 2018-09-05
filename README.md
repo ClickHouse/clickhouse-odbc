@@ -84,6 +84,7 @@ Driver = $(PATH_OF_CLICKHOUSE_ODBC_SO)
 # Optional settings:
 #Description = ClickHouse driver
 #server = localhost
+#password = 123456
 #database = default
 #uid = default
 #port = 8123
