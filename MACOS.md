@@ -12,7 +12,7 @@ If you want to connect to old clickhouse server (versions before 18.10.3):
 brew install https://raw.githubusercontent.com/proller/homebrew-core/chodbcold/Formula/clickhouse-odbc.rb
 
 ```
-If you want to switch new/old versions - use ```brew reinstall``` istead of ```brew install```
+If you want to switch new/old versions - use ```brew reinstall``` instead of ```brew install```
 
 
 edit ```~/.odbc.ini``` :
