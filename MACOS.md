@@ -1,5 +1,19 @@
 ## Building (macos brew):
-```brew install https://raw.githubusercontent.com/proller/homebrew-core/chodbc/Formula/clickhouse-odbc.rb```
+If you already have installed unixodbc - unlink it:
+```brew unlink unixodbc```
+
+If you want to connect to new clickhouse server (versions 18.10.3 and later):
+```
+brew install https://raw.githubusercontent.com/proller/homebrew-core/chodbc/Formula/clickhouse-odbc.rb
+```
+
+If you want to connect to old clickhouse server (versions before 18.10.3):
+```
+brew install https://raw.githubusercontent.com/proller/homebrew-core/chodbcold/Formula/clickhouse-odbc.rb
+
+```
+If you want to switch new/old versions - use ```brew reinstall``` istead of ```brew install```
+
 
 edit ```~/.odbc.ini``` :
 ```(ini)
@@ -7,9 +21,10 @@ edit ```~/.odbc.ini``` :
 Driver = /usr/local/opt/clickhouse-odbc/lib/libclickhouseodbcw.dylib
 # Optional settings:
 #server = localhost
+#password = 123456
+#port = 8123
 #database = default
 #uid = default
-#port = 8123
 #sslmode = require
 ```
 
@@ -46,6 +61,7 @@ Driver = /Users/YOUR_USER_NAME/clickhouse-odbc/build/driver/libclickhouseodbcw.s
 # Optional settings:
 #Description = ClickHouse driver
 #server = localhost
+#password = 123456
 #database = default
 #uid = default
 #port = 8123
