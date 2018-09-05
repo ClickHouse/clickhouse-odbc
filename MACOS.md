@@ -1,5 +1,8 @@
 ## Building (macos brew):
-```brew install https://raw.githubusercontent.com/proller/homebrew-core/chodbc/Formula/clickhouse-odbc.rb```
+```
+brew unlink unixodbc
+brew install https://raw.githubusercontent.com/proller/homebrew-core/chodbc/Formula/clickhouse-odbc.rb
+```
 
 edit ```~/.odbc.ini``` :
 ```(ini)
