@@ -18,9 +18,9 @@ addons:
     packages: [ gcc-7, g++-7, ninja-build, clang ]
 
 env:
-    - MATRIX_EVAL="export CC=clang-7 CXX=clang++-7 ODBC_LIB=libiodbc2-dev"
+    - MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=libiodbc2-dev"
     - MATRIX_EVAL="export CC=gcc-7   CXX=g++-7     ODBC_LIB=libiodbc2-dev"
-    - MATRIX_EVAL="export CC=clang-7 CXX=clang++-7 ODBC_LIB=unixodbc-dev"
+    - MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=unixodbc-dev"
     - MATRIX_EVAL="export CC=gcc-7   CXX=g++-7     ODBC_LIB=unixodbc-dev"
 
 install:
