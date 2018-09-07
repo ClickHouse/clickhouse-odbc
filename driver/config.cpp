@@ -20,6 +20,7 @@ ConnInfo::ConnInfo()
     ZERO_FIELD(sslmode);
     ZERO_FIELD(onlyread);
     ZERO_FIELD(timeout);
+    ZERO_FIELD(stringmaxlength);
     ZERO_FIELD(show_system_tables);
     ZERO_FIELD(translation_dll);
     ZERO_FIELD(translation_option);
@@ -42,6 +43,7 @@ void getDSNinfo(ConnInfo * ci, bool overwrite)
     GET_CONFIG(password, INI_PASSWORD, "");
     GET_CONFIG(timeout, INI_TIMEOUT, "30");
     GET_CONFIG(sslmode, INI_SSLMODE, "");
+    GET_CONFIG(stringmaxlength, INI_STRINGMAXLENGTH, "1048575");
 
 #undef GET_CONFIG
 

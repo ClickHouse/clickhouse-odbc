@@ -47,7 +47,7 @@ bool Statement::isPrepared() const {
 
 void Statement::sendRequest(IResultMutatorPtr mutator) {
     std::ostringstream user_password_base64;
-    Poco::Base64Encoder base64_encoder(user_password_base64);
+    Poco::Base64Encoder base64_encoder(user_password_base64, Poco::BASE64_URL_ENCODING);
     base64_encoder << connection.user << ":" << connection.password;
     base64_encoder.close();
 
@@ -59,9 +59,10 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
     request.setChunkedTransferEncoding(true);
     request.setCredentials("Basic", user_password_base64.str());
     request.setURI(
-        "/?database=" + connection.getDatabase() + "&default_format=ODBCDriver"); /// TODO Ability to transfer settings. TODO escaping
+        "/?database=" + connection.getDatabase() + "&default_format=ODBCDriver2"); /// TODO Ability to transfer settings. TODO escaping
+
     request.set("User-Agent", "clickhouse-odbc/" VERSION_STRING " (" CMAKE_SYSTEM ")"
-#if UNICODE
+#if defined(UNICODE)
         " UNICODE"
 #endif
     );

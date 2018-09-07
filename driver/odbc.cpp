@@ -11,8 +11,6 @@
 #include <stdio.h>
 //#include <malloc.h>
 #include <string.h>
-
-#include <codecvt>
 #include <iostream>
 #include <locale>
 #include <sstream>
@@ -37,7 +35,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     SQLTCHAR * password,
     SQLSMALLINT password_size)
 {
-    LOG(__FUNCTION__ << " dsn=" << dsn << " dsn_size=" << dsn_size << " user=" << user << " user_size=" << " password=" << password << " password_size=" << password_size);
+    //LOG(__FUNCTION__ << " dsn_size=" << dsn_size << " dsn=" << dsn << " user_size=" << user_size << " user=" << user << " password_size=" << password_size << " password=" << password);
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
 
@@ -45,7 +43,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
         std::string user_str = stringFromSQLSymbols(user, user_size);
         std::string password_str = stringFromSQLSymbols(password, password_size);
 
-        //LOG(__FUNCTION__ << " dsn="<< dsn_str <<", user="<< user_str << ", pwd="<< password_str);
+        LOG(__FUNCTION__ << " dsn=" << dsn_str << " user=" << user_str << " pwd=" << password_str);
 
         connection.init(dsn_str, 0, user_str, password_str, "");
         return SQL_SUCCESS;
@@ -211,16 +209,7 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
                 break;
             case SQL_DESC_LENGTH:
                 if (type_info.IsStringType())
-                {
-                    if (column_info.fixed_size)
-                    {
-                        num_value = column_info.fixed_size;
-                    }
-                    else
-                    {
-                        num_value = column_info.display_size;
-                    }
-                }
+                    num_value = std::min<int32_t>(statement.connection.stringmaxlength, column_info.fixed_size ? column_info.fixed_size : column_info.display_size);
                 break;
             case SQL_DESC_LITERAL_PREFIX:
                 break;
@@ -236,25 +225,16 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
                 break;
             case SQL_DESC_OCTET_LENGTH:
                 if (type_info.IsStringType())
-                {
-                    if (column_info.fixed_size)
-                        num_value = column_info.fixed_size * SIZEOF_CHAR;
-                    else
-                        num_value = column_info.display_size * SIZEOF_CHAR;
-                }
+                    num_value = std::min<int32_t>(statement.connection.stringmaxlength, column_info.fixed_size ? column_info.fixed_size : column_info.display_size) * SIZEOF_CHAR;
                 else
-                {
                     num_value = type_info.octet_length;
-                }
                 break;
             case SQL_DESC_PRECISION:
                 num_value = 0;
                 break;
             case SQL_DESC_NUM_PREC_RADIX:
                 if (type_info.IsIntegerType())
-                {
                     num_value = 10;
-                }
                 break;
             case SQL_DESC_SCALE:
                 break;
@@ -305,7 +285,6 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
     SQLSMALLINT * out_decimal_digits,
     SQLSMALLINT * out_is_nullable)
 {
-    LOG(__FUNCTION__ << " column_number=" << column_number);
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
         if (column_number < 1 || column_number > statement.result.getNumColumns())
@@ -316,14 +295,16 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
         const ColumnInfo & column_info = statement.result.getColumnInfo(column_idx);
         const TypeInfo & type_info = statement.connection.environment.types_info.at(column_info.type_without_parameters);
 
+        LOG(__FUNCTION__ << " column_number=" << column_number << "name=" << column_info.name <<" type=" << type_info.sql_type << " size=" << type_info.column_size << " nullable=" << column_info.is_nullable);
+
         if (out_type)
             *out_type = type_info.sql_type;
         if (out_column_size)
-            *out_column_size = type_info.column_size;
+            *out_column_size = std::min<int32_t>(statement.connection.stringmaxlength, column_info.fixed_size ? column_info.fixed_size : type_info.column_size);
         if (out_decimal_digits)
             *out_decimal_digits = 0;
         if (out_is_nullable)
-            *out_is_nullable = SQL_NO_NULLS;
+            *out_is_nullable = column_info.is_nullable ? SQL_NULLABLE : SQL_NO_NULLS;
 
         return fillOutputPlatformString(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size, false);
     });
@@ -347,9 +328,12 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
 
         size_t column_idx = column_or_param_number - 1;
 
-        LOG("column: " << column_idx << ", target_type: " << target_type << ", out_value_max_size: " << out_value_max_size);
-
         const Field & field = statement.current_row.data[column_idx];
+
+        LOG("column: " << column_idx << ", target_type: " << target_type << ", out_value_max_size: " << out_value_max_size << " null=" << field.is_null << " data=" << field.data);
+
+        if (field.is_null)
+            return fillOutputNULL(out_value, out_value_max_size, out_value_size_or_indicator);
 
         switch (target_type)
         {

@@ -190,6 +190,7 @@
     <ClCompile Include="..\..\driver\odbc.cpp" />
     <ClCompile Include="..\..\driver\log.cpp" />
     <ClCompile Include="..\..\driver\result_set.cpp" />
+    <ClCompile Include="..\..\driver\read_helpers.cpp" />
     <ClCompile Include="..\..\driver\statement.cpp" />
     <ClCompile Include="..\..\driver\config.cpp" />
     <ClCompile Include="..\..\driver\connection.cpp" />

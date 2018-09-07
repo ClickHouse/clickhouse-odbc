@@ -135,6 +135,14 @@ void Connection::init(const std::string & connection_string) {
                 throw std::runtime_error("Cannot parse timeout.");
             }
         }
+        else if (key_lower == "stringmaxlength") {
+            int int_val = 0;
+            if (Poco::NumberParser::tryParse(current_value.toString(), int_val))
+                stringmaxlength = int_val;
+            else {
+                throw std::runtime_error("Cannot parse stringmaxlength.");
+            }
+        }
         else if (key_lower == "dsn")
             data_source = current_value.toString();
     }
@@ -151,18 +159,27 @@ void Connection::loadConfiguration() {
     getDSNinfo(&ci, true);
 
     if (!port && ci.port[0] != 0) {
-        int int_port = 0;
-        if (Poco::NumberParser::tryParse(stringFromMYTCHAR(ci.port), int_port))
-            port = int_port;
-        else
-            throw std::runtime_error(("Cannot parse port number [" + stringFromMYTCHAR(ci.port) + "].").c_str());
+        const std::string string = stringFromMYTCHAR(ci.port);
+        if (!string.empty()) {
+            int tmp = 0;
+            if (!Poco::NumberParser::tryParse(string, tmp))
+                throw std::runtime_error(("Cannot parse port number [" + string + "].").c_str());
+            port = tmp;
+        }
     }
     if (timeout == 0) {
-        const std::string timeout_string = stringFromMYTCHAR(ci.timeout);
-        if (!timeout_string.empty()) {
-            if (!Poco::NumberParser::tryParse(timeout_string, this->timeout))
-                throw std::runtime_error("Cannot parse connection timeout value.");
+        const std::string string = stringFromMYTCHAR(ci.timeout);
+        if (!string.empty()) {
+            if (!Poco::NumberParser::tryParse(string, this->timeout))
+                throw std::runtime_error("Cannot parse connection timeout value [" + string + "].");
             this->connection_timeout = this->timeout;
+        }
+    }
+    if (stringmaxlength == 0) {
+        const std::string string = stringFromMYTCHAR(ci.stringmaxlength);
+        if (!string.empty()) {
+            if (!Poco::NumberParser::tryParse(string, this->stringmaxlength))
+                throw std::runtime_error("Cannot parse stringmaxlength value [" + string + "].");
         }
     }
 
@@ -187,6 +204,8 @@ void Connection::setDefaults() {
         server = "localhost";
     if (port == 0)
         port = (proto == "https" ? 8443 : 8123);
+    if (stringmaxlength == 0)
+        stringmaxlength = Environment::string_max_size;
     if (user.empty())
         user = "default";
     if (database.empty())
