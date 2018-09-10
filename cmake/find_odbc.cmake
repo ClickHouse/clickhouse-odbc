@@ -61,11 +61,11 @@ endif()
 
 if(NOT WIN32)
     if(ODBC_LIBRARIES MATCHES "iodbc")
-    	set(ODBC_IODBC 1)
-	    set(ODBC_UNIXODBC 0)
+        set(ODBC_IODBC 1)
+        set(ODBC_UNIXODBC 0)
     else() # TODO maybe better check
-	    set(ODBC_IODBC 0)
-	    set(ODBC_UNIXODBC 1)
+        set(ODBC_IODBC 0)
+        set(ODBC_UNIXODBC 1)
     endif()
 endif()
 
