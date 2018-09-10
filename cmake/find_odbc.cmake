@@ -18,15 +18,15 @@
 find_path(ODBC_INCLUDE_DIRECTORIES
 	NAMES sql.h
 	PATHS
-	/usr/include
-	/usr/include/odbc
-	/usr/include/iodbc
     /usr/local/include/libiodbc
 	/usr/local/include
 	/usr/local/include/odbc
 	/usr/local/include/iodbc
 	/usr/local/odbc/include
 	/usr/local/iodbc/include
+	/usr/include
+	/usr/include/odbc
+	/usr/include/iodbc
 	"C:/Program Files/ODBC/include"
 	"C:/Program Files/Microsoft SDKs/Windows/v7.0/include"
 	"C:/Program Files/Microsoft SDKs/Windows/v6.0a/include"
@@ -35,32 +35,37 @@ find_path(ODBC_INCLUDE_DIRECTORIES
 )
 
 set(ODBC_LIBRARIES_PATHS
-	/usr/lib
-	/usr/lib/odbc
-	/usr/lib/iodbc
 	/usr/local/lib
 	/usr/local/lib/odbc
 	/usr/local/lib/iodbc
 	/usr/local/odbc/lib
 	/usr/local/iodbc/lib
+	/usr/lib
+	/usr/lib/odbc
+	/usr/lib/iodbc
 	"C:/Program Files/ODBC/lib"
 	"C:/ODBC/lib/debug"
 	"C:/Program Files (x86)/Microsoft SDKs/Windows/v7.0A/Lib"
 )
 
 find_library(ODBC_LIBRARIES
-	NAMES iodbc odbc odbc32
+	NAMES odbc odbc32
 	PATHS ${ODBC_LIBRARIES_PATHS}
 	DOC "Specify the ODBC driver manager library here."
 )
 
+# Macos cheat: libiodbc is always installed, but sometimes we want to build with unixodbc, so searching iodbc after unixodbc: 
+if (NOT ODBC_LIBRARIES)
+    find_library(ODBC_LIBRARIES NAMES iodbc PATHS ${ODBC_LIBRARIES_PATHS})
+endif()
+
 if(NOT WIN32)
     if(ODBC_LIBRARIES MATCHES "iodbc")
-	set(ODBC_IODBC 1)
-	set(ODBC_UNIXODBC 0)
+    	set(ODBC_IODBC 1)
+	    set(ODBC_UNIXODBC 0)
     else() # TODO maybe better check
-	set(ODBC_IODBC 0)
-	set(ODBC_UNIXODBC 1)
+	    set(ODBC_IODBC 0)
+	    set(ODBC_UNIXODBC 1)
     endif()
 endif()
 
@@ -86,4 +91,4 @@ find_package_handle_standard_args(ODBC
 
 mark_as_advanced(ODBC_FOUND ODBC_LIBRARIES ODBC_INCLUDE_DIRECTORIES)
 
-message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")
+message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}  ODBC_IODBC=${ODBC_IODBC} ODBC_UNIXODBC=${ODBC_UNIXODBC}")
