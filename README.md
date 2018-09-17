@@ -62,10 +62,8 @@ mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || 
 ## Building (windows visual studio)
 ```cd vs && build_vs.bat```
 
-
 ## Building (windows cmake) (Developer only: setup window still not working)
 ```cd vs && build_cmake.bat```
-
 
 ## Build with tests (needs configured ~/.odbc.ini with DSN=clickhouse_localhost)
 ```mkdir -p build; cd build
