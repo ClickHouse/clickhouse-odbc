@@ -17,6 +17,7 @@
 #define INI_TIMEOUT         TEXT("Timeout")
 #define INI_SSLMODE         TEXT("SSLMode")
 #define INI_STRINGMAXLENGTH TEXT("StringMaxLength")
+#define INI_TRACE           TEXT("Trace")
 
 #ifndef WIN32
 #   define ODBC_INI         TEXT(".odbc.ini")
@@ -48,6 +49,7 @@ struct ConnInfo
     MYTCHAR       translation_dll[MEDIUM_REGISTRY_LEN];
     MYTCHAR       translation_option[SMALL_REGISTRY_LEN];
     MYTCHAR       conn_settings[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       trace[SMALL_REGISTRY_LEN];
     signed char disallow_premature = -1;
     signed char allow_keyset = -1;
     signed char updatable_cursors = 0;

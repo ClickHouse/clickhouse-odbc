@@ -193,6 +193,11 @@ void Connection::loadConfiguration() {
         database = stringFromMYTCHAR(ci.database);
     if (proto.empty() && (stringFromMYTCHAR(ci.sslmode) == "require" || port == 8443))
         proto = "https";
+    {
+        auto str = stringFromMYTCHAR(ci.trace);
+        if (!str.empty())
+            log_enabled = !(str == "0" || str == "No" || str == "no"));
+    }
 }
 
 void Connection::setDefaults() {
