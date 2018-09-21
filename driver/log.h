@@ -1,7 +1,7 @@
 #pragma once
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 static bool log_enabled =
 #ifndef NDEBUG
@@ -22,6 +22,7 @@ static bool log_enabled =
 #    endif
 #endif
 
+#define LOG_DEFAULT_FILE "/tmp/clickhouse-odbc.log"
 extern std::ofstream logstream;
 
 #define LOG(message)                                                                 \

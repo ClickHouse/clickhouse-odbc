@@ -1,3 +1,3 @@
 #include "log.h"
 
-std::ofstream logstream("/tmp/clickhouse-odbc.log", std::ios::out | std::ios::app);
+std::ofstream logstream(LOG_DEFAULT_FILE, std::ios::out | std::ios::app);

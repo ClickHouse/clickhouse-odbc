@@ -158,6 +158,15 @@ void Connection::loadConfiguration() {
     stringToTCHAR(data_source, ci.dsn);
     getDSNinfo(&ci, true);
 
+    auto tracefile = stringFromMYTCHAR(ci.tracefile);
+    {
+        auto str = stringFromMYTCHAR(ci.trace);
+        if (!str.empty())
+            log_enabled = !(str == "0" || str == "No" || str == "no");
+        if (log_enabled && !tracefile.empty() && tracefile != LOG_DEFAULT_FILE)
+            logstream = std::ofstream(tracefile, std::ios::out | std::ios::app);
+    }
+
     if (!port && ci.port[0] != 0) {
         const std::string string = stringFromMYTCHAR(ci.port);
         if (!string.empty()) {
@@ -193,11 +202,6 @@ void Connection::loadConfiguration() {
         database = stringFromMYTCHAR(ci.database);
     if (proto.empty() && (stringFromMYTCHAR(ci.sslmode) == "require" || port == 8443))
         proto = "https";
-    {
-        auto str = stringFromMYTCHAR(ci.trace);
-        if (!str.empty())
-            log_enabled = !(str == "0" || str == "No" || str == "no");
-    }
 }
 
 void Connection::setDefaults() {
