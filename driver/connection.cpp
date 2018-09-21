@@ -196,7 +196,7 @@ void Connection::loadConfiguration() {
     {
         auto str = stringFromMYTCHAR(ci.trace);
         if (!str.empty())
-            log_enabled = !(str == "0" || str == "No" || str == "no"));
+            log_enabled = !(str == "0" || str == "No" || str == "no");
     }
 }
 
