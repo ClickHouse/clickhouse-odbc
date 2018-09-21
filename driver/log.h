@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <fstream>
 
 static bool log_enabled =
 #ifndef NDEBUG
@@ -11,7 +12,6 @@ static bool log_enabled =
     ;
 
 #ifndef NDEBUG
-#    include <fstream>
 
 #    if CMAKE_BUILD
 #        include "config_cmake.h"
