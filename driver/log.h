@@ -3,13 +3,7 @@
 #include <fstream>
 #include <iostream>
 
-static bool log_enabled =
-#ifndef NDEBUG
-    true
-#else
-    false
-#endif
-    ;
+extern bool log_enabled;
 
 #ifndef NDEBUG
 
@@ -27,7 +21,6 @@ extern std::ofstream logstream;
 
 #define LOG(message)                                                                 \
     do {                                                                             \
-        if (log_enabled) {                                                           \
+        if (log_enabled)                                                             \
             logstream << __FILE__ << ":" << __LINE__ << " " << message << std::endl; \
-        }                                                                            \
     } while (false)
