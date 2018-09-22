@@ -1,13 +1,12 @@
 #include "log.h"
 
-#ifndef NDEBUG
-
-std::ofstream logstream("/tmp/clickhouse-odbc.log", std::ios::out | std::ios::app);
-std::wofstream wlogstream("/tmp/clickhouse-odbcw.log", std::ios::out | std::ios::app);
-
+bool log_enabled =
+#ifdef NDEBUG
+    false
 #else
-
-decltype(std::cerr) & logstream = std::cerr;
-decltype(std::wcerr) & wlogstream = std::wcerr;
-
+    true
 #endif
+    ;
+
+std::ofstream logstream(LOG_DEFAULT_FILE, std::ios::out | std::ios::app);
+
