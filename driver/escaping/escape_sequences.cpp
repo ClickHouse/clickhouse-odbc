@@ -31,42 +31,14 @@ const std::map<const std::string, const std::string> fn_convert_map{
     {"SQL_TYPE_TIMESTAMP", "toDateTime"},
 };
 
+#define DECLARE2(TOKEN, NAME) \
+    { Token::TOKEN, NAME }
+
 const std::map<const Token::Type, const std::string> function_map{
-    {Token::ABS, "abs"},
-    {Token::ACOS, "acos"},
-    {Token::ASIN, "asin"},
-    {Token::ATAN, "atan"},
-    // {Token::ATAN2, ""},
-    {Token::CEILING, "ceil"},
-    {Token::COS, "cos"},
-    // {Token::COT, ""},
-    // {Token::DEGREES, ""},
-    {Token::EXP, "exp"},
-    {Token::FLOOR, "floor"},
-    {Token::LOG, "log"},
-    {Token::LOG10, "log10"},
-    {Token::MOD, "modulo"},
-    {Token::PI, "pi"},
-    {Token::POWER, "pow"},
-    // {Token::RADIANS, ""},
-    {Token::RAND, "rand"},
-    {Token::ROUND, "round"},
-    // {Token::SIGN, ""},
-    {Token::SIN, "sin"},
-    {Token::SQRT, "sqrt"},
-    {Token::TAN, "tan"},
-    {Token::TRUNCATE, "trunc"},
-
-    {Token::CONCAT, "concat"},
-    {Token::CURDATE, "today"},
-    {Token::CURRENT_DATE, "today"},
-    {Token::TIMESTAMPDIFF, "dateDiff"},
-    {Token::SQL_TSI_QUARTER, "toQuarter"},
-    {Token::LCASE, "lower"},
-    {Token::REPLACE, "replaceAll"},
-
-    {Token::EXTRACT, "EXTRACT"}, // Do not touch extract inside {fn ... }
+#include "function_declare.h"
 };
+
+#undef DECLARE
 
 const std::map<const Token::Type, const std::string> function_map_strip_params{
     {Token::CURRENT_TIMESTAMP, "now()"},

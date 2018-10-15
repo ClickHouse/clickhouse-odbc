@@ -7,6 +7,7 @@
 
 // Allow same declaration as in lexer.cpp
 #define DECLARE(NAME) NAME
+#define DECLARE2(NAME, IGNORE) NAME
 #define DECLARE_SQL_TSI(NAME) SQL_TSI_##NAME
 
 struct Token {
@@ -27,46 +28,16 @@ struct Token {
         T,
         TS,
 
-        DECLARE(ABS),
-        DECLARE(ACOS),
-        DECLARE(ASIN),
-        DECLARE(ATAN),
-        // DECLARE(ATAN2),
-        DECLARE(CEILING),
-        DECLARE(COS),
-        // DECLARE(COT),
-        // DECLARE(DEGREES),
-        DECLARE(EXP),
-        DECLARE(FLOOR),
-        DECLARE(LOG),
-        DECLARE(LOG10),
-        DECLARE(MOD),
-        DECLARE(PI),
-        DECLARE(POWER),
-        // DECLARE(RADIANS),
-        DECLARE(RAND),
-        DECLARE(ROUND),
-        // DECLARE(SIGN),
-        DECLARE(SIN),
-        DECLARE(SQRT),
-        DECLARE(TAN),
-        DECLARE(TRUNCATE),
+#include "function_declare.h"
 
-        DECLARE(CONCAT),
-        DECLARE(CONVERT),
-        DECLARE(TIMESTAMPDIFF),
-        DECLARE(TIMESTAMPADD),
-        DECLARE(CURDATE),
-        DECLARE(CURRENT_TIMESTAMP),
-        DECLARE(CURRENT_DATE),
         DECLARE(DAYOFWEEK),
         DECLARE(DAYOFYEAR),
+        DECLARE(TIMESTAMPADD),
+        DECLARE(CONVERT),
         DECLARE(LOCATE),
-        DECLARE(LCASE),
         DECLARE(LTRIM),
-        DECLARE(REPLACE),
 
-        DECLARE(EXTRACT),
+        DECLARE(CURRENT_TIMESTAMP),
 
         // for TIMESTAMPDIFF
         //DECLARE(SQL_TSI_FRAC_SECOND),
@@ -76,7 +47,7 @@ struct Token {
         DECLARE(SQL_TSI_DAY),
         DECLARE(SQL_TSI_WEEK),
         DECLARE(SQL_TSI_MONTH),
-        DECLARE(SQL_TSI_QUARTER),
+        //DECLARE(SQL_TSI_QUARTER),
         DECLARE(SQL_TSI_YEAR),
 
         // Delimiters
@@ -88,6 +59,7 @@ struct Token {
     };
 
 #undef DECLARE
+#undef DECLARE2
 #undef DECLARE_SQL_TSI
 
     Type type;

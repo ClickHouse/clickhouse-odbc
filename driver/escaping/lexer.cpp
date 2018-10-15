@@ -7,6 +7,8 @@ namespace {
 
 #define DECLARE(NAME) \
     { #NAME, Token::NAME }
+#define DECLARE2(NAME, IGNORE) \
+    { #NAME, Token::NAME }
 #define DECLARE_SQL_TSI(NAME) \
     { #NAME, Token::SQL_TSI_##NAME }
 
@@ -16,46 +18,14 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
     DECLARE(T),
     DECLARE(TS),
 
-    DECLARE(ABS),
-    DECLARE(ACOS),
-    DECLARE(ASIN),
-    DECLARE(ATAN),
-    // DECLARE(ATAN2),
-    DECLARE(CEILING),
-    DECLARE(COS),
-    // DECLARE(COT),
-    // DECLARE(DEGREES),
-    DECLARE(EXP),
-    DECLARE(FLOOR),
-    DECLARE(LOG),
-    DECLARE(LOG10),
-    DECLARE(MOD),
-    DECLARE(PI),
-    DECLARE(POWER),
-    // DECLARE(RADIANS),
-    DECLARE(RAND),
-    DECLARE(ROUND),
-    // DECLARE(SIGN),
-    DECLARE(SIN),
-    DECLARE(SQRT),
-    DECLARE(TAN),
-    DECLARE(TRUNCATE),
+#include "function_declare.h"
 
-    DECLARE(CONCAT),
-    DECLARE(CONVERT),
-    DECLARE(TIMESTAMPDIFF),
-    DECLARE(TIMESTAMPADD),
-    DECLARE(CURDATE),
-    DECLARE(CURRENT_TIMESTAMP),
-    DECLARE(CURRENT_DATE),
     DECLARE(DAYOFWEEK),
     DECLARE(DAYOFYEAR),
+    DECLARE(TIMESTAMPADD),
+    DECLARE(CONVERT),
     DECLARE(LOCATE),
-    DECLARE(LCASE),
     DECLARE(LTRIM),
-    DECLARE(REPLACE),
-
-    DECLARE(EXTRACT),
 
     //DECLARE(SQL_TSI_FRAC_SECOND),
     DECLARE(SQL_TSI_SECOND),
@@ -64,7 +34,7 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
     DECLARE(SQL_TSI_DAY),
     DECLARE(SQL_TSI_WEEK),
     DECLARE(SQL_TSI_MONTH),
-    DECLARE(SQL_TSI_QUARTER),
+    //DECLARE(SQL_TSI_QUARTER),
     DECLARE(SQL_TSI_YEAR),
 
     // DECLARE_SQL_TSI(MILLISECOND),
@@ -79,6 +49,7 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
     DECLARE_SQL_TSI(YEAR),
 };
 #undef DECLARE
+#undef DECLARE2
 #undef DECLARE_SQL_TSI
 
 static Token::Type LookupIdent(const std::string & ident) {
