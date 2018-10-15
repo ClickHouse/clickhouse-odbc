@@ -27,6 +27,8 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
     DECLARE(LOCATE),
     DECLARE(LTRIM),
 
+    DECLARE(CURRENT_TIMESTAMP),
+
     //DECLARE(SQL_TSI_FRAC_SECOND),
     DECLARE(SQL_TSI_SECOND),
     DECLARE(SQL_TSI_MINUTE),
