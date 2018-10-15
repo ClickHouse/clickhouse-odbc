@@ -59,6 +59,18 @@ Please use cmake3 to build the project on CentOS 7. You can install it with `yum
 mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
 ```
 
+## Building (Linux Debian based .deb package)
+```
+sudo apt install -y devscripts debhelper cmake ninja-build lsb-release unixodbc-dev
+debuild -us -uc -i --source-option=--format="3.0 (native)"
+```
+or
+```
+sudo apt install -y sudo pbuilder fakeroot debhelper debian-archive-keyring debian-keyring
+sudo pbuilder create --configfile debian/.pbuilderrc && pdebuild --configfile debian/.pbuilderrc
+```
+
+
 ## Building (windows visual studio)
 ```cd vs && build_vs.bat```
 
