@@ -116,7 +116,7 @@ q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕ
     );
 }
 
-#say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1, sleep(25OA), sleep(15), 2'; # Default timeout is 30. Maximum allowed clickhouse sleep is 30s. We want to test 30+s
+#say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1, sleep(25), sleep(15), 2'; # Default timeout is 30. Maximum allowed clickhouse sleep is 30s. We want to test 30+s
 
 {
     use bigint;
