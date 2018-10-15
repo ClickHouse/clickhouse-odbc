@@ -5,6 +5,10 @@
 #include <deque>
 #include <vector>
 
+// Allow same declaration as in lexer.cpp
+#define DECLARE(NAME) NAME
+#define DECLARE_SQL_TSI(NAME) SQL_TSI_##NAME
+
 struct Token {
     enum Type {
         INVALID = 0,
@@ -22,38 +26,58 @@ struct Token {
         D,
         T,
         TS,
-        CONCAT,
-        CONVERT,
-        ROUND,
-        POWER,
-        TRUNCATE,
-        SQRT,
-        ABS,
-        MOD,
-        TIMESTAMPDIFF,
-        TIMESTAMPADD,
-        CURDATE,
-        CURRENT_TIMESTAMP,
-        CURRENT_DATE,
-        DAYOFWEEK,
-        DAYOFYEAR,
-        LOCATE,
-        LCASE,
-        LTRIM,
-        REPLACE,
 
-        EXTRACT,
+    DECLARE(ABS),
+    DECLARE(ACOS),
+    DECLARE(ASIN),
+    DECLARE(ATAN),
+    // DECLARE(ATAN2),
+    DECLARE(CEILING),
+    DECLARE(COS),
+    // DECLARE(COT),
+    // DECLARE(DEGREES),
+    DECLARE(EXP),
+    DECLARE(FLOOR),
+    DECLARE(LOG),
+    DECLARE(LOG10),
+    DECLARE(MOD),
+    DECLARE(PI),
+    DECLARE(POWER),
+    // DECLARE(RADIANS),
+    DECLARE(RAND),
+    DECLARE(ROUND),
+    // DECLARE(SIGN),
+    DECLARE(SIN),
+    DECLARE(SQRT),
+    DECLARE(TAN),
+    DECLARE(TRUNCATE),
 
-        // for TIMESTAMPDIFF
-        SQL_TSI_FRAC_SECOND,
-        SQL_TSI_SECOND,
-        SQL_TSI_MINUTE,
-        SQL_TSI_HOUR,
-        SQL_TSI_DAY,
-        SQL_TSI_WEEK,
-        SQL_TSI_MONTH,
-        SQL_TSI_QUARTER,
-        SQL_TSI_YEAR,
+    DECLARE(CONCAT),
+    DECLARE(CONVERT),
+    DECLARE(TIMESTAMPDIFF),
+    DECLARE(TIMESTAMPADD),
+    DECLARE(CURDATE),
+    DECLARE(CURRENT_TIMESTAMP),
+    DECLARE(CURRENT_DATE),
+    DECLARE(DAYOFWEEK),
+    DECLARE(DAYOFYEAR),
+    DECLARE(LOCATE),
+    DECLARE(LCASE),
+    DECLARE(LTRIM),
+    DECLARE(REPLACE),
+
+    DECLARE(EXTRACT),
+
+    // for TIMESTAMPDIFF
+    //DECLARE(SQL_TSI_FRAC_SECOND),
+    DECLARE(SQL_TSI_SECOND),
+    DECLARE(SQL_TSI_MINUTE),
+    DECLARE(SQL_TSI_HOUR),
+    DECLARE(SQL_TSI_DAY),
+    DECLARE(SQL_TSI_WEEK),
+    DECLARE(SQL_TSI_MONTH),
+    DECLARE(SQL_TSI_QUARTER),
+    DECLARE(SQL_TSI_YEAR),
 
         // Delimiters
         COMMA,   //  ,
@@ -62,6 +86,9 @@ struct Token {
         LCURLY,  //  {
         RCURLY,  //  }
     };
+
+#undef DECLARE
+#undef DECLARE_SQL_TSI
 
     Type type;
     StringView literal;
