@@ -69,10 +69,40 @@ sub test_one_value_as($;$) {
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1+1';
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options';
 say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) ASC';
-say Data::Dumper::Dumper prepare_execute_hash q{SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long string' WHEN (number == 3) THEN 'r' WHEN (number == 4) THEN NULL ELSE '-' END)  FROM system.numbers LIMIT 6};
+say Data::Dumper::Dumper prepare_execute_hash
+q{SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long string' WHEN (number == 3) THEN 'r' WHEN (number == 4) THEN NULL ELSE '-' END) FROM system.numbers LIMIT 6};
 #TODO say Data::Dumper::Dumper prepare_execute_hash q{SELECT 1, 'string', NULL};
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) DESC';
 #say Data::Dumper::Dumper prepare_execute_hash q{SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'};
+
+sub fn ($@) { return '{fn ' . shift . "(" . (join ', ', @_) . ")}"; }
+sub fn1 ($;$) { return fn(shift, shift); }
+sub fn2 ($$$) { return fn(shift, shift, shift); }
+
+#say Data::Dumper::Dumper prepare_execute_hash 'SELECT {fn ABS({fn PI()})}';
+#say Data::Dumper::Dumper prepare_execute_hash 'SELECT '. fn('ABS', fn('PI') );
+#say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' .  fn1 'ACOS', fn1 'ABS', fn1 'PI';
+
+say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . fn2 'POWER', 1,
+  fn1 'ABS',
+  fn1 'ACOS',
+  fn1 'ASIN',
+  fn1 'ATAN',
+  fn1 'CEILING',
+  fn1 'COS',
+  fn1 'EXP',
+  fn1 'FLOOR',
+  fn1 'LOG',
+  fn1 'LOG10',
+  fn2 'MOD', 1,
+  fn1 'RAND',
+  fn1 'ROUND',
+  fn1 'SIN',
+  fn1 'SQRT',
+  fn1 'TAN',
+  fn1 'TRUNCATE',
+  fn1 'PI',
+  ;
 
 test_one_value_as(q{1+1}, 2);
 
@@ -86,7 +116,7 @@ q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕ
     );
 }
 
-#say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1, sleep(25), sleep(15), 2'; # Default timeout is 30. Maximum allowed clickhouse sleep is 30s. We want to test 30+s
+#say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1, sleep(25OA), sleep(15), 2'; # Default timeout is 30. Maximum allowed clickhouse sleep is 30s. We want to test 30+s
 
 {
     use bigint;
