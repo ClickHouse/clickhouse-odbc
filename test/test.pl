@@ -108,15 +108,22 @@ say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . fn2 'POWER', 1,
 
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . join ', ', (fn1 'HOUR', fn0 'NOW'), (fn1 'MINUTE', fn0 'NOW'),;
 my $t = "toDateTime('2016-12-31 23:58:59')";
-say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . join ', ',
-  (fn1 'YEAR',       $t),
-  (fn1 'MONTH',      $t),
-  (fn1 'WEEK',       $t),
-  (fn1 'HOUR',       $t), (fn1 'MINUTE', $t), (fn1 'SECOND', $t),
-  (fn1 'DAYOFMONTH', $t),
-  (fn1 'DAYOFWEEK',  $t),
-  (fn1 'DAYOFYEAR',  $t),
-  ;
+#say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . join ', ', (fn1 'YEAR',       $t), (fn1 'MONTH',      $t), (fn1 'WEEK',       $t), (fn1 'HOUR',       $t), (fn1 'MINUTE', $t), (fn1 'SECOND', $t), (fn1 'DAYOFMONTH', $t), (fn1 'DAYOFWEEK',  $t), (fn1 'DAYOFYEAR',  $t),  ;
+#say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . join ', ',
+
+test_one_value_as(fn1('YEAR',       $t), 2016);
+test_one_value_as(fn1('MONTH',      $t), 12);
+test_one_value_as(fn1('DAYOFMONTH', $t), 31);
+test_one_value_as(fn1('HOUR',       $t), 23);
+test_one_value_as(fn1('MINUTE',     $t), 58);
+test_one_value_as(fn1('SECOND',     $t), 59);
+#test_one_value_as(fn1('WEEK',       $t),);
+test_one_value_as(fn1('DAYOFWEEK',  $t), 7);
+test_one_value_as(fn1('DAYOFYEAR',  $t), 366);
+
+#say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . join ', ', (fn2 'IFNULL', 1, 2), (fn2 'IFNULL', 'NULL', 3);
+test_one_value_as(fn2('IFNULL', 1,      2), 1);
+test_one_value_as(fn2('IFNULL', 'NULL', 3), 3);
 
 test_one_value_as(q{1+1}, 2);
 
