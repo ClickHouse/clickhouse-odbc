@@ -76,7 +76,7 @@ q{SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long 
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) DESC';
 #say Data::Dumper::Dumper prepare_execute_hash q{SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'};
 
-sub fn ($@) { return '{fn ' . shift . "(" . (join ', ', @_) . ")}"; }
+sub fn ($;@) { return '{fn ' . shift . "(" . (join ', ', @_) . ")}"; }
 sub fn0 ($) { return fn(shift); }
 sub fn1 ($;$) { return fn(shift, shift); }
 sub fn2 ($$$) { return fn(shift, shift, shift); }
@@ -111,19 +111,36 @@ my $t = "toDateTime('2016-12-31 23:58:59')";
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . join ', ', (fn1 'YEAR',       $t), (fn1 'MONTH',      $t), (fn1 'WEEK',       $t), (fn1 'HOUR',       $t), (fn1 'MINUTE', $t), (fn1 'SECOND', $t), (fn1 'DAYOFMONTH', $t), (fn1 'DAYOFWEEK',  $t), (fn1 'DAYOFYEAR',  $t),  ;
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . join ', ',
 
-test_one_value_as(fn1('YEAR',       $t), 2016);
-test_one_value_as(fn1('MONTH',      $t), 12);
-test_one_value_as(fn1('DAYOFMONTH', $t), 31);
-test_one_value_as(fn1('HOUR',       $t), 23);
-test_one_value_as(fn1('MINUTE',     $t), 58);
-test_one_value_as(fn1('SECOND',     $t), 59);
-#test_one_value_as(fn1('WEEK',       $t),);
-test_one_value_as(fn1('DAYOFWEEK',  $t), 7);
-test_one_value_as(fn1('DAYOFYEAR',  $t), 366);
+test_one_value_as(fn('YEAR',       $t), 2016);
+test_one_value_as(fn('MONTH',      $t), 12);
+test_one_value_as(fn('DAYOFMONTH', $t), 31);
+test_one_value_as(fn('HOUR',       $t), 23);
+test_one_value_as(fn('MINUTE',     $t), 58);
+test_one_value_as(fn('SECOND',     $t), 59);
+#test_one_value_as(fn('WEEK',       $t),);
+test_one_value_as(fn('DAYOFWEEK', $t), 7);
+test_one_value_as(fn('DAYOFYEAR', $t), 366);
 
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . join ', ', (fn2 'IFNULL', 1, 2), (fn2 'IFNULL', 'NULL', 3);
-test_one_value_as(fn2('IFNULL', 1,      2), 1);
-test_one_value_as(fn2('IFNULL', 'NULL', 3), 3);
+test_one_value_as(fn('IFNULL', 1,      2), 1);
+test_one_value_as(fn('IFNULL', 'NULL', 3), 3);
+
+test_one_value_as(fn('CHAR_LENGTH',      "'abc'"),                      3);
+test_one_value_as(fn('OCTET_LENGTH',     "'abc'"),                      3);
+test_one_value_as(fn('LENGTH',     "'abc'"),                      3);
+test_one_value_as(fn('CHAR_LENGTH',      "'йцукенгшщзхъ'"), 12);
+test_one_value_as(fn('OCTET_LENGTH',     "'йцукенгшщзхъ'"), 24);
+test_one_value_as(fn('LENGTH',     "'йцукенгшщзхъ'"), 12);
+test_one_value_as(fn('CHARACTER_LENGTH', "'abc'"),                      3);
+test_one_value_as(fn('CONCAT', "'abc'", "'123'"), 'abc123');
+test_one_value_as(fn('LCASE', "'abcDEFghj'"), 'abcdefghj');
+test_one_value_as(fn('UCASE', "'abcDEFghj'"), 'ABCDEFGHJ');
+if ($is_wide) {
+    test_one_value_as(fn('LCASE', "'йцуКЕН'"), 'йцукен');
+    test_one_value_as(fn('UCASE', "'йцуКЕН'"), 'ЙЦУКЕН');
+}
+test_one_value_as(fn('REPLACE', "'abc'", "'b'", "'e'"), 'aec');
+test_one_value_as(fn('SUBSTRING', "'abcd'", 2, 2), 'bc');
 
 test_one_value_as(q{1+1}, 2);
 

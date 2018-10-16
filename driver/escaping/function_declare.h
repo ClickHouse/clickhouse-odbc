@@ -29,10 +29,30 @@
     DECLARE2(TRUNCATE, "trunc"),
 
     // String
+    // ASCII
+    // BIT_LENGTH
+    // CHAR
+    DECLARE2(CHAR_LENGTH, "lengthUTF8"),
+    DECLARE2(CHARACTER_LENGTH, "lengthUTF8"),
     DECLARE2(CONCAT, "concat"),
-    DECLARE2(LCASE, "lower"),
+    // DIFFERENCE
+    // INSERT
+    DECLARE2(LCASE, "lowerUTF8"),
+    // LEFT  substring(s, 0, length)
+    DECLARE2(LENGTH, "lengthUTF8"),
+    //DECLARE2(LOCATE, "position"), // special
+    // LTRIM
+    DECLARE2(OCTET_LENGTH, "length"),
+    // POSITION
+    // REPEAT
     DECLARE2(REPLACE, "replaceAll"),
-    // TODO.
+    // RIGHT
+    // RTRIM
+    // SOUNDEX
+    // SPACE
+    DECLARE2(SUBSTRING, "substringUTF8"),
+    DECLARE2(UCASE, "upperUTF8"),
+
 
     // Date
     DECLARE2(CURDATE, "today"),
