@@ -7,6 +7,8 @@ namespace {
 
 #define DECLARE(NAME) \
     { #NAME, Token::NAME }
+#define DECLARE2(NAME, IGNORE) \
+    { #NAME, Token::NAME }
 #define DECLARE_SQL_TSI(NAME) \
     { #NAME, Token::SQL_TSI_##NAME }
 
@@ -15,37 +17,9 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
     DECLARE(D),
     DECLARE(T),
     DECLARE(TS),
-    DECLARE(CONCAT),
-    DECLARE(CONVERT),
-    DECLARE(ROUND),
-    DECLARE(POWER),
-    DECLARE(SQRT),
-    DECLARE(ABS),
-    DECLARE(MOD),
-    DECLARE(TRUNCATE),
-    DECLARE(TIMESTAMPDIFF),
-    DECLARE(TIMESTAMPADD),
-    DECLARE(CURDATE),
-    DECLARE(CURRENT_TIMESTAMP),
-    DECLARE(CURRENT_DATE),
-    DECLARE(DAYOFWEEK),
-    DECLARE(DAYOFYEAR),
-    DECLARE(LOCATE),
-    DECLARE(LCASE),
-    DECLARE(LTRIM),
-    DECLARE(REPLACE),
 
-    DECLARE(EXTRACT),
-
-    //DECLARE(SQL_TSI_FRAC_SECOND),
-    DECLARE(SQL_TSI_SECOND),
-    DECLARE(SQL_TSI_MINUTE),
-    DECLARE(SQL_TSI_HOUR),
-    DECLARE(SQL_TSI_DAY),
-    DECLARE(SQL_TSI_WEEK),
-    DECLARE(SQL_TSI_MONTH),
-    DECLARE(SQL_TSI_QUARTER),
-    DECLARE(SQL_TSI_YEAR),
+#include "function_declare.h"
+#include "lexer_declare.h"
 
     // DECLARE_SQL_TSI(MILLISECOND),
     DECLARE_SQL_TSI(SECOND),
@@ -59,6 +33,7 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
     DECLARE_SQL_TSI(YEAR),
 };
 #undef DECLARE
+#undef DECLARE2
 #undef DECLARE_SQL_TSI
 
 static Token::Type LookupIdent(const std::string & ident) {

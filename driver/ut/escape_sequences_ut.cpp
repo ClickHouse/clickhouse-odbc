@@ -219,7 +219,7 @@ TEST(EscapeSequencesCase, LOCATE) {
 }
 
 TEST(EscapeSequencesCase, LCASE) {
-    ASSERT_EQ(replaceEscapeSequences("{fn LCASE(`dm_ExperimentsData`.`Campaign`)}"), "lower(`dm_ExperimentsData`.`Campaign`)");
+    ASSERT_EQ(replaceEscapeSequences("{fn LCASE(`dm_ExperimentsData`.`Campaign`)}"), "lowerUTF8(`dm_ExperimentsData`.`Campaign`)");
 }
 
 TEST(EscapeSequencesCase, LTRIM) {

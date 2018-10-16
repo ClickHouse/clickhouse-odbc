@@ -5,6 +5,11 @@
 #include <deque>
 #include <vector>
 
+// Allow same declaration as in lexer.cpp
+#define DECLARE(NAME) NAME
+#define DECLARE2(NAME, IGNORE) NAME
+#define DECLARE_SQL_TSI(NAME) SQL_TSI_##NAME
+
 struct Token {
     enum Type {
         INVALID = 0,
@@ -22,38 +27,9 @@ struct Token {
         D,
         T,
         TS,
-        CONCAT,
-        CONVERT,
-        ROUND,
-        POWER,
-        TRUNCATE,
-        SQRT,
-        ABS,
-        MOD,
-        TIMESTAMPDIFF,
-        TIMESTAMPADD,
-        CURDATE,
-        CURRENT_TIMESTAMP,
-        CURRENT_DATE,
-        DAYOFWEEK,
-        DAYOFYEAR,
-        LOCATE,
-        LCASE,
-        LTRIM,
-        REPLACE,
 
-        EXTRACT,
-
-        // for TIMESTAMPDIFF
-        SQL_TSI_FRAC_SECOND,
-        SQL_TSI_SECOND,
-        SQL_TSI_MINUTE,
-        SQL_TSI_HOUR,
-        SQL_TSI_DAY,
-        SQL_TSI_WEEK,
-        SQL_TSI_MONTH,
-        SQL_TSI_QUARTER,
-        SQL_TSI_YEAR,
+#include "function_declare.h"
+#include "lexer_declare.h"
 
         // Delimiters
         COMMA,   //  ,
@@ -62,6 +38,10 @@ struct Token {
         LCURLY,  //  {
         RCURLY,  //  }
     };
+
+#undef DECLARE
+#undef DECLARE2
+#undef DECLARE_SQL_TSI
 
     Type type;
     StringView literal;
