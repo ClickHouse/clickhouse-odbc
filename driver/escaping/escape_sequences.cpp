@@ -259,7 +259,7 @@ string processFunction(const StringView seq, Lexer & lex) {
         lex.Consume();
         return "if(toDayOfWeek(" + param + ") = 7, 1, toDayOfWeek(" + param + ") + 1)";
 
-    } else if (fn.type == Token::DAYOFYEAR) {
+    } else if (fn.type == Token::DAYOFYEAR) { // Supported by ClickHouse since 18.13.0
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
 

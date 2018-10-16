@@ -29,6 +29,7 @@ $dbh->{odbc_utf8_on} = 1 if $is_wide;
 say "odbc_has_unicode=$dbh->{odbc_has_unicode} is_wide=$is_wide";
 
 sub prepare_execute_hash ($) {
+    #warn "Executing: $_[0];";
     my $sth = $dbh->prepare($_[0]);
     #$sth->{LongReadLen} = 1024 * 1024;
     $sth->{LongReadLen} = 255 * 255;
@@ -76,6 +77,7 @@ q{SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long 
 #say Data::Dumper::Dumper prepare_execute_hash q{SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'};
 
 sub fn ($@) { return '{fn ' . shift . "(" . (join ', ', @_) . ")}"; }
+sub fn0 ($) { return fn(shift); }
 sub fn1 ($;$) { return fn(shift, shift); }
 sub fn2 ($$$) { return fn(shift, shift, shift); }
 
@@ -102,6 +104,18 @@ say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . fn2 'POWER', 1,
   fn1 'TAN',
   fn1 'TRUNCATE',
   fn1 'PI',
+  ;
+
+#say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . join ', ', (fn1 'HOUR', fn0 'NOW'), (fn1 'MINUTE', fn0 'NOW'),;
+my $t = "toDateTime('2016-12-31 23:58:59')";
+say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . join ', ',
+  (fn1 'YEAR',       $t),
+  (fn1 'MONTH',      $t),
+  (fn1 'WEEK',       $t),
+  (fn1 'HOUR',       $t), (fn1 'MINUTE', $t), (fn1 'SECOND', $t),
+  (fn1 'DAYOFMONTH', $t),
+  (fn1 'DAYOFWEEK',  $t),
+  (fn1 'DAYOFYEAR',  $t),
   ;
 
 test_one_value_as(q{1+1}, 2);
