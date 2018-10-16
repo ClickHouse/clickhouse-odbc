@@ -38,7 +38,7 @@ const std::map<const Token::Type, const std::string> function_map{
 #include "function_declare.h"
 };
 
-#undef DECLARE
+#undef DECLARE2
 
 const std::map<const Token::Type, const std::string> function_map_strip_params{
     {Token::CURRENT_TIMESTAMP, "now()"},
