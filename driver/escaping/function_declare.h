@@ -1,4 +1,5 @@
 
+    // Numeric
     DECLARE2(ABS, "abs"),
     DECLARE2(ACOS, "acos"),
     DECLARE2(ASIN, "asin"),
@@ -24,12 +25,18 @@
     DECLARE2(TAN, "tan"),
     DECLARE2(TRUNCATE, "trunc"),
 
+    // String
     DECLARE2(CONCAT, "concat"),
+    DECLARE2(LCASE, "lower"),
+    DECLARE2(REPLACE, "replaceAll"),
+    // TODO.
+
+    // Date
     DECLARE2(CURDATE, "today"),
     DECLARE2(CURRENT_DATE, "today"),
     DECLARE2(TIMESTAMPDIFF, "dateDiff"),
     DECLARE2(SQL_TSI_QUARTER, "toQuarter"),
-    DECLARE2(LCASE, "lower"),
-    DECLARE2(REPLACE, "replaceAll"),
-
     DECLARE2(EXTRACT, "EXTRACT"), // Do not touch extract inside {fn ... }
+    // TODO.
+
+    // TODO.
