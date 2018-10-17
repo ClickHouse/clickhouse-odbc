@@ -129,13 +129,13 @@ test_one_value_as(fn('CHAR_LENGTH',      "'abc'"),                      3);
 test_one_value_as(fn('OCTET_LENGTH',     "'abc'"),                      3);
 test_one_value_as(fn('LENGTH',     "'abc'"),                      3);
 test_one_value_as(fn('CHAR_LENGTH',      "'йцукенгшщзхъ'"), 12);
-test_one_value_as(fn('OCTET_LENGTH',     "'йцукенгшщзхъ'"), 24);
 test_one_value_as(fn('LENGTH',     "'йцукенгшщзхъ'"), 12);
-test_one_value_as(fn('CHARACTER_LENGTH', "'abc'"),                      3);
+test_one_value_as(fn('CHARACTER_LENGTH', "'abc'"), 3);
 test_one_value_as(fn('CONCAT', "'abc'", "'123'"), 'abc123');
 test_one_value_as(fn('LCASE', "'abcDEFghj'"), 'abcdefghj');
 test_one_value_as(fn('UCASE', "'abcDEFghj'"), 'ABCDEFGHJ');
 if ($is_wide) {
+    test_one_value_as(fn('OCTET_LENGTH',     "'йцукенгшщзхъ'"), 24);
     test_one_value_as(fn('LCASE', "'йцуКЕН'"), 'йцукен');
     test_one_value_as(fn('UCASE', "'йцуКЕН'"), 'ЙЦУКЕН');
 }
