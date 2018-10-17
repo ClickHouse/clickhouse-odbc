@@ -38,7 +38,7 @@ matrix:
           addons:
             apt:
               sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
-              packages: [ ninja-build, libstdc++-8-dev, clang-7, clang++-7 ]
+              packages: [ ninja-build, libstdc++-8-dev, clang-7 ]
           env: MATRIX_EVAL="export CC=clang-7 CXX=clang++-7 ODBC_LIB=unixodbc-dev"
 
         - os: linux
