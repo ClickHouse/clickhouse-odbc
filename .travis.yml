@@ -87,7 +87,7 @@ install:
   - eval "${MATRIX_EVAL}"
   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe"; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1); fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-get install -y $ODBC_LIB | tee build.log 2>&1 || (cat build.log && exit 1); fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-get install -y $ODBC_LIB binutils | tee build.log 2>&1 || (cat build.log && exit 1); fi
 
 script:
   - mkdir -p build
