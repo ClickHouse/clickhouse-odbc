@@ -9,7 +9,7 @@ os:
 
 compiler:
   - gcc
-#  - clang
+  - clang
 
 cache:
   ccache: true
@@ -37,6 +37,11 @@ matrix:
           env: MATRIX_EVAL="export OSX_ODBC_LIB=libiodbc"
         - os: osx
           env: MATRIX_EVAL="export OSX_ODBC_LIB=unixodbc"
+    exclude:
+        - os: linux
+          compiler: gcc
+        - os: osx
+          compiler: gcc
 
 
 install:
