@@ -37,6 +37,8 @@ matrix:
           env: MATRIX_EVAL="export CC=clang CXX=clang++ LINUX_ODBC_LIB=unixodbc-dev"
         - os: linux
           env: MATRIX_EVAL="export CC=gcc-8   CXX=g++-8     LINUX_ODBC_LIB=unixodbc-dev"
+        - os: linux
+          env: MATRIX_EVAL="export CC=clang CXX=clang++ LINUX_ODBC_LIB=libiodbc2-dev CMAKE_FLAGS=-DUNBUNDLED=1"
         - os: osx
           env: MATRIX_EVAL="export OSX_ODBC_LIB=libiodbc"
         - os: osx
@@ -60,4 +62,4 @@ install:
 script:
   - mkdir -p build
   - cd build
-  - cmake .. -G Ninja -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` && ninja all && ninja test
+  - cmake .. -G Ninja -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` $CMAKE_FLAGS && ninja all && ninja test
