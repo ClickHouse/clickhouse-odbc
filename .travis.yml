@@ -3,9 +3,7 @@ language: cpp
 sudo: required
 dist: trusty
 
-os:
-  - linux
-  - osx
+os: linux
 
 compiler:
   - gcc
@@ -27,10 +25,9 @@ env:
 
 install:
   - eval "${MATRIX_EVAL}"
-  - [ "$TRAVIS_OS_NAME" == "linux" ] && sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe"
-  - [ "$TRAVIS_OS_NAME" == "linux" ] && sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1)
-  - [ "$TRAVIS_OS_NAME" == "linux" ] && sudo apt-get install -y $ODBC_LIB libssl-dev binutils libpoco-dev | tee build.log 2>&1 || (cat build.log && exit 1)
-  - [ "$TRAVIS_OS_NAME" == "osx" ] && brew install libiodbc
+  - sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe"
+  - sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1)
+  - sudo apt-get install -y $ODBC_LIB libssl-dev binutils libpoco-dev | tee build.log 2>&1 || (cat build.log && exit 1)
 
 script:
   - mkdir -p build
