@@ -15,20 +15,12 @@ cache:
 
 addons:
   apt:
-#    sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
      sources: [ ubuntu-toolchain-r-test ]
      packages: [ ninja-build, libstdc++-8-dev ]
-#    packages: [ gcc-7, g++-7, ninja-build, clang ]
-#    packages: [ gcc-8, g++-8, ninja-build, libssl-dev, binutils, libpoco-dev ]
-  homebrew:
-    packages:
-    - ninja
-#    update: true
 
 matrix:
     include:
         - os: linux
-#          env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=libiodbc2-dev"
           env: MATRIX_EVAL="export CC=clang CXX=clang++"
           addons:
             apt:
@@ -43,15 +35,14 @@ matrix:
               packages: [ ninja-build, gcc-8, g++-8, libiodbc2-dev, libiodbc2 ]
 
         - os: linux
-#          env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=unixodbc-dev"
           env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=unixodbc-dev"
 
         - os: linux
-          env: MATRIX_EVAL="export CC=gcc-8   CXX=g++-8     ODBC_LIB=unixodbc-dev"
+          env: MATRIX_EVAL="export CC=gcc-7 CXX=g++-7 ODBC_LIB=unixodbc-dev"
           addons:
             apt:
               sources: [ ubuntu-toolchain-r-test ]
-              packages: [ ninja-build, gcc-8, g++-8 ]
+              packages: [ ninja-build, gcc-7, g++-7 ]
 
 # TODO test unbunled:
 #        - os: linux
@@ -67,6 +58,12 @@ matrix:
             homebrew:
               packages: [ ninja, libiodbc ]
 
+        - os: osx
+          addons:
+            homebrew:
+              packages: [ ninja, unixodbc ]
+
+# TODO test unbunled:
 #        - os: osx
 #          env: MATRIX_EVAL="export CMAKE_FLAGS=-DUNBUNDLED=1"
 #          git:
@@ -75,10 +72,6 @@ matrix:
 #            homebrew:
 #              packages: [ ninja, libiodbc, poco ]
 
-        - os: osx
-          addons:
-            homebrew:
-              packages: [ ninja, unixodbc ]
     exclude:
         - os: linux
           compiler: gcc
