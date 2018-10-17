@@ -18,9 +18,9 @@ addons:
   apt:
     sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
     packages: [ gcc-7, g++-7, ninja-build, clang ]
-#  homebrew:
-#    packages:
-#    - gcc
+  homebrew:
+    packages:
+    - ninja
 #    update: true
 
 env:
