@@ -9,7 +9,6 @@ os:
 
 compiler:
   - gcc
-#  - clang
 
 cache:
   ccache: true
@@ -17,9 +16,10 @@ cache:
 addons:
   apt:
 #    sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
+     packages: [ ninja-build ]
 #    packages: [ gcc-7, g++-7, ninja-build, clang ]
-    sources: [ ubuntu-toolchain-r-test ]
-    packages: [ gcc-8, g++-8, ninja-build, libssl-dev, binutils, libpoco-dev ]
+#    sources: [ ubuntu-toolchain-r-test ]
+#    packages: [ gcc-8, g++-8, ninja-build, libssl-dev, binutils, libpoco-dev ]
   homebrew:
     packages:
     - ninja
@@ -29,26 +29,22 @@ matrix:
     include:
         - os: linux
 #          env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=libiodbc2-dev"
-          env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=libiodbc2-dev"
+          env: MATRIX_EVAL="export CC=clang CXX=clang++"
           addons:
             apt:
-              packages:
-              - libiodbc2-dev
-              - libiodbc2
-
+              packages: [ ninja-build, libiodbc2-dev, libiodbc2 ]
         - os: linux
-          env: MATRIX_EVAL="export CC=gcc-8   CXX=g++-8     ODBC_LIB=libiodbc2-dev"
+          env: MATRIX_EVAL="export CC=gcc-8 CXX=g++-8"
           addons:
             apt:
-              packages:
-              - libiodbc2-dev
-              - libiodbc2
+              sources: [ ubuntu-toolchain-r-test ]
+              packages: [ ninja-build, gcc-8, g++-8, libiodbc2-dev, libiodbc2 ]
         - os: linux
 #          env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=unixodbc-dev"
           env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=unixodbc-dev"
         - os: linux
           env: MATRIX_EVAL="export CC=gcc-8   CXX=g++-8     ODBC_LIB=unixodbc-dev"
-#TODO
+#TODO test unbunled:
 #        - os: linux
 #          env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=libiodbc2-dev CMAKE_FLAGS=-DUNBUNDLED=1"
 #          addons:
@@ -57,22 +53,16 @@ matrix:
 #              - libiodbc2-dev
 #              - libiodbc2
         - os: osx
-          env: MATRIX_EVAL="export ODBC_LIB=libiodbc"
           addons:
             homebrew:
-              packages:
-              - libiodbc
+              packages: [ ninja, libiodbc ]
         - os: osx
-          env: MATRIX_EVAL="export ODBC_LIB=unixodbc"
           addons:
             homebrew:
-              packages:
-              - unixodbc
+              packages: [ ninja, unixodbc ]
     exclude:
         - os: linux
           compiler: gcc
-#        - os: linux
-#          compiler: clang
         - os: osx
           compiler: gcc
 
@@ -80,9 +70,8 @@ matrix:
 install:
   - eval "${MATRIX_EVAL}"
   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$ODBC_LIB"=="unixodbc-dev" ]; then sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe"; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$ODBC_LIB"=="unixodbc-dev" ]; then  sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1); fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$ODBC_LIB"=="unixodbc-dev" ]; then  sudo apt-get install -y $ODBC_LIB | tee build.log 2>&1 || (cat build.log && exit 1); fi
-#  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install $ODBC_LIB; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$ODBC_LIB"=="unixodbc-dev" ]; then sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1); fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$ODBC_LIB"=="unixodbc-dev" ]; then sudo apt-get install -y $ODBC_LIB | tee build.log 2>&1 || (cat build.log && exit 1); fi
 
 script:
   - mkdir -p build
