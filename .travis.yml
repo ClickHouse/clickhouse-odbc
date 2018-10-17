@@ -16,9 +16,9 @@ cache:
 addons:
   apt:
 #    sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
-     packages: [ ninja-build ]
+     packages: [ ninja-build, libstdc++-8-dev ]
 #    packages: [ gcc-7, g++-7, ninja-build, clang ]
-#    sources: [ ubuntu-toolchain-r-test ]
+     sources: [ ubuntu-toolchain-r-test ]
 #    packages: [ gcc-8, g++-8, ninja-build, libssl-dev, binutils, libpoco-dev ]
   homebrew:
     packages:
@@ -32,7 +32,7 @@ matrix:
           env: MATRIX_EVAL="export CC=clang CXX=clang++"
           addons:
             apt:
-              packages: [ ninja-build, libiodbc2-dev, libiodbc2 ]
+              packages: [ ninja-build, libstdc++-8-dev, libiodbc2-dev, libiodbc2 ]
 
         - os: linux
           env: MATRIX_EVAL="export CC=gcc-8 CXX=g++-8"
@@ -53,26 +53,26 @@ matrix:
               packages: [ ninja-build, gcc-8, g++-8 ]
 
 # TODO test unbunled:
-        - os: linux
-          env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=libiodbc2-dev CMAKE_FLAGS=-DUNBUNDLED=1"
-          addons:
-            apt:
-              packages: [ ninja-build, libiodbc2-dev, libiodbc2, libssl-dev, libpoco-dev ]
-          git:
-            submodules: false
+#        - os: linux
+#          env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=libiodbc2-dev CMAKE_FLAGS=-DUNBUNDLED=1"
+#          addons:
+#            apt:
+#              packages: [ ninja-build, libiodbc2-dev, libiodbc2, libssl-dev, libpoco-dev ]
+#          git:
+#            submodules: false
 
         - os: osx
           addons:
             homebrew:
               packages: [ ninja, libiodbc ]
 
-        - os: osx
-          env: MATRIX_EVAL="export CMAKE_FLAGS=-DUNBUNDLED=1"
-          git:
-            submodules: false
-          addons:
-            homebrew:
-              packages: [ ninja, libiodbc, poco ]
+#        - os: osx
+#          env: MATRIX_EVAL="export CMAKE_FLAGS=-DUNBUNDLED=1"
+#          git:
+#            submodules: false
+#          addons:
+#            homebrew:
+#              packages: [ ninja, libiodbc, poco ]
 
         - os: osx
           addons:
