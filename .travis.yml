@@ -34,23 +34,28 @@ matrix:
             apt:
               packages:
               - libiodbc2-dev
+              - libiodbc2
+
         - os: linux
           env: MATRIX_EVAL="export CC=gcc-8   CXX=g++-8     ODBC_LIB=libiodbc2-dev"
           addons:
             apt:
               packages:
               - libiodbc2-dev
+              - libiodbc2
         - os: linux
 #          env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=unixodbc-dev"
           env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=unixodbc-dev"
         - os: linux
           env: MATRIX_EVAL="export CC=gcc-8   CXX=g++-8     ODBC_LIB=unixodbc-dev"
-        - os: linux
-          env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=libiodbc2-dev CMAKE_FLAGS=-DUNBUNDLED=1"
-          addons:
-            apt:
-              packages:
-              - libiodbc2-dev
+#TODO
+#        - os: linux
+#          env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=libiodbc2-dev CMAKE_FLAGS=-DUNBUNDLED=1"
+#          addons:
+#            apt:
+#              packages:
+#              - libiodbc2-dev
+#              - libiodbc2
         - os: osx
           env: MATRIX_EVAL="export ODBC_LIB=libiodbc"
           addons:
