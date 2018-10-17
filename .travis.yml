@@ -18,6 +18,10 @@ addons:
   apt:
     sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
     packages: [ gcc-7, g++-7, ninja-build, clang ]
+#  homebrew:
+#    packages:
+#    - gcc
+#    update: true
 
 env:
     - MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 LINUX_ODBC_LIB=libiodbc2-dev OSX_ODBC_LIB=libiodbc"
@@ -27,7 +31,7 @@ env:
 
 install:
   - eval "${MATRIX_EVAL}"
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe; fi"
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe"; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then  sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1); fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then  sudo apt-get install -y $LINUX_ODBC_LIB libssl-dev binutils libpoco-dev | tee build.log 2>&1 || (cat build.log && exit 1); fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install $OSX_ODBC_LIB; fi
