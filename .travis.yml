@@ -16,9 +16,9 @@ cache:
 addons:
   apt:
 #    sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
+     sources: [ ubuntu-toolchain-r-test ]
      packages: [ ninja-build, libstdc++-8-dev ]
 #    packages: [ gcc-7, g++-7, ninja-build, clang ]
-     sources: [ ubuntu-toolchain-r-test ]
 #    packages: [ gcc-8, g++-8, ninja-build, libssl-dev, binutils, libpoco-dev ]
   homebrew:
     packages:
