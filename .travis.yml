@@ -20,17 +20,17 @@ addons:
     packages: [ gcc-7, g++-7, ninja-build, clang ]
 
 env:
-    - MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=libiodbc2-dev"
-    - MATRIX_EVAL="export CC=gcc-7   CXX=g++-7     ODBC_LIB=libiodbc2-dev"
-    - MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=unixodbc-dev"
-    - MATRIX_EVAL="export CC=gcc-7   CXX=g++-7     ODBC_LIB=unixodbc-dev"
+    - MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 LINUX_ODBC_LIB=libiodbc2-dev OSX_ODBC_LIB=libiodbc"
+    - MATRIX_EVAL="export CC=gcc-7   CXX=g++-7     LINUX_ODBC_LIB=libiodbc2-dev OSX_ODBC_LIB=libiodbc"
+    - MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 LINUX_ODBC_LIB=unixodbc-dev OSX_ODBC_LIB=unixodbc"
+    - MATRIX_EVAL="export CC=gcc-7   CXX=g++-7     LINUX_ODBC_LIB=unixodbc-dev OSX_ODBC_LIB=unixodbc"
 
 install:
   - eval "${MATRIX_EVAL}"
   - [ "$TRAVIS_OS_NAME" == "linux" ] && sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe"
   - [ "$TRAVIS_OS_NAME" == "linux" ] && sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1)
-  - [ "$TRAVIS_OS_NAME" == "linux" ] && sudo apt-get install -y $ODBC_LIB libssl-dev binutils libpoco-dev | tee build.log 2>&1 || (cat build.log && exit 1)
-  - [ "$TRAVIS_OS_NAME" == "osx" ] && brew install libiodbc
+  - [ "$TRAVIS_OS_NAME" == "linux" ] && sudo apt-get install -y $LINUX_ODBC_LIB libssl-dev binutils libpoco-dev | tee build.log 2>&1 || (cat build.log && exit 1)
+  - [ "$TRAVIS_OS_NAME" == "osx" ] && brew install $OSX_ODBC_LIB
 
 script:
   - mkdir -p build
