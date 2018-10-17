@@ -23,11 +23,21 @@ addons:
     - ninja
 #    update: true
 
-env:
-    - MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 LINUX_ODBC_LIB=libiodbc2-dev OSX_ODBC_LIB=libiodbc"
-    - MATRIX_EVAL="export CC=gcc-7   CXX=g++-7     LINUX_ODBC_LIB=libiodbc2-dev OSX_ODBC_LIB=libiodbc"
-    - MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 LINUX_ODBC_LIB=unixodbc-dev OSX_ODBC_LIB=unixodbc"
-    - MATRIX_EVAL="export CC=gcc-7   CXX=g++-7     LINUX_ODBC_LIB=unixodbc-dev OSX_ODBC_LIB=unixodbc"
+matrix:
+    include:
+        - os: linux
+          env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 LINUX_ODBC_LIB=libiodbc2-dev OSX_ODBC_LIB=libiodbc"
+        - os: linux
+          env: MATRIX_EVAL="export CC=gcc-7   CXX=g++-7     LINUX_ODBC_LIB=libiodbc2-dev OSX_ODBC_LIB=libiodbc"
+        - os: linux
+          env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 LINUX_ODBC_LIB=unixodbc-dev OSX_ODBC_LIB=unixodbc"
+        - os: linux
+          env: MATRIX_EVAL="export CC=gcc-7   CXX=g++-7     LINUX_ODBC_LIB=unixodbc-dev OSX_ODBC_LIB=unixodbc"
+        - os: osx
+          env: MATRIX_EVAL="export OSX_ODBC_LIB=libiodbc"
+        - os: osx
+          env: MATRIX_EVAL="export OSX_ODBC_LIB=unixodbc"
+
 
 install:
   - eval "${MATRIX_EVAL}"
