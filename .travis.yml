@@ -62,7 +62,7 @@ matrix:
           env: MATRIX_EVAL="export CC=clang CXX=clang++ CMAKE_FLAGS=-DUNBUNDLED=1"
           addons:
             apt:
-              packages: [ ninja-build, libiodbc2-dev, libpoco-dev ]
+              packages: [ ninja-build, libiodbc2-dev, libiodbc2, libpoco-dev ]
           git:
             submodules: false
 
