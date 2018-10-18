@@ -18,8 +18,31 @@ addons:
 
 matrix:
     include:
+        # two fastest builds first:
+
+        # clang5 iodbc unbundled
+        - os: linux
+          compiler: clang
+          env: MATRIX_EVAL="export CC=clang CXX=clang++ CMAKE_FLAGS=-DUNBUNDLED=1"
+          addons:
+            apt:
+              sources: [ ubuntu-toolchain-r-test ]
+              packages: [ ninja-build, libstdc++-8-dev, libiodbc2-dev, libiodbc2, libpoco-dev ]
+          git:
+            submodules: false
+
+        # osx libiodbc unbundled
+        - os: osx
+          env: MATRIX_EVAL="export CMAKE_FLAGS=-DUNBUNDLED=1"
+          git:
+            submodules: false
+          addons:
+            homebrew:
+              packages: [ ninja, libiodbc, poco ]
+
         # clang5 iodbc
         - os: linux
+          compiler: clang
           env: MATRIX_EVAL="export CC=clang CXX=clang++"
           addons:
             apt:
@@ -44,6 +67,7 @@ matrix:
 
         # clang5 unixodbc
         - os: linux
+          compiler: clang
           addons:
             apt:
               sources: [ ubuntu-toolchain-r-test ]
@@ -58,14 +82,6 @@ matrix:
               sources: [ ubuntu-toolchain-r-test ]
               packages: [ ninja-build, gcc-7, g++-7 ]
 
-        - os: linux
-          env: MATRIX_EVAL="export CC=clang CXX=clang++ CMAKE_FLAGS=-DUNBUNDLED=1"
-          addons:
-            apt:
-              packages: [ ninja-build, libiodbc2-dev, libiodbc2, libpoco-dev ]
-          git:
-            submodules: false
-
         - os: osx
           addons:
             homebrew:
@@ -76,13 +92,6 @@ matrix:
             homebrew:
               packages: [ ninja, unixodbc ]
 
-        - os: osx
-          env: MATRIX_EVAL="export CMAKE_FLAGS=-DUNBUNDLED=1"
-          git:
-            submodules: false
-          addons:
-            homebrew:
-              packages: [ ninja, libiodbc, poco ]
 
     exclude:
         - os: linux
