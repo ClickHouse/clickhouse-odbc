@@ -1,8 +1,5 @@
 language: cpp
 
-sudo: false
-dist: trusty
-
 os:
   - linux
   - osx
@@ -61,14 +58,13 @@ matrix:
               sources: [ ubuntu-toolchain-r-test ]
               packages: [ ninja-build, gcc-7, g++-7 ]
 
-# TODO test unbunled:
-#        - os: linux
-#          env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=libiodbc2-dev CMAKE_FLAGS=-DUNBUNDLED=1"
-#          addons:
-#            apt:
-#              packages: [ ninja-build, libiodbc2-dev, libiodbc2, libssl-dev, libpoco-dev ]
-#          git:
-#            submodules: false
+        - os: linux
+          env: MATRIX_EVAL="export CC=clang CXX=clang++ CMAKE_FLAGS=-DUNBUNDLED=1"
+          addons:
+            apt:
+              packages: [ ninja-build, libiodbc2-dev, libpoco-dev ]
+          git:
+            submodules: false
 
         - os: osx
           addons:
@@ -80,14 +76,13 @@ matrix:
             homebrew:
               packages: [ ninja, unixodbc ]
 
-# TODO test unbunled:
-#        - os: osx
-#          env: MATRIX_EVAL="export CMAKE_FLAGS=-DUNBUNDLED=1"
-#          git:
-#            submodules: false
-#          addons:
-#            homebrew:
-#              packages: [ ninja, libiodbc, poco ]
+        - os: osx
+          env: MATRIX_EVAL="export CMAKE_FLAGS=-DUNBUNDLED=1"
+          git:
+            submodules: false
+          addons:
+            homebrew:
+              packages: [ ninja, libiodbc, poco ]
 
     exclude:
         - os: linux
