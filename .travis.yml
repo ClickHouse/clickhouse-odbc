@@ -21,6 +21,7 @@ addons:
 
 matrix:
     include:
+        # clang5 iodbc
         - os: linux
           env: MATRIX_EVAL="export CC=clang CXX=clang++"
           addons:
@@ -28,6 +29,7 @@ matrix:
               sources: [ ubuntu-toolchain-r-test ]
               packages: [ ninja-build, libstdc++-8-dev, libiodbc2-dev, libiodbc2 ]
 
+        # gcc8 iodbc
         - os: linux
           env: MATRIX_EVAL="export CC=gcc-8 CXX=g++-8"
           addons:
@@ -35,7 +37,7 @@ matrix:
               sources: [ ubuntu-toolchain-r-test ]
               packages: [ ninja-build, gcc-8, g++-8, libiodbc2-dev, libiodbc2 ]
 
-        # latest clang
+        # clang8 unixodbc
         #- os: linux
         #  addons:
         #    apt:
@@ -43,7 +45,7 @@ matrix:
         #      packages: [ ninja-build, libstdc++-8-dev, clang ]
         #  env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=unixodbc-dev"
 
-        # clang 5.0 from travis image
+        # clang5 unixodbc
         - os: linux
           addons:
             apt:
@@ -51,6 +53,7 @@ matrix:
               packages: [ ninja-build, libstdc++-8-dev, clang]
           env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=unixodbc-dev"
 
+        # gcc7 unixodbc
         - os: linux
           env: MATRIX_EVAL="export CC=gcc-7 CXX=g++-7 ODBC_LIB=unixodbc-dev"
           addons:
