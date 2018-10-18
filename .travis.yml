@@ -16,6 +16,7 @@ cache:
 addons:
   apt:
      sources: [ ubuntu-toolchain-r-test ]
+     # should install fresh libstdc++ because trusty have no <codecvt> header
      packages: [ ninja-build, libstdc++-8-dev ]
 
 matrix:
@@ -34,12 +35,21 @@ matrix:
               sources: [ ubuntu-toolchain-r-test ]
               packages: [ ninja-build, gcc-8, g++-8, libiodbc2-dev, libiodbc2 ]
 
+        # latest clang
+        #- os: linux
+        #  addons:
+        #    apt:
+        #      sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
+        #      packages: [ ninja-build, libstdc++-8-dev, clang ]
+        #  env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=unixodbc-dev"
+
+        # clang 5.0 from travis image
         - os: linux
           addons:
             apt:
-              sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
-              packages: [ ninja-build, libstdc++-8-dev, clang ]
-          env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=unixodbc-dev"
+              sources: [ ubuntu-toolchain-r-test ]
+              packages: [ ninja-build, libstdc++-8-dev, clang]
+          env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=unixodbc-dev"
 
         - os: linux
           env: MATRIX_EVAL="export CC=gcc-7 CXX=g++-7 ODBC_LIB=unixodbc-dev"
@@ -87,6 +97,7 @@ install:
   - eval "${MATRIX_EVAL}"
   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe"; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1); fi
+  # Need in binulils bacause /usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/libodbc.a(logOpen.o): unrecognized relocation (0x2a) in section `.text'
   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-get install -y $ODBC_LIB binutils | tee build.log 2>&1 || (cat build.log && exit 1); fi
 
 script:
