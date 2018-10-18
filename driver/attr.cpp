@@ -106,7 +106,7 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
                 LOG("Set connection timeout: " << connection_timeout);
                 connection.connection_timeout = connection.timeout;
                 if (connection.session)
-                    connection.session->setTimeout(Poco::Timespan(connection.connection_timeout, 0));
+                    connection.session->setTimeout(Poco::Timespan(connection.connection_timeout, 0), Poco::Timespan(connection.timeout, 0), Poco::Timespan(connection.timeout, 0));
                 return SQL_SUCCESS;
             }
 
