@@ -1,4 +1,8 @@
-## Building (macos brew):
+## Simple install (macos brew):
+
+Install brew:
+```brew --help &>/dev/null || /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"```
+
 If you already have installed unixodbc - unlink it:
 ```brew unlink unixodbc```
 
@@ -30,7 +34,7 @@ Driver = /usr/local/opt/clickhouse-odbc/lib/libclickhouseodbcw.dylib
 
 
 
-## Building (macos manual):
+## Advanced install (for developers):
 
 Download and prepare:
 ```bash

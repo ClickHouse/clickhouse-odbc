@@ -93,10 +93,9 @@ endif ()
 include (cmake/find_ltdl.cmake) # for odbc
 include (cmake/find_odbc.cmake)
 
-
-if (NOT WIN32)
-    set (OPENSSL_LIBRARIES "-Wl,-Bdynamic ${OPENSSL_LIBRARIES} -Wl,-Bstatic")
-endif ()
+#if (NOT WIN32)
+#    set (OPENSSL_LIBRARIES "-Wl,-Bdynamic ${OPENSSL_LIBRARIES} -Wl,-Bstatic")
+#endif ()
 
 include (cmake/find_poco.cmake)
 include (cmake/find_nanoodbc.cmake)

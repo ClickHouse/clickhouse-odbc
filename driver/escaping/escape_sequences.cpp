@@ -31,23 +31,14 @@ const std::map<const std::string, const std::string> fn_convert_map{
     {"SQL_TYPE_TIMESTAMP", "toDateTime"},
 };
 
-const std::map<const Token::Type, const std::string> function_map{
-    {Token::ROUND, "round"},
-    {Token::POWER, "pow"},
-    {Token::TRUNCATE, "trunc"},
-    {Token::SQRT, "sqrt"},
-    {Token::ABS, "abs"},
-    {Token::MOD, "modulo"},
-    {Token::CONCAT, "concat"},
-    {Token::CURDATE, "today"},
-    {Token::CURRENT_DATE, "today"},
-    {Token::TIMESTAMPDIFF, "dateDiff"},
-    {Token::SQL_TSI_QUARTER, "toQuarter"},
-    {Token::LCASE, "lower"},
-    {Token::REPLACE, "replaceAll"},
+#define DECLARE2(TOKEN, NAME) \
+    { Token::TOKEN, NAME }
 
-    {Token::EXTRACT, "EXTRACT"}, // Do not touch extract inside {fn ... }
+const std::map<const Token::Type, const std::string> function_map{
+#include "function_declare.h"
 };
+
+#undef DECLARE2
 
 const std::map<const Token::Type, const std::string> function_map_strip_params{
     {Token::CURRENT_TIMESTAMP, "now()"},
@@ -268,7 +259,7 @@ string processFunction(const StringView seq, Lexer & lex) {
         lex.Consume();
         return "if(toDayOfWeek(" + param + ") = 7, 1, toDayOfWeek(" + param + ") + 1)";
 
-    } else if (fn.type == Token::DAYOFYEAR) {
+    } else if (fn.type == Token::DAYOFYEAR) { // Supported by ClickHouse since 18.13.0
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
 

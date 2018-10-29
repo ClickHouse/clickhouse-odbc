@@ -33,6 +33,7 @@ const std::map<std::string, TypeInfo> Environment::types_info = {
     {"Int64", TypeInfo{"BIGINT", false, SQL_BIGINT, 1 + 19, 8}},
     {"Float32", TypeInfo{"REAL", false, SQL_REAL, 7, 4}},
     {"Float64", TypeInfo{"DOUBLE", false, SQL_DOUBLE, 15, 8}},
+    {"Decimal", TypeInfo{"DECIMAL", false, SQL_DECIMAL, 1 + 2 + 38, 16}}, // -0.
     {"String", TypeInfo{"TEXT", true, SQL_VARCHAR, Environment::string_max_size, Environment::string_max_size}},
     {"FixedString", TypeInfo{"TEXT", true, SQL_VARCHAR, Environment::string_max_size, Environment::string_max_size}},
     {"Date", TypeInfo{"DATE", true, SQL_TYPE_DATE, 10, 6}},

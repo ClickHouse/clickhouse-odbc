@@ -24,7 +24,6 @@ function q {
     echo "$*" | $RUNNER $DSN $RUNNER_PARAMS
 }
 
-
 q "SELECT * FROM system.build_options;"
 q "CREATE DATABASE IF NOT EXISTS test;"
 q "DROP TABLE IF EXISTS test.odbc1;"
@@ -161,6 +160,16 @@ echo "should be ${NUM}:"
 q 'select count(*) from test.increment;'
 
 q 'DROP TABLE test.increment;'
+
+
+# Now disabled by default
+#q "SET allow_experimental_decimal_type = 1;"
+#q "DROP TABLE IF EXISTS test.decimal;"
+#q "CREATE TABLE IF NOT EXISTS test.decimal (a DECIMAL(9,0), b DECIMAL(18,0), c DECIMAL(38,0), d DECIMAL(9, 9), e Decimal64(18), f Decimal128(38), g Decimal32(5), h Decimal64(9), i Decimal128(18), j dec(4,2)) ENGINE = Memory;"
+#q "INSERT INTO test.decimal (a, b, c, d, e, f, g, h, i, j) VALUES (42, 42, 42, 0.42, 0.42, 0.42, 42.42, 42.42, 42.42, 42.42);"
+#q "INSERT INTO test.decimal (a, b, c, d, e, f, g, h, i, j) VALUES (-42, -42, -42, -0.42, -0.42, -0.42, -42.42, -42.42, -42.42, -42.42);"
+#q "SELECT * FROM test.decimal;"
+
 
 echo "\n\n\nLast log:\n"
 #cat /tmp/clickhouse-odbc-stderr.$USER
