@@ -5,6 +5,7 @@
 #include <Poco/Base64Encoder.h>
 #include <Poco/Exception.h>
 #include <Poco/Net/HTTPRequest.h>
+#include <Poco/URI.h>
 
 Statement::Statement(Connection & conn_) : connection(conn_), metadata_id(conn_.environment.metadata_id) {
     ard.reset(new DescriptorClass);
@@ -58,8 +59,10 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
     request.setKeepAlive(true);
     request.setChunkedTransferEncoding(true);
     request.setCredentials("Basic", user_password_base64.str());
-    request.setURI(
-        "/query?database=" + connection.getDatabase() + "&default_format=ODBCDriver2"); /// TODO Ability to transfer settings. TODO escaping
+    Poco::URI uri(connection.url);
+    uri.addQueryParameter("database",connection.getDatabase());
+    uri.addQueryParameter("default_format", "ODBCDriver2");
+    request.setURI(connection.path + "?" + uri.getQuery()); /// TODO escaping
     request.set("User-Agent", "clickhouse-odbc/" VERSION_STRING " (" CMAKE_SYSTEM ")"
 #if defined(UNICODE)
         " UNICODE"

@@ -8,7 +8,8 @@
 
 #define INI_KDESC           TEXT("Description") /* Data source description */
 #define INI_DATABASE        TEXT("Database")    /* Database Name */
-#define INI_SERVER          TEXT("Server")      /* Name of Server  running the ClickHouse service */
+#define INI_URL             TEXT("Url")         /* Complete url of running the ClickHouse service */
+#define INI_SERVER          TEXT("Server")      /* Name of Server running the ClickHouse service */
 #define INI_UID             TEXT("UID")         /* Default User Name */
 #define INI_USERNAME        TEXT("Username")    /* Default User Name */
 #define INI_PASSWORD        TEXT("Password")    /* Default Password */
@@ -37,6 +38,7 @@ struct ConnInfo
     MYTCHAR       dsn[MEDIUM_REGISTRY_LEN];
     MYTCHAR       desc[MEDIUM_REGISTRY_LEN];
     MYTCHAR       drivername[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       url[LARGE_REGISTRY_LEN];
     MYTCHAR       server[MEDIUM_REGISTRY_LEN];
     MYTCHAR       database[MEDIUM_REGISTRY_LEN];
     MYTCHAR       username[MEDIUM_REGISTRY_LEN];
