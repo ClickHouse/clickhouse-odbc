@@ -20,42 +20,16 @@ extern HINSTANCE module_instance;
 namespace
 {
 
-#define LARGE_REGISTRY_LEN			4096		/* used for special cases */
-#define MEDIUM_REGISTRY_LEN			256 /* normal size for * user,database,etc. */
-#define SMALL_REGISTRY_LEN			10	/* for 1/0 settings */
-
 #define MAXPGPATH	1024
 /// Max keyword length
 #define MAXKEYLEN	(32+1)
 /// Max data source name length
 #define	MAXDSNAME	(32+1)
 
-#define INI_KDESC           TEXT("Description") /* Data source description */
-#define INI_DATABASE        TEXT("Database")    /* Database Name */
-#define INI_SERVER          TEXT("Server")      /* Name of Server  running the ClickHouse service */
-#define INI_UID             TEXT("UID")         /* Default User Name */
-#define INI_USERNAME        TEXT("Username")    /* Default User Name */
-#define INI_PASSWORD        TEXT("Password")    /* Default Password */
-#define INI_PORT            TEXT("Port")        /* Port on which the ClickHouse is listening */
-#define INI_READONLY        TEXT("ReadOnly")    /* Database is read only */
-#define INI_PROTOCOL        TEXT("Protocol")    /* What protocol (6.2) */
-#define INI_TIMEOUT         TEXT("Timeout")
-#define INI_SSLMODE         TEXT("SSLMode")     /* Use 'require' for https connections */
-#define INI_DSN             TEXT("ClickHouse")
+#include "../ini_defines.h"
 
 #define ABBR_PROTOCOL		TEXT("A1")
 #define ABBR_READONLY		TEXT("A0")
-
-#define SPEC_SERVER			TEXT("server")
-
-#ifndef WIN32
-#define ODBC_INI			".odbc.ini"
-#define ODBCINST_INI		"odbcinst.ini"
-#else
-#define ODBC_INI			TEXT("ODBC.INI")
-#define ODBCINST_INI		TEXT("ODBCINST.INI")
-
-#endif
 
 /*	Structure to hold all the connection attributes for a specific
 connection (used for both registry and file, DSN and DRIVER)
@@ -65,6 +39,7 @@ struct ConnInfo
     TCHAR		dsn[MEDIUM_REGISTRY_LEN];
     TCHAR		desc[MEDIUM_REGISTRY_LEN];
     TCHAR		drivername[MEDIUM_REGISTRY_LEN];
+    TCHAR		url[LARGE_REGISTRY_LEN];
     TCHAR		server[MEDIUM_REGISTRY_LEN];
     TCHAR		database[MEDIUM_REGISTRY_LEN];
     TCHAR		username[MEDIUM_REGISTRY_LEN];
@@ -130,7 +105,10 @@ copyAttributes(ConnInfo *ci, LPCTSTR attribute, LPCTSTR value)
     else if (stricmp(attribute, INI_DATABASE) == 0)
         strcpy(ci->database, value);
 
-    else if (stricmp(attribute, INI_SERVER) == 0 || stricmp(attribute, SPEC_SERVER) == 0)
+    else if (stricmp(attribute, INI_URL) == 0 || stricmp(attribute, TEXT("url")) == 0)
+        strcpy(ci->url, value);
+
+    else if (stricmp(attribute, INI_SERVER) == 0 || stricmp(attribute, TEXT("server")) == 0)
         strcpy(ci->server, value);
 
     else if (stricmp(attribute, INI_USERNAME) == 0 || stricmp(attribute, INI_UID) == 0)
@@ -210,6 +188,9 @@ void getDSNinfo(ConnInfo *ci, bool overwrite)
     if (ci->desc[0] == '\0' || overwrite)
         SQLGetPrivateProfileString(DSN, INI_KDESC, TEXT(""), ci->desc, sizeof(ci->desc), ODBC_INI);
 
+    if (ci->url[0] == '\0' || overwrite)
+        SQLGetPrivateProfileString(DSN, INI_URL, TEXT(""), ci->url, sizeof(ci->url), ODBC_INI);
+
     if (ci->server[0] == '\0' || overwrite)
         SQLGetPrivateProfileString(DSN, INI_SERVER, TEXT(""), ci->server, sizeof(ci->server), ODBC_INI);
 
@@ -253,9 +234,15 @@ void writeDSNinfo(const ConnInfo * ci)
                                  ODBC_INI);
 
     SQLWritePrivateProfileString(DSN,
+                                 INI_URL,
+                                 ci->url,
+                                 ODBC_INI);
+
+    SQLWritePrivateProfileString(DSN,
                                  INI_SERVER,
                                  ci->server,
                                  ODBC_INI);
+
 
     SQLWritePrivateProfileString(DSN,
                                  INI_PORT,
@@ -406,6 +393,7 @@ INT_PTR	CALLBACK
 
             SetDlgItemText(hdlg, IDC_DSN_NAME, ci->dsn);
             SetDlgItemText(hdlg, IDC_DESCRIPTION, ci->desc);
+            // SetDlgItemText(hdlg, IDC_URL, ci->url); // display and uncomment!
             SetDlgItemText(hdlg, IDC_SERVER_HOST, ci->server);
             SetDlgItemText(hdlg, IDC_SERVER_PORT, ci->port);
             SetDlgItemText(hdlg, IDC_DATABASE, ci->database);
@@ -426,6 +414,7 @@ INT_PTR	CALLBACK
 
                     GetDlgItemText(hdlg, IDC_DSN_NAME, ci->dsn, sizeof(ci->dsn));
                     GetDlgItemText(hdlg, IDC_DESCRIPTION, ci->desc, sizeof(ci->desc));
+                    // GetDlgItemText(hdlg, IDC_URL, ci->url, sizeof(ci->url)); // display and uncomment!
                     GetDlgItemText(hdlg, IDC_SERVER_HOST, ci->server, sizeof(ci->server));
                     GetDlgItemText(hdlg, IDC_SERVER_PORT, ci->port, sizeof(ci->port));
                     GetDlgItemText(hdlg, IDC_DATABASE, ci->database, sizeof(ci->database));

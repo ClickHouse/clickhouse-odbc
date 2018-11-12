@@ -13,6 +13,7 @@
 #define IDC_DESCRIPTION                 1007
 #define IDC_TIMEOUT                     1008
 #define IDC_SSLMODE                     1009
+#define IDC_URL                         1010
 
 // Next default values for new objects
 // 
