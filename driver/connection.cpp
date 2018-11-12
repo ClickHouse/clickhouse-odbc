@@ -224,8 +224,15 @@ void Connection::setDefaults() {
         }
         if (path.empty())
             path = uri.getPath();
-        if (user.empty())
-             user = uri.getUserInfo(); // TODO split :
+
+        auto user_info = uri.getUserInfo();
+        auto index = user_info.find(':');
+        if (index != std::string::npos) {
+            if (password.empty())
+                password = user_info.substr(index+1);
+            if (user.empty())
+                user = user_info.substr(0,index);
+        }
     }
 
     if (proto.empty())

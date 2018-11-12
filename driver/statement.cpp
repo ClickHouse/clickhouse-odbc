@@ -71,7 +71,7 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
 
     LOG(request.getMethod() << " " << connection.session->getHost() << request.getURI() <<  " body=" << prepared_query);
 
-    //LOG("curl 'http://" << connection.session->getHost() << ":" << connection.session->getPort() << request.getURI() << "' -d '" << prepared_query << "'");
+    // LOG("curl 'http://" << connection.session->getHost() << ":" << connection.session->getPort() << request.getURI() << "' -d '" << prepared_query << "'");
 
     if (in && in->peek() != EOF)
         connection.session->reset();
