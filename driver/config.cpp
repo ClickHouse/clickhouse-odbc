@@ -12,6 +12,7 @@ ConnInfo::ConnInfo()
     ZERO_FIELD(dsn);
     ZERO_FIELD(desc);
     ZERO_FIELD(drivername);
+    ZERO_FIELD(url);
     ZERO_FIELD(server);
     ZERO_FIELD(database);
     ZERO_FIELD(username);
@@ -37,6 +38,7 @@ void getDSNinfo(ConnInfo * ci, bool overwrite)
     FUNCTION_MAYBE_W(SQLGetPrivateProfileString)(reinterpret_cast<LPTSTR>(ci->dsn), INI_NAME, TEXT(DEFAULT), reinterpret_cast<LPTSTR>(ci->NAME), sizeof(ci->NAME), ODBC_INI);
 
     GET_CONFIG(desc, INI_KDESC, "");
+    GET_CONFIG(url, INI_URL, "");
     GET_CONFIG(server, INI_SERVER, "");
     GET_CONFIG(database, INI_DATABASE, "");
     GET_CONFIG(username, INI_USERNAME, "");
