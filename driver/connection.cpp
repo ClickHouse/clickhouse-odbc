@@ -46,7 +46,7 @@ void Connection::setDatabase(const std::string & db) {
 }
 
 void Connection::init() {
-DUMP("Connection::init()");
+std::cerr << "Connection::init()"  << std::endl;
     loadConfiguration();
     setDefaults();
 
@@ -97,7 +97,7 @@ void Connection::init(const std::string & dsn_,
 }
 
 void Connection::init(const std::string & connection_string) {
-DUMP("Connection::init(...)");
+std::cerr << "Connection::init(...)"  << std::endl;
     /// connection_string - string of the form `DSN=ClickHouse;UID=default;PWD=password`
 
     const char * pos = connection_string.data();
@@ -155,7 +155,7 @@ DUMP("Connection::init(...)");
 }
 
 void Connection::loadConfiguration() {
-DUMP("Connection::loadConfiguration()");
+std::cerr << "Connection::loadConfiguration()"  << std::endl;
     if (data_source.empty())
         data_source = "ClickHouse";
 
@@ -211,7 +211,7 @@ DUMP("Connection::loadConfiguration()");
 }
 
 void Connection::setDefaults() {
-DUMP("Connection::setDefaults()");
+std::cerr << "Connection::setDefaults()"  << std::endl;
     if (data_source.empty())
         data_source = "ClickHouse";
     if (!url.empty()) {
@@ -257,7 +257,7 @@ DUMP("Connection::setDefaults()");
     if (connection_timeout == 0)
         connection_timeout = timeout;
 
-DUMP(proto, server, path);
+std::cerr << " proto=" << proto<<  " server=" << server   << " path="<< path << std::endl;
 
 }
 
