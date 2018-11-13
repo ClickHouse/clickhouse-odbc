@@ -46,6 +46,7 @@ void Connection::setDatabase(const std::string & db) {
 }
 
 void Connection::init() {
+DUMP("Connection::init()");
     loadConfiguration();
     setDefaults();
 
@@ -96,6 +97,7 @@ void Connection::init(const std::string & dsn_,
 }
 
 void Connection::init(const std::string & connection_string) {
+DUMP("Connection::init(...)");
     /// connection_string - string of the form `DSN=ClickHouse;UID=default;PWD=password`
 
     const char * pos = connection_string.data();
@@ -153,6 +155,7 @@ void Connection::init(const std::string & connection_string) {
 }
 
 void Connection::loadConfiguration() {
+DUMP("Connection::loadConfiguration()");
     if (data_source.empty())
         data_source = "ClickHouse";
 
@@ -208,9 +211,9 @@ void Connection::loadConfiguration() {
 }
 
 void Connection::setDefaults() {
+DUMP("Connection::setDefaults()");
     if (data_source.empty())
         data_source = "ClickHouse";
-
     if (!url.empty()) {
         Poco::URI uri(url);
         if (proto.empty())
@@ -253,6 +256,9 @@ void Connection::setDefaults() {
         timeout = 30;
     if (connection_timeout == 0)
         connection_timeout = timeout;
+
+DUMP(proto, server, path);
+
 }
 
 std::once_flag ssl_init_once;
