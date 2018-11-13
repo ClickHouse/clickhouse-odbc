@@ -1,7 +1,10 @@
 //{{NO_DEPENDENCIES}}
-// Включаемый файл, созданный в Microsoft Visual C++.
-// Используется resource.rc
+// Microsoft Visual C++ generated include file.
+// Used by resource.rc
 //
+#define VERSION_MINOR                   0
+#define VERSION_PATCH                   0
+#define VERSION_MAJOR                   1
 #define IDD_DIALOG1                     101
 #define IDC_DSN_NAME                    1001
 #define IDC_SERVER_HOST                 1002

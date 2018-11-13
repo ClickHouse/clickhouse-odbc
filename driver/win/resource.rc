@@ -1,6 +1,5 @@
 // Microsoft Visual C++ generated resource script.
 //
-#include "version.h"
 #include "resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -18,7 +17,7 @@
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
 LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
-#pragma code_page(65001)
+#pragma code_page(1251)
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -51,33 +50,34 @@ END
 // Dialog
 //
 
-IDD_DIALOG1 DIALOGEX 0, 0, 309, 245
+IDD_DIALOG1 DIALOGEX 0, 0, 195, 247
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Create datasource for ClickHouse"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "Ok",IDOK,198,224,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,252,224,50,14
-    LTEXT           "Name",IDC_STATIC,18,27,44,8
-    EDITTEXT        IDC_DSN_NAME,77,26,96,14,ES_AUTOHSCROLL
-    // LTEXT           "Url",IDC_STATIC,18,71,16,8
-    // EDITTEXT        IDC_URL,77,70,97,14,ES_AUTOHSCROLL
-    LTEXT           "Host",IDC_STATIC,18,71,16,8
-    EDITTEXT        IDC_SERVER_HOST,77,70,97,14,ES_AUTOHSCROLL
-    LTEXT           "Port",IDC_STATIC,18,91,14,8
-    EDITTEXT        IDC_SERVER_PORT,77,92,98,14,ES_AUTOHSCROLL
-    LTEXT           "Database",IDC_STATIC,18,115,32,8
-    EDITTEXT        IDC_DATABASE,77,113,98,14,ES_AUTOHSCROLL
-    LTEXT           "User",IDC_STATIC,18,137,16,8
-    EDITTEXT        IDC_USER,77,135,98,14,ES_AUTOHSCROLL
-    LTEXT           "Password",IDC_STATIC,18,158,32,8
-    EDITTEXT        IDC_PASSWORD,77,156,98,14,ES_PASSWORD | ES_AUTOHSCROLL
-    LTEXT           "Description",IDC_STATIC,18,47,44,8
-    EDITTEXT        IDC_DESCRIPTION,77,46,96,14,ES_AUTOHSCROLL
-    LTEXT           "Timeout",IDC_STATIC,18,180,26,8
-    EDITTEXT        IDC_TIMEOUT,77,178,98,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "SSLMode",IDC_STATIC,18,204,32,8
-    EDITTEXT        IDC_SSLMODE,77,201,98,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "Ok",IDOK,126,228,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,18,228,50,14
+    LTEXT           "Name",IDC_STATIC,18,12,44,8
+    EDITTEXT        IDC_DSN_NAME,78,12,96,14,ES_AUTOHSCROLL
+    LTEXT           "Host",IDC_STATIC,18,84,16,8
+    EDITTEXT        IDC_SERVER_HOST,78,84,97,14,ES_AUTOHSCROLL
+    LTEXT           "Port",IDC_STATIC,18,102,14,8
+    EDITTEXT        IDC_SERVER_PORT,78,102,98,14,ES_AUTOHSCROLL
+    LTEXT           "Database",IDC_STATIC,18,120,32,8
+    EDITTEXT        IDC_DATABASE,78,120,98,14,ES_AUTOHSCROLL
+    LTEXT           "User",IDC_STATIC,18,162,16,8
+    EDITTEXT        IDC_USER,78,162,98,14,ES_AUTOHSCROLL
+    LTEXT           "Password",IDC_STATIC,18,180,32,8
+    EDITTEXT        IDC_PASSWORD,78,180,98,14,ES_PASSWORD | ES_AUTOHSCROLL
+    LTEXT           "Description",IDC_STATIC,18,30,44,8
+    EDITTEXT        IDC_DESCRIPTION,78,30,96,14,ES_AUTOHSCROLL
+    LTEXT           "Timeout",IDC_STATIC,18,204,26,8
+    EDITTEXT        IDC_TIMEOUT,78,204,98,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "SSLMode",IDC_STATIC,18,138,32,8
+    EDITTEXT        IDC_SSLMODE,78,138,98,14,ES_AUTOHSCROLL
+    LTEXT           "Url",IDC_STATIC,18,54,16,8
+    EDITTEXT        IDC_URL,78,54,96,14,ES_AUTOHSCROLL
+    LTEXT           "OR",IDC_STATIC,42,72,26,8
 END
 
 
@@ -92,9 +92,9 @@ BEGIN
     IDD_DIALOG1, DIALOG
     BEGIN
         LEFTMARGIN, 18
-        RIGHTMARGIN, 302
+        RIGHTMARGIN, 188
         TOPMARGIN, 7
-        BOTTOMMARGIN, 238
+        BOTTOMMARGIN, 240
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -117,8 +117,8 @@ END
 //
 
 1 VERSIONINFO
- FILEVERSION VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,VERSION_TWEAK
- PRODUCTVERSION VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,VERSION_TWEAK
+ FILEVERSION 1,0,0,61465
+ PRODUCTVERSION 1,0,0,61465
  FILEFLAGSMASK 0x0L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -133,18 +133,13 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "Comments", ""
             VALUE "CompanyName", "Yandex"
             VALUE "FileDescription", "Clickhouse ODBC driver"
-            VALUE "FileVersion", VERSION_STRING
+            VALUE "FileVersion", "1.0.0.20181017"
             VALUE "InternalName", "clickhouse-odbc"
             VALUE "LegalCopyright", "(c) 2017-2018"
-            VALUE "LegalTrademarks", ""
-            VALUE "OriginalFilename", ""
-            VALUE "PrivateBuild", VERSION_EXTRA
             VALUE "ProductName", "clickhouse-odbc"
-            VALUE "ProductVersion", VERSION_STRING
-            VALUE "SpecialBuild", ""
+            VALUE "ProductVersion", "1.0.0.20181017"
         END
     END
 END
