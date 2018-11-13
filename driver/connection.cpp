@@ -46,7 +46,6 @@ void Connection::setDatabase(const std::string & db) {
 }
 
 void Connection::init() {
-LOG("Connection::init()");
     loadConfiguration();
     setDefaults();
 
@@ -97,7 +96,6 @@ void Connection::init(const std::string & dsn_,
 }
 
 void Connection::init(const std::string & connection_string) {
-LOG("Connection::init(...)");
     /// connection_string - string of the form `DSN=ClickHouse;UID=default;PWD=password`
 
     const char * pos = connection_string.data();
@@ -155,7 +153,6 @@ LOG("Connection::init(...)");
 }
 
 void Connection::loadConfiguration() {
-LOG("Connection::loadConfiguration()");
     if (data_source.empty())
         data_source = "ClickHouse";
 
@@ -211,7 +208,6 @@ LOG("Connection::loadConfiguration()");
 }
 
 void Connection::setDefaults() {
-LOG("Connection::setDefaults()");
     if (data_source.empty())
         data_source = "ClickHouse";
     if (!url.empty()) {
@@ -245,7 +241,9 @@ LOG("Connection::setDefaults()");
     if (port == 0)
         port = (proto == "https" ? 8443 : 8123);
     if (path.empty())
-        path = "/query";
+        path = "query";
+    if (path[0] != '/')
+        path = "/" + path;
     if (stringmaxlength == 0)
         stringmaxlength = Environment::string_max_size;
     if (user.empty())
@@ -256,9 +254,6 @@ LOG("Connection::setDefaults()");
         timeout = 30;
     if (connection_timeout == 0)
         connection_timeout = timeout;
-
-LOG( " proto=" << proto<<  " server=" << server   << " path="<< path);
-
 }
 
 std::once_flag ssl_init_once;
