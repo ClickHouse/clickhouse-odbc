@@ -46,7 +46,7 @@ void Connection::setDatabase(const std::string & db) {
 }
 
 void Connection::init() {
-std::cerr << "Connection::init()"  << std::endl;
+LOG("Connection::init()");
     loadConfiguration();
     setDefaults();
 
@@ -97,7 +97,7 @@ void Connection::init(const std::string & dsn_,
 }
 
 void Connection::init(const std::string & connection_string) {
-std::cerr << "Connection::init(...)"  << std::endl;
+LOG("Connection::init(...)");
     /// connection_string - string of the form `DSN=ClickHouse;UID=default;PWD=password`
 
     const char * pos = connection_string.data();
@@ -155,7 +155,7 @@ std::cerr << "Connection::init(...)"  << std::endl;
 }
 
 void Connection::loadConfiguration() {
-std::cerr << "Connection::loadConfiguration()"  << std::endl;
+LOG("Connection::loadConfiguration()");
     if (data_source.empty())
         data_source = "ClickHouse";
 
@@ -211,7 +211,7 @@ std::cerr << "Connection::loadConfiguration()"  << std::endl;
 }
 
 void Connection::setDefaults() {
-std::cerr << "Connection::setDefaults()"  << std::endl;
+LOG("Connection::setDefaults()");
     if (data_source.empty())
         data_source = "ClickHouse";
     if (!url.empty()) {
@@ -257,7 +257,7 @@ std::cerr << "Connection::setDefaults()"  << std::endl;
     if (connection_timeout == 0)
         connection_timeout = timeout;
 
-std::cerr << " proto=" << proto<<  " server=" << server   << " path="<< path << std::endl;
+LOG( " proto=" << proto<<  " server=" << server   << " path="<< path);
 
 }
 
