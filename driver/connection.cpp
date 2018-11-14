@@ -210,7 +210,6 @@ void Connection::loadConfiguration() {
 void Connection::setDefaults() {
     if (data_source.empty())
         data_source = "ClickHouse";
-
     if (!url.empty()) {
         Poco::URI uri(url);
         if (proto.empty())
@@ -242,7 +241,9 @@ void Connection::setDefaults() {
     if (port == 0)
         port = (proto == "https" ? 8443 : 8123);
     if (path.empty())
-        path = "/query";
+        path = "query";
+    if (path[0] != '/')
+        path = "/" + path;
     if (stringmaxlength == 0)
         stringmaxlength = Environment::string_max_size;
     if (user.empty())

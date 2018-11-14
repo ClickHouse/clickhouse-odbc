@@ -4,8 +4,6 @@
 :: http://wixtoolset.org/releases/ - "Download WIX X.XX.X" and "WiX Toolset Visual Studio 2017 Extension"
 :: https://www.visualstudio.com/downloads/ - Visual Studio Community 2017 - Desktop development with C++
 ::                                                                           + Windows 8.1 SDK and UCRT SDK
-::                                                                           + MFC and ATL support (x86 and x64)
-::                                                                           ? C++/CLI support
 
 :: Also useful for tests:
 :: https://msdn.microsoft.com/en-us/data/aa937730  - Microsoft Data Access Components (MDAC) 2.8 Software Development Kit

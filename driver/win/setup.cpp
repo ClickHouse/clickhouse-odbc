@@ -393,7 +393,7 @@ INT_PTR	CALLBACK
 
             SetDlgItemText(hdlg, IDC_DSN_NAME, ci->dsn);
             SetDlgItemText(hdlg, IDC_DESCRIPTION, ci->desc);
-            // SetDlgItemText(hdlg, IDC_URL, ci->url); // display and uncomment!
+            SetDlgItemText(hdlg, IDC_URL, ci->url);
             SetDlgItemText(hdlg, IDC_SERVER_HOST, ci->server);
             SetDlgItemText(hdlg, IDC_SERVER_PORT, ci->port);
             SetDlgItemText(hdlg, IDC_DATABASE, ci->database);
@@ -414,7 +414,7 @@ INT_PTR	CALLBACK
 
                     GetDlgItemText(hdlg, IDC_DSN_NAME, ci->dsn, sizeof(ci->dsn));
                     GetDlgItemText(hdlg, IDC_DESCRIPTION, ci->desc, sizeof(ci->desc));
-                    // GetDlgItemText(hdlg, IDC_URL, ci->url, sizeof(ci->url)); // display and uncomment!
+                    GetDlgItemText(hdlg, IDC_URL, ci->url, sizeof(ci->url));
                     GetDlgItemText(hdlg, IDC_SERVER_HOST, ci->server, sizeof(ci->server));
                     GetDlgItemText(hdlg, IDC_SERVER_PORT, ci->port, sizeof(ci->port));
                     GetDlgItemText(hdlg, IDC_DATABASE, ci->database, sizeof(ci->database));
