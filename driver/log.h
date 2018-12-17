@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <ctime>
 
 extern bool log_enabled;
 
@@ -28,5 +29,5 @@ extern std::string log_file;
 #define LOG(message)                                                                 \
     do {                                                                             \
         if (log_enabled)                                                             \
-            log_stream << __FILE__ << ":" << __LINE__ << " " << message << std::endl; \
+            log_stream << std::time(nullptr) << " " << __FILE__ << ":" << __LINE__ << " " << message << std::endl; \
     } while (false)
