@@ -117,6 +117,31 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             case SQL_ATTR_ANSI_APP:
                 return SQL_ERROR;
 
+            case SQL_ATTR_TRACE:
+            {
+                if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_ON)) {
+                    log_enabled = true;
+                } else if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_OFF)) {
+                    log_enabled = false;
+                } else {
+                    LOG("SetConnectAttr: SQL_ATTR_TRACE: Unknown value " << value);
+                    return SQL_ERROR;
+                }
+                return SQL_SUCCESS;
+            }
+
+            case SQL_ATTR_TRACEFILE:
+            {
+                auto tracefile = stringFromSQLBytes((SQLTCHAR *)value, value_length);
+                if (!tracefile.empty()) {
+                    log_file = tracefile;
+                    log_stream = std::ofstream(log_file, std::ios::out | std::ios::app);
+                    return SQL_SUCCESS;
+                }
+                LOG("SetConnectAttr: SQL_ATTR_TRACEFILE: Empty file " << tracefile);
+                return SQL_ERROR;
+            }
+
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:
             case SQL_ATTR_AUTO_IPD:
@@ -127,8 +152,6 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             case SQL_ATTR_ODBC_CURSORS:
             case SQL_ATTR_PACKET_SIZE:
             case SQL_ATTR_QUIET_MODE:
-            case SQL_ATTR_TRACE:
-            case SQL_ATTR_TRACEFILE:
             case SQL_ATTR_TRANSLATE_LIB:
             case SQL_ATTR_TRANSLATE_OPTION:
             case SQL_ATTR_TXN_ISOLATION:
@@ -162,6 +185,7 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout);
             CASE_NUM(SQL_ATTR_TXN_ISOLATION, SQLINTEGER, SQL_TXN_SERIALIZABLE); // mssql linked server
             CASE_NUM(SQL_ATTR_AUTOCOMMIT, SQLINTEGER, SQL_AUTOCOMMIT_ON);
+            CASE_NUM(SQL_ATTR_TRACE, SQLINTEGER, log_enabled ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF);
 
             case SQL_ATTR_CURRENT_CATALOG:
                 fillOutputPlatformString(connection.getDatabase(), out_value, out_value_max_length, out_value_length);
@@ -170,6 +194,10 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             case SQL_ATTR_ANSI_APP:
                 return SQL_ERROR;
 
+            case SQL_ATTR_TRACEFILE:
+                fillOutputPlatformString(log_file, out_value, out_value_max_length, out_value_length);
+                return SQL_SUCCESS;
+
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:
             case SQL_ATTR_AUTO_IPD:
@@ -177,8 +205,6 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             case SQL_ATTR_ODBC_CURSORS:
             case SQL_ATTR_PACKET_SIZE:
             case SQL_ATTR_QUIET_MODE:
-            case SQL_ATTR_TRACE:
-            case SQL_ATTR_TRACEFILE:
             case SQL_ATTR_TRANSLATE_LIB:
             case SQL_ATTR_TRANSLATE_OPTION:
             default:

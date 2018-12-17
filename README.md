@@ -104,6 +104,9 @@ url = https://localhost
 #uid = default
 #port = 8123
 #sslmode = require
+
+#trace=1
+#tracefile=/tmp/chlickhouse-odbc.log
 ```
 
 Sometimes you should change ~/.odbcinst.ini or /etc/odbcinst.ini or /Library/ODBC/odbcinst.ini :
