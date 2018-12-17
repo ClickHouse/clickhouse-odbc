@@ -17,10 +17,11 @@ extern bool log_enabled;
 #endif
 
 #define LOG_DEFAULT_FILE "/tmp/clickhouse-odbc.log"
-extern std::ofstream logstream;
+extern std::ofstream log_stream;
+extern std::string log_file;
 
 #define LOG(message)                                                                 \
     do {                                                                             \
         if (log_enabled)                                                             \
-            logstream << __FILE__ << ":" << __LINE__ << " " << message << std::endl; \
+            log_stream << __FILE__ << ":" << __LINE__ << " " << message << std::endl; \
     } while (false)
