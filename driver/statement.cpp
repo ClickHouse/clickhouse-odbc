@@ -117,8 +117,6 @@ void Statement::prepareQuery(const std::string & q) {
         prepared_query = q;
     }
 
-LOG(" query=[" << query << "] prepared_query=[" << prepared_query << "] scan_escape_sequences=" << scan_escape_sequences);
-
     prepared = true;
 }
 

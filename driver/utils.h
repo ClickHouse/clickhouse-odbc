@@ -70,7 +70,6 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
 {
     if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
         return{};
-symbols = SQL_NTS;
     if (symbols == SQL_NTS)
     {
 #if defined(UNICODE)
@@ -84,16 +83,6 @@ symbols = SQL_NTS;
         throw std::runtime_error("invalid size of string : " + std::to_string(symbols));
 
 #if defined(UNICODE)
-        auto dsymbols = wcslen(reinterpret_cast<const wchar_t*>(data));
-LOG("stringFromSQLSymbols: UNICODE symbols=" << symbols << " strlen=" << dsymbols << " string=" << std::string(reinterpret_cast<const char*>(data), symbols));
-#else
-        auto dsymbols = strlen(reinterpret_cast<const char*>(data));
-LOG("stringFromSQLSymbols: ANSI symbols=" << symbols << " strlen=" << dsymbols << " string=" << std::string(reinterpret_cast<const char*>(data), symbols));
-#endif
-
-
-//try {
-#if defined(UNICODE)
 #   if ODBC_WCHAR
     return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols));
 #   else
@@ -102,10 +91,6 @@ LOG("stringFromSQLSymbols: ANSI symbols=" << symbols << " strlen=" << dsymbols <
 #else
     return{ (const char*)data, (size_t)symbols };
 #endif
-//} catch (const std::exception & e) {
-//LOG("catch " << e.what());
-//}
-
 }
 
 template <typename SIZE_TYPE = decltype(SQL_NTS)>
@@ -200,14 +185,12 @@ RETCODE fillOutputStringImpl(const STRING & value,
 
         if (max_length_in_bytes >= (symbols + 1) * sizeof(CharType))
         {
-LOG("copy1 symbols=" << symbols << " + 1 ) *"<< sizeof(CharType));
             memcpy(out_value, value.c_str(), (symbols + 1) * sizeof(CharType));
         }
         else
         {
             if (max_length_in_bytes >= sizeof(CharType))
             {
-LOG("copy2 symbols=" << symbols << "  =  "<< (max_length_in_bytes - sizeof(CharType)));
                 memcpy(out_value, value.data(), max_length_in_bytes - sizeof(CharType));
                 reinterpret_cast<CharType*>(out_value)[(max_length_in_bytes / sizeof(CharType)) - 1] = 0;
             }

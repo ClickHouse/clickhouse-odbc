@@ -89,7 +89,6 @@ target_link_libraries(${libname} PRIVATE
     ${Poco_Net_LIBRARY}
     ${Poco_Foundation_LIBRARY}
     ${ODBC_LIBRARIES}
-    Threads::Threads
 )
 
 if(NOT APPLE AND NOT WIN32)
@@ -108,6 +107,8 @@ endfunction()
 
 makelib(clickhouse-odbc 0)
 makelib(clickhouse-odbcw 1)
+
+target_link_libraries(clickhouse-odbcw PRIVATE Threads::Threads)
 
 set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
 set_target_properties(clickhouse-odbcw PROPERTIES OUTPUT_NAME "clickhouseodbcw")
