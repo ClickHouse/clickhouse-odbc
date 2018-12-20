@@ -10,7 +10,7 @@
 #include <iostream>
 #include <map>
 #include "lexer.h"
-//#include "log.h"
+#include "log.h"
 
 
 using namespace std;
@@ -440,8 +440,11 @@ std::string replaceEscapeSequences(const std::string & query) {
     }
 
     if (st < p) {
+LOG("ret=[" << ret << "] += [" << std::string(st, p) << "] p=" << p << " query.size()=" << query.size());
         ret += std::string(st, p);
     }
+
+LOG("ret=[" << ret << "]");
 
     return ret;
 }

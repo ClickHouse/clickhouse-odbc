@@ -79,7 +79,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * 
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
         const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
-
+LOG("query0="<< query);
         if (!statement.isEmpty())
             throw std::runtime_error("Prepare called, but statement query is not empty.");
         if (query.empty())

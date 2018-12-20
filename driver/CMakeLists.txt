@@ -1,3 +1,4 @@
+add_subdirectory(log)
 add_subdirectory(escaping)
 if (WIN32)
     add_subdirectory(win)
@@ -51,7 +52,6 @@ add_library(${libname} SHARED
     result_set.cpp
     statement.cpp
     type_parser.cpp
-    log.cpp
     ${WIN_SOURCES}
 )
 
@@ -76,7 +76,7 @@ if (NOT WIN32)
     target_include_directories (${libname} PRIVATE ${ODBC_INCLUDE_DIRECTORIES})
 endif()
 
-target_link_libraries(${libname} clickhouse-odbc-escaping)
+target_link_libraries(${libname} clickhouse-odbc-escaping clickhouse-odbc-log)
 
 if(USE_SSL)
     target_link_libraries(${libname} ${Poco_NetSSL_LIBRARY} ${Poco_Crypto_LIBRARY} ${Poco_Util_LIBRARY})
