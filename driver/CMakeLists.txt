@@ -108,7 +108,9 @@ endfunction()
 makelib(clickhouse-odbc 0)
 makelib(clickhouse-odbcw 1)
 
-target_link_libraries(clickhouse-odbcw PRIVATE Threads::Threads)
+if(ARCH_LINUX)
+    target_link_libraries(clickhouse-odbcw PRIVATE Threads::Threads)
+endif()
 
 set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
 set_target_properties(clickhouse-odbcw PROPERTIES OUTPUT_NAME "clickhouseodbcw")
