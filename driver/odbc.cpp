@@ -36,7 +36,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     SQLTCHAR * password,
     SQLSMALLINT password_size)
 {
-    //LOG(__FUNCTION__ << " dsn_size=" << dsn_size << " dsn=" << dsn << " user_size=" << user_size << " user=" << user << " password_size=" << password_size << " password=" << password);
+    // LOG(__FUNCTION__ << " dsn_size=" << dsn_size << " dsn=" << dsn << " user_size=" << user_size << " user=" << user << " password_size=" << password_size << " password=" << password);
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
 
@@ -80,7 +80,6 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * 
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
         const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
-
         if (!statement.isEmpty())
             throw std::runtime_error("Prepare called, but statement query is not empty.");
         if (query.empty())
@@ -89,6 +88,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * 
         statement.prepareQuery(query);
 
         LOG("query(" << query.size() << ") = [" << query << "]");
+
         return SQL_SUCCESS;
     });
 }
@@ -116,10 +116,12 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR
 
         if (!statement.isEmpty())
         {
-            if (!statement.isPrepared())
+            if (!statement.isPrepared()) {
                 throw std::runtime_error("ExecDirect called, but statement query is not empty.");
-            else if (statement.getQuery() != query)
-                throw std::runtime_error("ExecDirect called, but statement query is not equal to prepared.");
+            }
+            else if (statement.getQuery() != query) {
+                throw std::runtime_error("ExecDirect called, but statement query is not equal to prepared. [" + statement.getQuery() + "] != [" + query + "]...");
+            }
         }
         else
         {
