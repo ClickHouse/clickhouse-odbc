@@ -8,5 +8,5 @@ bool log_enabled =
 #endif
     ;
 
-std::ofstream logstream(LOG_DEFAULT_FILE, std::ios::out | std::ios::app);
-
+std::string log_file = LOG_DEFAULT_FILE;
+std::ofstream log_stream(log_file, std::ios::out | std::ios::app);

@@ -93,12 +93,20 @@ edit ~/.odbc.ini :
 Driver = $(PATH_OF_CLICKHOUSE_ODBC_SO)
 # Optional settings:
 #Description = ClickHouse driver
+# New all-in one way to specify connection with [optional] settings:
+#url = https://default:password@localhost:8443/query?database=default&max_result_bytes=4000000&buffer_size=3000000
+# Minimal (will connect to port 8443 if https:// or 8123 if http:// ):
+url = https://localhost
+# Old way:
 #server = localhost
 #password = 123456
 #database = default
 #uid = default
 #port = 8123
 #sslmode = require
+
+#trace=1
+#tracefile=/tmp/chlickhouse-odbc.log
 ```
 
 Sometimes you should change ~/.odbcinst.ini or /etc/odbcinst.ini or /Library/ODBC/odbcinst.ini :

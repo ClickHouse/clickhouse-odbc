@@ -2,12 +2,12 @@
 #include "config.h"
 #include "string_ref.h"
 #include "utils.h"
-
 #include <Poco/NumberParser.h> // TODO: switch to std
-
+#include <Poco/URI.h>
 #include <Poco/Net/HTTPClientSession.h>
 
 //#if __has_include("config_cmake.h") // requre c++17
+
 #if CMAKE_BUILD
 #include "config_cmake.h"
 #endif
@@ -116,6 +116,8 @@ void Connection::init(const std::string & connection_string) {
             proto = current_value.toString();
         else if (key_lower == "sslmode" && current_value == "require")
             proto = "https";
+        else if (key_lower == "url")
+            url = current_value.toString();
         else if (key_lower == "host" || key_lower == "server")
             server = current_value.toString();
         else if (key_lower == "port") {
@@ -163,10 +165,13 @@ void Connection::loadConfiguration() {
         auto str = stringFromMYTCHAR(ci.trace);
         if (!str.empty())
             log_enabled = !(str == "0" || str == "No" || str == "no");
-        if (log_enabled && !tracefile.empty() && tracefile != LOG_DEFAULT_FILE)
-            logstream = std::ofstream(tracefile, std::ios::out | std::ios::app);
+        if (log_enabled && !tracefile.empty() && tracefile != log_file) {
+            log_file = tracefile;
+            log_stream = std::ofstream(log_file, std::ios::out | std::ios::app);
+        }
     }
-
+    if (url.empty())
+        url = stringFromMYTCHAR(ci.url);
     if (!port && ci.port[0] != 0) {
         const std::string string = stringFromMYTCHAR(ci.port);
         if (!string.empty()) {
@@ -207,12 +212,40 @@ void Connection::loadConfiguration() {
 void Connection::setDefaults() {
     if (data_source.empty())
         data_source = "ClickHouse";
+    if (!url.empty()) {
+        Poco::URI uri(url);
+        if (proto.empty())
+            proto = uri.getScheme();
+        if (server.empty())
+            server = uri.getHost();
+        if (port == 0) {
+            const auto tmp_port = uri.getPort();
+            if ((proto == "https" && tmp_port != 443) || (proto == "http" && tmp_port != 80))
+                port = tmp_port;
+        }
+        if (path.empty())
+            path = uri.getPath();
+
+        auto user_info = uri.getUserInfo();
+        auto index = user_info.find(':');
+        if (index != std::string::npos) {
+            if (password.empty())
+                password = user_info.substr(index+1);
+            if (user.empty())
+                user = user_info.substr(0,index);
+        }
+    }
+
     if (proto.empty())
         proto = (port == 8443 ? "https" : "http");
     if (server.empty())
         server = "localhost";
     if (port == 0)
         port = (proto == "https" ? 8443 : 8123);
+    if (path.empty())
+        path = "query";
+    if (path[0] != '/')
+        path = "/" + path;
     if (stringmaxlength == 0)
         stringmaxlength = Environment::string_max_size;
     if (user.empty())
