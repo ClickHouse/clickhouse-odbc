@@ -205,8 +205,9 @@ dbh_do "INSERT INTO test.odbc2 VALUES (100, '200', {ts '2018-05-01 00:00:01'}, 4
 test_one_select q{SELECT SUM(`test`.`odbc2`.`ui64`) AS `sum_val_ok` FROM `test`.`odbc2` WHERE ((CAST(`test`.`odbc2`.`date` AS TIMESTAMP) >= {ts '2018-05-01 00:00:00'}) AND (CAST(`test`.`odbc2`.`date` AS TIMESTAMP) < {ts '2018-11-01 00:00:00'})) HAVING (COUNT(1) > 0)}, 100;
 dbh_do "DROP TABLE IF EXISTS test.odbc2;";
 
+ok 10000 == scalar @{ prepare_execute_hash 'SELECT number, toString(number), toDate(number) FROM system.numbers LIMIT 10000;' }, '10k rows'; # fetch perfofmance test
+
+# at end, can broke console
 say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.contributors ORDER BY name LIMIT 10';
-
-
 
 done_testing();

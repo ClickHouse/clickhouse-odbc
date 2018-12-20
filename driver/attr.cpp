@@ -3,8 +3,7 @@
 #include "log.h"
 #include "statement.h"
 #include "utils.h"
-
-//#include <malloc.h>
+#include "scope_guard.h"
 
 extern "C"
 {
@@ -310,6 +309,9 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
     SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length)
 {
     LOG(__FUNCTION__);
+#ifndef NDEBUG
+    SCOPE_EXIT({ LOG("impl_SQLGetStmtAttr finish."); }); // for timing only
+#endif
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE
     {
