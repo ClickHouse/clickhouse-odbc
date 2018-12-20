@@ -7,6 +7,7 @@ add_executable(clickhouse-odbc-ut
 )
 
 target_link_libraries(clickhouse-odbc-ut
+    PRIVATE
     clickhouse-odbc-escaping
     gtest-lib
     Threads::Threads
@@ -16,7 +17,7 @@ add_test(NAME "clickhouse-odbc-ut" COMMAND "clickhouse-odbc-ut")
 
 if (NANOODBC_LIBRARY)
     add_executable(clickhouse-odbc-nano nano.cpp)
-    target_link_libraries(clickhouse-odbc-nano ${NANOODBC_LIBRARY})
+    target_link_libraries(clickhouse-odbc-nano PRIVATE ${NANOODBC_LIBRARY})
     add_dependencies(clickhouse-odbc-nano clickhouse-odbc)
     if (TEST_DSN)
         add_test(NAME "clickhouse-odbc-nano" COMMAND clickhouse-odbc-nano DSN=${TEST_DSN})
@@ -34,9 +35,9 @@ if (NANOODBC_LIBRARY)
 endif ()
 
 add_executable(load-ut load.cpp)
-target_link_libraries(load-ut ${Poco_Foundation_LIBRARY} ${CMAKE_DL_LIBS} Threads::Threads)
+target_link_libraries(load-ut PRIVATE ${Poco_Foundation_LIBRARY} ${CMAKE_DL_LIBS} Threads::Threads)
 if (WIN32)
-   target_link_libraries(load-ut Iphlpapi)
+   target_link_libraries(load-ut PRIVATE Iphlpapi)
 endif()
 if(ODBC_INCLUDE_DIRECTORIES)
     target_include_directories(load-ut PRIVATE ${ODBC_INCLUDE_DIRECTORIES})

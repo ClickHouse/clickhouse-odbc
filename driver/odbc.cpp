@@ -35,7 +35,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     SQLTCHAR * password,
     SQLSMALLINT password_size)
 {
-    //LOG(__FUNCTION__ << " dsn_size=" << dsn_size << " dsn=" << dsn << " user_size=" << user_size << " user=" << user << " password_size=" << password_size << " password=" << password);
+    LOG(__FUNCTION__ << " dsn_size=" << dsn_size << " dsn=" << dsn << " user_size=" << user_size << " user=" << user << " password_size=" << password_size << " password=" << password);
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
 
@@ -78,6 +78,11 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * 
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
+
+#if !defined(UNICODE)
+statement_text_size = SQL_NTS; //Tableau ANSI dirty fix
+#endif
+
         const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
 LOG("query0="<< query);
         if (!statement.isEmpty())
@@ -109,16 +114,23 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR
     //LOG(__FUNCTION__);
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
+
+#if !defined(UNICODE)
+statement_text_size = SQL_NTS; //Tableau ANSI dirty fix
+#endif
+
         const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
 
         LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << query );
 
         if (!statement.isEmpty())
         {
-            if (!statement.isPrepared())
+            if (!statement.isPrepared()) {
                 throw std::runtime_error("ExecDirect called, but statement query is not empty.");
-            else if (statement.getQuery() != query)
-                throw std::runtime_error("ExecDirect called, but statement query is not equal to prepared.");
+            }
+            else if (statement.getQuery() != query) {
+                throw std::runtime_error("ExecDirect called, but statement query is not equal to prepared. [" + statement.getQuery() + "] != [" + query + "]...");
+            }
         }
         else
         {

@@ -13,6 +13,7 @@ static RETCODE allocEnv(SQLHENV * out_environment) {
         *out_environment = new Environment;
         return SQL_SUCCESS;
     } catch (...) {
+        LOG(__FUNCTION__ << " Exception");
         return SQL_ERROR;
     }
 }
@@ -26,6 +27,7 @@ static RETCODE allocConnect(SQLHENV environment, SQLHDBC * out_connection) {
         *out_connection = new Connection(*reinterpret_cast<Environment *>(environment));
         return SQL_SUCCESS;
     } catch (...) {
+        LOG(__FUNCTION__ << " Exception");
         return SQL_ERROR;
     }
 }
@@ -38,6 +40,7 @@ static RETCODE allocStmt(SQLHDBC connection, SQLHSTMT * out_statement) {
         *out_statement = new Statement(*reinterpret_cast<Connection *>(connection));
         return SQL_SUCCESS;
     } catch (...) {
+        LOG(__FUNCTION__ << " Exception");
         return SQL_ERROR;
     }
 }
