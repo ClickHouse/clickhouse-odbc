@@ -7,6 +7,7 @@
 #include "string_ref.h"
 #include "type_parser.h"
 #include "utils.h"
+#include "scope_guard.h"
 
 #include <stdio.h>
 //#include <malloc.h>
@@ -319,6 +320,9 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
     SQLLEN * out_value_size_or_indicator)
 {
     LOG(__FUNCTION__ << " column_or_param_number=" << column_or_param_number << " target_type=" << target_type);
+#ifndef NDEBUG
+    SCOPE_EXIT({ LOG("impl_SQLGetData finish."); }); // for timing only
+#endif
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
         if (column_or_param_number < 1 || column_or_param_number > statement.result.getNumColumns()) {
@@ -404,10 +408,15 @@ RETCODE
 impl_SQLFetch(HSTMT statement_handle)
 {
     LOG(__FUNCTION__);
+#ifndef NDEBUG
+    SCOPE_EXIT({ LOG("impl_SQLFetch finish."); }); // for timing only
+#endif
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
         if (!statement.fetchRow())
             return SQL_NO_DATA;
+
+        // LOG("impl_SQLFetch statement.bindings.size()=" << statement.bindings.size());
 
         auto res = SQL_SUCCESS;
 
@@ -425,6 +434,7 @@ impl_SQLFetch(HSTMT statement_handle)
             else if (code != SQL_SUCCESS)
                 return code;
         }
+
         return res;
     });
 }
@@ -544,9 +554,7 @@ impl_SQLGetDiagRec(SQLSMALLINT handle_type,
     SQLSMALLINT out_message_max_size,
     SQLSMALLINT * out_message_size)
 {
-    LOG(__FUNCTION__);
-
-    LOG("handle_type: " << handle_type << ", record_number: " << record_number << ", out_message_max_size: " << out_message_max_size);
+    LOG(__FUNCTION__ << " handle_type: " << handle_type << ", record_number: " << record_number << ", out_message_max_size: " << out_message_max_size);
 
     if (nullptr == handle)
         return SQL_INVALID_HANDLE;
