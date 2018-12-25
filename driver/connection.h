@@ -63,6 +63,3 @@ private:
 private:
     std::string database;
 };
-
-extern std::once_flag ssl_init_once;
-void SSLInit(bool ssl_strict, const std::string &privateKeyFile, const std::string &certificateFile, const std::string &caLocation);

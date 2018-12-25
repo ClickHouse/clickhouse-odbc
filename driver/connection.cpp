@@ -23,6 +23,27 @@
 #endif
 
 
+std::once_flag ssl_init_once;
+
+void SSLInit(bool ssl_strict, const std::string &privateKeyFile, const std::string &certificateFile, const std::string &caLocation) {
+// http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
+#if USE_SSL
+    Poco::Net::initializeSSL();
+    Poco::SharedPtr<Poco::Net::InvalidCertificateHandler> ptrHandler; if(ssl_strict) ptrHandler = new Poco::Net::RejectCertificateHandler(false); else ptrHandler = new Poco::Net::AcceptCertificateHandler(false);
+    Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(
+		Poco::Net::Context::CLIENT_USE, ""
+#if !defined(SECURITY_WIN32)
+                // Do not work with poco/NetSSL_Win:
+                , "", "",
+ssl_strict ? Poco::Net::Context::VERIFY_STRICT :
+Poco::Net::Context::VERIFY_RELAXED, 9, true, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH"
+#endif
+	);
+    Poco::Net::SSLManager::instance().initializeClient(0, ptrHandler, ptrContext);
+#endif
+}
+
+
 Connection::Connection(Environment & env_) : environment(env_) {}
 
 std::string Connection::connectionString() const {
@@ -277,24 +298,4 @@ void Connection::setDefaults() {
         timeout = 30;
     if (connection_timeout == 0)
         connection_timeout = timeout;
-}
-
-std::once_flag ssl_init_once;
-
-void SSLInit(bool ssl_strict, const std::string &privateKeyFile, const std::string &certificateFile, const std::string &caLocation) {
-// http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
-#if USE_SSL
-    Poco::Net::initializeSSL();
-    Poco::SharedPtr<Poco::Net::InvalidCertificateHandler> ptrHandler; if(ssl_strict) ptrHandler = new Poco::Net::RejectCertificateHandler(false); else ptrHandler = new Poco::Net::AcceptCertificateHandler(false);
-    Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(
-		Poco::Net::Context::CLIENT_USE, ""
-#if !defined(SECURITY_WIN32)
-                // Do not work with poco/NetSSL_Win:
-                , "", "",
-ssl_strict ? Poco::Net::Context::VERIFY_STRICT :
-Poco::Net::Context::VERIFY_RELAXED, 9, true, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH"
-#endif
-	);
-    Poco::Net::SSLManager::instance().initializeClient(0, ptrHandler, ptrContext);
-#endif
 }
