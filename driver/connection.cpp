@@ -35,12 +35,12 @@ void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::str
     else
         ptrHandler = new Poco::Net::AcceptCertificateHandler(false);
     Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE,
-        ""
+        privateKeyFile
 #    if !defined(SECURITY_WIN32)
         // Do not work with poco/NetSSL_Win:
         ,
-        "",
-        "",
+        certificateFile,
+        caLocation,
         ssl_strict ? Poco::Net::Context::VERIFY_STRICT : Poco::Net::Context::VERIFY_RELAXED,
         9,
         true,
