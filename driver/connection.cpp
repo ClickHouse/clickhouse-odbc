@@ -14,6 +14,8 @@
 
 #if USE_SSL
 #include <Poco/Net/AcceptCertificateHandler.h>
+#include <Poco/Net/RejectCertificateHandler.h>
+
 #include <Poco/Net/HTTPSClientSession.h>
 #include <Poco/Net/InvalidCertificateHandler.h>
 #include <Poco/Net/PrivateKeyPassphraseHandler.h>
@@ -57,7 +59,7 @@ void Connection::init() {
 #if USE_SSL
     bool is_ssl = proto == "https";
 
-    std::call_once(ssl_init_once, SSLInit);
+    std::call_once(ssl_init_once, SSLInit, ssl_strict, privateKeyFile, certificateFile, caLocation);
 #endif
 
     session = std::unique_ptr<Poco::Net::HTTPClientSession>(
@@ -114,8 +116,11 @@ void Connection::init(const std::string & connection_string) {
             password = current_value.toString();
         else if (key_lower == "proto")
             proto = current_value.toString();
-        else if (key_lower == "sslmode" && current_value == "require")
+        else if (key_lower == "sslmode" && (current_value == "allow" || current_value == "prefer" || current_value == "require")) {
             proto = "https";
+            if (current_value == "require")
+                ssl_strict = true;
+        }
         else if (key_lower == "url")
             url = current_value.toString();
         else if (key_lower == "host" || key_lower == "server")
@@ -147,6 +152,12 @@ void Connection::init(const std::string & connection_string) {
         }
         else if (key_lower == "dsn")
             data_source = current_value.toString();
+        else if (key_lower == "privatekeyfile")
+            privateKeyFile = current_value.toString();
+        else if (key_lower == "certificatefile")
+            certificateFile = current_value.toString();
+        else if (key_lower == "calocation")
+            caLocation = current_value.toString();
     }
 
     init();
@@ -205,8 +216,18 @@ void Connection::loadConfiguration() {
         password = stringFromMYTCHAR(ci.password);
     if (database.empty())
         database = stringFromMYTCHAR(ci.database);
-    if (proto.empty() && (stringFromMYTCHAR(ci.sslmode) == "require" || port == 8443))
+    auto sslmode = stringFromMYTCHAR(ci.sslmode);
+    if (proto.empty() && (sslmode == "require" || sslmode == "prefer" || sslmode == "allow" || port == 8443))
         proto = "https";
+    if (sslmode == "require")
+        ssl_strict = true;
+
+    if (privateKeyFile.empty())
+        privateKeyFile = stringFromMYTCHAR(ci.privateKeyFile);
+    if (certificateFile.empty())
+        certificateFile = stringFromMYTCHAR(ci.certificateFile);
+    if (caLocation.empty())
+        caLocation = stringFromMYTCHAR(ci.caLocation);
 }
 
 void Connection::setDefaults() {
@@ -260,17 +281,18 @@ void Connection::setDefaults() {
 
 std::once_flag ssl_init_once;
 
-void SSLInit() {
+void SSLInit(bool ssl_strict, const std::string &privateKeyFile, const std::string &certificateFile, const std::string &caLocation) {
 // http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
 #if USE_SSL
     Poco::Net::initializeSSL();
-    // TODO: not accept invalid cert by some settings
-    Poco::SharedPtr<Poco::Net::InvalidCertificateHandler> ptrHandler = new Poco::Net::AcceptCertificateHandler(false);
+    Poco::SharedPtr<Poco::Net::InvalidCertificateHandler> ptrHandler; if(ssl_strict) ptrHandler = new Poco::Net::RejectCertificateHandler(false); else ptrHandler = new Poco::Net::AcceptCertificateHandler(false);
     Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(
 		Poco::Net::Context::CLIENT_USE, ""
 #if !defined(SECURITY_WIN32)
                 // Do not work with poco/NetSSL_Win:
-                , "", "", Poco::Net::Context::VERIFY_RELAXED, 9, true, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH"
+                , "", "",
+ssl_strict ? Poco::Net::Context::VERIFY_STRICT :
+Poco::Net::Context::VERIFY_RELAXED, 9, true, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH"
 #endif
 	);
     Poco::Net::SSLManager::instance().initializeClient(0, ptrHandler, ptrContext);

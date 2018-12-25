@@ -22,6 +22,11 @@ struct Connection {
     int timeout = 0;
     int connection_timeout = 0;
     int32_t stringmaxlength = 0;
+    bool ssl_strict = false;
+
+    std::string privateKeyFile;
+	std::string certificateFile;
+	std::string caLocation;
 
     std::unique_ptr<Poco::Net::HTTPClientSession> session;
     DiagnosticRecord diagnostic_record;
@@ -60,4 +65,4 @@ private:
 };
 
 extern std::once_flag ssl_init_once;
-void SSLInit();
+void SSLInit(bool ssl_strict, const std::string &privateKeyFile, const std::string &certificateFile, const std::string &caLocation);

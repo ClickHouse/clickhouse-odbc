@@ -28,6 +28,10 @@ struct ConnInfo
     MYTCHAR       conn_settings[MEDIUM_REGISTRY_LEN];
     MYTCHAR       trace[SMALL_REGISTRY_LEN];
     MYTCHAR       tracefile[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       privateKeyFile[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       certificateFile[MEDIUM_REGISTRY_LEN];
+    MYTCHAR       caLocation[MEDIUM_REGISTRY_LEN];
+
     signed char disallow_premature = -1;
     signed char allow_keyset = -1;
     signed char updatable_cursors = 0;
