@@ -4,10 +4,8 @@
 #include <string.h>
 #include "utils.h"
 
-ConnInfo::ConnInfo()
-{
-#define ZERO_FIELD(name) \
-    memset(name, 0, sizeof(name));
+ConnInfo::ConnInfo() {
+#define ZERO_FIELD(name) memset(name, 0, sizeof(name));
 
     ZERO_FIELD(dsn);
     ZERO_FIELD(desc);
@@ -32,10 +30,11 @@ ConnInfo::ConnInfo()
 #undef ZERO_FIELD
 }
 
-void getDSNinfo(ConnInfo * ci, bool overwrite)
-{
-#define GET_CONFIG(NAME, INI_NAME, DEFAULT) if (ci->NAME[0] == '\0' || overwrite) \
-    FUNCTION_MAYBE_W(SQLGetPrivateProfileString)(reinterpret_cast<LPTSTR>(ci->dsn), INI_NAME, TEXT(DEFAULT), reinterpret_cast<LPTSTR>(ci->NAME), sizeof(ci->NAME), ODBC_INI);
+void getDSNinfo(ConnInfo * ci, bool overwrite) {
+#define GET_CONFIG(NAME, INI_NAME, DEFAULT)          \
+    if (ci->NAME[0] == '\0' || overwrite)            \
+        FUNCTION_MAYBE_W(SQLGetPrivateProfileString) \
+        (reinterpret_cast<LPTSTR>(ci->dsn), INI_NAME, TEXT(DEFAULT), reinterpret_cast<LPTSTR>(ci->NAME), sizeof(ci->NAME), ODBC_INI);
 
     GET_CONFIG(desc, INI_KDESC, "");
     GET_CONFIG(url, INI_URL, "");
@@ -52,5 +51,4 @@ void getDSNinfo(ConnInfo * ci, bool overwrite)
     GET_CONFIG(tracefile, INI_TRACEFILE, LOG_DEFAULT_FILE);
 
 #undef GET_CONFIG
-
 }

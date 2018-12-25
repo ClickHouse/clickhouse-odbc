@@ -25,8 +25,8 @@ struct Connection {
     bool ssl_strict = false;
 
     std::string privateKeyFile;
-	std::string certificateFile;
-	std::string caLocation;
+    std::string certificateFile;
+    std::string caLocation;
 
     std::unique_ptr<Poco::Net::HTTPClientSession> session;
     DiagnosticRecord diagnostic_record;

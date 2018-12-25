@@ -1,44 +1,52 @@
 #include "connection.h"
+#include <Poco/Net/HTTPClientSession.h>
+#include <Poco/NumberParser.h> // TODO: switch to std
+#include <Poco/URI.h>
 #include "config.h"
 #include "string_ref.h"
 #include "utils.h"
-#include <Poco/NumberParser.h> // TODO: switch to std
-#include <Poco/URI.h>
-#include <Poco/Net/HTTPClientSession.h>
 
 //#if __has_include("config_cmake.h") // requre c++17
 
 #if CMAKE_BUILD
-#include "config_cmake.h"
+#    include "config_cmake.h"
 #endif
 
 #if USE_SSL
-#include <Poco/Net/AcceptCertificateHandler.h>
-#include <Poco/Net/RejectCertificateHandler.h>
+#    include <Poco/Net/AcceptCertificateHandler.h>
+#    include <Poco/Net/RejectCertificateHandler.h>
 
-#include <Poco/Net/HTTPSClientSession.h>
-#include <Poco/Net/InvalidCertificateHandler.h>
-#include <Poco/Net/PrivateKeyPassphraseHandler.h>
-#include <Poco/Net/SSLManager.h>
+#    include <Poco/Net/HTTPSClientSession.h>
+#    include <Poco/Net/InvalidCertificateHandler.h>
+#    include <Poco/Net/PrivateKeyPassphraseHandler.h>
+#    include <Poco/Net/SSLManager.h>
 #endif
 
 
 std::once_flag ssl_init_once;
 
-void SSLInit(bool ssl_strict, const std::string &privateKeyFile, const std::string &certificateFile, const std::string &caLocation) {
+void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::string & certificateFile, const std::string & caLocation) {
 // http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
 #if USE_SSL
     Poco::Net::initializeSSL();
-    Poco::SharedPtr<Poco::Net::InvalidCertificateHandler> ptrHandler; if(ssl_strict) ptrHandler = new Poco::Net::RejectCertificateHandler(false); else ptrHandler = new Poco::Net::AcceptCertificateHandler(false);
-    Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(
-		Poco::Net::Context::CLIENT_USE, ""
-#if !defined(SECURITY_WIN32)
-                // Do not work with poco/NetSSL_Win:
-                , "", "",
-ssl_strict ? Poco::Net::Context::VERIFY_STRICT :
-Poco::Net::Context::VERIFY_RELAXED, 9, true, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH"
-#endif
-	);
+    Poco::SharedPtr<Poco::Net::InvalidCertificateHandler> ptrHandler;
+    if (ssl_strict)
+        ptrHandler = new Poco::Net::RejectCertificateHandler(false);
+    else
+        ptrHandler = new Poco::Net::AcceptCertificateHandler(false);
+    Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE,
+        ""
+#    if !defined(SECURITY_WIN32)
+        // Do not work with poco/NetSSL_Win:
+        ,
+        "",
+        "",
+        ssl_strict ? Poco::Net::Context::VERIFY_STRICT : Poco::Net::Context::VERIFY_RELAXED,
+        9,
+        true,
+        "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH"
+#    endif
+    );
     Poco::Net::SSLManager::instance().initializeClient(0, ptrHandler, ptrContext);
 #endif
 }
@@ -92,7 +100,7 @@ void Connection::init() {
     session->setHost(server);
     session->setPort(port);
     session->setKeepAlive(true);
-    session->setTimeout(Poco::Timespan(connection_timeout, 0), Poco::Timespan(timeout, 0),Poco::Timespan(timeout, 0) );
+    session->setTimeout(Poco::Timespan(connection_timeout, 0), Poco::Timespan(timeout, 0), Poco::Timespan(timeout, 0));
     session->setKeepAliveTimeout(Poco::Timespan(86400, 0));
 }
 
@@ -141,8 +149,7 @@ void Connection::init(const std::string & connection_string) {
             proto = "https";
             if (current_value == "require")
                 ssl_strict = true;
-        }
-        else if (key_lower == "url")
+        } else if (key_lower == "url")
             url = current_value.toString();
         else if (key_lower == "host" || key_lower == "server")
             server = current_value.toString();
@@ -162,16 +169,14 @@ void Connection::init(const std::string & connection_string) {
             else {
                 throw std::runtime_error("Cannot parse timeout.");
             }
-        }
-        else if (key_lower == "stringmaxlength") {
+        } else if (key_lower == "stringmaxlength") {
             int int_val = 0;
             if (Poco::NumberParser::tryParse(current_value.toString(), int_val))
                 stringmaxlength = int_val;
             else {
                 throw std::runtime_error("Cannot parse stringmaxlength.");
             }
-        }
-        else if (key_lower == "dsn")
+        } else if (key_lower == "dsn")
             data_source = current_value.toString();
         else if (key_lower == "privatekeyfile")
             privateKeyFile = current_value.toString();
@@ -272,9 +277,9 @@ void Connection::setDefaults() {
         auto index = user_info.find(':');
         if (index != std::string::npos) {
             if (password.empty())
-                password = user_info.substr(index+1);
+                password = user_info.substr(index + 1);
             if (user.empty())
-                user = user_info.substr(0,index);
+                user = user_info.substr(0, index);
         }
     }
 
