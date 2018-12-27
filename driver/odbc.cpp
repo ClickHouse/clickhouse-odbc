@@ -7,6 +7,7 @@
 #include "string_ref.h"
 #include "type_parser.h"
 #include "utils.h"
+#include "scope_guard.h"
 
 #include <stdio.h>
 //#include <malloc.h>
@@ -35,7 +36,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     SQLTCHAR * password,
     SQLSMALLINT password_size)
 {
-    //LOG(__FUNCTION__ << " dsn_size=" << dsn_size << " dsn=" << dsn << " user_size=" << user_size << " user=" << user << " password_size=" << password_size << " password=" << password);
+    // LOG(__FUNCTION__ << " dsn_size=" << dsn_size << " dsn=" << dsn << " user_size=" << user_size << " user=" << user << " password_size=" << password_size << " password=" << password);
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
 
@@ -79,7 +80,6 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * 
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
         const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
-
         if (!statement.isEmpty())
             throw std::runtime_error("Prepare called, but statement query is not empty.");
         if (query.empty())
@@ -88,6 +88,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * 
         statement.prepareQuery(query);
 
         LOG("query(" << query.size() << ") = [" << query << "]");
+
         return SQL_SUCCESS;
     });
 }
@@ -115,10 +116,12 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR
 
         if (!statement.isEmpty())
         {
-            if (!statement.isPrepared())
+            if (!statement.isPrepared()) {
                 throw std::runtime_error("ExecDirect called, but statement query is not empty.");
-            else if (statement.getQuery() != query)
-                throw std::runtime_error("ExecDirect called, but statement query is not equal to prepared.");
+            }
+            else if (statement.getQuery() != query) {
+                throw std::runtime_error("ExecDirect called, but statement query is not equal to prepared. [" + statement.getQuery() + "] != [" + query + "]...");
+            }
         }
         else
         {
@@ -319,6 +322,9 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
     SQLLEN * out_value_size_or_indicator)
 {
     LOG(__FUNCTION__ << " column_or_param_number=" << column_or_param_number << " target_type=" << target_type);
+#ifndef NDEBUG
+    SCOPE_EXIT({ LOG("impl_SQLGetData finish."); }); // for timing only
+#endif
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
         if (column_or_param_number < 1 || column_or_param_number > statement.result.getNumColumns()) {
@@ -404,10 +410,15 @@ RETCODE
 impl_SQLFetch(HSTMT statement_handle)
 {
     LOG(__FUNCTION__);
+#ifndef NDEBUG
+    SCOPE_EXIT({ LOG("impl_SQLFetch finish."); }); // for timing only
+#endif
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
         if (!statement.fetchRow())
             return SQL_NO_DATA;
+
+        // LOG("impl_SQLFetch statement.bindings.size()=" << statement.bindings.size());
 
         auto res = SQL_SUCCESS;
 
@@ -425,6 +436,7 @@ impl_SQLFetch(HSTMT statement_handle)
             else if (code != SQL_SUCCESS)
                 return code;
         }
+
         return res;
     });
 }
@@ -544,9 +556,7 @@ impl_SQLGetDiagRec(SQLSMALLINT handle_type,
     SQLSMALLINT out_message_max_size,
     SQLSMALLINT * out_message_size)
 {
-    LOG(__FUNCTION__);
-
-    LOG("handle_type: " << handle_type << ", record_number: " << record_number << ", out_message_max_size: " << out_message_max_size);
+    LOG(__FUNCTION__ << " handle_type: " << handle_type << ", record_number: " << record_number << ", out_message_max_size: " << out_message_max_size);
 
     if (nullptr == handle)
         return SQL_INVALID_HANDLE;

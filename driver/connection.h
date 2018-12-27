@@ -12,8 +12,10 @@ struct Connection {
     Environment & environment;
 
     std::string data_source;
+    std::string url;
     std::string proto;
     std::string server;
+    std::string path;
     std::string user;
     std::string password;
     uint16_t port = 0;

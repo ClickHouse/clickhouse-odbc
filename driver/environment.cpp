@@ -74,12 +74,20 @@ Environment::Environment() {
 
         std::string report;
         report += " VERSION=" + std::string{VERSION_STRING};
+#if defined(_win64_)
+        report += " WIN64";
+#elif defined(_win32_)
+        report += " WIN32";
+#endif
 #if defined(UNICODE)
         report += " UNICODE=" + std::to_string(UNICODE);
 #    if defined(ODBC_WCHAR)
         report += " ODBC_WCHAR=" + std::to_string(ODBC_WCHAR);
 #    endif
         report += " sizeof(SQLTCHAR)=" + std::to_string(sizeof(SQLTCHAR)) + " sizeof(wchar_t)=" + std::to_string(sizeof(wchar_t));
+#endif
+#if SQL_WCHART_CONVERT
+        report += " SQL_WCHART_CONVERT";
 #endif
 #if ODBCVER
         std::stringstream strm;

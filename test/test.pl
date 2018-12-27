@@ -42,6 +42,11 @@ sub prepare_execute_hash ($) {
     return $ret;
 }
 
+sub dbh_do ($) {
+    #warn "Executing: $_[0];";
+    return $dbh->do($_[0]);
+}
+
 sub test_one_string_value($) {
     my ($n)     = @_;
     my $row     = prepare_execute_hash("SELECT '$n'")->[0];
@@ -65,6 +70,13 @@ sub test_one_value_as($;$) {
     my $row = prepare_execute_hash("SELECT $n AS value")->[0];
     my ($value) = values %$row;
     is $value, $expected, "valueas eq " . $n . " " . Data::Dumper->new([$row])->Indent(0)->Terse(1)->Sortkeys(1)->Dump();
+}
+
+sub test_one_select($;$) {
+    my ($select, $expected) = @_;
+    my $row = prepare_execute_hash($select)->[0];
+    my ($value) = values %$row;
+    is $value, $expected, "valueas eq " . $select . " " . Data::Dumper->new([$row])->Indent(0)->Terse(1)->Sortkeys(1)->Dump();
 }
 
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1+1';
@@ -129,13 +141,13 @@ test_one_value_as(fn('CHAR_LENGTH',      "'abc'"),                      3);
 test_one_value_as(fn('OCTET_LENGTH',     "'abc'"),                      3);
 test_one_value_as(fn('LENGTH',     "'abc'"),                      3);
 test_one_value_as(fn('CHAR_LENGTH',      "'йцукенгшщзхъ'"), 12);
-test_one_value_as(fn('OCTET_LENGTH',     "'йцукенгшщзхъ'"), 24);
 test_one_value_as(fn('LENGTH',     "'йцукенгшщзхъ'"), 12);
-test_one_value_as(fn('CHARACTER_LENGTH', "'abc'"),                      3);
+test_one_value_as(fn('CHARACTER_LENGTH', "'abc'"), 3);
 test_one_value_as(fn('CONCAT', "'abc'", "'123'"), 'abc123');
 test_one_value_as(fn('LCASE', "'abcDEFghj'"), 'abcdefghj');
 test_one_value_as(fn('UCASE', "'abcDEFghj'"), 'ABCDEFGHJ');
 if ($is_wide) {
+    test_one_value_as(fn('OCTET_LENGTH',     "'йцукенгшщзхъ'"), 24);
     test_one_value_as(fn('LCASE', "'йцуКЕН'"), 'йцукен');
     test_one_value_as(fn('UCASE', "'йцуКЕН'"), 'ЙЦУКЕН');
 }
@@ -183,5 +195,19 @@ q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕ
 # without overflow
 # say Data::Dumper::Dumper prepare_execute_hash 'SELECT -127,-128,-129,126,127,128,255,256,257,-32767,-32768,-32769,32766,32767,32768,65535,65536,65537,-2147483647,-2147483648,-2147483649,2147483646,2147483647,2147483648,4294967295,4294967296,4294967297,-9223372036854775807,-9223372036854775808,9223372036854775806,9223372036854775807,9223372036854775808,18446744073709551615';
 }
+
+dbh_do "DROP TABLE IF EXISTS test.odbc2;";
+dbh_do "CREATE TABLE test.odbc2 (ui64 UInt64, string String, date Date, datetime DateTime) ENGINE = Memory;";
+dbh_do "INSERT INTO test.odbc2 VALUES (1, '2', 3, 4);";
+dbh_do "INSERT INTO test.odbc2 VALUES (10, '20', 30, 40);";
+dbh_do "INSERT INTO test.odbc2 VALUES (100, '200', 300, 400);";
+dbh_do "INSERT INTO test.odbc2 VALUES (100, '200', {ts '2018-05-01 00:00:01'}, 400);";
+test_one_select q{SELECT SUM(`test`.`odbc2`.`ui64`) AS `sum_val_ok` FROM `test`.`odbc2` WHERE ((CAST(`test`.`odbc2`.`date` AS TIMESTAMP) >= {ts '2018-05-01 00:00:00'}) AND (CAST(`test`.`odbc2`.`date` AS TIMESTAMP) < {ts '2018-11-01 00:00:00'})) HAVING (COUNT(1) > 0)}, 100;
+dbh_do "DROP TABLE IF EXISTS test.odbc2;";
+
+ok 10000 == scalar @{ prepare_execute_hash 'SELECT number, toString(number), toDate(number) FROM system.numbers LIMIT 10000;' }, '10k rows'; # fetch perfofmance test
+
+# at end, can broke console
+say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.contributors ORDER BY name LIMIT 10';
 
 done_testing();

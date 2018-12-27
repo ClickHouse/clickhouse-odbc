@@ -6,7 +6,7 @@
 cd ..
   for compiler in "" _gcc _clang; do
     if [ "$compiler" = "_clang" ]; then
-        CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-6.0 clang++-5.0 clang++60 clang++50 clang++ | head -n1` -DCMAKE_C_COMPILER=`which clang-6.0 clang-5.0 clang60 clang50 clang | head -n1`"
+        CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-7 clang++-6.0 clang++-5.0 clang++60 clang++50 clang++ | head -n1` -DCMAKE_C_COMPILER=`which clang-7 clang-6.0 clang-5.0 clang60 clang50 clang | head -n1`"
     fi
     if [ "$compiler" = "_gcc" ]; then
         CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which g++-8 g++-7 g++8 g++7 g++ | head -n1` -DCMAKE_C_COMPILER=`which gcc-8 gcc-7 gcc8 gcc7 gcc | head -n1`"

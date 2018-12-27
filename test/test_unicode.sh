@@ -27,10 +27,10 @@ elif [[ "$OSTYPE" == "FreeBSD"* ]]; then
     fi
 elif [ `which apt` ]; then
     if [ "$lib" = "libiodbc" ]; then
-        sudo apt install -y libiodbc2-dev
+        sudo apt install -y libiodbc2-dev iodbc
     fi
     if [ "$lib" = "unixodbc" ]; then
-        sudo apt install -y unixodbc-dev
+        sudo apt install -y unixodbc-dev unixodbc
     fi
 fi
 

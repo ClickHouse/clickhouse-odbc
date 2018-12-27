@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Включаемый файл, созданный в Microsoft Visual C++.
-// Используется resource.rc
+// Microsoft Visual C++ generated include file.
+// Used by resource.rc
 //
 #define IDD_DIALOG1                     101
 #define IDC_DSN_NAME                    1001
@@ -13,6 +13,7 @@
 #define IDC_DESCRIPTION                 1007
 #define IDC_TIMEOUT                     1008
 #define IDC_SSLMODE                     1009
+#define IDC_URL                         1010
 
 // Next default values for new objects
 // 

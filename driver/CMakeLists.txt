@@ -1,3 +1,6 @@
+find_package (Threads)
+
+add_subdirectory(log)
 add_subdirectory(escaping)
 if (WIN32)
     add_subdirectory(win)
@@ -10,7 +13,7 @@ function(makelib libname UNICODE)
 if (UNICODE)
     set(UNICODE 1)
     if (ODBC_UNIXODBC)
-        set(SQL_WCHART_CONVERT 1)
+        option (SQL_WCHART_CONVERT "Unixodbc SQL_WCHART_CONVERT (use four bytes TCHAR)" 1)
     endif ()
     set(_config_add w)
 else ()
@@ -51,7 +54,6 @@ add_library(${libname} SHARED
     result_set.cpp
     statement.cpp
     type_parser.cpp
-    log.cpp
     ${WIN_SOURCES}
 )
 
@@ -76,25 +78,25 @@ if (NOT WIN32)
     target_include_directories (${libname} PRIVATE ${ODBC_INCLUDE_DIRECTORIES})
 endif()
 
-target_link_libraries(${libname} clickhouse-odbc-escaping)
+target_link_libraries(${libname} PRIVATE clickhouse-odbc-escaping clickhouse-odbc-log)
 
 if(USE_SSL)
-    target_link_libraries(${libname} ${Poco_NetSSL_LIBRARY} ${Poco_Crypto_LIBRARY} ${Poco_Util_LIBRARY})
+    target_link_libraries(${libname} PRIVATE ${Poco_NetSSL_LIBRARY} ${Poco_Crypto_LIBRARY} ${Poco_Util_LIBRARY})
     target_include_directories (${libname} PRIVATE ${OPENSSL_INCLUDE_DIR})
 endif()
 
-target_link_libraries(${libname}
+target_link_libraries(${libname} PRIVATE
     ${Poco_Net_LIBRARY}
     ${Poco_Foundation_LIBRARY}
     ${ODBC_LIBRARIES}
 )
 
 if(NOT APPLE AND NOT WIN32)
-    target_link_libraries(${libname} "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script")
+    target_link_libraries(${libname} PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script")
 endif()
 
 if (WIN32)
-  target_link_libraries(${libname} clickhouse-odbc-win ws2_32 Iphlpapi legacy_stdio_definitions)
+  target_link_libraries(${libname} PRIVATE clickhouse-odbc-win ws2_32 Iphlpapi legacy_stdio_definitions)
 endif()
 
 if (NOT WIN32)
@@ -105,6 +107,10 @@ endfunction()
 
 makelib(clickhouse-odbc 0)
 makelib(clickhouse-odbcw 1)
+
+if(ARCH_LINUX)
+    target_link_libraries(clickhouse-odbcw PRIVATE Threads::Threads)
+endif()
 
 set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
 set_target_properties(clickhouse-odbcw PROPERTIES OUTPUT_NAME "clickhouseodbcw")

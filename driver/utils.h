@@ -26,6 +26,7 @@ RETCODE doWith(SQLHANDLE handle_opaque, F && f)
     catch (...)
     {
         handle.diagnostic_record.fromException();
+        LOG("Exception: " << handle.diagnostic_record.message);
         return SQL_ERROR;
     }
 }
@@ -80,6 +81,7 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
     }
     else if (symbols < 0)
         throw std::runtime_error("invalid size of string : " + std::to_string(symbols));
+
 #if defined(UNICODE)
 #   if ODBC_WCHAR
     return std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(std::wstring(data, symbols));
