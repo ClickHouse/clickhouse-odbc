@@ -38,6 +38,7 @@
     // DIFFERENCE
     // INSERT
     DECLARE2(LCASE, "lowerUTF8"),
+    DECLARE2(LOWER, "lowerUTF8"),
     // LEFT  substring(s, 0, length)
     DECLARE2(LENGTH, "lengthUTF8"),
     //DECLARE2(LOCATE, "position"), // special
@@ -52,6 +53,7 @@
     // SPACE
     DECLARE2(SUBSTRING, "substringUTF8"),
     DECLARE2(UCASE, "upperUTF8"),
+    DECLARE2(UPPER, "upperUTF8"),
 
 
     // Date
