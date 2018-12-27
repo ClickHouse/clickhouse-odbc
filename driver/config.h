@@ -1,33 +1,36 @@
 #pragma once
 
-#include "platform.h"
 #include "ini_defines.h"
+#include "platform.h"
 
 /**
  * Structure to hold all the connection attributes for a specific
  * connection (used for both registry and file, DSN and DRIVER)
  */
-struct ConnInfo
-{
-    MYTCHAR       dsn[MEDIUM_REGISTRY_LEN];
-    MYTCHAR       desc[MEDIUM_REGISTRY_LEN];
-    MYTCHAR       drivername[MEDIUM_REGISTRY_LEN];
-    MYTCHAR       url[LARGE_REGISTRY_LEN];
-    MYTCHAR       server[MEDIUM_REGISTRY_LEN];
-    MYTCHAR       database[MEDIUM_REGISTRY_LEN];
-    MYTCHAR       username[MEDIUM_REGISTRY_LEN];
-    MYTCHAR       password[MEDIUM_REGISTRY_LEN];
-    MYTCHAR       port[SMALL_REGISTRY_LEN];
-    MYTCHAR       sslmode[16];
-    MYTCHAR       onlyread[SMALL_REGISTRY_LEN];
-    MYTCHAR       timeout[SMALL_REGISTRY_LEN];
-    MYTCHAR       stringmaxlength[SMALL_REGISTRY_LEN];
-    MYTCHAR       show_system_tables[SMALL_REGISTRY_LEN];
-    MYTCHAR       translation_dll[MEDIUM_REGISTRY_LEN];
-    MYTCHAR       translation_option[SMALL_REGISTRY_LEN];
-    MYTCHAR       conn_settings[MEDIUM_REGISTRY_LEN];
-    MYTCHAR       trace[SMALL_REGISTRY_LEN];
-    MYTCHAR       tracefile[MEDIUM_REGISTRY_LEN];
+struct ConnInfo {
+    MYTCHAR dsn[MEDIUM_REGISTRY_LEN];
+    MYTCHAR desc[MEDIUM_REGISTRY_LEN];
+    MYTCHAR drivername[MEDIUM_REGISTRY_LEN];
+    MYTCHAR url[LARGE_REGISTRY_LEN];
+    MYTCHAR server[MEDIUM_REGISTRY_LEN];
+    MYTCHAR database[MEDIUM_REGISTRY_LEN];
+    MYTCHAR username[MEDIUM_REGISTRY_LEN];
+    MYTCHAR password[MEDIUM_REGISTRY_LEN];
+    MYTCHAR port[SMALL_REGISTRY_LEN];
+    MYTCHAR sslmode[16];
+    MYTCHAR onlyread[SMALL_REGISTRY_LEN];
+    MYTCHAR timeout[SMALL_REGISTRY_LEN];
+    MYTCHAR stringmaxlength[SMALL_REGISTRY_LEN];
+    MYTCHAR show_system_tables[SMALL_REGISTRY_LEN];
+    MYTCHAR translation_dll[MEDIUM_REGISTRY_LEN];
+    MYTCHAR translation_option[SMALL_REGISTRY_LEN];
+    MYTCHAR conn_settings[MEDIUM_REGISTRY_LEN];
+    MYTCHAR trace[SMALL_REGISTRY_LEN];
+    MYTCHAR tracefile[MEDIUM_REGISTRY_LEN];
+    MYTCHAR privateKeyFile[MEDIUM_REGISTRY_LEN];
+    MYTCHAR certificateFile[MEDIUM_REGISTRY_LEN];
+    MYTCHAR caLocation[MEDIUM_REGISTRY_LEN];
+
     signed char disallow_premature = -1;
     signed char allow_keyset = -1;
     signed char updatable_cursors = 0;
