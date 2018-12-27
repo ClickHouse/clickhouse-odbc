@@ -146,6 +146,8 @@ test_one_value_as(fn('CHARACTER_LENGTH', "'abc'"), 3);
 test_one_value_as(fn('CONCAT', "'abc'", "'123'"), 'abc123');
 test_one_value_as(fn('LCASE', "'abcDEFghj'"), 'abcdefghj');
 test_one_value_as(fn('UCASE', "'abcDEFghj'"), 'ABCDEFGHJ');
+test_one_value_as(fn('LOWER', "'abcDEFghj'"), 'abcdefghj');
+test_one_value_as(fn('UPPER', "'abcDEFghj'"), 'ABCDEFGHJ');
 if ($is_wide) {
     test_one_value_as(fn('OCTET_LENGTH',     "'йцукенгшщзхъ'"), 24);
     test_one_value_as(fn('LCASE', "'йцуКЕН'"), 'йцукен');
