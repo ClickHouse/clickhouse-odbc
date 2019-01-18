@@ -1,7 +1,7 @@
 #include "connection.h"
 #include "diagnostics.h"
 #include "environment.h"
-#include "log.h"
+#include "log/log.h"
 #include "result_set.h"
 #include "statement.h"
 #include "string_ref.h"

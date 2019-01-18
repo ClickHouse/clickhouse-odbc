@@ -1,5 +1,5 @@
 #include "connection.h"
-#include "log.h"
+#include "log/log.h"
 #include "utils.h"
 #include "win/version.h"
 
