@@ -134,11 +134,13 @@ void stringToTCHAR(const std::string & data, STRING (&result)[Len])
 #if defined(UNICODE)
 #   if ODBC_WCHAR
     using CharType = wchar_t;
+    using StringType = std::wstring;
 #   else
     using CharType = char16_t;
+    using StringType = std::u16string;
 #   endif
 
-    std::wstring tmp = std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(data);
+    StringType tmp = std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(data);
     //using type_to = wchar_t*;
 #else
     const auto & tmp = data;
@@ -146,7 +148,11 @@ void stringToTCHAR(const std::string & data, STRING (&result)[Len])
 #endif
     const size_t len = std::min<size_t>(Len - 1, data.size());
 #if defined(UNICODE)
-    wcsncpy(reinterpret_cast<wchar_t*>(result), tmp.c_str(), len);
+#   if ODBC_WCHAR
+    wcsncpy(reinterpret_cast<CharType*>(result), tmp.c_str(), len);
+#else
+    strncpy(reinterpret_cast<char*>(result), reinterpret_cast<const char*>(tmp.c_str()), len * sizeof(CharType)); // WRONG TODO
+#endif
 #else
     strncpy(reinterpret_cast<char*>(result), tmp.c_str(), len);
 #endif

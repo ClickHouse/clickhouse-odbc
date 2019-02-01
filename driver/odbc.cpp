@@ -484,7 +484,7 @@ RETCODE SQL_API SQLBindCol(HSTMT statement_handle,
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
         if (column_number < 1 || column_number > statement.result.getNumColumns())
-            throw SqlException("Column number is out of range", "07009");
+            throw SqlException("Column number " + std::to_string(column_number) + " is out of range: " + std::to_string(statement.result.getNumColumns()), "07009");
         if (out_value_max_size < 0)
             throw SqlException("Invalid string or buffer length", "HY090");
 
