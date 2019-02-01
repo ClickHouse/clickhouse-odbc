@@ -86,7 +86,7 @@ Environment::Environment() {
 #    endif
         report += " sizeof(SQLTCHAR)=" + std::to_string(sizeof(SQLTCHAR)) + " sizeof(wchar_t)=" + std::to_string(sizeof(wchar_t));
 #endif
-#if SQL_WCHART_CONVERT
+#if defined(SQL_WCHART_CONVERT)
         report += " SQL_WCHART_CONVERT";
 #endif
 #if ODBCVER
