@@ -36,7 +36,7 @@ public:
     const std::string getQuery() const;
 
     /// Lookup TypeInfo for given name of type.
-    const TypeInfo & getTypeInfo(const std::string & type_name) const;
+    const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs = "") const;
 
     bool isEmpty() const;
 

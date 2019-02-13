@@ -39,6 +39,9 @@ const std::map<std::string, TypeInfo> Environment::types_info = {
     {"Date", TypeInfo{"DATE", true, SQL_TYPE_DATE, 10, 6}},
     {"DateTime", TypeInfo{"TIMESTAMP", true, SQL_TYPE_TIMESTAMP, 19, 16}},
     {"Array", TypeInfo{"TEXT", true, SQL_VARCHAR, Environment::string_max_size, Environment::string_max_size}},
+
+    {"LowCardinality(String)", TypeInfo{"TEXT", true, SQL_VARCHAR, Environment::string_max_size, Environment::string_max_size}}, // todo: remove
+    {"LowCardinality(FixedString)", TypeInfo{"TEXT", true, SQL_VARCHAR, Environment::string_max_size, Environment::string_max_size}}, // todo: remove
 };
 
 Environment::Environment() {
@@ -79,6 +82,13 @@ Environment::Environment() {
 #elif defined(_win32_)
         report += " WIN32";
 #endif
+#if ODBC_IODBC
+        report += " ODBC_IODBC";
+#endif
+#if ODBC_UNIXODBC
+        report += " ODBC_UNIXODBC";
+#endif
+
 #if defined(UNICODE)
         report += " UNICODE=" + std::to_string(UNICODE);
 #    if defined(ODBC_WCHAR)
@@ -107,4 +117,14 @@ Environment::Environment() {
 
 Environment::~Environment() {
     LOG("========== ======== Driver stopped =====================");
+}
+
+
+const TypeInfo & Environment::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs) const {
+    if (types_info.find(type_name) != types_info.end())
+        return types_info.at(type_name);
+    if (types_info.find(type_name_without_parametrs) != types_info.end())
+        return types_info.at(type_name_without_parametrs);
+    LOG("Unsupported type " << type_name << " : " << type_name_without_parametrs);
+    throw SqlException("Unsupported type = " + type_name, "HY004");
 }

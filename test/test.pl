@@ -207,6 +207,16 @@ dbh_do "INSERT INTO test.odbc2 VALUES (100, '200', {ts '2018-05-01 00:00:01'}, 4
 test_one_select q{SELECT SUM(`test`.`odbc2`.`ui64`) AS `sum_val_ok` FROM `test`.`odbc2` WHERE ((CAST(`test`.`odbc2`.`date` AS TIMESTAMP) >= {ts '2018-05-01 00:00:00'}) AND (CAST(`test`.`odbc2`.`date` AS TIMESTAMP) < {ts '2018-11-01 00:00:00'})) HAVING (COUNT(1) > 0)}, 100;
 dbh_do "DROP TABLE IF EXISTS test.odbc2;";
 
+
+dbh_do qq{drop table if exists test.lc;};
+dbh_do qq{create table test.lc (b LowCardinality(String)) engine=MergeTree order by b;};
+dbh_do qq{insert into test.lc select '0123456789' from numbers(100);};
+dbh_do qq{select count(), b from test.lc group by b;};
+dbh_do qq{select * from test.lc;};
+test_one_select qq{select * from test.lc;}, '0123456789';
+dbh_do qq{drop table test.lc;};
+
+
 ok 10000 == scalar @{ prepare_execute_hash 'SELECT number, toString(number), toDate(number) FROM system.numbers LIMIT 10000;' }, '10k rows'; # fetch perfofmance test
 
 # at end, can broke console

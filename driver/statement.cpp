@@ -34,8 +34,8 @@ const std::string Statement::getQuery() const {
     return query;
 }
 
-const TypeInfo & Statement::getTypeInfo(const std::string & type_name) const {
-    return connection.environment.types_info.at(type_name);
+const TypeInfo & Statement::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs) const {
+    return connection.environment.getTypeInfo(type_name, type_name_without_parametrs);
 }
 
 bool Statement::isEmpty() const {
