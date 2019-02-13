@@ -168,6 +168,14 @@ q "INSERT INTO test.decimal (a, b, c, d, e, f, g, h, i, j) VALUES (42, 42, 42, 0
 q "INSERT INTO test.decimal (a, b, c, d, e, f, g, h, i, j) VALUES (-42, -42, -42, -0.42, -0.42, -0.42, -42.42, -42.42, -42.42, -42.42);"
 q "SELECT * FROM test.decimal;"
 
+q "drop table if exists test.lc;"
+q "create table test.lc (b LowCardinality(String)) engine=MergeTree order by b;"
+q "insert into test.lc select '0123456789' from numbers(100);"
+q "select count(), b from test.lc group by b;"
+q "select * from test.lc limit 10;"
+q "drop table test.lc;"
+
+
 # q "SELECT number, toString(number), toDate(number) FROM system.numbers LIMIT 10000;"
 
 echo "\n\n\nLast log:\n"
