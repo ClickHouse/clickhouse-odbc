@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <type_traits>
+
 #include <odbcinst.h>
 #include <string.h>
 #include "utils.h"
@@ -34,7 +36,26 @@ void getDSNinfo(ConnInfo * ci, bool overwrite) {
 #define GET_CONFIG(NAME, INI_NAME, DEFAULT)          \
     if (ci->NAME[0] == '\0' || overwrite)            \
         FUNCTION_MAYBE_W(SQLGetPrivateProfileString) \
-        (reinterpret_cast<LPTSTR>(ci->dsn), INI_NAME, TEXT(DEFAULT), reinterpret_cast<LPTSTR>(ci->NAME), sizeof(ci->NAME), ODBC_INI);
+        (const_cast<LPTSTR>(static_cast<LPTSTR>(static_cast<void*>(ci->dsn))), INI_NAME, TEXT(DEFAULT), (LPTSTR)(ci->NAME), sizeof(ci->NAME), \
+        const_cast<LPTSTR>(static_cast<LPCTSTR>(static_cast<const void*>(ODBC_INI))));
+
+//        /*static_cast<LPCTSTR>*/ static_cast<LPCTSTR>(const_cast<LPTSTR>( ( static_cast<const void*>(ODBC_INI))))  );
+
+//        const_cast<LPTSTR>(static_cast<LPCTSTR>((ODBC_INI)));
+
+//        (static_cast<LPTSTR>(static_cast<void*>(ci->dsn)), INI_NAME, TEXT(DEFAULT), (LPTSTR)(ci->NAME), sizeof(ci->NAME), ODBC_INI);
+
+//        (const_cast<LPTSTR>(static_cast<const void*>(ci->dsn)), INI_NAME, TEXT(DEFAULT), (LPTSTR)(ci->NAME), sizeof(ci->NAME), ODBC_INI);
+
+
+//        (static_cast<std::add_const_t<LPTSTR>>(static_cast<const void*>(ci->dsn)), INI_NAME, TEXT(DEFAULT), (LPTSTR)(ci->NAME), sizeof(ci->NAME), ODBC_INI);
+
+
+//        ((LPCTSTR)(const void*)(ci->dsn), INI_NAME, TEXT(DEFAULT), (LPTSTR)(ci->NAME), sizeof(ci->NAME), ODBC_INI);
+//ll        ((LPTSTR)(ci->dsn), INI_NAME, TEXT(DEFAULT), (LPTSTR)(ci->NAME), sizeof(ci->NAME), ODBC_INI);
+
+
+//        (reinterpret_cast<LPTSTR>(ci->dsn), INI_NAME, TEXT(DEFAULT), reinterpret_cast<LPTSTR>(ci->NAME), sizeof(ci->NAME), ODBC_INI);
 
     GET_CONFIG(desc, INI_KDESC, "");
     GET_CONFIG(url, INI_URL, "");

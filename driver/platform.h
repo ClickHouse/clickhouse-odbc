@@ -66,13 +66,20 @@
 #        endif
 #    endif
 #    if defined(UNICODE)
-#        define TEXT(value) L"" value
+#        define TEXT(value) u"" value
 #    else
 #        define TEXT(value) value
 #    endif
+
+#if !defined(LPCTSTR)
+#define LPCTSTR const LPTSTR
+#endif
+
+
 #endif
 
 typedef std::remove_pointer<LPTSTR>::type MYTCHAR;
+//typedef std::remove_pointer<LPTSTR>::type MYCTCHAR;
 #define SIZEOF_CHAR sizeof(SQLTCHAR)
 
 #if defined(_MSC_VER) && !defined(USE_SSL)
