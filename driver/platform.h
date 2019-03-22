@@ -9,8 +9,6 @@
 
 #include <string>
 
-
-
 #if defined(__linux__)
 #    define _linux_ 1
 #elif defined(_WIN64)
@@ -89,13 +87,16 @@
 #    if defined(UNICODE)
 typedef std::remove_pointer<LPWSTR>::type MYTCHAR;
 #       if ODBC_WCHAR
-typedef std::wstring MYSTDTSTRING;
+typedef std::wstring MY_STD_T_STRING;
+typedef wchar_t MY_STD_T_CHAR;
 #       else
-typedef std::u16string MYSTDTSTRING;
+typedef std::u16string MY_STD_T_STRING;
+typedef char16_t MY_STD_T_CHAR;
 #       endif
 #    else
 typedef std::remove_pointer<LPSTR>::type MYTCHAR;
-typedef std::string MYSTDTSTRING;
+typedef std::string MY_STD_T_STRING;
+typedef char MY_STD_T_CHAR;
 #    endif
 
 //typedef std::remove_pointer<LPTSTR>::type MYCTCHAR;

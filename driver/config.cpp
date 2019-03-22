@@ -37,11 +37,12 @@ void getDSNinfo(ConnInfo * ci, bool overwrite) {
     if (ci->NAME[0] == '\0' || overwrite)            \
         FUNCTION_MAYBE_W(SQLGetPrivateProfileString) \
         ((((ci->dsn))), \
-        static_cast<LPCTSTR>( static_cast<const void*>( MYSTDTSTRING{INI_NAME}.c_str())), \
-        static_cast<LPCTSTR>( static_cast<const void*>( MYSTDTSTRING{TEXT(DEFAULT)}.c_str())), \
+        static_cast<LPCTSTR>( static_cast<const void*>( INI_NAME)), \
+        static_cast<LPCTSTR>( static_cast<const void*>( TEXT(DEFAULT))), \
         (ci->NAME), sizeof(ci->NAME), \
-        static_cast<LPCTSTR>( static_cast<const void*>( MYSTDTSTRING{(ODBC_INI)}.c_str())));
+        static_cast<LPCTSTR>( static_cast<const void*>( ODBC_INI)));
 
+//        static_cast<LPCTSTR>( static_cast<const void*>( MYSTDTSTRING{INI_NAME}.c_str())), \
 //        TEXT(DEFAULT), \
         // INI_NAME, \
 //        (static_cast<LPCTSTR>( static_cast<const void*>(ci->dsn)), \
