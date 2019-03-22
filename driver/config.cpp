@@ -36,8 +36,49 @@ void getDSNinfo(ConnInfo * ci, bool overwrite) {
 #define GET_CONFIG(NAME, INI_NAME, DEFAULT)          \
     if (ci->NAME[0] == '\0' || overwrite)            \
         FUNCTION_MAYBE_W(SQLGetPrivateProfileString) \
-        (const_cast<LPTSTR>(static_cast<LPTSTR>(static_cast<void*>(ci->dsn))), INI_NAME, TEXT(DEFAULT), (LPTSTR)(ci->NAME), sizeof(ci->NAME), \
-        const_cast<LPTSTR>(static_cast<LPCTSTR>(static_cast<const void*>(ODBC_INI))));
+        ((((ci->dsn))), \
+        static_cast<LPCTSTR>( static_cast<const void*>( MYSTDTSTRING{INI_NAME}.c_str())), \
+        static_cast<LPCTSTR>( static_cast<const void*>( MYSTDTSTRING{TEXT(DEFAULT)}.c_str())), \
+        (ci->NAME), sizeof(ci->NAME), \
+        static_cast<LPCTSTR>( static_cast<const void*>( MYSTDTSTRING{(ODBC_INI)}.c_str())));
+
+//        TEXT(DEFAULT), \
+        // INI_NAME, \
+//        (static_cast<LPCTSTR>( static_cast<const void*>(ci->dsn)), \
+//        (static_cast<LPCTSTR>( static_cast<const void*>( MYSTDTSTRING{ci->dsn}.c_str())), \
+//        ((((ci->dsn))), \
+//        reinterpret_cast<LPCTSTR>( MYSTDTSTRING{(ODBC_INI)}.c_str()));
+//        static_cast<LPCTSTR>( MYSTDTSTRING{(ODBC_INI)}.c_str()));
+//        MYSTDTSTRING{static_cast<MYSTDTSTRING::value_type*>(ODBC_INI)}.c_str());
+
+//        (ODBC_INI));
+//        (((static_cast<LPCTSTR>(ci->dsn))), \
+//        (((static_cast<LPCTSTR>(ci->dsn))), \
+//        (((reinterpret_cast<LPCTSTR>(ci->dsn))), \
+//        ((static_cast<LPCTSTR>(static_cast<void*>(ci->dsn))), \
+//        static_cast<LPCTSTR>(ODBC_INI));
+//        (static_cast<LPCTSTR>(static_cast<void* const >(static_cast<const void*>(ODBC_INI)))));
+
+//        (static_cast<LPCTSTR>(static_cast<void* const >(ODBC_INI))));
+//        (static_cast<LPCSTR>(static_cast<const void*>(ODBC_INI))));
+
+//        ((static_cast<LPCTSTR>(static_cast<void*>(ci->dsn))), \
+
+//        (const_cast<LPTSTR>(static_cast<LPTSTR>(static_cast<void*>(ci->dsn))), \
+
+//        ((static_cast<const void*>(ODBC_INI))));
+
+//        (const_cast<LPTSTR>(static_cast<LPTSTR>(static_cast<void*>(ci->dsn))), INI_NAME, TEXT(DEFAULT), (LPTSTR)(ci->NAME), sizeof(ci->NAME), \
+
+//        (static_cast<LPTSTR>(static_cast<const void*>(ODBC_INI))));
+
+//        static_cast<LPTSTR>(const_cast<LPTSTR>(static_cast<const void*>(ODBC_INI))));
+
+//        const_cast<LPTSTR>(static_cast<LPTSTR>(static_cast<const void*>(ODBC_INI))));
+
+//        const_cast<LPTSTR>(static_cast<LPCTSTR>(static_cast<const void*>(ODBC_INI))));
+
+//        const_cast<LPTSTR>(static_cast<LPCTSTR>(static_cast<const void*>(ODBC_INI))));
 
 //        /*static_cast<LPCTSTR>*/ static_cast<LPCTSTR>(const_cast<LPTSTR>( ( static_cast<const void*>(ODBC_INI))))  );
 

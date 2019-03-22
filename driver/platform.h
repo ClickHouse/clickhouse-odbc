@@ -7,6 +7,10 @@
 #    include "config_cmake.h"
 #endif
 
+#include <string>
+
+
+
 #if defined(__linux__)
 #    define _linux_ 1
 #elif defined(_WIN64)
@@ -72,13 +76,28 @@
 #    endif
 
 #if !defined(LPCTSTR)
-#define LPCTSTR const LPTSTR
+#    if defined(UNICODE)
+#        define LPCTSTR LPCWSTR
+#    else
+#        define LPCTSTR LPCSTR
+#    endif
 #endif
 
 
 #endif
 
-typedef std::remove_pointer<LPTSTR>::type MYTCHAR;
+#    if defined(UNICODE)
+typedef std::remove_pointer<LPWSTR>::type MYTCHAR;
+#       if ODBC_WCHAR
+typedef std::wstring MYSTDTSTRING;
+#       else
+typedef std::u16string MYSTDTSTRING;
+#       endif
+#    else
+typedef std::remove_pointer<LPSTR>::type MYTCHAR;
+typedef std::string MYSTDTSTRING;
+#    endif
+
 //typedef std::remove_pointer<LPTSTR>::type MYCTCHAR;
 #define SIZEOF_CHAR sizeof(SQLTCHAR)
 
