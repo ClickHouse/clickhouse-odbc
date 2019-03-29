@@ -99,7 +99,6 @@ typedef std::string MY_STD_T_STRING;
 typedef char MY_STD_T_CHAR;
 #    endif
 
-//typedef std::remove_pointer<LPTSTR>::type MYCTCHAR;
 #define SIZEOF_CHAR sizeof(SQLTCHAR)
 
 #if defined(_MSC_VER) && !defined(USE_SSL)

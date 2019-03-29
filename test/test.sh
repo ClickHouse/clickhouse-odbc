@@ -25,8 +25,6 @@ function q {
 }
 
 q "SELECT * FROM system.build_options;"
-exit
-
 q "CREATE DATABASE IF NOT EXISTS test;"
 q "DROP TABLE IF EXISTS test.odbc1;"
 q "CREATE TABLE test.odbc1 (ui64 UInt64, string String, date Date, datetime DateTime) ENGINE = Memory;"

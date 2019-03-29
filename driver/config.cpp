@@ -1,7 +1,5 @@
 #include "config.h"
 
-#include <type_traits>
-
 #include <odbcinst.h>
 #include <string.h>
 #include "utils.h"
