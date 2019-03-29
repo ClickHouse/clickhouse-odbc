@@ -5,7 +5,7 @@
 # env CMAKE_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-6.0` -DCMAKE_C_COMPILER=`which clang-6.0`" sh -x ./test_all.sh
 
 cd ..
- for lib in unixodbc; do
+ for lib in libiodbc unixodbc; do
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     if [ "$lib" = "libiodbc" ]; then
