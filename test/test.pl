@@ -10,6 +10,7 @@ use open ':encoding(utf8)', ':std';
 use DBI;
 use Data::Dumper;
 $Data::Dumper::Sortkeys = 1;
+$Data::Dumper::Useqq = 1;
 
 my $config = {DSN => $ARGV[0] || $ENV{DSN} || 'clickhouse_localhost'};
 my $is_wide = 1 if $config->{DSN} =~ /w$/;    # bad magic
