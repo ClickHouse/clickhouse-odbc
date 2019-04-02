@@ -70,22 +70,22 @@ elseif (NOT MISSING_INTERNAL_POCO_LIBRARY)
 
     if (USE_SSL)
         set(Poco_NetSSL_FOUND 1)
-        #set(Poco_NetSSL_LIBRARY PocoNetSSL)
-        #set(Poco_Crypto_LIBRARY PocoCrypto)
-        set(Poco_NetSSL_LIBRARY Poco::NetSSL)
-        set(Poco_Crypto_LIBRARY Poco::Crypto)
+        set(Poco_NetSSL_LIBRARY PocoNetSSL)
+        set(Poco_Crypto_LIBRARY PocoCrypto)
+        #set(Poco_NetSSL_LIBRARY Poco::NetSSL)
+        #set(Poco_Crypto_LIBRARY Poco::Crypto)
         list (APPEND Poco_INCLUDE_DIRS
             "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/NetSSL_OpenSSL/include"
             "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Crypto/include"
         )
     endif ()
 
-    #set(Poco_Foundation_LIBRARY PocoFoundation)
-    #set(Poco_Util_LIBRARY PocoUtil)
-    #set(Poco_Net_LIBRARY PocoNet)
-    set(Poco_Foundation_LIBRARY Poco::Foundation)
-    set(Poco_Util_LIBRARY Poco::Util)
-    set(Poco_Net_LIBRARY Poco::Net)
+    set(Poco_Foundation_LIBRARY PocoFoundation)
+    set(Poco_Util_LIBRARY PocoUtil)
+    set(Poco_Net_LIBRARY PocoNet)
+    #set(Poco_Foundation_LIBRARY Poco::Foundation)
+    #set(Poco_Util_LIBRARY Poco::Util)
+    #set(Poco_Net_LIBRARY Poco::Net)
 endif ()
 
 message(STATUS "Using Poco: ${Poco_INCLUDE_DIRS} : ${Poco_Foundation_LIBRARY},${Poco_Util_LIBRARY},${Poco_Net_LIBRARY},${Poco_NetSSL_LIBRARY},${Poco_Crypto_LIBRARY},${Poco_XML_LIBRARY},${Poco_Data_LIBRARY},${Poco_DataODBC_LIBRARY},${Poco_SQL_LIBRARY},${Poco_SQLODBC_LIBRARY},${Poco_MongoDB_LIBRARY}; MongoDB=${USE_POCO_MONGODB}, DataODBC=${USE_POCO_DATAODBC}, NetSSL=${USE_POCO_NETSSL}")
