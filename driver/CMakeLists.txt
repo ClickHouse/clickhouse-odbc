@@ -70,9 +70,9 @@ target_compile_definitions (${libname} PRIVATE "-DCMAKE_BUILD=1")
 
 target_include_directories (${libname} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
-if (NOT USE_INTERNAL_POCO_LIBRARY)
+#if (NOT USE_INTERNAL_POCO_LIBRARY)
     target_include_directories (${libname} PRIVATE ${Poco_INCLUDE_DIRS})
-endif()
+#endif()
 
 if (NOT WIN32)
     target_include_directories (${libname} PRIVATE ${ODBC_INCLUDE_DIRECTORIES})
@@ -95,22 +95,22 @@ if(NOT APPLE AND NOT WIN32)
     target_link_libraries(${libname} PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script")
 endif()
 
-if (WIN32)
+if(WIN32)
   target_link_libraries(${libname} PRIVATE clickhouse-odbc-win ws2_32 Iphlpapi legacy_stdio_definitions)
 endif()
 
-if (NOT WIN32)
+if(NOT WIN32)
     install(TARGETS ${libname} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/odbc)
+endif()
+
+if(ARCH_LINUX)
+    target_link_libraries(${libname} PRIVATE Threads::Threads)
 endif()
 
 endfunction()
 
 makelib(clickhouse-odbc 0)
 makelib(clickhouse-odbcw 1)
-
-if(ARCH_LINUX)
-    target_link_libraries(clickhouse-odbcw PRIVATE Threads::Threads)
-endif()
 
 set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
 set_target_properties(clickhouse-odbcw PROPERTIES OUTPUT_NAME "clickhouseodbcw")

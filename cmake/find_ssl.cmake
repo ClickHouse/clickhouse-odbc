@@ -48,7 +48,7 @@ if (NOT USE_INTERNAL_SSL_LIBRARY)
 
 endif ()
 
-if (NOT OPENSSL_FOUND AND NOT MISSING_INTERNAL_SSL_LIBRARY)
+if (NOT OPENSSL_LIBRARIES AND NOT MISSING_INTERNAL_SSL_LIBRARY)
     set (USE_INTERNAL_SSL_LIBRARY 1)
     set (OPENSSL_ROOT_DIR "${PROJECT_SOURCE_DIR}/contrib/ssl" CACHE INTERNAL "")
     set (OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include" CACHE INTERNAL "")
@@ -63,8 +63,6 @@ if (NOT OPENSSL_FOUND AND NOT MISSING_INTERNAL_SSL_LIBRARY)
     set (OPENSSL_FOUND 1 CACHE INTERNAL "")
 endif ()
 
-#TODO: to use with new poco
-if (0)
 # part from /usr/share/cmake-*/Modules/FindOpenSSL.cmake, with removed all "EXISTS "
 if(OPENSSL_FOUND)
   if(NOT TARGET OpenSSL::Crypto AND
@@ -127,7 +125,6 @@ if(OPENSSL_FOUND)
         INTERFACE_LINK_LIBRARIES OpenSSL::Crypto)
     endif()
   endif()
-endif()
 endif()
 
 message (STATUS "Using ssl=${OPENSSL_FOUND}: ${OPENSSL_INCLUDE_DIR} : ${OPENSSL_LIBRARIES}")

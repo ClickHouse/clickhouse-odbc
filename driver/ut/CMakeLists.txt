@@ -36,6 +36,7 @@ endif ()
 
 add_executable(load-ut load.cpp)
 target_link_libraries(load-ut PRIVATE ${Poco_Foundation_LIBRARY} ${CMAKE_DL_LIBS} Threads::Threads)
+target_include_directories(load-ut PRIVATE ${Poco_INCLUDE_DIRS})
 if (WIN32)
    target_link_libraries(load-ut PRIVATE Iphlpapi)
 endif()

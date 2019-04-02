@@ -62,7 +62,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
     SQLSMALLINT FAR * connection_str_out_size,
     SQLUSMALLINT driver_completion)
 {
-    LOG(__FUNCTION__ << "connection_str_in=" << connection_str_in << " : " << connection_str_in_size << /* " connection_str_out=" << connection_str_out << */ " " << connection_str_out_max_size);
+    LOG(__FUNCTION__ << " connection_str_in=" << connection_str_in << " : " << connection_str_in_size << /* " connection_str_out=" << connection_str_out << */ " " << connection_str_out_max_size);
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
         connection.init(stringFromSQLSymbols(connection_str_in, connection_str_in_size));
