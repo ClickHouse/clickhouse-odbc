@@ -21,6 +21,7 @@ DSN=${DSN=clickhouse_localhost}
 function q {
     echo "Asking [$*]"
     # DYLD_INSERT_LIBRARIES=/usr/local/opt/gcc/lib/gcc/8/libasan.5.dylib
+    # export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libasan.so.5
     echo "$*" | $RUNNER $DSN $RUNNER_PARAMS
 }
 
