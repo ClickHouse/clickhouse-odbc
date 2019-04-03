@@ -7,6 +7,8 @@
 #    include "config_cmake.h"
 #endif
 
+#include <string>
+
 #if defined(__linux__)
 #    define _linux_ 1
 #elif defined(_WIN64)
@@ -66,13 +68,37 @@
 #        endif
 #    endif
 #    if defined(UNICODE)
-#        define TEXT(value) L"" value
+#        define TEXT(value) u"" value
 #    else
 #        define TEXT(value) value
 #    endif
+
+#if !defined(LPCTSTR)
+#    if defined(UNICODE)
+#        define LPCTSTR LPCWSTR
+#    else
+#        define LPCTSTR LPCSTR
+#    endif
 #endif
 
-typedef std::remove_pointer<LPTSTR>::type MYTCHAR;
+
+#endif
+
+#    if defined(UNICODE)
+typedef std::remove_pointer<LPWSTR>::type MYTCHAR;
+#       if ODBC_WCHAR
+typedef std::wstring MY_STD_T_STRING;
+typedef wchar_t MY_STD_T_CHAR;
+#       else
+typedef std::u16string MY_STD_T_STRING;
+typedef char16_t MY_STD_T_CHAR;
+#       endif
+#    else
+typedef std::remove_pointer<LPSTR>::type MYTCHAR;
+typedef std::string MY_STD_T_STRING;
+typedef char MY_STD_T_CHAR;
+#    endif
+
 #define SIZEOF_CHAR sizeof(SQLTCHAR)
 
 #if defined(_MSC_VER) && !defined(USE_SSL)

@@ -10,6 +10,7 @@ use open ':encoding(utf8)', ':std';
 use DBI;
 use Data::Dumper;
 $Data::Dumper::Sortkeys = 1;
+$Data::Dumper::Useqq = 1;
 
 my $config = {DSN => $ARGV[0] || $ENV{DSN} || 'clickhouse_localhost'};
 my $is_wide = 1 if $config->{DSN} =~ /w$/;    # bad magic
@@ -200,11 +201,8 @@ q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕ
 
 dbh_do "DROP TABLE IF EXISTS test.odbc2;";
 dbh_do "CREATE TABLE test.odbc2 (ui64 UInt64, string String, date Date, datetime DateTime) ENGINE = Memory;";
-dbh_do "INSERT INTO test.odbc2 VALUES (1, '2', 3, 4);";
-dbh_do "INSERT INTO test.odbc2 VALUES (10, '20', 30, 40);";
-dbh_do "INSERT INTO test.odbc2 VALUES (100, '200', 300, 400);";
-dbh_do "INSERT INTO test.odbc2 VALUES (100, '200', {ts '2018-05-01 00:00:01'}, 400);";
-test_one_select q{SELECT SUM(`test`.`odbc2`.`ui64`) AS `sum_val_ok` FROM `test`.`odbc2` WHERE ((CAST(`test`.`odbc2`.`date` AS TIMESTAMP) >= {ts '2018-05-01 00:00:00'}) AND (CAST(`test`.`odbc2`.`date` AS TIMESTAMP) < {ts '2018-11-01 00:00:00'})) HAVING (COUNT(1) > 0)}, 100;
+dbh_do "INSERT INTO test.odbc2 VALUES (1, '2', 3, 4), (10, '20', 30, 40), (100, '200', 300, 400), (1000, '2000', {ts '2018-05-01 00:00:01'}, 4000);";
+test_one_select q{SELECT SUM(`test`.`odbc2`.`ui64`) AS `sum_val_ok` FROM `test`.`odbc2` WHERE ((CAST(`test`.`odbc2`.`date` AS TIMESTAMP) >= {ts '2018-05-01 00:00:00'}) AND (CAST(`test`.`odbc2`.`date` AS TIMESTAMP) < {ts '2018-11-01 00:00:00'})) HAVING (COUNT(1) > 0)}, 1000;
 dbh_do "DROP TABLE IF EXISTS test.odbc2;";
 
 

@@ -88,7 +88,8 @@ void Connection::init() {
 #if USE_SSL
     bool is_ssl = proto == "https";
 
-    std::call_once(ssl_init_once, SSLInit, ssl_strict, privateKeyFile, certificateFile, caLocation);
+    if (is_ssl)
+        std::call_once(ssl_init_once, SSLInit, ssl_strict, privateKeyFile, certificateFile, caLocation);
 #endif
 
     session = std::unique_ptr<Poco::Net::HTTPClientSession>(

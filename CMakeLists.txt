@@ -1,8 +1,14 @@
 project (clickhouse-odbc)
 cmake_minimum_required (VERSION 2.6)
+cmake_policy(SET CMP0023 NEW)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
+set(CMAKE_LINK_DEPENDS_NO_SHARED 1) # Do not relink all depended targets on .so
+set(CMAKE_CXX_EXTENSIONS 0)
+set(CMAKE_CXX_STANDARD_REQUIRED 1)
+set(CMAKE_POSITION_INDEPENDENT_CODE 1)
+set(CMAKE_BUILD_COLOR_MAKEFILE 1)
+set(CMAKE_DEBUG_POSTFIX "") # Dont add "d" to target lib name
 
-include(GNUInstallDirs)
 
 message (STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 
@@ -15,10 +21,8 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND USE_DEBUG_17)
     set (CMAKE_CXX_STANDARD 17)
 endif ()
 
-set (CMAKE_CXX_EXTENSIONS 0)
-set (CMAKE_CXX_STANDARD_REQUIRED         ON)
-set (CMAKE_POSITION_INDEPENDENT_CODE     ON)
-set (CMAKE_BUILD_COLOR_MAKEFILE          ON)
+include(GNUInstallDirs)
+
 if (NOT MSVC)
 	set (CMAKE_CXX_FLAGS                     "${CMAKE_CXX_FLAGS} -O2 -g -fvisibility-inlines-hidden")
 endif ()
@@ -32,7 +36,6 @@ if (MSVC)
 	set (CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MT")
 	set (CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
 endif ()
-set (CMAKE_DEBUG_POSTFIX                 "") # Dont add "d" to target lib name
 
 if (NOT BUILD_SHARED)
     list (REVERSE CMAKE_FIND_LIBRARY_SUFFIXES) # we want static link - now .a libs have highest priority

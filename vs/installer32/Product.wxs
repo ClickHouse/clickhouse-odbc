@@ -21,7 +21,7 @@
     <?define POCO_NET = "PocoNet.dll" ?>
   <?endif ?>
 
-  <?define CrtMergeModule = "$(env.ProgramFiles)\Microsoft Visual Studio\2017\Community\VC\Redist\MSVC\14.15.26706\MergeModules\Microsoft_VC141_CRT_x86.msm" ?>
+  <?define CrtMergeModule = "$(env.ProgramFiles)\Microsoft Visual Studio\2017\Community\VC\Redist\MSVC\14.16.27012\MergeModules\Microsoft_VC141_CRT_x86.msm" ?>
   <?define ANSI_ID = "5DFFB4E6-D747-4080-B733-69763772485C" ?>
   <?define POCOLIB_ID = "611EDC2C-2617-485E-81BE-2A9B4664E7BC" ?>
   <?define PRODUCT_ID= "9FCA44DB-6963-4EBF-87A6-279331C139EB" ?>

@@ -33,8 +33,14 @@ ConnInfo::ConnInfo() {
 void getDSNinfo(ConnInfo * ci, bool overwrite) {
 #define GET_CONFIG(NAME, INI_NAME, DEFAULT)          \
     if (ci->NAME[0] == '\0' || overwrite)            \
-        FUNCTION_MAYBE_W(SQLGetPrivateProfileString) \
-        (reinterpret_cast<LPTSTR>(ci->dsn), INI_NAME, TEXT(DEFAULT), reinterpret_cast<LPTSTR>(ci->NAME), sizeof(ci->NAME), ODBC_INI);
+        FUNCTION_MAYBE_W(SQLGetPrivateProfileString) ( \
+            ci->dsn, \
+            static_cast<LPCTSTR>(static_cast<const void*>(INI_NAME)), \
+            static_cast<LPCTSTR>(static_cast<const void*>(TEXT(DEFAULT))), \
+            ci->NAME, \
+            sizeof(ci->NAME), \
+            static_cast<LPCTSTR>(static_cast<const void*>(ODBC_INI)) \
+        );
 
     GET_CONFIG(desc, INI_KDESC, "");
     GET_CONFIG(url, INI_URL, "");
