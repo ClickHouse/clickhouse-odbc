@@ -70,6 +70,7 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
 {
     if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
         return{};
+/*
     if (symbols == SQL_NTS)
     {
 #if defined(UNICODE)
@@ -81,15 +82,16 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
     }
     else if (symbols < 0)
         throw std::runtime_error("invalid size of string : " + std::to_string(symbols));
+*/
 
 #if defined(UNICODE)
 #   if ODBC_WCHAR
-    return std::wstring_convert<std::codecvt_utf8<MY_STD_T_CHAR>, MY_STD_T_CHAR>().to_bytes(MY_STD_T_STRING(data, symbols));
+    return std::wstring_convert<std::codecvt_utf8<MY_STD_T_CHAR>, MY_STD_T_CHAR>().to_bytes(data);
 #   else
-    return std::wstring_convert<std::codecvt_utf8_utf16<MY_STD_T_CHAR>, MY_STD_T_CHAR>().to_bytes(MY_STD_T_STRING(reinterpret_cast<const MY_STD_T_CHAR*>(data), symbols));
+    return std::wstring_convert<std::codecvt_utf8_utf16<MY_STD_T_CHAR>, MY_STD_T_CHAR>().to_bytes(reinterpret_cast<const MY_STD_T_CHAR*>(data));
 #   endif
 #else
-    return{ (const char*)data, (size_t)symbols };
+    return{ (const char*)data };
 #endif
 }
 
