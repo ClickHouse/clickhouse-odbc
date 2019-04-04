@@ -3,6 +3,8 @@ if(NOT (CMAKE_BUILD_TYPE_UC STREQUAL "TSAN" AND APPLE))
     find_program(IODBCTEST iodbctest)
     find_program(IODBCTESTW iodbctestw)
 
+    message(STATUS "Testing with: TEST_DSN=${TEST_DSN} TEST_DSN_W=${TEST_DSN_W} ISQL=${ISQL} IODBCTEST=${IODBCTEST} IODBCTESTW=${IODBCTESTW}")
+
     set(SQL_USER default CACHE STRING "")
     set(SQL_PASS "" CACHE STRING "")
     set(SQL_QUERY "123456+456789" CACHE STRING "")

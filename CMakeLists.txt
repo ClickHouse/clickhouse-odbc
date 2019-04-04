@@ -125,7 +125,6 @@ add_subdirectory (contrib)
 add_subdirectory (driver)
 
 if(CLICKHOUSE_ODBC_TEST)
-    message(STATUS "TEST_DSN=${TEST_DSN} TEST_DSN_W=${TEST_DSN_W} ")
     add_subdirectory(test)
 endif()
 
