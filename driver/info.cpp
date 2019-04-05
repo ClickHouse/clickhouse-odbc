@@ -2,7 +2,6 @@
 #include "log/log.h"
 #include "utils.h"
 #include "win/version.h"
-
 #include <Poco/NumberFormatter.h>
 
 #if (ODBCVER >= 0x0380)

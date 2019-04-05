@@ -3,7 +3,6 @@
 #include "log/log.h"
 #include "string_ref.h"
 #include "platform.h"
-
 #include <codecvt>
 #include <locale>
 #include <string.h>
@@ -91,7 +90,7 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
     return std::wstring_convert<std::codecvt_utf8_utf16<MY_STD_T_CHAR>, MY_STD_T_CHAR>().to_bytes(reinterpret_cast<const MY_STD_T_CHAR*>(data));
 #   endif
 #else
-    return{ (const char*)data };
+    return{ reinterpret_cast<const char*>(data) };
 #endif
 }
 

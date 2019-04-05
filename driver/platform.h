@@ -44,6 +44,9 @@
 #include <sql.h>
 #include <sqlext.h>
 #include <sqltypes.h>
+#if defined(_IODBCUNIX_H)
+#   include <iodbcext.h>
+#endif
 
 #if defined(_win_)
 #    if defined(UNICODE)

@@ -4,6 +4,7 @@
 #include "statement.h"
 #include "utils.h"
 #include "scope_guard.h"
+#include <Poco/Net/HTTPClientSession.h>
 
 extern "C"
 {
@@ -98,7 +99,6 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
 
         switch (attribute)
         {
-
             case SQL_ATTR_CONNECTION_TIMEOUT:
             {
                 auto connection_timeout = static_cast<SQLUSMALLINT>(reinterpret_cast<intptr_t>(value));
@@ -140,6 +140,16 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
                 LOG("SetConnectAttr: SQL_ATTR_TRACEFILE: Empty file " << tracefile);
                 return SQL_ERROR;
             }
+
+#if defined(SQL_APPLICATION_NAME)
+            case SQL_APPLICATION_NAME:
+            {
+                auto string = stringFromSQLBytes((SQLTCHAR *)value, value_length);
+                LOG("SetConnectAttr: SQL_APPLICATION_NAME: " << string);
+                connection.useragent = string;
+                return SQL_SUCCESS;
+            }
+#endif
 
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:

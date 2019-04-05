@@ -2,7 +2,6 @@
 
 #include "log/log.h"
 #include "platform.h"
-
 #include <stdexcept>
 
 class SqlException : public std::runtime_error

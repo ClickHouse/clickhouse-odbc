@@ -3,6 +3,7 @@
 #include "log/log.h"
 #include "statement.h"
 #include "utils.h"
+#include <Poco/Net/HTTPClientSession.h>
 
 //#include <malloc.h>
 
