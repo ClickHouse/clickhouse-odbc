@@ -71,8 +71,10 @@ endif()
 
 
 if(NOT WIN32)
-    find_library(ODBCINST_LIBRARIES NAMES odbcinst PATHS ${ODBC_LIBRARIES_PATHS})
-    if(NOT ODBCINST_LIBRARIES)
+    if (ODBC_UNIXODBC)
+        find_library(ODBCINST_LIBRARIES NAMES odbcinst PATHS ${ODBC_LIBRARIES_PATHS})
+    endif()
+    if(ODBC_IODBC)
        find_library(ODBCINST_LIBRARIES NAMES iodbcinst PATHS ${ODBC_LIBRARIES_PATHS})
     endif()
     list(APPEND ODBC_LIBRARIES ${ODBCINST_LIBRARIES})

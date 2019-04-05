@@ -32,7 +32,7 @@ for compiler in "" _gcc _clang; do
         ln -sf ${build_dir} build
         cd build
         rm CMakeCache.txt
-        cmake .. -G Ninja $option -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} -DTEST_DSN_W=${TEST_DSN_W=clickhouse_localhost_w} $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS | tee log_cmake.log && ninja -j ${MAKEJ=$(distcc -j || nproc || sysctl -n hw.ncpu || echo 4)} | tee log_build.log && env $CTEST_ENV0 $CTEST_ENV ctest -V | tee log_ctest.log
+        cmake .. -G Ninja $option -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} -DTEST_DSN_W=${TEST_DSN_W=clickhouse_localhost_w} $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS | tee log_cmake.log && ninja -j ${MAKEJ=$(distcc -j || nproc || sysctl -n hw.ncpu || echo 4)} | tee log_build.log && env $CTEST_ENV0 $CTEST_ENV ctest $CTEST_OPT | tee log_ctest.log
         cd ..
       done
     done
