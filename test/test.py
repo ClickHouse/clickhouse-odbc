@@ -19,14 +19,14 @@ connection = pyodbc.connect('DSN=' + dsn + ';')
 try:
     connection.setencoding(str, encoding='utf-8')
     connection.setencoding(unicode, encoding='utf-8')
-    connection.setdecoding(pyodbc.SQL_CHAR, encoding='utf-8')
-    connection.setdecoding(pyodbc.SQL_WCHAR, encoding='utf-8')
+    #connection.setdecoding(pyodbc.SQL_CHAR, encoding='utf-8')
+    #connection.setdecoding(pyodbc.SQL_WCHAR, encoding='utf-8')
     #connection.setdecoding(pyodbc.SQL_WMETADATA, encoding='utf-8')
 except BaseException:
     connection.setencoding(encoding='utf-8')
-    connection.setdecoding(pyodbc.SQL_CHAR, 'utf-8')
-    connection.setdecoding(pyodbc.SQL_WCHAR, 'utf-8')
-    connection.setdecoding(pyodbc.SQL_WMETADATA, 'utf-8')
+    #connection.setdecoding(pyodbc.SQL_CHAR, 'utf-8')
+    #connection.setdecoding(pyodbc.SQL_WCHAR, 'utf-8')
+    #connection.setdecoding(pyodbc.SQL_WMETADATA, 'utf-8')
 
 def query(q):
     sys.stdout.write(q.encode('utf-8'))
