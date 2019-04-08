@@ -5,7 +5,6 @@
 #include "platform.h"
 #include "unicode_t.h"
 #include <string.h>
-//#include <iomanip>
 
 
 /** Checks `handle`. Catches exceptions and puts them into the DiagnosticRecord.

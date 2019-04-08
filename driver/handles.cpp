@@ -5,8 +5,6 @@
 #include "utils.h"
 #include <Poco/Net/HTTPClientSession.h>
 
-//#include <malloc.h>
-
 static RETCODE allocEnv(SQLHENV * out_environment) {
     if (nullptr == out_environment)
         return SQL_INVALID_HANDLE;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ini_defines.h"
-//#include "platform.h"
 #include "unicode_t.h"
 
 /**

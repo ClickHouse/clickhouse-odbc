@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <mutex>
-//#include <Poco/Net/HTTPClientSession.h>
 #include "diagnostics.h"
 #include "environment.h"
 
