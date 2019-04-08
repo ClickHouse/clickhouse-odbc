@@ -3,7 +3,6 @@
 #include "read_helpers.h"
 #include "platform.h"
 #include "type_parser.h"
-
 #include <vector>
 #include <memory>
 #include <deque>

@@ -3,8 +3,7 @@
 #include "log/log.h"
 #include "statement.h"
 #include "utils.h"
-
-//#include <malloc.h>
+#include <Poco/Net/HTTPClientSession.h>
 
 static RETCODE allocEnv(SQLHENV * out_environment) {
     if (nullptr == out_environment)

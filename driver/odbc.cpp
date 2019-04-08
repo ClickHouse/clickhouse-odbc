@@ -8,14 +8,13 @@
 #include "type_parser.h"
 #include "utils.h"
 #include "scope_guard.h"
-
 #include <stdio.h>
-//#include <malloc.h>
 #include <string.h>
 #include <iostream>
 #include <locale>
 #include <sstream>
 #include <stdexcept>
+#include <Poco/Net/HTTPClientSession.h>
 
 /** Functions from the ODBC interface can not directly call other functions.
   * Because not a function from this library will be called, but a wrapper from the driver manager,

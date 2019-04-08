@@ -48,14 +48,17 @@ set(ODBC_LIBRARIES_PATHS
 	"C:/Program Files (x86)/Microsoft SDKs/Windows/v7.0A/Lib"
 )
 
-find_library(ODBC_LIBRARIES
-	NAMES odbc odbc32
-	PATHS ${ODBC_LIBRARIES_PATHS}
-	DOC "Specify the ODBC driver manager library here."
-)
+# Macos cheat: libiodbc is always masked as odbc
+if(APPLE AND NOT FIND_UNIXODBC_FIRST)
+    find_library(ODBC_LIBRARIES NAMES iodbc PATHS ${ODBC_LIBRARIES_PATHS})
+endif()
+
+if(NOT ODBC_LIBRARIES)
+    find_library(ODBC_LIBRARIES NAMES odbc odbc32 PATHS ${ODBC_LIBRARIES_PATHS} DOC "Specify the ODBC driver manager library here.")
+endif()
 
 # Macos cheat: libiodbc is always installed, but sometimes we want to build with unixodbc, so searching iodbc after unixodbc: 
-if (NOT ODBC_LIBRARIES)
+if(NOT ODBC_LIBRARIES)
     find_library(ODBC_LIBRARIES NAMES iodbc PATHS ${ODBC_LIBRARIES_PATHS})
 endif()
 
@@ -71,8 +74,10 @@ endif()
 
 
 if(NOT WIN32)
-    find_library(ODBCINST_LIBRARIES NAMES odbcinst PATHS ${ODBC_LIBRARIES_PATHS})
-    if(NOT ODBCINST_LIBRARIES)
+    if (ODBC_UNIXODBC)
+        find_library(ODBCINST_LIBRARIES NAMES odbcinst PATHS ${ODBC_LIBRARIES_PATHS})
+    endif()
+    if(ODBC_IODBC)
        find_library(ODBCINST_LIBRARIES NAMES iodbcinst PATHS ${ODBC_LIBRARIES_PATHS})
     endif()
     list(APPEND ODBC_LIBRARIES ${ODBCINST_LIBRARIES})
@@ -94,4 +99,4 @@ find_package_handle_standard_args(ODBC
 
 mark_as_advanced(ODBC_FOUND ODBC_LIBRARIES ODBC_INCLUDE_DIRECTORIES)
 
-message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}  ODBC_IODBC=${ODBC_IODBC} ODBC_UNIXODBC=${ODBC_UNIXODBC}")
+message(STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}  ODBC_IODBC=${ODBC_IODBC} ODBC_UNIXODBC=${ODBC_UNIXODBC}")

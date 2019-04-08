@@ -3,10 +3,9 @@
 #include "log/log.h"
 #include "string_ref.h"
 #include "platform.h"
-
-#include <codecvt>
-#include <locale>
+#include "unicode_t.h"
 #include <string.h>
+
 
 /** Checks `handle`. Catches exceptions and puts them into the DiagnosticRecord.
   */
@@ -70,28 +69,11 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
 {
     if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
         return{};
-/*
-    if (symbols == SQL_NTS)
-    {
-#if defined(UNICODE)
-        symbols = wcslen(reinterpret_cast<const wchar_t*>(data));
-#else
-        symbols = strlen(reinterpret_cast<const char*>(data));
-#endif
-        // LOG(__FUNCTION__ << " NTS symbols=" << symbols << " sizeof(SQLTCHAR)=" << sizeof(SQLTCHAR) );
-    }
-    else if (symbols < 0)
-        throw std::runtime_error("invalid size of string : " + std::to_string(symbols));
-*/
 
 #if defined(UNICODE)
-#   if ODBC_WCHAR
-    return std::wstring_convert<std::codecvt_utf8<MY_STD_T_CHAR>, MY_STD_T_CHAR>().to_bytes(data);
-#   else
-    return std::wstring_convert<std::codecvt_utf8_utf16<MY_STD_T_CHAR>, MY_STD_T_CHAR>().to_bytes(reinterpret_cast<const MY_STD_T_CHAR*>(data));
-#   endif
+    return MY_UTF_T_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR*>(data));
 #else
-    return{ (const char*)data };
+    return{ reinterpret_cast<const char*>(data) };
 #endif
 }
 
@@ -134,27 +116,22 @@ template <size_t Len, typename STRING>
 void stringToTCHAR(const std::string & data, STRING (&result)[Len])
 {
 #if defined(UNICODE)
-#   if ODBC_WCHAR
-    using CharType = wchar_t;
-    using StringType = std::wstring;
-#   else
-    using CharType = char16_t;
-    using StringType = std::u16string;
-#   endif
+    using CharType = MY_STD_T_CHAR;
+    using StringType = MY_STD_T_STRING;
 
-    StringType tmp = std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(data);
-    //using type_to = wchar_t*;
+    StringType tmp = MY_UTF_T_CONVERT().from_bytes(data);
 #else
     const auto & tmp = data;
-    //using type_to = char*;
 #endif
+
     const size_t len = std::min<size_t>(Len - 1, data.size());
+
 #if defined(UNICODE)
 #   if ODBC_WCHAR
     wcsncpy(reinterpret_cast<CharType*>(result), tmp.c_str(), len);
-#else
-    strncpy(reinterpret_cast<char*>(result), reinterpret_cast<const char*>(tmp.c_str()), len * sizeof(CharType)); // WRONG TODO
-#endif
+#   else
+    memcpy(reinterpret_cast<char*>(result), reinterpret_cast<const char*>(tmp.c_str()), len * sizeof(CharType));
+#   endif
 #else
     strncpy(reinterpret_cast<char*>(result), tmp.c_str(), len);
 #endif
@@ -225,6 +202,7 @@ RETCODE fillOutputUSC2String(const std::string & value,
 #else
     using CharType = char16_t;
 #endif
+
     return fillOutputStringImpl(
         std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value),
         out_value, out_value_max_length, out_value_length, length_in_bytes);
@@ -296,3 +274,13 @@ inline RETCODE fillOutputNULL(PTR out_value, SQLLEN out_value_max_length, SQLLEN
 #else
 #   define FUNCTION_MAYBE_W(NAME) NAME
 #endif
+
+/*
+inline void hex_print(std::ofstream &stream, const std::string& s)
+{
+    stream << std::hex << std::setfill('0');
+    for(unsigned char c : s)
+        stream << std::setw(2) << static_cast<int>(c) << ' ';
+    stream << std::dec << '\n';
+}
+*/

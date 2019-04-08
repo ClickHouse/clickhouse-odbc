@@ -13,7 +13,7 @@ for compiler in "" _gcc _clang; do
     if [ "$compiler" = "_gcc" ]; then
         CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which g++-8 g++-7 g++8 g++7 g++ | head -n1` -DCMAKE_C_COMPILER=`which gcc-8 gcc-7 gcc8 gcc7 gcc | head -n1`"
     fi
-    for type in debug asan tsan ubsan release relwithdebinfo; do
+    for type in ${USE_TYPES=debug asan tsan ubsan release relwithdebinfo}; do
       for option in ""; do
         CTEST_ENV0=""
         if [ "$type" = "asan" ]; then
@@ -32,7 +32,7 @@ for compiler in "" _gcc _clang; do
         ln -sf ${build_dir} build
         cd build
         rm CMakeCache.txt
-        cmake .. -G Ninja $option -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} -DTEST_DSN_W=${TEST_DSN_W=clickhouse_localhost_w} $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS | tee log_cmake.log && ninja -j ${MAKEJ=$(distcc -j || nproc || sysctl -n hw.ncpu || echo 4)} | tee log_build.log && env $CTEST_ENV0 $CTEST_ENV ctest -V | tee log_ctest.log
+        cmake .. -G Ninja $option -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} -DTEST_DSN_W=${TEST_DSN_W=clickhouse_localhost_w} $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS | tee log_cmake.log && ninja -j ${MAKEJ=$(distcc -j || nproc || sysctl -n hw.ncpu || echo 4)} | tee log_build.log && env $CTEST_ENV0 $CTEST_ENV ctest $CTEST_OPT | tee log_ctest.log
         cd ..
       done
     done

@@ -1,6 +1,6 @@
 FILE(WRITE "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/conftest.c"
   "#include <sqlext.h>                   \n"
-  "void main(void){                      \n"
+  "int main(void){                      \n"
   "  int odbc_version = SQL_OV_ODBC3_80; \n"
   "}                                       "
   )

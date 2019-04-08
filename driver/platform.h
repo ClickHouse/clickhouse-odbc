@@ -1,7 +1,5 @@
 #pragma once
 
-#include <type_traits>
-
 //#if __has_include("config_cmake.h") // requre c++17
 #if CMAKE_BUILD
 #    include "config_cmake.h"
@@ -44,6 +42,9 @@
 #include <sql.h>
 #include <sqlext.h>
 #include <sqltypes.h>
+#if defined(_IODBCUNIX_H)
+#   include <iodbcext.h>
+#endif
 
 #if defined(_win_)
 #    if defined(UNICODE)
@@ -81,23 +82,7 @@
 #    endif
 #endif
 
-
 #endif
-
-#    if defined(UNICODE)
-typedef std::remove_pointer<LPWSTR>::type MYTCHAR;
-#       if ODBC_WCHAR
-typedef std::wstring MY_STD_T_STRING;
-typedef wchar_t MY_STD_T_CHAR;
-#       else
-typedef std::u16string MY_STD_T_STRING;
-typedef char16_t MY_STD_T_CHAR;
-#       endif
-#    else
-typedef std::remove_pointer<LPSTR>::type MYTCHAR;
-typedef std::string MY_STD_T_STRING;
-typedef char MY_STD_T_CHAR;
-#    endif
 
 #define SIZEOF_CHAR sizeof(SQLTCHAR)
 
