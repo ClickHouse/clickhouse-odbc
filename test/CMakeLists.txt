@@ -1,5 +1,6 @@
 if(NOT (APPLE)) # CMAKE_BUILD_TYPE_UC STREQUAL "TSAN"
     find_program(ISQL isql)
+    find_program(IUSQL iusql)
     find_program(IODBCTEST iodbctest)
     find_program(IODBCTESTW iodbctestw)
 
@@ -16,6 +17,9 @@ if(NOT (APPLE)) # CMAKE_BUILD_TYPE_UC STREQUAL "TSAN"
         if(ODBC_UNIXODBC AND ISQL)
             add_test(NAME "isql-default" COMMAND sh -c "echo select ${SQL_QUERY} | ${ISQL} ${TEST_DSN} ${SQL_USER} ${SQL_PASS} | grep ${SQL_ANSWER}")
         endif()
+        if(IUSQL)
+            add_test(NAME "iusql-default" COMMAND sh -c "echo select ${SQL_QUERY} | ${IUSQL} ${TEST_DSN} ${SQL_USER} ${SQL_PASS} | grep ${SQL_ANSWER}")
+        endif()
         if(ODBC_IODBC AND IODBCTEST)
             add_test(NAME "iodbctest-${SQL_USER}" COMMAND sh -c "echo select ${SQL_QUERY} | ${IODBCTEST} \"DSN=${TEST_DSN};UID=${SQL_USER};PWD=${SQL_PASS}\" | grep ${SQL_ANSWER}")
         endif()
@@ -29,6 +33,9 @@ if(NOT (APPLE)) # CMAKE_BUILD_TYPE_UC STREQUAL "TSAN"
         add_test(NAME "test.py-w" COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test.py ${TEST_DSN_W})
         if(ODBC_UNIXODBC AND ISQL)
             add_test(NAME "isql-${SQL_USER}-w" COMMAND sh -c "echo select ${SQL_QUERY} | ${ISQL} ${TEST_DSN_W} ${SQL_USER} ${SQL_PASS} | grep ${SQL_ANSWER}")
+        endif()
+        if(IUSQL)
+            add_test(NAME "iusql-${SQL_USER}-w" COMMAND sh -c "echo select ${SQL_QUERY} | ${IUSQL} ${TEST_DSN_W} ${SQL_USER} ${SQL_PASS} | grep ${SQL_ANSWER}")
         endif()
         if(ODBC_IODBC AND IODBCTEST)
             add_test(NAME "iodbctest-${SQL_USER}-w" COMMAND sh -c "echo select ${SQL_QUERY} | ${IODBCTEST} \"DSN=${TEST_DSN_W};UID=${SQL_USER};PWD=${SQL_PASS}\" | grep ${SQL_ANSWER}")
