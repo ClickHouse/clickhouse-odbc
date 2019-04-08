@@ -6,8 +6,8 @@
 #if defined(UNICODE)
 using MYTCHAR = std::remove_pointer<LPWSTR>::type;
 #    if ODBC_WCHAR
-using MY_STD_T_STRING std::wstring;
-using MY_STD_T_CHAR wchar_t;
+using MY_STD_T_STRING = std::wstring;
+using MY_STD_T_CHAR = wchar_t;
 #    else
 using MY_STD_T_STRING = std::u16string;
 using MY_STD_T_CHAR = char16_t;
