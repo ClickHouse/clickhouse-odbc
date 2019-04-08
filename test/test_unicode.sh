@@ -2,10 +2,11 @@
 
 # !!! WARNING! THIS SCRIPT WILL UNINSTALL ALL PACKAGES DEPEND ON libiodbc2-dev unixodbc-dev !!!
 
-# env CMAKE_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-6.0` -DCMAKE_C_COMPILER=`which clang-6.0`" sh -x ./test_all.sh
+# To build with your test unixodbc:
+# env CMAKE_FLAGS="-DODBC_LIBRARIES=$HOME/unixODBC-2.3.7/odbcinst/.libs/libodbcinst.so;$HOME/unixODBC-2.3.7/DriverManager/.libs/libodbc.so" USE_LIBS="unixodbc" sh -x ./test_unicode.sh
 
 cd ..
- for lib in libiodbc unixodbc; do
+ for lib in ${USE_LIBS=libiodbc unixodbc}; do
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     if [ "$lib" = "libiodbc" ]; then

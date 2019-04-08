@@ -13,7 +13,7 @@ for compiler in "" _gcc _clang; do
     if [ "$compiler" = "_gcc" ]; then
         CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which g++-8 g++-7 g++8 g++7 g++ | head -n1` -DCMAKE_C_COMPILER=`which gcc-8 gcc-7 gcc8 gcc7 gcc | head -n1`"
     fi
-    for type in debug asan tsan ubsan release relwithdebinfo; do
+    for type in ${USE_TYPES=debug asan tsan ubsan release relwithdebinfo}; do
       for option in ""; do
         CTEST_ENV0=""
         if [ "$type" = "asan" ]; then
