@@ -135,10 +135,12 @@ TEST(EscapeSequencesCase, ParseTimestampadd5) {
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd6) {
-    ASSERT_EQ(replaceEscapeSequences(      "SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,(({fn MOD(({fn DAYOFWEEK(CAST(`publishers_report`.`install_date` AS DATE))}), 7)})),1)}"
-    ), "SELECT addDays(1, ((modulo((if(toDayOfWeek(CAST(`publishers_report`.`install_date` AS DATE)) = 7, 1, toDayOfWeek(CAST(`publishers_report`.`install_date` AS DATE)) + 1)), 7))))");
+    ASSERT_EQ(
+        replaceEscapeSequences(
+            "SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,(({fn MOD(({fn DAYOFWEEK(CAST(`publishers_report`.`install_date` AS DATE))}), 7)})),1)}"),
+        "SELECT addDays(1, ((modulo((if(toDayOfWeek(CAST(`publishers_report`.`install_date` AS DATE)) = 7, 1, "
+        "toDayOfWeek(CAST(`publishers_report`.`install_date` AS DATE)) + 1)), 7))))");
 }
-
 
 
 TEST(EscapeSequencesCase, ParseCurrentTimestamp1) {

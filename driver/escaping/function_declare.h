@@ -1,6 +1,8 @@
 
-    // https://docs.faircom.com/doc/sqlref/33391.htm
-    // https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/appendix-e-scalar-functions
+// https://docs.faircom.com/doc/sqlref/33391.htm
+// https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/appendix-e-scalar-functions
+
+// clang-format off
 
     // Numeric
     DECLARE2(ABS, "abs"),

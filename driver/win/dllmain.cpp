@@ -3,16 +3,12 @@
 /// Saved module handle.
 HINSTANCE module_instance = 0;
 
-extern "C" 
-{
+extern "C" {
 
-BOOL WINAPI
-    DllMain(HANDLE hInst, ULONG ul_reason_for_call, LPVOID)
-{
-    switch (ul_reason_for_call)
-    {
+BOOL WINAPI DllMain(HANDLE hInst, ULONG ul_reason_for_call, LPVOID) {
+    switch (ul_reason_for_call) {
         case DLL_PROCESS_ATTACH:
-            module_instance = (HINSTANCE)hInst;	/* Save for dialog boxes */
+            module_instance = (HINSTANCE)hInst; /* Save for dialog boxes */
             break;
 
         case DLL_THREAD_ATTACH:
@@ -30,5 +26,4 @@ BOOL WINAPI
 
     return TRUE;
 }
-
 }

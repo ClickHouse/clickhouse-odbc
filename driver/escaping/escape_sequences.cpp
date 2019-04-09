@@ -17,7 +17,7 @@ using namespace std;
 
 namespace {
 
-const std::map<const std::string, const std::string> fn_convert_map{
+const std::map<const std::string, const std::string> fn_convert_map {
     {"SQL_TINYINT", "toUInt8"},
     {"SQL_SMALLINT", "toUInt16"},
     {"SQL_INTEGER", "toInt32"},
@@ -34,17 +34,17 @@ const std::map<const std::string, const std::string> fn_convert_map{
 #define DECLARE2(TOKEN, NAME) \
     { Token::TOKEN, NAME }
 
-const std::map<const Token::Type, const std::string> function_map{
+const std::map<const Token::Type, const std::string> function_map {
 #include "function_declare.h"
 };
 
 #undef DECLARE2
 
-const std::map<const Token::Type, const std::string> function_map_strip_params{
+const std::map<const Token::Type, const std::string> function_map_strip_params {
     {Token::CURRENT_TIMESTAMP, "now()"},
 };
 
-const std::map<const Token::Type, const std::string> literal_map{
+const std::map<const Token::Type, const std::string> literal_map {
     // {Token::SQL_TSI_FRAC_SECOND, ""},
     {Token::SQL_TSI_SECOND, "'second'"},
     {Token::SQL_TSI_MINUTE, "'minute'"},
@@ -56,7 +56,7 @@ const std::map<const Token::Type, const std::string> literal_map{
     {Token::SQL_TSI_YEAR, "'year'"},
 };
 
-const std::map<const Token::Type, const std::string> timeadd_func_map{
+const std::map<const Token::Type, const std::string> timeadd_func_map {
     // {Token::SQL_TSI_FRAC_SECOND, ""},
     {Token::SQL_TSI_SECOND, "addSeconds"},
     {Token::SQL_TSI_MINUTE, "addMinutes"},

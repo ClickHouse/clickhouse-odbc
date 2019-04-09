@@ -74,7 +74,7 @@ Token Lexer::Consume(Token::Type expected) {
         return token;
     }
 
-    return Token{Token::INVALID, StringView()};
+    return Token {Token::INVALID, StringView()};
 }
 
 Token Lexer::LookAhead(size_t n) {
@@ -100,7 +100,7 @@ bool Lexer::Match(Token::Type expected) {
 
 
 Token Lexer::MakeToken(const Token::Type type, size_t len) {
-    const Token token{type, StringView(cur_, len)};
+    const Token token {type, StringView(cur_, len)};
 
     for (; len > 0; --len) {
         ++cur_;
@@ -155,13 +155,13 @@ Token Lexer::NextToken() {
                         continue;
                     }
                     if (*cur_ == '\'' && !has_slash) {
-                        return Token{Token::STRING, StringView(st, ++cur_)};
+                        return Token {Token::STRING, StringView(st, ++cur_)};
                     }
 
                     has_slash = false;
                 }
 
-                return Token{Token::INVALID, StringView(st, cur_ - st)};
+                return Token {Token::INVALID, StringView(st, cur_ - st)};
             }
 
             default: {
@@ -176,12 +176,12 @@ Token Lexer::NextToken() {
                                 ++cur_;
                                 continue;
                             } else if (!inside_quotes)
-                                return Token{Token::IDENT, StringView(st, ++cur_)};
+                                return Token {Token::IDENT, StringView(st, ++cur_)};
                             if (cur_ < end_)
                                 ++cur_;
                         }
                         if (!isalpha(*cur_) && !isdigit(*cur_) && *cur_ != '_' && *cur_ != '.') {
-                            return Token{Token::INVALID, StringView(st, cur_)};
+                            return Token {Token::INVALID, StringView(st, cur_)};
                         }
                     }
 
@@ -195,7 +195,7 @@ Token Lexer::NextToken() {
                         }
                     }
 
-                    return Token{LookupIdent(to_upper(StringView(st, cur_))), StringView(st, cur_)};
+                    return Token {LookupIdent(to_upper(StringView(st, cur_))), StringView(st, cur_)};
                 }
 
                 if (isdigit(*cur_) || *cur_ == '.' || *cur_ == '-') {
@@ -205,14 +205,14 @@ Token Lexer::NextToken() {
                     for (++cur_; cur_ < end_; ++cur_) {
                         if (*cur_ == '.') {
                             if (has_dot) {
-                                return Token{Token::INVALID, StringView(st, cur_)};
+                                return Token {Token::INVALID, StringView(st, cur_)};
                             } else {
                                 has_dot = true;
                             }
                             continue;
                         } else if (*cur_ == '-') {
                             if (has_minus) {
-                                return Token{Token::INVALID, StringView(st, cur_)};
+                                return Token {Token::INVALID, StringView(st, cur_)};
                             }
                         }
 
@@ -221,7 +221,7 @@ Token Lexer::NextToken() {
                         }
                     }
 
-                    return Token{Token::NUMBER, StringView(st, cur_)};
+                    return Token {Token::NUMBER, StringView(st, cur_)};
                 }
 
                 for (; cur_ < end_; ++cur_) {
@@ -230,10 +230,10 @@ Token Lexer::NextToken() {
                     }
                 }
 
-                return Token{Token::OTHER, StringView(st, cur_)};
+                return Token {Token::OTHER, StringView(st, cur_)};
             }
         }
     }
 
-    return Token{Token::EOS, StringView()};
+    return Token {Token::EOS, StringView()};
 }
