@@ -1,10 +1,10 @@
 #pragma once
 
-#include "connection.h"
-#include "result_set.h"
-#include <Poco/Net/HTTPResponse.h>
 #include <memory>
 #include <sstream>
+#include <Poco/Net/HTTPResponse.h>
+#include "connection.h"
+#include "result_set.h"
 
 /// Information where and how to add values when reading.
 struct Binding {

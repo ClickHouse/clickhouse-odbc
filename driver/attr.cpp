@@ -1,33 +1,27 @@
+#include <Poco/Net/HTTPClientSession.h>
 #include "connection.h"
 #include "environment.h"
 #include "log/log.h"
+#include "scope_guard.h"
 #include "statement.h"
 #include "utils.h"
-#include "scope_guard.h"
-#include <Poco/Net/HTTPClientSession.h>
 
-extern "C"
-{
+extern "C" {
 
 RETCODE
-impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
-    SQLPOINTER value, SQLINTEGER value_length)
-{
+impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     LOG(__FUNCTION__);
 
-    return doWith<Environment>(environment_handle, [&](Environment & environment)
-    {
+    return doWith<Environment>(environment_handle, [&](Environment & environment) {
         LOG("SetEnvAttr: " << attribute);
 
-        switch (attribute)
-        {
+        switch (attribute) {
             case SQL_ATTR_CONNECTION_POOLING:
             case SQL_ATTR_CP_MATCH:
             case SQL_ATTR_OUTPUT_NTS:
                 return SQL_SUCCESS;
 
-            case SQL_ATTR_ODBC_VERSION:
-            {
+            case SQL_ATTR_ODBC_VERSION: {
                 intptr_t int_value = reinterpret_cast<intptr_t>(value);
                 if (int_value != SQL_OV_ODBC2 && int_value != SQL_OV_ODBC3
 #if defined(SQL_OV_ODBC3_80)
@@ -56,23 +50,23 @@ impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
 
 
 RETCODE
-impl_SQLGetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
-    SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length)
-{
+impl_SQLGetEnvAttr(SQLHENV environment_handle,
+    SQLINTEGER attribute,
+    SQLPOINTER out_value,
+    SQLINTEGER out_value_max_length,
+    SQLINTEGER * out_value_length) {
     LOG(__FUNCTION__);
 
-    return doWith<Environment>(environment_handle, [&](Environment & environment) -> RETCODE
-    {
+    return doWith<Environment>(environment_handle, [&](Environment & environment) -> RETCODE {
         LOG("GetEnvAttr: " << attribute);
         const char * name = nullptr;
 
-        switch (attribute)
-        {
+        switch (attribute) {
             case SQL_ATTR_ODBC_VERSION:
                 fillOutputNumber<SQLUINTEGER>(environment.odbc_version, out_value, out_value_max_length, out_value_length);
                 return SQL_SUCCESS;
 
-            CASE_NUM(SQL_ATTR_METADATA_ID, SQLUINTEGER, environment.metadata_id);
+                CASE_NUM(SQL_ATTR_METADATA_ID, SQLUINTEGER, environment.metadata_id);
 
             case SQL_ATTR_CONNECTION_POOLING:
             case SQL_ATTR_CP_MATCH:
@@ -88,24 +82,21 @@ impl_SQLGetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute,
 
 /// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlsetconnectattr-function
 RETCODE
-impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
-    SQLPOINTER value, SQLINTEGER value_length)
-{
+impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     LOG(__FUNCTION__);
 
-    return doWith<Connection>(connection_handle, [&](Connection & connection)
-    {
+    return doWith<Connection>(connection_handle, [&](Connection & connection) {
         LOG("SetConnectAttr: " << attribute << " = " << value << " (" << value_length << ")");
 
-        switch (attribute)
-        {
-            case SQL_ATTR_CONNECTION_TIMEOUT:
-            {
+        switch (attribute) {
+            case SQL_ATTR_CONNECTION_TIMEOUT: {
                 auto connection_timeout = static_cast<SQLUSMALLINT>(reinterpret_cast<intptr_t>(value));
                 LOG("Set connection timeout: " << connection_timeout);
                 connection.connection_timeout = connection.timeout;
                 if (connection.session)
-                    connection.session->setTimeout(Poco::Timespan(connection.connection_timeout, 0), Poco::Timespan(connection.timeout, 0), Poco::Timespan(connection.timeout, 0));
+                    connection.session->setTimeout(Poco::Timespan(connection.connection_timeout, 0),
+                        Poco::Timespan(connection.timeout, 0),
+                        Poco::Timespan(connection.timeout, 0));
                 return SQL_SUCCESS;
             }
 
@@ -116,8 +107,7 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             case SQL_ATTR_ANSI_APP:
                 return SQL_ERROR;
 
-            case SQL_ATTR_TRACE:
-            {
+            case SQL_ATTR_TRACE: {
                 if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_ON)) {
                     log_enabled = true;
                 } else if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_OFF)) {
@@ -129,8 +119,7 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
                 return SQL_SUCCESS;
             }
 
-            case SQL_ATTR_TRACEFILE:
-            {
+            case SQL_ATTR_TRACEFILE: {
                 auto tracefile = stringFromSQLBytes((SQLTCHAR *)value, value_length);
                 if (!tracefile.empty()) {
                     log_file = tracefile;
@@ -142,8 +131,7 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
             }
 
 #if defined(SQL_APPLICATION_NAME)
-            case SQL_APPLICATION_NAME:
-            {
+            case SQL_APPLICATION_NAME: {
                 auto string = stringFromSQLBytes((SQLTCHAR *)value, value_length);
                 LOG("SetConnectAttr: SQL_APPLICATION_NAME: " << string);
                 connection.useragent = string;
@@ -176,22 +164,20 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
 
 
 RETCODE
-impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
-    SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length)
-{
+impl_SQLGetConnectAttr(
+    SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
     LOG(__FUNCTION__);
 
-    return doWith<Connection>(connection_handle, [&](Connection & connection) -> RETCODE
-    {
+    return doWith<Connection>(connection_handle, [&](Connection & connection) -> RETCODE {
         LOG("GetConnectAttr: " << attribute);
 
         const char * name = nullptr;
 
-        switch (attribute)
-        {
+        switch (attribute) {
             CASE_NUM(SQL_ATTR_CONNECTION_DEAD, SQLUINTEGER, SQL_CD_FALSE);
             CASE_FALLTHROUGH(SQL_ATTR_CONNECTION_TIMEOUT);
-            CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout);
+            CASE_NUM(
+                SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout);
             CASE_NUM(SQL_ATTR_TXN_ISOLATION, SQLINTEGER, SQL_TXN_SERIALIZABLE); // mssql linked server
             CASE_NUM(SQL_ATTR_AUTOCOMMIT, SQLINTEGER, SQL_AUTOCOMMIT_ON);
             CASE_NUM(SQL_ATTR_TRACE, SQLINTEGER, log_enabled ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF);
@@ -228,17 +214,13 @@ impl_SQLGetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute,
 
 
 RETCODE
-impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
-    SQLPOINTER value, SQLINTEGER value_length)
-{
+impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     LOG(__FUNCTION__);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement)
-    {
+    return doWith<Statement>(statement_handle, [&](Statement & statement) {
         LOG("SetStmtAttr: " << attribute << " value=" << value << " value_length=" << value_length);
 
-        switch (attribute)
-        {
+        switch (attribute) {
             case SQL_ATTR_NOSCAN:
                 statement.setScanEscapeSequences((SQLULEN)value != SQL_NOSCAN_ON);
                 return SQL_SUCCESS;
@@ -248,7 +230,7 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
                 return SQL_SUCCESS;
 
             case SQL_ATTR_ROWS_FETCHED_PTR:
-                statement.rows_fetched_ptr = static_cast<SQLULEN*>(value);
+                statement.rows_fetched_ptr = static_cast<SQLULEN *>(value);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_ROW_ARRAY_SIZE:
@@ -261,7 +243,7 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_CURSOR_SENSITIVITY:
             case SQL_ATTR_ASYNC_ENABLE:
             case SQL_ATTR_CONCURRENCY:
-            case SQL_ATTR_CURSOR_TYPE:          /// Libreoffice Base
+            case SQL_ATTR_CURSOR_TYPE: /// Libreoffice Base
             case SQL_ATTR_ENABLE_AUTO_IPD:
             case SQL_ATTR_FETCH_BOOKMARK_PTR:
             case SQL_ATTR_KEYSET_SIZE:
@@ -277,13 +259,13 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
             case SQL_ATTR_RETRIEVE_DATA:
             case SQL_ATTR_ROW_NUMBER:
             case SQL_ATTR_ROW_OPERATION_PTR:
-            case SQL_ATTR_ROW_STATUS_PTR:       /// Libreoffice Base
+            case SQL_ATTR_ROW_STATUS_PTR: /// Libreoffice Base
             case SQL_ATTR_SIMULATE_CURSOR:
             case SQL_ATTR_USE_BOOKMARKS:
                 return SQL_SUCCESS;
 
-            case SQL_ATTR_IMP_ROW_DESC:	    /* 10012 (read-only) */
-            case SQL_ATTR_IMP_PARAM_DESC:	/* 10013 (read-only) */
+            case SQL_ATTR_IMP_ROW_DESC:   /* 10012 (read-only) */
+            case SQL_ATTR_IMP_PARAM_DESC: /* 10013 (read-only) */
                 return SQL_ERROR;
 
             case SQL_ATTR_ROW_BIND_OFFSET_PTR:
@@ -297,56 +279,50 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
 }
 
 
-static SQLHDESC
-descHandleFromStatementHandle(Statement & statement, SQLINTEGER descType)
-{
-    switch (descType)
-    {
-        case SQL_ATTR_APP_ROW_DESC:		/* 10010 */
+static SQLHDESC descHandleFromStatementHandle(Statement & statement, SQLINTEGER descType) {
+    switch (descType) {
+        case SQL_ATTR_APP_ROW_DESC: /* 10010 */
             return (HSTMT)statement.ard.get();
-        case SQL_ATTR_APP_PARAM_DESC:   /* 10011 */
+        case SQL_ATTR_APP_PARAM_DESC: /* 10011 */
             return (HSTMT)statement.apd.get();
-        case SQL_ATTR_IMP_ROW_DESC:		/* 10012 */
+        case SQL_ATTR_IMP_ROW_DESC: /* 10012 */
             return (HSTMT)statement.ird.get();
-        case SQL_ATTR_IMP_PARAM_DESC:	/* 10013 */
+        case SQL_ATTR_IMP_PARAM_DESC: /* 10013 */
             return (HSTMT)statement.ipd.get();
     }
     return (HSTMT)0;
 }
 
 RETCODE
-impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
-    SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length)
-{
+impl_SQLGetStmtAttr(
+    SQLHSTMT statement_handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
     LOG(__FUNCTION__);
 #ifndef NDEBUG
     SCOPE_EXIT({ LOG("impl_SQLGetStmtAttr finish."); }); // for timing only
 #endif
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE
-    {
+    return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
         LOG("GetStmtAttr: " << attribute << " out_value=" << out_value << " out_value_max_length=" << out_value_max_length);
 
         const char * name = nullptr;
 
-        switch (attribute)
-        {
+        switch (attribute) {
             CASE_FALLTHROUGH(SQL_ATTR_APP_ROW_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_APP_PARAM_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_IMP_ROW_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_IMP_PARAM_DESC)
-                if (out_value_length)
-                    *out_value_length = sizeof(HSTMT *);
-                *((HSTMT *)out_value) = (HSTMT *)descHandleFromStatementHandle(statement, attribute);
-                break;
+            if (out_value_length)
+                *out_value_length = sizeof(HSTMT *);
+            *((HSTMT *)out_value) = (HSTMT *)descHandleFromStatementHandle(statement, attribute);
+            break;
 
             CASE_FALLTHROUGH(SQL_ATTR_ROWS_FETCHED_PTR)
-                if (out_value)
-                    out_value = static_cast<SQLPOINTER>(statement.rows_fetched_ptr); 
-                else
-                    LOG("GetStmtAttr: " << name << " no pointer passed.");
-                    return SQL_ERROR;
-                break;
+            if (out_value)
+                out_value = static_cast<SQLPOINTER>(statement.rows_fetched_ptr);
+            else
+                LOG("GetStmtAttr: " << name << " no pointer passed.");
+            return SQL_ERROR;
+            break;
 
             CASE_NUM(SQL_ATTR_CURSOR_SCROLLABLE, SQLULEN, SQL_NONSCROLLABLE);
             CASE_NUM(SQL_ATTR_CURSOR_SENSITIVITY, SQLULEN, SQL_INSENSITIVE);
@@ -388,80 +364,56 @@ impl_SQLGetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute,
 }
 
 
-RETCODE SQL_API
-SQLSetEnvAttr(SQLHENV handle, SQLINTEGER attribute,
-    SQLPOINTER value, SQLINTEGER value_length)
-{
+RETCODE SQL_API SQLSetEnvAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     return impl_SQLSetEnvAttr(handle, attribute, value, value_length);
 }
 
-RETCODE SQL_API
-SQLSetConnectAttr(SQLHENV handle, SQLINTEGER attribute,
-    SQLPOINTER value, SQLINTEGER value_length)
-{
+RETCODE SQL_API SQLSetConnectAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     return impl_SQLSetConnectAttr(handle, attribute, value, value_length);
 }
 
-RETCODE SQL_API
-SQLSetStmtAttr(SQLHENV handle, SQLINTEGER attribute,
-    SQLPOINTER value, SQLINTEGER value_length)
-{
+RETCODE SQL_API SQLSetStmtAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     return impl_SQLSetStmtAttr(handle, attribute, value, value_length);
 }
 
-RETCODE SQL_API
-SQLGetEnvAttr(SQLHSTMT handle, SQLINTEGER attribute,
-    SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length)
-{
+RETCODE SQL_API SQLGetEnvAttr(
+    SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
     return impl_SQLGetEnvAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
-RETCODE SQL_API
-SQLGetConnectAttr(SQLHSTMT handle, SQLINTEGER attribute,
-    SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length)
-{
+RETCODE SQL_API SQLGetConnectAttr(
+    SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
     return impl_SQLGetConnectAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
-RETCODE SQL_API
-SQLGetStmtAttr(SQLHSTMT handle, SQLINTEGER attribute,
-    SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length)
-{
+RETCODE SQL_API SQLGetStmtAttr(
+    SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
     return impl_SQLGetStmtAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
-RETCODE SQL_API
-SQLGetConnectOption(SQLHDBC connection_handle, UWORD attribute, PTR out_value)
-{
+RETCODE SQL_API SQLGetConnectOption(SQLHDBC connection_handle, UWORD attribute, PTR out_value) {
     LOG(__FUNCTION__);
     SQLINTEGER value_max_length = 64;
     SQLINTEGER value_length_unused = 0;
     return impl_SQLGetConnectAttr(connection_handle, attribute, out_value, value_max_length, &value_length_unused);
 }
 
-RETCODE SQL_API
-SQLGetStmtOption(SQLHSTMT statement_handle, UWORD attribute, PTR out_value)
-{
+RETCODE SQL_API SQLGetStmtOption(SQLHSTMT statement_handle, UWORD attribute, PTR out_value) {
     LOG(__FUNCTION__);
     SQLINTEGER value_max_length = 64;
     SQLINTEGER value_length_unused = 0;
     return impl_SQLGetStmtAttr(statement_handle, attribute, out_value, value_max_length, &value_length_unused);
 }
 
-RETCODE SQL_API
-SQLSetConnectOption(SQLHDBC connection_handle, UWORD attribute, SQLULEN value)
-{
+RETCODE SQL_API SQLSetConnectOption(SQLHDBC connection_handle, UWORD attribute, SQLULEN value) {
     LOG(__FUNCTION__);
     return impl_SQLSetConnectAttr(connection_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
 }
 
-RETCODE SQL_API
-SQLSetStmtOption(SQLHSTMT statement_handle, UWORD attribute, SQLULEN value)
-{
+RETCODE SQL_API SQLSetStmtOption(SQLHSTMT statement_handle, UWORD attribute, SQLULEN value) {
     LOG(__FUNCTION__);
     /// TODO (artpaul)
     /// See https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/sqlsetstmtoption-mapping for correct implementation.
     return impl_SQLSetStmtAttr(statement_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
 }
-
 }

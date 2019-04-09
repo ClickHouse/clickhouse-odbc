@@ -151,7 +151,8 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_) {
                         columns_info[i].type_without_parameters = "String";
                     }
                 }
-                LOG("Row " << i << " name=" << columns_info[i].name << " type=" << columns_info[i].type << " -> " << columns_info[i].type << " typenoparams=" << columns_info[i].type_without_parameters << " fixedsize=" << columns_info[i].fixed_size);
+                LOG("Row " << i << " name=" << columns_info[i].name << " type=" << columns_info[i].type << " -> " << columns_info[i].type
+                           << " typenoparams=" << columns_info[i].type_without_parameters << " fixedsize=" << columns_info[i].fixed_size);
             }
 
             // TODO: max_length
@@ -214,7 +215,8 @@ bool ResultSet::readNextBlockCache() {
 
         for (size_t j = 0; j < num_columns; ++j) {
             readString(in(), row.data[j].data, &row.data[j].is_null);
-            columns_info[j].display_size = std::max<decltype(columns_info[j].display_size)>(row.data[j].data.size(), columns_info[j].display_size);
+            columns_info[j].display_size
+                = std::max<decltype(columns_info[j].display_size)>(row.data[j].data.size(), columns_info[j].display_size);
 
             //LOG("read Row/Col " << i <<":"<< j << " name=" << row.data[j].data << " display_size=" << columns_info[j].display_size);
         }
