@@ -1,16 +1,15 @@
 #pragma once
 
-#include "read_helpers.h"
-#include "platform.h"
-#include "type_parser.h"
-#include <vector>
-#include <memory>
 #include <deque>
+#include <memory>
+#include <vector>
+#include "platform.h"
+#include "read_helpers.h"
+#include "type_parser.h"
 
 class Statement;
 
-class Field
-{
+class Field {
 public:
     std::string data;
     bool is_null = false;
@@ -25,32 +24,31 @@ public:
 
 private:
     template <typename T>
-    void normalizeDate(T& date) const;
+    void normalizeDate(T & date) const;
 };
 
 
-class Row
-{
+class Row {
 public:
     Row() {}
     Row(size_t num_columns) : data(num_columns) {}
 
     std::vector<Field> data;
 
-    bool isValid() const { return !data.empty(); }
+    bool isValid() const {
+        return !data.empty();
+    }
 };
 
 
-class Block
-{
+class Block {
 public:
     using Data = std::vector<Row>;
     Data data;
 };
 
 
-struct ColumnInfo
-{
+struct ColumnInfo {
     std::string name;
     std::string type;
     std::string type_without_parameters;
@@ -59,8 +57,7 @@ struct ColumnInfo
     bool is_nullable = false;
 };
 
-class IResultMutator
-{
+class IResultMutator {
 public:
     virtual ~IResultMutator() = default;
 
@@ -71,8 +68,7 @@ public:
 
 using IResultMutatorPtr = std::unique_ptr<IResultMutator>;
 
-class ResultSet
-{
+class ResultSet {
 public:
     void init(Statement * statement_, IResultMutatorPtr mutator_);
 

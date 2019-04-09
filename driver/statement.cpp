@@ -1,12 +1,12 @@
 #include "statement.h"
-#include "escaping/escape_sequences.h"
-#include "win/version.h"
-#include "platform.h"
 #include <Poco/Base64Encoder.h>
 #include <Poco/Exception.h>
+#include <Poco/Net/HTTPClientSession.h>
 #include <Poco/Net/HTTPRequest.h>
 #include <Poco/URI.h>
-#include <Poco/Net/HTTPClientSession.h>
+#include "escaping/escape_sequences.h"
+#include "platform.h"
+#include "win/version.h"
 
 Statement::Statement(Connection & conn_) : connection(conn_), metadata_id(conn_.environment.metadata_id) {
     ard.reset(new DescriptorClass);
@@ -61,19 +61,19 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
     request.setChunkedTransferEncoding(true);
     request.setCredentials("Basic", user_password_base64.str());
     Poco::URI uri(connection.url);
-    uri.addQueryParameter("database",connection.getDatabase());
+    uri.addQueryParameter("database", connection.getDatabase());
     uri.addQueryParameter("default_format", "ODBCDriver2");
     request.setURI(connection.path + "?" + uri.getQuery()); /// TODO escaping
-    request.set("User-Agent", std::string{} + "clickhouse-odbc/" VERSION_STRING " (" CMAKE_SYSTEM ")"
+    request.set("User-Agent",
+        std::string {}
+            + "clickhouse-odbc/" VERSION_STRING " (" CMAKE_SYSTEM ")"
 #if defined(UNICODE)
-        " UNICODE"
+              " UNICODE"
 #endif
-        + (connection.useragent.empty() ? "" : " " + connection.useragent)
-    );
+            + (connection.useragent.empty() ? "" : " " + connection.useragent));
 
-    LOG(request.getMethod() << " " << connection.session->getHost() << request.getURI() <<  " body=" << prepared_query
-        << " UA=" << request.get("User-Agent")
-    );
+    LOG(request.getMethod() << " " << connection.session->getHost() << request.getURI() << " body=" << prepared_query
+                            << " UA=" << request.get("User-Agent"));
 
     // LOG("curl 'http://" << connection.session->getHost() << ":" << connection.session->getPort() << request.getURI() << "' -d '" << prepared_query << "'");
 

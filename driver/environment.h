@@ -1,8 +1,8 @@
 #pragma once
 
-#include "diagnostics.h"
 #include <map>
 #include <stdexcept>
+#include "diagnostics.h"
 
 struct TypeInfo {
     std::string sql_type_name;

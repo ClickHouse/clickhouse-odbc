@@ -10,7 +10,7 @@ use open ':encoding(utf8)', ':std';
 use DBI;
 use Data::Dumper;
 $Data::Dumper::Sortkeys = 1;
-$Data::Dumper::Useqq = 1;
+$Data::Dumper::Useqq    = 1;
 
 my $config = {DSN => $ARGV[0] || $ENV{DSN} || 'clickhouse_localhost'};
 my $is_wide = 1 if $config->{DSN} =~ /w$/;    # bad magic
@@ -82,8 +82,9 @@ sub test_one_select($;$) {
 
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1+1';
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options';
-say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) ASC';
-say Data::Dumper::Dumper prepare_execute_hash
+ok + (10 < ($_ = @{prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) ASC'})),
+  "results in system.build_options: $_";
+ok prepare_execute_hash
 q{SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long string' WHEN (number == 3) THEN 'r' WHEN (number == 4) THEN NULL ELSE '-' END) FROM system.numbers LIMIT 6};
 #TODO say Data::Dumper::Dumper prepare_execute_hash q{SELECT 1, 'string', NULL};
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.build_options ORDER BY length(name) DESC';
@@ -140,22 +141,22 @@ test_one_value_as(fn('IFNULL', 'NULL', 3), 3);
 
 test_one_value_as(fn('CHAR_LENGTH',      "'abc'"),                      3);
 test_one_value_as(fn('OCTET_LENGTH',     "'abc'"),                      3);
-test_one_value_as(fn('LENGTH',     "'abc'"),                      3);
+test_one_value_as(fn('LENGTH',           "'abc'"),                      3);
 test_one_value_as(fn('CHAR_LENGTH',      "'йцукенгшщзхъ'"), 12);
-test_one_value_as(fn('LENGTH',     "'йцукенгшщзхъ'"), 12);
-test_one_value_as(fn('CHARACTER_LENGTH', "'abc'"), 3);
+test_one_value_as(fn('LENGTH',           "'йцукенгшщзхъ'"), 12);
+test_one_value_as(fn('CHARACTER_LENGTH', "'abc'"),                      3);
 test_one_value_as(fn('CONCAT', "'abc'", "'123'"), 'abc123');
 test_one_value_as(fn('LCASE', "'abcDEFghj'"), 'abcdefghj');
 test_one_value_as(fn('UCASE', "'abcDEFghj'"), 'ABCDEFGHJ');
 test_one_value_as(fn('LOWER', "'abcDEFghj'"), 'abcdefghj');
 test_one_value_as(fn('UPPER', "'abcDEFghj'"), 'ABCDEFGHJ');
 if ($is_wide) {
-    test_one_value_as(fn('OCTET_LENGTH',     "'йцукенгшщзхъ'"), 24);
-    test_one_value_as(fn('LCASE', "'йцуКЕН'"), 'йцукен');
-    test_one_value_as(fn('UCASE', "'йцуКЕН'"), 'ЙЦУКЕН');
+    test_one_value_as(fn('OCTET_LENGTH', "'йцукенгшщзхъ'"), 24);
+    test_one_value_as(fn('LCASE',        "'йцуКЕН'"),             'йцукен');
+    test_one_value_as(fn('UCASE',        "'йцуКЕН'"),             'ЙЦУКЕН');
 }
-test_one_value_as(fn('REPLACE', "'abc'", "'b'", "'e'"), 'aec');
-test_one_value_as(fn('SUBSTRING', "'abcd'", 2, 2), 'bc');
+test_one_value_as(fn('REPLACE',   "'abc'",  "'b'", "'e'"), 'aec');
+test_one_value_as(fn('SUBSTRING', "'abcd'", 2,     2),     'bc');
 
 test_one_value_as(q{1+1}, 2);
 
@@ -201,10 +202,12 @@ q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕ
 
 dbh_do "DROP TABLE IF EXISTS test.odbc2;";
 dbh_do "CREATE TABLE test.odbc2 (ui64 UInt64, string String, date Date, datetime DateTime) ENGINE = Memory;";
-dbh_do "INSERT INTO test.odbc2 VALUES (1, '2', 3, 4), (10, '20', 30, 40), (100, '200', 300, 400), (1000, '2000', {ts '2018-05-01 00:00:01'}, 4000);";
-test_one_select q{SELECT SUM(`test`.`odbc2`.`ui64`) AS `sum_val_ok` FROM `test`.`odbc2` WHERE ((CAST(`test`.`odbc2`.`date` AS TIMESTAMP) >= {ts '2018-05-01 00:00:00'}) AND (CAST(`test`.`odbc2`.`date` AS TIMESTAMP) < {ts '2018-11-01 00:00:00'})) HAVING (COUNT(1) > 0)}, 1000;
+dbh_do
+"INSERT INTO test.odbc2 VALUES (1, '2', 3, 4), (10, '20', 30, 40), (100, '200', 300, 400), (1000, '2000', {ts '2018-05-01 00:00:01'}, 4000);";
+test_one_select
+q{SELECT SUM(`test`.`odbc2`.`ui64`) AS `sum_val_ok` FROM `test`.`odbc2` WHERE ((CAST(`test`.`odbc2`.`date` AS TIMESTAMP) >= {ts '2018-05-01 00:00:00'}) AND (CAST(`test`.`odbc2`.`date` AS TIMESTAMP) < {ts '2018-11-01 00:00:00'})) HAVING (COUNT(1) > 0)},
+  1000;
 dbh_do "DROP TABLE IF EXISTS test.odbc2;";
-
 
 dbh_do qq{drop table if exists test.lc;};
 dbh_do qq{create table test.lc (b LowCardinality(String)) engine=MergeTree order by b;};
@@ -214,8 +217,8 @@ dbh_do qq{select * from test.lc;};
 test_one_select qq{select * from test.lc;}, '0123456789';
 dbh_do qq{drop table test.lc;};
 
-
-ok 10000 == scalar @{ prepare_execute_hash 'SELECT number, toString(number), toDate(number) FROM system.numbers LIMIT 10000;' }, '10k rows'; # fetch perfofmance test
+ok 10000 == scalar @{prepare_execute_hash 'SELECT number, toString(number), toDate(number) FROM system.numbers LIMIT 10000;'},
+  '10k rows';    # fetch perfofmance test
 
 # at end, can broke console
 say Data::Dumper::Dumper prepare_execute_hash 'SELECT * FROM system.contributors ORDER BY name LIMIT 10';

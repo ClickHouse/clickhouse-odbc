@@ -84,11 +84,11 @@ TypeParser::Token TypeParser::nextToken() {
                 continue;
 
             case '(':
-                return Token{Token::LPar, std::string(cur_++, 1)};
+                return Token {Token::LPar, std::string(cur_++, 1)};
             case ')':
-                return Token{Token::RPar, std::string(cur_++, 1)};
+                return Token {Token::RPar, std::string(cur_++, 1)};
             case ',':
-                return Token{Token::Comma, std::string(cur_++, 1)};
+                return Token {Token::Comma, std::string(cur_++, 1)};
 
             default: {
                 const char * st = cur_;
@@ -100,7 +100,7 @@ TypeParser::Token TypeParser::nextToken() {
                         }
                     }
 
-                    return Token{Token::Name, std::string(st, cur_)};
+                    return Token {Token::Name, std::string(st, cur_)};
                 }
 
                 if (isdigit(*cur_)) {
@@ -110,13 +110,13 @@ TypeParser::Token TypeParser::nextToken() {
                         }
                     }
 
-                    return Token{Token::Number, std::string(st, cur_)};
+                    return Token {Token::Number, std::string(st, cur_)};
                 }
 
-                return Token{Token::Invalid, std::string()};
+                return Token {Token::Invalid, std::string()};
             }
         }
     }
 
-    return Token{Token::EOS, std::string()};
+    return Token {Token::EOS, std::string()};
 }

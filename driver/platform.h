@@ -35,6 +35,7 @@
 #    define HAVE_SSIZE_T 1
 #
 #    include <winsock2.h>
+// DO NOT REORDER
 #    include <windows.h>
 //#    include <ws2tcpip.h>
 #endif
@@ -43,7 +44,7 @@
 #include <sqlext.h>
 #include <sqltypes.h>
 #if defined(_IODBCUNIX_H)
-#   include <iodbcext.h>
+#    include <iodbcext.h>
 #endif
 
 #if defined(_win_)
@@ -74,13 +75,13 @@
 #        define TEXT(value) value
 #    endif
 
-#if !defined(LPCTSTR)
-#    if defined(UNICODE)
-#        define LPCTSTR LPCWSTR
-#    else
-#        define LPCTSTR LPCSTR
+#    if !defined(LPCTSTR)
+#        if defined(UNICODE)
+#            define LPCTSTR LPCWSTR
+#        else
+#            define LPCTSTR LPCSTR
+#        endif
 #    endif
-#endif
 
 #endif
 
@@ -92,5 +93,5 @@
 #endif
 
 #if !defined(CMAKE_SYSTEM) && _win_
-#   define CMAKE_SYSTEM "windows"
+#    define CMAKE_SYSTEM "windows"
 #endif

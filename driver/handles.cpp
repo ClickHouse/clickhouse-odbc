@@ -1,9 +1,9 @@
+#include <Poco/Net/HTTPClientSession.h>
 #include "connection.h"
 #include "environment.h"
 #include "log/log.h"
 #include "statement.h"
 #include "utils.h"
-#include <Poco/Net/HTTPClientSession.h>
 
 static RETCODE allocEnv(SQLHENV * out_environment) {
     if (nullptr == out_environment)
@@ -86,7 +86,7 @@ RETCODE SQL_API SQLAllocStmt(SQLHDBC input_handle, SQLHSTMT * output_handle) {
 
 
 RETCODE SQL_API SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE handle) {
-    LOG(__FUNCTION__ << " handleType=" << handleType <<" handle=" << handle);
+    LOG(__FUNCTION__ << " handleType=" << handleType << " handle=" << handle);
 
     switch (handleType) {
         case SQL_HANDLE_ENV:

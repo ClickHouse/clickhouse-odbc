@@ -26,7 +26,6 @@ struct TypeAst {
 
 
 class TypeParser {
-
     struct Token {
         enum Type {
             Invalid = 0,
@@ -43,18 +42,18 @@ class TypeParser {
     };
 
 public:
-    explicit TypeParser(const std::string& name);
+    explicit TypeParser(const std::string & name);
     ~TypeParser();
 
-    bool parse(TypeAst* type);
+    bool parse(TypeAst * type);
 
 private:
     Token nextToken();
 
 private:
-    const char* cur_;
-    const char* end_;
+    const char * cur_;
+    const char * end_;
 
-    TypeAst* type_;
-    std::stack<TypeAst*> open_elements_;
+    TypeAst * type_;
+    std::stack<TypeAst *> open_elements_;
 };

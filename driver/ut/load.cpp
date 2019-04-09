@@ -16,7 +16,7 @@ int main(int argc, char * argv[]) {
         if (!has_symbol)
             return 2;
         auto symbol = lib.getSymbol(func_name);
-        std::cout  << " symbol = "<< symbol << ". " << endl;
+        std::cout << " symbol = " << symbol << ". " << endl;
         RETCODE (*f)(void);
         f = reinterpret_cast<decltype(f)>(symbol);
         f();

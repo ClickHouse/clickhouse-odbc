@@ -5,7 +5,11 @@
 #include "diagnostics.h"
 #include "environment.h"
 
-namespace Poco { namespace Net { class HTTPClientSession; } }
+namespace Poco {
+namespace Net {
+    class HTTPClientSession;
+}
+}
 
 struct Connection {
     Environment & environment;
