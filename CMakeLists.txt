@@ -115,9 +115,9 @@ if(WIN32)
    message(STATUS "Windows native ODBC Support Enabled")
 endif ()
 message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")
-if (NOT WIN32 AND NOT ODBC_LIBRARIES MATCHES "iodbc")
-    include (cmake/Modules/CheckODBCversion.cmake)
-endif ()
+#if(NOT WIN32 AND NOT ODBC_LIBRARIES MATCHES "iodbc")
+#    include(cmake/Modules/CheckODBCversion.cmake)
+#endif()
 
 message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE} ; CCACHE=${CCACHE_FOUND} ${CCACHE_VERSION}")
 
