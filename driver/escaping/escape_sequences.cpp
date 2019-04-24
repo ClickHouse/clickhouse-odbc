@@ -258,18 +258,17 @@ string processFunction(const StringView seq, Lexer & lex) {
             return seq.to_string();
         lex.Consume();
         return "if(toDayOfWeek(" + param + ") = 7, 1, toDayOfWeek(" + param + ") + 1)";
-
+/*
     } else if (fn.type == Token::DAYOFYEAR) { // Supported by ClickHouse since 18.13.0
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
 
-        auto param = processIdentOrFunction(seq, lex /*, false*/);
+        auto param = processIdentOrFunction(seq, lex);
         if (param.empty())
             return seq.to_string();
         lex.Consume();
-        //return "if(toDayOfWeek(" + param + ") = 7, 1, toDayOfWeek(" + param + ") + 1)";
         return "( toRelativeDayNum(" + param + ") - toRelativeDayNum(toStartOfYear(" + param + ")) + 1 )";
-
+*/
     } else if (function_map.find(fn.type) != function_map.end()) {
         string result = function_map.at(fn.type);
         auto func = result;
