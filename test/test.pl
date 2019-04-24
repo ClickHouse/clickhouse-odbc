@@ -134,6 +134,7 @@ test_one_value_as(fn('SECOND',     $t), 59);
 #test_one_value_as(fn('WEEK',       $t),);
 test_one_value_as(fn('DAYOFWEEK', $t), 7);
 test_one_value_as(fn('DAYOFYEAR', $t), 366);
+test_one_value_as(fn('WEEK', $t), 52);
 
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT ' . join ', ', (fn2 'IFNULL', 1, 2), (fn2 'IFNULL', 'NULL', 3);
 test_one_value_as(fn('IFNULL', 1,      2), 1);
