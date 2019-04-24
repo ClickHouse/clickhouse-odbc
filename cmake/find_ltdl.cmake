@@ -3,7 +3,7 @@
 if (NOT BUILD_SHARED)
     execute_process(COMMAND lsb_release -cs OUTPUT_VARIABLE _codename OUTPUT_STRIP_TRAILING_WHITESPACE)
     message (STATUS "lsb_release -cs: ${_codename}")
-    if (_codename STREQUAL "bionic" OR _codename STREQUAL "xenial" OR _codename STREQUAL "trusty" OR _codename STREQUAL "stretch" OR _codename STREQUAL "cosmic")
+    if (_codename STREQUAL "bionic" OR _codename STREQUAL "xenial" OR _codename STREQUAL "trusty" OR _codename STREQUAL "stretch" OR _codename STREQUAL "cosmic" OR _codename STREQUAL "disco")
         list (REVERSE CMAKE_FIND_LIBRARY_SUFFIXES)
         set (_suffixes_reversed 1)
         message (STATUS "Trying to find shared version of ltdl library because linking with libltdl.a is broken in ${_codename}")
