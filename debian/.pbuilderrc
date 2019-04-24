@@ -3,6 +3,8 @@
 #
 # ubuntu:
 # prepare old (trusty or earlier) host system:
+# sudo ln -s gutsy /usr/share/debootstrap/scripts/disco
+# sudo ln -s gutsy /usr/share/debootstrap/scripts/cosmic
 # sudo ln -s gutsy /usr/share/debootstrap/scripts/artful
 # sudo ln -s gutsy /usr/share/debootstrap/scripts/bionic
 # build ubuntu:
@@ -27,7 +29,8 @@
 # sudo DIST=testing      ARCH=i386 pbuilder create --configfile debian/.pbuilderrc && DIST=testing      ARCH=i386 pdebuild --configfile debian/.pbuilderrc
 # sudo DIST=experimental ARCH=i386 pbuilder create --configfile debian/.pbuilderrc && DIST=experimental ARCH=i386 pdebuild --configfile debian/.pbuilderrc
 # use only clang:
-# env DEB_CC=clang-5.0 DEB_CXX=clang++-5.0 EXTRAPACKAGES="clang-5.0" DIST=artful pdebuild --configfile debian/.pbuilderrc
+# env DEB_CC=clang-5.0 DEB_CXX=clang++-5.0 EXTRAPACKAGES=clang-5.0 DIST=artful pdebuild --configfile debian/.pbuilderrc
+# env DEB_CC=clang-8 DEB_CXX=clang++-8 EXTRAPACKAGES=clang-8 DIST=disco pdebuild --configfile debian/.pbuilderrc
 # clang+asan:
 # env DEB_CC=clang-5.0 DEB_CXX=clang++-5.0 EXTRAPACKAGES="clang-5.0 libc++abi-dev libc++-dev" CMAKE_FLAGS="-DENABLE_TCMALLOC=0 -DENABLE_UNWIND=0 -DCMAKE_BUILD_TYPE=Asan" DIST=artful pdebuild --configfile debian/.pbuilderrc
 # clang+tsan:
@@ -53,7 +56,7 @@ DEBIAN_SUITES=($UNSTABLE_CODENAME $TESTING_CODENAME $STABLE_CODENAME $STABLE_BAC
     "experimental" "unstable" "testing" "stable")
 
 # List of Ubuntu suites. Update these when needed.
-UBUNTU_SUITES=("cosmic" "bionic" "artful" "zesty" "xenial" "trusty" "devel")
+UBUNTU_SUITES=("disco" "cosmic" "bionic" "artful" "zesty" "xenial" "trusty" "devel")
 
 # Set a default distribution if none is used. Note that you can set your own default (i.e. ${DIST:="unstable"}).
 HOST_DIST=`lsb_release --short --codename`
@@ -97,7 +100,8 @@ ALLOWUNTRUSTED=${SET_ALLOWUNTRUSTED:=${ALLOWUNTRUSTED}}
 if $(echo ${DEBIAN_SUITES[@]} | grep -q $DIST); then
     # Debian configuration
     OSNAME=debian
-    MIRRORSITE=${SET_MIRRORSITE="http://deb.debian.org/$OSNAME/"}
+    #MIRRORSITE=${SET_MIRRORSITE="http://deb.debian.org/$OSNAME/"}
+    MIRRORSITE=${SET_MIRRORSITE="http://mirror.yandex.ru/$OSNAME/"}
     COMPONENTS="main contrib non-free"
     if $(echo "$STABLE_CODENAME stable" | grep -q $DIST); then
         OTHERMIRROR="$OTHERMIRROR | deb $MIRRORSITE $STABLE_BACKPORTS_SUITE $COMPONENTS"
@@ -117,7 +121,8 @@ elif $(echo ${UBUNTU_SUITES[@]} | grep -q $DIST); then
     OSNAME=ubuntu
 
     if [[ "$ARCH" == "amd64" || "$ARCH" == "i386" ]]; then
-        MIRRORSITE=${SET_MIRRORSITE="http://archive.ubuntu.com/ubuntu/"}
+        #MIRRORSITE=${SET_MIRRORSITE="http://archive.ubuntu.com/$OSNAME/"}
+        MIRRORSITE=${SET_MIRRORSITE="http://mirror.yandex.ru/$OSNAME/"}
     else
         MIRRORSITE=${SET_MIRRORSITE="http://ports.ubuntu.com/ubuntu-ports/"}
     fi
@@ -126,6 +131,7 @@ elif $(echo ${UBUNTU_SUITES[@]} | grep -q $DIST); then
 
     OTHERMIRROR="$OTHERMIRROR | deb $MIRRORSITE $DIST-updates main restricted universe multiverse"
     OTHERMIRROR="$OTHERMIRROR | deb $MIRRORSITE $DIST-security main restricted universe multiverse"
+    OTHERMIRROR="$OTHERMIRROR | deb $MIRRORSITE $DIST-proposed main restricted universe multiverse"
 
     case "$DIST" in
        "trusty" | "xenial" )
