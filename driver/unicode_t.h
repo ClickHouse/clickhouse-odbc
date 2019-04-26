@@ -3,6 +3,10 @@
 #include <codecvt>
 #include <locale>
 
+#if CMAKE_BUILD
+#    include "config_cmake.h"
+#endif
+
 #if defined(UNICODE)
 using MYTCHAR = std::remove_pointer<LPWSTR>::type;
 #    if ODBC_WCHAR

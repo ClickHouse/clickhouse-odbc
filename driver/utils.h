@@ -9,7 +9,7 @@
 
 inline void hex_print(std::ostream &stream, const std::string& s)
 {
-    stream << std::hex << std::setfill('0');
+    stream << "[" << s.size() << "] " << std::hex << std::setfill('0');
     for(unsigned char c : s)
         stream << std::setw(2) << static_cast<int>(c) << ' ';
     stream << std::dec << '\n';
@@ -74,8 +74,12 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
 hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(data))});
 
 #if defined(UNICODE)
-    return MY_UTF_T_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
+    //return MY_UTF_T_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
+const auto tmp = MY_STD_T_STRING(reinterpret_cast<const MY_STD_T_CHAR*>(data), symbols);
+LOG("CONV1:" <<  symbols << " : " << tmp.size());
+    return MY_UTF_T_CONVERT().to_bytes(tmp);
 #else
+LOG("CONV2" << symbols);
     return {reinterpret_cast<const char *>(data)};
 #endif
 }
