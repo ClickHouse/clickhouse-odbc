@@ -5,9 +5,17 @@
 # To build with your test unixodbc:
 # env CMAKE_FLAGS="-DODBC_LIBRARIES=$HOME/unixODBC-2.3.7/odbcinst/.libs/libodbcinst.so;$HOME/unixODBC-2.3.7/DriverManager/.libs/libodbc.so" USE_LIBS="unixodbc" sh -x ./test_unicode.sh
 
+set -x
+
 cd ..
  for lib in ${USE_LIBS=libiodbc unixodbc}; do
 
+    if [ "$lib" = "libiodbc" ]; then
+        CMAKE_FLAGS0=" -DFIND_IODBC_FIRST=1 "
+    fi
+    if [ "$lib" = "unixodbc" ]; then
+        CMAKE_FLAGS0=" -DFIND_UNIXODBC_FIRST=1 "
+    fi
 if [[ "$OSTYPE" == "darwin"* ]]; then
     if [ "$lib" = "libiodbc" ]; then
          brew unlink unixodbc
@@ -51,7 +59,7 @@ fi
         ln -sf ${build_dir} build
         cd build
         rm CMakeCache.txt
-        cmake .. -G Ninja $option -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} -DTEST_DSN_W=${TEST_DSN_W=clickhouse_localhost_w} $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS | tee log_cmake.log && ninja -j ${MAKEJ=$(distcc -j || nproc || sysctl -n hw.ncpu || echo 4)} | tee log_build.log && ctest $CTEST_OPT | tee log_test.log
+        cmake .. -G Ninja $option -DCMAKE_BUILD_TYPE=$type -DTEST_DSN=${TEST_DSN=clickhouse_localhost} -DTEST_DSN_W=${TEST_DSN_W=clickhouse_localhost_w} $CMAKE_COMPILER_FLAGS $CMAKE_FLAGS0 $CMAKE_FLAGS | tee log_cmake.log && ninja -j ${MAKEJ=$(distcc -j || nproc || sysctl -n hw.ncpu || echo 4)} | tee log_build.log && ctest $CTEST_OPT | tee log_test.log
         cd ..
       done
     done

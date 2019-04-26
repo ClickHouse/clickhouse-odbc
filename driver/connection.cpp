@@ -130,6 +130,8 @@ void Connection::init(const std::string & dsn_,
 void Connection::init(const std::string & connection_string) {
     /// connection_string - string of the form `DSN=ClickHouse;UID=default;PWD=password`
 
+LOG("Connection::init" << connection_string);
+
     const char * pos = connection_string.data();
     const char * end = pos + connection_string.size();
 
@@ -186,7 +188,7 @@ void Connection::init(const std::string & connection_string) {
         else if (key_lower == "calocation")
             caLocation = current_value.toString();
     }
-
+LOG(".");
     init();
 }
 

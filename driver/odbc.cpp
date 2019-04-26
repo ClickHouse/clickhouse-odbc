@@ -62,6 +62,8 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
                      << /* " connection_str_out=" << connection_str_out << */ " " << connection_str_out_max_size);
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
+LOG("go init");
+hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(connection_str_in)), static_cast<size_t>(connection_str_in_size)});
         connection.init(stringFromSQLSymbols(connection_str_in, connection_str_in_size));
         // Copy complete connection string.
         fillOutputPlatformString(

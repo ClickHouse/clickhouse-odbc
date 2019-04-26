@@ -5,7 +5,15 @@
 #include "platform.h"
 #include "string_ref.h"
 #include "unicode_t.h"
+#include <iomanip>
 
+inline void hex_print(std::ostream &stream, const std::string& s)
+{
+    stream << std::hex << std::setfill('0');
+    for(unsigned char c : s)
+        stream << std::setw(2) << static_cast<int>(c) << ' ';
+    stream << std::dec << '\n';
+}
 
 /** Checks `handle`. Catches exceptions and puts them into the DiagnosticRecord.
   */
@@ -62,6 +70,8 @@ template <typename SIZE_TYPE = decltype(SQL_NTS)>
 std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
     if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
         return {};
+
+hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(data))});
 
 #if defined(UNICODE)
     return MY_UTF_T_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
@@ -240,12 +250,3 @@ inline RETCODE fillOutputNULL(PTR out_value, SQLLEN out_value_max_length, SQLLEN
 #    define FUNCTION_MAYBE_W(NAME) NAME
 #endif
 
-/*
-inline void hex_print(std::ofstream &stream, const std::string& s)
-{
-    stream << std::hex << std::setfill('0');
-    for(unsigned char c : s)
-        stream << std::setw(2) << static_cast<int>(c) << ' ';
-    stream << std::dec << '\n';
-}
-*/
