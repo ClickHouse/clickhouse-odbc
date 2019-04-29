@@ -274,8 +274,14 @@ RETCODE fillOutputUSC2String(
 #else
     using CharType = char16_t;
 #endif
+    //using CharType = MY_STD_T_CHAR;
 
-    return fillOutputStringImpl(std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value),
+    return fillOutputStringImpl(
+#if ODBC_IODBC
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(value),
+#else
+        std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value),
+#endif
         out_value,
         out_value_max_length,
         out_value_length,
