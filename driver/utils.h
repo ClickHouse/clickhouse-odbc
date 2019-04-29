@@ -148,7 +148,7 @@ LOG("CONV2" << symbols);
 
 template <typename SIZE_TYPE = decltype(SQL_NTS)>
 std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
-#if ODBC_IODBC
+#if ODBC_CHAR16
     LOG("stringFromSQLSymbols: use 16" << symbols);
     return stringFromChar16String(data, symbols);
 #else
@@ -160,11 +160,11 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
 template <typename SIZE_TYPE = decltype(SQL_NTS)>
 std::string stringFromSQLSymbols2(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
 //#if defined(_IODBCUNIX_H)
-#if ODBC_IODBC
-    LOG("stringFromSQLSymbols2: use 16" << symbols);
+#if ODBC_CHAR16
+    LOG("stringFromSQLSymbols2: use 16:" << symbols);
     auto ret = stringFromChar16String(data, symbols);
 #else
-    LOG("stringFromSQLSymbols2: use T" << symbols);
+    LOG("stringFromSQLSymbols2: use T:" << symbols);
     auto ret = stringFromSQLSymbols(data, symbols);
 #endif
     return ret;
@@ -277,7 +277,7 @@ RETCODE fillOutputUSC2String(
     //using CharType = MY_STD_T_CHAR;
 
     return fillOutputStringImpl(
-#if ODBC_IODBC
+#if ODBC_CHAR16
         std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(value),
 #else
         std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value),
