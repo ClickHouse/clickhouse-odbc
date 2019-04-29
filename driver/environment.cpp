@@ -87,6 +87,9 @@ Environment::Environment() {
 #if ODBC_IODBC
         report += " ODBC_IODBC";
 #endif
+#if ODBC_CHAR16
+        report += " ODBC_CHAR16";
+#endif
 #if ODBC_UNIXODBC
         report += " ODBC_UNIXODBC";
 #endif
