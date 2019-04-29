@@ -7,7 +7,13 @@
 #include "unicode_t.h"
 #include <iomanip>
 
-inline void hex_print(std::ostream &stream, const std::string& s)
+template<
+    class CharT,
+    class Traits = std::char_traits<CharT>,
+    class Allocator = std::allocator<CharT>
+> 
+inline void hex_print(std::ostream &stream, const std::basic_string<CharT, Traits, Allocator>& s)
+//inline void hex_print(std::ostream &stream, const std::string& s)
 {
     stream << "[" << s.size() << "] " << std::hex << std::setfill('0');
     for(unsigned char c : s)
@@ -67,7 +73,7 @@ static const char * nextKeyValuePair(const char * data, const char * end, String
 }
 
 template <typename SIZE_TYPE = decltype(SQL_NTS)>
-std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
+std::string stringFromChar16String(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
     if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
         return {};
 
@@ -75,9 +81,57 @@ hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const vo
 
 #if defined(UNICODE)
     //return MY_UTF_T_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
+// std::wstring_convert<std::codecvt_utf8_utf16<wide_char_t>, wide_char_t>().from_bytes(in);
+auto r = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(reinterpret_cast<const char16_t *>(data));
+LOG("CONV1.2:" << r);
+return r;
 const auto tmp = MY_STD_T_STRING(reinterpret_cast<const MY_STD_T_CHAR*>(data), symbols);
 LOG("CONV1:" <<  symbols << " : " << tmp.size());
+hex_print(log_stream, tmp);
     return MY_UTF_T_CONVERT().to_bytes(tmp);
+#else
+LOG("CONV2" << symbols);
+    return {reinterpret_cast<const char *>(data)};
+#endif
+}
+
+template <typename SIZE_TYPE = decltype(SQL_NTS)>
+std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
+    if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
+        return {};
+
+    if (symbols == SQL_NTS)
+    {
+#if defined(UNICODE)
+        symbols = wcslen(reinterpret_cast<const wchar_t*>(data));
+#else
+        symbols = strlen(reinterpret_cast<const char*>(data));
+#endif
+        // LOG(__FUNCTION__ << " NTS symbols=" << symbols << " sizeof(SQLTCHAR)=" << sizeof(SQLTCHAR) );
+    }
+    else if (symbols < 0)
+        throw std::runtime_error("invalid size of string : " + std::to_string(symbols));
+
+
+hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(data)), static_cast<size_t>(symbols)});
+
+#if defined(UNICODE)
+    //return MY_UTF_T_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
+// std::wstring_convert<std::codecvt_utf8_utf16<wide_char_t>, wide_char_t>().from_bytes(in);
+
+/*std::u16string tmpt{reinterpret_cast<const char16_t *>(data), static_cast<size_t>(symbols)};
+auto r = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(tmpt);
+//auto r = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(reinterpret_cast<const char16_t *>(data));
+LOG("CONV1.3: [symbols=" << symbols << "]" << r);
+return r;
+*/
+const auto tmp = MY_STD_T_STRING(reinterpret_cast<const MY_STD_T_CHAR*>(data), symbols);
+LOG("CONV1.31:" <<  symbols << " : " << tmp.size());
+hex_print(log_stream, tmp);
+auto r = MY_UTF_T_CONVERT().to_bytes(tmp);
+LOG("CONV1.3: [symbols=" << symbols << "]" << r);
+    return r;
+
 #else
 LOG("CONV2" << symbols);
     return {reinterpret_cast<const char *>(data)};

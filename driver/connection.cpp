@@ -197,19 +197,29 @@ void Connection::loadConfiguration() {
         data_source = "ClickHouse";
 
     ConnInfo ci;
+LOG("conn stoch1");
     stringToTCHAR(data_source, ci.dsn);
+LOG("conn stoch2");
     getDSNinfo(&ci, true);
+LOG("conn stoch3");
 
     auto tracefile = stringFromMYTCHAR(ci.tracefile);
     {
+LOG("tracefile=" << tracefile);
+
         auto str = stringFromMYTCHAR(ci.trace);
+LOG("trace=" << str);
         if (!str.empty())
             log_enabled = !(str == "0" || str == "No" || str == "no");
         if (log_enabled && !tracefile.empty() && tracefile != log_file) {
             log_file = tracefile;
+
+LOG("log_file=" << log_file);
+
             log_stream = std::ofstream(log_file, std::ios::out | std::ios::app);
         }
     }
+LOG("conn stoch4");
     if (url.empty())
         url = stringFromMYTCHAR(ci.url);
     if (!port && ci.port[0] != 0) {
