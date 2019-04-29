@@ -13,7 +13,7 @@
 #define INI_PASSWORD TEXT("Password") /* Default Password */
 #define INI_PORT TEXT("Port")         /* Port on which the ClickHouse is listening */
 #define INI_READONLY TEXT("ReadOnly") /* Database is read only */
-#define INI_PROTOCOL TEXT("Protocol") /* What protocol (6.2) */
+//#define INI_PROTOCOL TEXT("Protocol") /* What protocol (6.2) */
 #define INI_TIMEOUT TEXT("Timeout")
 #define INI_SSLMODE TEXT("SSLMode") /* Use 'require' for https connections */
 #define INI_DSN TEXT("ClickHouse")

@@ -222,6 +222,7 @@ LOG("log_file=" << log_file);
 LOG("conn stoch4");
     if (url.empty())
         url = stringFromMYTCHAR(ci.url);
+LOG("conn stoch5");
     if (!port && ci.port[0] != 0) {
         const std::string string = stringFromMYTCHAR(ci.port);
         if (!string.empty()) {

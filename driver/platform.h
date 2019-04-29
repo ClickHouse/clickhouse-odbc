@@ -70,7 +70,11 @@
 #        endif
 #    endif
 #    if defined(UNICODE)
+#      if defined(_IODBCUNIX_H)
+#        define TEXT(value) L"" value
+#      else
 #        define TEXT(value) u"" value
+#      endif
 #    else
 #        define TEXT(value) value
 #    endif

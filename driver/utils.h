@@ -96,10 +96,13 @@ LOG("CONV2" << symbols);
 }
 
 template <typename SIZE_TYPE = decltype(SQL_NTS)>
-std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
+std::string stringFromSQLTSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
     if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
         return {};
 
+
+
+/*
     if (symbols == SQL_NTS)
     {
 #if defined(UNICODE)
@@ -111,12 +114,17 @@ std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
     }
     else if (symbols < 0)
         throw std::runtime_error("invalid size of string : " + std::to_string(symbols));
+*/
 
 
+LOG("stringFromSQLSymbols: CONV1.30: [symbols=" << symbols << "]");
+
+if (symbols > 0)
 hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(data)), static_cast<size_t>(symbols)});
+//hex_print(log_stream, static_cast<const char *>(static_cast<const void *>(data)));
 
 #if defined(UNICODE)
-    //return MY_UTF_T_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
+    return MY_UTF_T_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
 // std::wstring_convert<std::codecvt_utf8_utf16<wide_char_t>, wide_char_t>().from_bytes(in);
 
 /*std::u16string tmpt{reinterpret_cast<const char16_t *>(data), static_cast<size_t>(symbols)};
@@ -139,6 +147,30 @@ LOG("CONV2" << symbols);
 }
 
 template <typename SIZE_TYPE = decltype(SQL_NTS)>
+std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
+#if ODBC_IODBC
+    LOG("stringFromSQLSymbols: use 16" << symbols);
+    return stringFromChar16String(data, symbols);
+#else
+    return stringFromSQLTSymbols(data, symbols);
+#endif
+}
+
+
+template <typename SIZE_TYPE = decltype(SQL_NTS)>
+std::string stringFromSQLSymbols2(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
+//#if defined(_IODBCUNIX_H)
+#if ODBC_IODBC
+    LOG("stringFromSQLSymbols2: use 16" << symbols);
+    auto ret = stringFromChar16String(data, symbols);
+#else
+    LOG("stringFromSQLSymbols2: use T" << symbols);
+    auto ret = stringFromSQLSymbols(data, symbols);
+#endif
+    return ret;
+}
+
+template <typename SIZE_TYPE = decltype(SQL_NTS)>
 std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size = SQL_NTS) {
     if (!data || size == 0)
         return {};
@@ -157,12 +189,14 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size = SQL_NTS) {
 }
 
 inline std::string stringFromMYTCHAR(MYTCHAR * data) {
-    return stringFromSQLSymbols(reinterpret_cast<SQLTCHAR *>(data));
+    return stringFromSQLTSymbols(reinterpret_cast<SQLTCHAR *>(data));
 }
 
+/*
 inline std::string stringFromTCHAR(SQLTCHAR * data) {
     return stringFromSQLSymbols(data);
 }
+*/
 
 template <size_t Len, typename STRING>
 void stringToTCHAR(const std::string & data, STRING (&result)[Len]) {
