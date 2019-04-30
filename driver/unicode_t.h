@@ -36,6 +36,6 @@ using MY_STD_T_CHAR = char;
 
 #if ODBC_WCHAR
 using MY_UTF_W_CONVERT = std::wstring_convert<std::codecvt_utf8<MY_STD_W_CHAR>, MY_STD_T_CHAR>;
-#else
+#elif defined(UNICODE)
 using MY_UTF_W_CONVERT = std::wstring_convert<std::codecvt_utf8_utf16<MY_STD_W_CHAR>, MY_STD_T_CHAR>;
 #endif
