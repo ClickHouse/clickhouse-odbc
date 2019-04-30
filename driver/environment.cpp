@@ -1,20 +1,22 @@
 #include "environment.h"
 
+//#if __has_include("config_cmake.h") // requre c++17
+#if CMAKE_BUILD
+#    include "config_cmake.h"
+#endif
+
 #include <cstdio>
 #include <ctime>
 #include <sstream>
 #include <string>
 #include "win/version.h"
+#include "unicode_t.h"
 
 #if defined(_unix_)
 #    include <pwd.h>
 #    include <unistd.h>
 #endif
 
-//#if __has_include("config_cmake.h") // requre c++17
-#if CMAKE_BUILD
-#    include "config_cmake.h"
-#endif
 
 const std::map<std::string, TypeInfo> Environment::types_info = {
     {"UInt8", TypeInfo {"TINYINT", true, SQL_TINYINT, 3, 1}},

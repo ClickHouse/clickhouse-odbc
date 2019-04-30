@@ -3,8 +3,14 @@
 #include <codecvt>
 #include <locale>
 
+#include "platform.h"
+
 #if CMAKE_BUILD
 #    include "config_cmake.h"
+#endif
+
+#if defined(_win_) && defined(UNICODE)
+#    define ODBC_WCHAR 1
 #endif
 
 #if ODBC_WCHAR
