@@ -72,6 +72,7 @@ static const char * nextKeyValuePair(const char * data, const char * end, String
     return value_end;
 }
 
+#if ODBC_CHAR16
 template <typename SIZE_TYPE = decltype(SQL_NTS)>
 std::string stringFromChar16String(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
     if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
@@ -94,6 +95,7 @@ LOG("CONV2" << symbols);
     return {reinterpret_cast<const char *>(data)};
 #endif
 }
+#endif
 
 template <typename SIZE_TYPE = decltype(SQL_NTS)>
 std::string stringFromSQLTSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
