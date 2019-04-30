@@ -80,7 +80,7 @@ std::string stringFromChar16String(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
 hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(data))});
 
 #if defined(UNICODE)
-    //return MY_UTF_T_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
+    //return MY_UTF_W_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
 // std::wstring_convert<std::codecvt_utf8_utf16<wide_char_t>, wide_char_t>().from_bytes(in);
 auto r = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(reinterpret_cast<const char16_t *>(data));
 LOG("CONV1.2:" << r);
@@ -88,7 +88,7 @@ return r;
 const auto tmp = MY_STD_T_STRING(reinterpret_cast<const MY_STD_T_CHAR*>(data), symbols);
 LOG("CONV1:" <<  symbols << " : " << tmp.size());
 hex_print(log_stream, tmp);
-    return MY_UTF_T_CONVERT().to_bytes(tmp);
+    return MY_UTF_W_CONVERT().to_bytes(tmp);
 #else
 LOG("CONV2" << symbols);
     return {reinterpret_cast<const char *>(data)};
@@ -124,7 +124,7 @@ hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const vo
 //hex_print(log_stream, static_cast<const char *>(static_cast<const void *>(data)));
 
 #if defined(UNICODE)
-    return MY_UTF_T_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
+    return MY_UTF_W_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
 // std::wstring_convert<std::codecvt_utf8_utf16<wide_char_t>, wide_char_t>().from_bytes(in);
 
 /*std::u16string tmpt{reinterpret_cast<const char16_t *>(data), static_cast<size_t>(symbols)};
@@ -136,7 +136,7 @@ return r;
 const auto tmp = MY_STD_T_STRING(reinterpret_cast<const MY_STD_T_CHAR*>(data), symbols);
 LOG("CONV1.31:" <<  symbols << " : " << tmp.size());
 hex_print(log_stream, tmp);
-auto r = MY_UTF_T_CONVERT().to_bytes(tmp);
+auto r = MY_UTF_W_CONVERT().to_bytes(tmp);
 LOG("CONV1.3: [symbols=" << symbols << "]" << r);
     return r;
 
@@ -204,7 +204,7 @@ void stringToTCHAR(const std::string & data, STRING (&result)[Len]) {
     using CharType = MY_STD_T_CHAR;
     using StringType = MY_STD_T_STRING;
 
-    StringType tmp = MY_UTF_T_CONVERT().from_bytes(data);
+    StringType tmp = MY_UTF_W_CONVERT().from_bytes(data);
 #else
     const auto & tmp = data;
 #endif
@@ -235,6 +235,9 @@ RETCODE fillOutputStringImpl(
         else
             *out_value_length = symbols;
     }
+
+LOG("fillOutputStringImpl: " << symbols << " = " /* << value*/ );
+
 
     if (out_value_max_length < 0)
         return SQL_ERROR;
@@ -269,12 +272,16 @@ RETCODE fillOutputRawString(const std::string & value, PTR out_value, LENGTH out
 template <typename PTR, typename LENGTH>
 RETCODE fillOutputUSC2String(
     const std::string & value, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true) {
-#if ODBC_WCHAR || !defined(UNICODE)
+LOG("fillOutputUSC2String: " << out_value_max_length << " = " /*<< value*/);
+
+/*
+#if !ODBC_UNIXODBC && (ODBC_WCHAR || !defined(UNICODE))
     using CharType = wchar_t;
 #else
     using CharType = char16_t;
 #endif
-    //using CharType = MY_STD_T_CHAR;
+*/
+    using CharType = MY_STD_W_CHAR;
 
     return fillOutputStringImpl(
 #if ODBC_CHAR16
