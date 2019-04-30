@@ -13,7 +13,7 @@
 #    define ODBC_WCHAR 1
 #endif
 
-#if ODBC_WCHAR
+#if ODBC_WCHAR || _win_
 using MY_STD_W_STRING = std::wstring;
 using MY_STD_W_CHAR = wchar_t;
 #else
