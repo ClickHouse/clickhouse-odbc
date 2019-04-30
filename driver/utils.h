@@ -78,20 +78,22 @@ std::string stringFromChar16String(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS)
     if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
         return {};
 
-hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(data))});
+//hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(data))});
 
 #if defined(UNICODE)
     //return MY_UTF_W_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
 // std::wstring_convert<std::codecvt_utf8_utf16<wide_char_t>, wide_char_t>().from_bytes(in);
 auto r = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(reinterpret_cast<const char16_t *>(data));
-LOG("CONV1.2:" << r);
+LOG("stringFromChar16String 16:" << r);
 return r;
+/*
 const auto tmp = MY_STD_T_STRING(reinterpret_cast<const MY_STD_T_CHAR*>(data), symbols);
 LOG("CONV1:" <<  symbols << " : " << tmp.size());
 hex_print(log_stream, tmp);
     return MY_UTF_W_CONVERT().to_bytes(tmp);
+*/
 #else
-LOG("CONV2" << symbols);
+LOG("stringFromChar16String char:" << symbols);
     return {reinterpret_cast<const char *>(data)};
 #endif
 }
@@ -121,8 +123,7 @@ std::string stringFromSQLTSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) 
 
 LOG("stringFromSQLSymbols: CONV1.30: [symbols=" << symbols << "]");
 
-if (symbols > 0)
-hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(data)), static_cast<size_t>(symbols)});
+//if (symbols > 0) hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(data)), static_cast<size_t>(symbols)});
 //hex_print(log_stream, static_cast<const char *>(static_cast<const void *>(data)));
 
 #if defined(UNICODE)
@@ -135,12 +136,14 @@ auto r = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_
 LOG("CONV1.3: [symbols=" << symbols << "]" << r);
 return r;
 */
+/*
 const auto tmp = MY_STD_T_STRING(reinterpret_cast<const MY_STD_T_CHAR*>(data), symbols);
 LOG("CONV1.31:" <<  symbols << " : " << tmp.size());
 hex_print(log_stream, tmp);
 auto r = MY_UTF_W_CONVERT().to_bytes(tmp);
 LOG("CONV1.3: [symbols=" << symbols << "]" << r);
     return r;
+*/
 
 #else
 LOG("CONV2" << symbols);
