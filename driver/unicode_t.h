@@ -21,13 +21,10 @@ using MY_STD_W_STRING = std::u16string;
 using MY_STD_W_CHAR = char16_t;
 #endif
 
-
 #if defined(UNICODE)
 using MYTCHAR = std::remove_pointer<LPWSTR>::type;
 using MY_STD_T_STRING = MY_STD_W_STRING;
 using MY_STD_T_CHAR = MY_STD_W_CHAR;
-
-
 #else
 using MYTCHAR = std::remove_pointer<LPSTR>::type;
 using MY_STD_T_STRING = std::string;

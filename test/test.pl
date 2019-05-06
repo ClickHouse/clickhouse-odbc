@@ -161,10 +161,9 @@ test_one_value_as(fn('SUBSTRING', "'abcd'", 2,     2),     'bc');
 
 test_one_value_as(q{1+1}, 2);
 
-if ($is_wide) 
-{
+if ($is_wide) {
     test_one_string_value(
-    q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ}, 
+    q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ},
     'skip_header' # TODO! fix header encoding and enable
     );
 

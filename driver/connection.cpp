@@ -130,8 +130,6 @@ void Connection::init(const std::string & dsn_,
 void Connection::init(const std::string & connection_string) {
     /// connection_string - string of the form `DSN=ClickHouse;UID=default;PWD=password`
 
-LOG("Connection::init" << connection_string);
-
     const char * pos = connection_string.data();
     const char * end = pos + connection_string.size();
 
@@ -188,7 +186,7 @@ LOG("Connection::init" << connection_string);
         else if (key_lower == "calocation")
             caLocation = current_value.toString();
     }
-LOG(".");
+
     init();
 }
 
@@ -197,32 +195,21 @@ void Connection::loadConfiguration() {
         data_source = "ClickHouse";
 
     ConnInfo ci;
-LOG("conn stoch1");
     stringToTCHAR(data_source, ci.dsn);
-LOG("conn stoch2");
     getDSNinfo(&ci, true);
-LOG("conn stoch3");
 
     auto tracefile = stringFromMYTCHAR(ci.tracefile);
     {
-LOG("tracefile=" << tracefile);
-
         auto str = stringFromMYTCHAR(ci.trace);
-LOG("trace=" << str);
         if (!str.empty())
             log_enabled = !(str == "0" || str == "No" || str == "no");
         if (log_enabled && !tracefile.empty() && tracefile != log_file) {
             log_file = tracefile;
-
-LOG("log_file=" << log_file);
-
             log_stream = std::ofstream(log_file, std::ios::out | std::ios::app);
         }
     }
-LOG("conn stoch4");
     if (url.empty())
         url = stringFromMYTCHAR(ci.url);
-LOG("conn stoch5");
     if (!port && ci.port[0] != 0) {
         const std::string string = stringFromMYTCHAR(ci.port);
         if (!string.empty()) {

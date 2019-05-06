@@ -4,34 +4,21 @@
 #include <string.h>
 #include "utils.h"
 #include "log/log.h"
-#include "win/version.h"
-
-// ConnInfo::ConnInfo() { }
 
 void getDSNinfo(ConnInfo * ci, bool overwrite) {
 
-//        { auto rd = FUNCTION_MAYBE_W(SQLGetPrivateProfileString)                    \
-
 #define GET_CONFIG(NAME, INI_NAME, DEFAULT)                             \
     if (ci->NAME[0] == '\0' || overwrite)                               \
-        { auto rd = FUNCTION_MAYBE_W(SQLGetPrivateProfileString)        \
+        { auto bytes = FUNCTION_MAYBE_W(SQLGetPrivateProfileString)        \
     (ci->dsn,                                                           \
         static_cast<LPCTSTR>(static_cast<const void *>(INI_NAME)),      \
         static_cast<LPCTSTR>(static_cast<const void *>(TEXT(DEFAULT))), \
         ci->NAME,                                                       \
         sizeof(ci->NAME),                                               \
         static_cast<LPCTSTR>(static_cast<const void *>(ODBC_INI))); \
-        LOG("config: " << INI_NAME << " : " << STRING(NAME)); hex_print(log_stream, std::string(static_cast<const char*>(static_cast<const void *>(ci->NAME)), rd)); }
-
-        //LOG("config: " << STRING(NAME) << " : " << static_cast<const char*>(static_cast<const void *>(ci->NAME))); }
-
-
-/*
-#define GET_CONFIG(NAME, INI_NAME, DEFAULT) if (ci->NAME[0] == '\0' || overwrite) { \
-            auto rd = SQLGetPrivateProfileString(ci->dsn, INI_NAME, TEXT(DEFAULT), ci->NAME, sizeof(ci->NAME), ODBC_INI); \
-            LOG("config: " << STRING(NAME)); hex_print(log_stream, std::string(static_cast<const char*>(static_cast<const void *>(ci->NAME)), rd)); \
         }
-*/
+
+        // LOG("config: " << INI_NAME << " : " << STRING(NAME)); hex_print(log_stream, std::string(static_cast<const char*>(static_cast<const void *>(ci->NAME)), bytes));
 
     GET_CONFIG(desc, INI_KDESC, "");
     GET_CONFIG(url, INI_URL, "");

@@ -62,23 +62,10 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
                      << /* " connection_str_out=" << connection_str_out << */ " " << connection_str_out_max_size);
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
-LOG("go init");
-if (connection_str_in_size>0)
-hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(connection_str_in)), static_cast<size_t>(connection_str_in_size)});
-//auto str = stringFromSQLBytes(connection_str_in, connection_str_in_size);
-//auto str = stringFromSQLSymbols(connection_str_in, connection_str_in_size);
-/*
-#if defined(_IODBCUNIX_H)
-auto str = stringFromChar16String(connection_str_in, connection_str_in_size);
-#else
-auto str = stringFromSQLSymbols(connection_str_in, connection_str_in_size);
-#endif
-*/
-auto str = stringFromSQLSymbols2(connection_str_in, connection_str_in_size);
-LOG("connection_str=" << str);
-
-        connection.init(str);
-        //connection.init(stringFromSQLSymbols(connection_str_in, connection_str_in_size));
+        // if (connection_str_in_size > 0) hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(connection_str_in)), static_cast<size_t>(connection_str_in_size)});
+        auto connection_str = stringFromSQLSymbols2(connection_str_in, connection_str_in_size);
+        // LOG("connection_str=" << str);
+        connection.init(connection_str);
         // Copy complete connection string.
         fillOutputPlatformString(
             connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size, false);
@@ -91,15 +78,12 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * 
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
-LOG(__FUNCTION__ << "; 2;");
         const std::string & query = stringFromSQLSymbols2(statement_text, statement_text_size);
-LOG(__FUNCTION__ << "; 3;" << query);
         if (!statement.isEmpty())
             throw std::runtime_error("Prepare called, but statement query is not empty.");
         if (query.empty())
             throw std::runtime_error("Prepare called with empty query.");
 
-LOG(__FUNCTION__ << "; 4;");
         statement.prepareQuery(query);
 
         LOG("query(" << query.size() << ") = [" << query << "]");
