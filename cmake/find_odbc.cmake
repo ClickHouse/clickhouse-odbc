@@ -49,7 +49,7 @@ set(ODBC_LIBRARIES_PATHS
 )
 
 # Macos cheat: libiodbc is always masked as odbc
-if(APPLE AND NOT FIND_UNIXODBC_FIRST)
+if((APPLE AND NOT FIND_UNIXODBC_FIRST) OR FIND_IODBC_FIRST)
     find_library(ODBC_LIBRARIES NAMES iodbc PATHS ${ODBC_LIBRARIES_PATHS})
 endif()
 

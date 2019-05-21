@@ -62,7 +62,10 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
                      << /* " connection_str_out=" << connection_str_out << */ " " << connection_str_out_max_size);
 
     return doWith<Connection>(connection_handle, [&](Connection & connection) {
-        connection.init(stringFromSQLSymbols(connection_str_in, connection_str_in_size));
+        // if (connection_str_in_size > 0) hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(connection_str_in)), static_cast<size_t>(connection_str_in_size)});
+        auto connection_str = stringFromSQLSymbols2(connection_str_in, connection_str_in_size);
+        // LOG("connection_str=" << str);
+        connection.init(connection_str);
         // Copy complete connection string.
         fillOutputPlatformString(
             connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size, false);
@@ -75,7 +78,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * 
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
     return doWith<Statement>(statement_handle, [&](Statement & statement) {
-        const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
+        const std::string & query = stringFromSQLSymbols2(statement_text, statement_text_size);
         if (!statement.isEmpty())
             throw std::runtime_error("Prepare called, but statement query is not empty.");
         if (query.empty())
@@ -1276,8 +1279,7 @@ RETCODE SQL_API SQLEndTran(SQLSMALLINT HandleType, SQLHANDLE Handle, SQLSMALLINT
     return SQL_ERROR;
 }
 
-
-RETCODE SQL_API SQLError(SQLHENV hDrvEnv,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLError)(SQLHENV hDrvEnv,
     SQLHDBC hDrvDbc,
     SQLHSTMT hDrvStmt,
     SQLTCHAR * szSqlState,
@@ -1301,7 +1303,7 @@ RETCODE SQL_API SQLGetDescField(SQLHDESC DescriptorHandle,
 }
 
 
-RETCODE SQL_API SQLGetDescRec(SQLHDESC DescriptorHandle,
+RETCODE SQL_API FUNCTION_MAYBE_W(SQLGetDescRec)(SQLHDESC DescriptorHandle,
     SQLSMALLINT RecordNumber,
     SQLTCHAR * Name,
     SQLSMALLINT BufferLength,

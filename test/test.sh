@@ -26,6 +26,8 @@ function q {
     echo "$*" | $RUNNER $DSN $RUNNER_PARAMS0 $RUNNER_PARAMS
 }
 
+echo "Using: $RUNNER $DSN $RUNNER_PARAMS0 $RUNNER_PARAMS"
+
 q "SELECT * FROM system.build_options;"
 q "CREATE DATABASE IF NOT EXISTS test;"
 q "DROP TABLE IF EXISTS test.odbc1;"

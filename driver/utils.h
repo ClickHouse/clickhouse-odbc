@@ -5,7 +5,20 @@
 #include "platform.h"
 #include "string_ref.h"
 #include "unicode_t.h"
+#include <iomanip>
 
+template<
+    class CharT,
+    class Traits = std::char_traits<CharT>,
+    class Allocator = std::allocator<CharT>
+>
+inline void hex_print(std::ostream &stream, const std::basic_string<CharT, Traits, Allocator>& s)
+{
+    stream << "[" << s.size() << "] " << std::hex << std::setfill('0');
+    for(unsigned char c : s)
+        stream << std::setw(2) << static_cast<int>(c) << ' ';
+    stream << std::dec << '\n';
+}
 
 /** Checks `handle`. Catches exceptions and puts them into the DiagnosticRecord.
   */
@@ -58,15 +71,48 @@ static const char * nextKeyValuePair(const char * data, const char * end, String
     return value_end;
 }
 
+#if ODBC_CHAR16
 template <typename SIZE_TYPE = decltype(SQL_NTS)>
-std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
+std::string stringFromChar16String(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
     if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
         return {};
 
 #if defined(UNICODE)
-    return MY_UTF_T_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
+    return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(reinterpret_cast<const char16_t *>(data));
 #else
     return {reinterpret_cast<const char *>(data)};
+#endif
+}
+#endif
+
+template <typename SIZE_TYPE = decltype(SQL_NTS)>
+std::string stringFromSQLTSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
+    if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
+        return {};
+
+#if defined(UNICODE)
+    return MY_UTF_W_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
+#else
+    return {reinterpret_cast<const char *>(data)};
+#endif
+}
+
+template <typename SIZE_TYPE = decltype(SQL_NTS)>
+std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
+#if ODBC_CHAR16
+    return stringFromChar16String(data, symbols);
+#else
+    return stringFromSQLTSymbols(data, symbols);
+#endif
+}
+
+
+template <typename SIZE_TYPE = decltype(SQL_NTS)>
+std::string stringFromSQLSymbols2(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
+#if ODBC_CHAR16
+    return stringFromChar16String(data, symbols);
+#else
+    return stringFromSQLSymbols(data, symbols);
 #endif
 }
 
@@ -89,12 +135,14 @@ std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size = SQL_NTS) {
 }
 
 inline std::string stringFromMYTCHAR(MYTCHAR * data) {
-    return stringFromSQLSymbols(reinterpret_cast<SQLTCHAR *>(data));
+    return stringFromSQLTSymbols(reinterpret_cast<SQLTCHAR *>(data));
 }
 
+/*
 inline std::string stringFromTCHAR(SQLTCHAR * data) {
     return stringFromSQLSymbols(data);
 }
+*/
 
 template <size_t Len, typename STRING>
 void stringToTCHAR(const std::string & data, STRING (&result)[Len]) {
@@ -102,7 +150,7 @@ void stringToTCHAR(const std::string & data, STRING (&result)[Len]) {
     using CharType = MY_STD_T_CHAR;
     using StringType = MY_STD_T_STRING;
 
-    StringType tmp = MY_UTF_T_CONVERT().from_bytes(data);
+    StringType tmp = MY_UTF_W_CONVERT().from_bytes(data);
 #else
     const auto & tmp = data;
 #endif
@@ -133,6 +181,9 @@ RETCODE fillOutputStringImpl(
         else
             *out_value_length = symbols;
     }
+
+LOG("fillOutputStringImpl: " << symbols << " = " /* << value*/ );
+
 
     if (out_value_max_length < 0)
         return SQL_ERROR;
@@ -167,13 +218,14 @@ RETCODE fillOutputRawString(const std::string & value, PTR out_value, LENGTH out
 template <typename PTR, typename LENGTH>
 RETCODE fillOutputUSC2String(
     const std::string & value, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true) {
-#if ODBC_WCHAR || !defined(UNICODE)
-    using CharType = wchar_t;
-#else
-    using CharType = char16_t;
-#endif
+    using CharType = MY_STD_W_CHAR;
 
-    return fillOutputStringImpl(std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value),
+    return fillOutputStringImpl(
+#if ODBC_CHAR16
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(value),
+#else
+        std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value),
+#endif
         out_value,
         out_value_max_length,
         out_value_length,
@@ -240,12 +292,3 @@ inline RETCODE fillOutputNULL(PTR out_value, SQLLEN out_value_max_length, SQLLEN
 #    define FUNCTION_MAYBE_W(NAME) NAME
 #endif
 
-/*
-inline void hex_print(std::ofstream &stream, const std::string& s)
-{
-    stream << std::hex << std::setfill('0');
-    for(unsigned char c : s)
-        stream << std::setw(2) << static_cast<int>(c) << ' ';
-    stream << std::dec << '\n';
-}
-*/

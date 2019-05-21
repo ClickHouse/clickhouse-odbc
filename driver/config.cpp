@@ -3,19 +3,22 @@
 #include <odbcinst.h>
 #include <string.h>
 #include "utils.h"
-
-// ConnInfo::ConnInfo() { }
+#include "log/log.h"
 
 void getDSNinfo(ConnInfo * ci, bool overwrite) {
+
 #define GET_CONFIG(NAME, INI_NAME, DEFAULT)                             \
     if (ci->NAME[0] == '\0' || overwrite)                               \
-        FUNCTION_MAYBE_W(SQLGetPrivateProfileString)                    \
+        { auto bytes = FUNCTION_MAYBE_W(SQLGetPrivateProfileString)        \
     (ci->dsn,                                                           \
         static_cast<LPCTSTR>(static_cast<const void *>(INI_NAME)),      \
         static_cast<LPCTSTR>(static_cast<const void *>(TEXT(DEFAULT))), \
         ci->NAME,                                                       \
         sizeof(ci->NAME),                                               \
-        static_cast<LPCTSTR>(static_cast<const void *>(ODBC_INI)));
+        static_cast<LPCTSTR>(static_cast<const void *>(ODBC_INI))); \
+        }
+
+        // LOG("config: " << INI_NAME << " : " << STRING(NAME)); hex_print(log_stream, std::string(static_cast<const char*>(static_cast<const void *>(ci->NAME)), bytes));
 
     GET_CONFIG(desc, INI_KDESC, "");
     GET_CONFIG(url, INI_URL, "");

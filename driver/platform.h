@@ -5,8 +5,6 @@
 #    include "config_cmake.h"
 #endif
 
-#include <string>
-
 #if defined(__linux__)
 #    define _linux_ 1
 #elif defined(_WIN64)
@@ -49,7 +47,6 @@
 
 #if defined(_win_)
 #    if defined(UNICODE)
-#        define ODBC_WCHAR 1
 #        include <sqlucode.h>
 
 #        define strcpy wcscpy_s
@@ -70,7 +67,11 @@
 #        endif
 #    endif
 #    if defined(UNICODE)
+#      if defined(ODBC_CHAR16)
+#        define TEXT(value) L"" value
+#      else
 #        define TEXT(value) u"" value
+#      endif
 #    else
 #        define TEXT(value) value
 #    endif

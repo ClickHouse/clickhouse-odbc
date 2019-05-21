@@ -15,6 +15,10 @@ if (UNICODE)
     if (ODBC_UNIXODBC)
         option (SQL_WCHART_CONVERT "Unixodbc SQL_WCHART_CONVERT (use four bytes TCHAR)" 0)
     endif ()
+    if(ODBC_IODBC)
+        #option (ODBC_CHAR16 "Strange option for iodbc" 1)
+    endif()
+
     set(_config_add w)
 else ()
     set(UNICODE 0)
@@ -33,11 +37,11 @@ if (UNICODE)
     if (ODBC_UNIXODBC AND NOT SQL_WCHART_CONVERT)
         # char16
     else()
-        set(ODBC_WCHAR 1)
+        #set(ODBC_WCHAR 1) # APPLE?
     endif()
 endif()
 
-message (STATUS "${libname}: UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_CONVERT} ODBC_WCHAR=${ODBC_WCHAR}")
+message (STATUS "${libname}: UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_CONVERT} ODBC_WCHAR=${ODBC_WCHAR} ODBC_CHAR16=${ODBC_CHAR16}")
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/config_cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/config_cmake${_config_add}.h)
 
@@ -64,6 +68,9 @@ if (UNICODE)
     if (SQL_WCHART_CONVERT)
         target_compile_definitions(${libname} PUBLIC -DSQL_WCHART_CONVERT=1)
     endif ()
+    #if(ODBC_IODBC)
+    #    target_compile_definitions(${libname} PUBLIC -DSQL_NOUNICODEMAP=1)
+    #endif()
 endif ()
 
 target_compile_definitions (${libname} PRIVATE "-DCMAKE_BUILD=1")
