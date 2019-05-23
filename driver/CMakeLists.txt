@@ -32,8 +32,8 @@ endif ()
 # not unicode   char        1
 # unicode:
 # win           wchar_t     2
-# iodbc LINUX   wchar_t     2
-# iodbc APPLE   wchar_t     4
+# iodbc LINUX   wchar_t     4           wchar_t != TCHAR
+# iodbc APPLE   wchar_t     4           wchar_t == TCHAR
 # unixodbc      wchar_t     4           true == SQL_WCHART_CONVERT
 # unixodbc      char16_t    2           false == SQL_WCHART_CONVERT
 
