@@ -18,6 +18,9 @@ if (UNICODE)
     if(ODBC_IODBC)
         #option (ODBC_CHAR16 "Strange option for iodbc" 1)
     endif()
+    if (ODBC_IODBC AND APPLE)
+        set(ODBC_WCHAR 1)
+    endif()
 
     set(_config_add w)
 else ()
@@ -29,17 +32,10 @@ endif ()
 # not unicode   char        1
 # unicode:
 # win           wchar_t     2
-# iodbc         wchar_t     4
+# iodbc LINUX   wchar_t     2
+# iodbc APPLE   wchar_t     4
 # unixodbc      wchar_t     4           true == SQL_WCHART_CONVERT
 # unixodbc      char16_t    2           false == SQL_WCHART_CONVERT
-
-if (UNICODE)
-    if (ODBC_UNIXODBC AND NOT SQL_WCHART_CONVERT)
-        # char16
-    else()
-        #set(ODBC_WCHAR 1) # APPLE?
-    endif()
-endif()
 
 message (STATUS "${libname}: UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_CONVERT} ODBC_WCHAR=${ODBC_WCHAR} ODBC_CHAR16=${ODBC_CHAR16}")
 
