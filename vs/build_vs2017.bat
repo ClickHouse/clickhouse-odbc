@@ -1,20 +1,19 @@
 :: Install:
 :: https://git-scm.com/download/win
-:: https://www.visualstudio.com/downloads/ - Visual Studio Community 2019 - Select components:
-::  + MSVC v142 - VS 2019 C++ x64/x86 build tools (v14.21)
-::  + Windows 10 SDK
-::  + Windows Universal CRT SDK
-::  + C++ 2019 Redistributable MSMs
-:: Microsoft .NET Framework 3.5 : https://www.microsoft.com/en-us/download/details.aspx?id=21
-:: http://wixtoolset.org/releases/ - "Download WIX X.XX.X" and "WiX Toolset Visual Studio 2019 Extension"
+:: Microsoft .NET Framework 3.5 : Settings - System - Apps & features - Manage optional features - Add a feature - Microsoft .NET Framework 3.5  // <-- Check and fix
+:: http://wixtoolset.org/releases/ - "Download WIX X.XX.X" and "WiX Toolset Visual Studio 2017 Extension"
+:: https://www.visualstudio.com/downloads/ - Visual Studio Community 2017 - Desktop development with C++
+::                                                                           + Windows 8.1 SDK and UCRT SDK
 
 :: Also useful for tests:
 :: https://msdn.microsoft.com/en-us/data/aa937730  - Microsoft Data Access Components (MDAC) 2.8 Software Development Kit
 
-:: call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.18362.0
 
-SET PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\
-SET PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\
+
+:: call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x64 8.1
+
+SET PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\
+SET PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\
 
 devenv /upgrade odbc64.sln
 devenv /upgrade odbc32.sln

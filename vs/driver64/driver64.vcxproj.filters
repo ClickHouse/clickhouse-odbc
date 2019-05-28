@@ -113,6 +113,9 @@
     <ClCompile Include="..\..\driver\environment.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\driver\log\log.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\driver\win\resource.rc">
