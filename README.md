@@ -111,7 +111,7 @@ url = https://localhost
 #certificatefile =
 #calocation =
 
-# Timeout for http queries to ClickHouse server
+# Timeout for http queries to ClickHouse server (default is 30 seconds)
 #timeout=60
 
 #trace=1
