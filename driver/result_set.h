@@ -82,8 +82,6 @@ public:
 private:
     std::istream & in();
 
-    void throwIncompleteResult() const;
-
     bool readNextBlock();
     bool readNextBlockCache();
 

@@ -246,7 +246,3 @@ bool ResultSet::readNextBlock() {
     iterator = current_block.data.begin();
     return !current_block.data.empty();
 }
-
-void ResultSet::throwIncompleteResult() const {
-    throw std::runtime_error("Incomplete result received.");
-}
