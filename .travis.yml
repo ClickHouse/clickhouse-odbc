@@ -103,7 +103,7 @@ matrix:
 
 install:
   - eval "${MATRIX_EVAL}"
-  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu artful main universe"; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu bionic main universe"; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1); fi
   # Need in binulils bacause /usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/libodbc.a(logOpen.o): unrecognized relocation (0x2a) in section `.text'
   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-get install -y $ODBC_LIB binutils | tee build.log 2>&1 || (cat build.log && exit 1); fi
