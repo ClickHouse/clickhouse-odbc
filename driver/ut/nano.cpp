@@ -124,6 +124,7 @@ void run_test(nanodbc::string const & connection_string) {
             auto results = execute(connection, NANODBC_TEXT("select * from simple_test;"));
             show(results);
         }
+        execute(connection, NANODBC_TEXT("CREATE DATABASE IF NOT EXISTS test;"));
         execute(connection, NANODBC_TEXT("DROP TABLE IF EXISTS test.strings;"));
         execute(connection, NANODBC_TEXT("CREATE TABLE test.strings (id UInt64, str String, dt DateTime DEFAULT now()) engine = Log;"));
         execute(connection, NANODBC_TEXT("INSERT INTO test.strings SELECT number, hex(number+100000), 1 FROM system.numbers LIMIT 100;"));
