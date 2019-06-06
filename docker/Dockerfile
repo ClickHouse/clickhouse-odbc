@@ -3,6 +3,8 @@ FROM yandex/clickhouse-server
 # image to build & test clickhouse odbc on ubuntu & docker
 # install all needed build & test dependancies
 
+# docker build . -t clickhouse-odbc-tester
+
 RUN apt-get update -y \
     && env DEBIAN_FRONTEND=noninteractive \
     && BUILD_PACKAGES="build-essential ninja-build libiodbc2-dev cmake git libltdl-dev perl libdbi-perl libdbd-odbc-perl python python-pyodbc" \
@@ -14,7 +16,7 @@ RUN git clone --recursive https://github.com/yandex/clickhouse-odbc \
 
 RUN mkdir -p clickhouse-odbc/build \
     && cd clickhouse-odbc/build \
-    && cmake -G Ninja -DTEST_DSN=clickhouse_localhost .. \
+    && cmake -G Ninja -DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w .. \
     && ninja
 
 RUN ln -s /clickhouse-odbc/build/driver/libclickhouseodbc.so /usr/local/lib/libclickhouseodbc.so \
@@ -22,6 +24,10 @@ RUN ln -s /clickhouse-odbc/build/driver/libclickhouseodbc.so /usr/local/lib/libc
     && echo '' >> ~/.odbc.ini \
     && echo '[clickhouse_localhost]' >> ~/.odbc.ini \
     && echo 'Driver=/usr/local/lib/libclickhouseodbc.so' >> ~/.odbc.ini \
+    && echo 'url=http://localhost' >> ~/.odbc.ini \
+    && echo '' >> ~/.odbc.ini \
+    && echo '[clickhouse_localhost_w]' >> ~/.odbc.ini \
+    && echo 'Driver=/usr/local/lib/libclickhouseodbcw.so' >> ~/.odbc.ini \
     && echo 'url=http://localhost' >> ~/.odbc.ini
 
 # put the test into docker-entrypoint-initdb.d to run the tests on container initialization
