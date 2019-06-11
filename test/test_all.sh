@@ -11,7 +11,7 @@ for compiler in ${USE_COMPILER=_gcc _clang}; do
         CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-8 clang++-7 clang++-6.0 clang++-5.0 clang++60 clang++50 clang++ | head -n1` -DCMAKE_C_COMPILER=`which clang-8 clang-7 clang-6.0 clang-5.0 clang60 clang50 clang | head -n1`"
     fi
     if [ "$compiler" = "_gcc" ]; then
-        CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which g++-9 g++-8 g++-7 g++8 g++7 g++ | head -n1` -DCMAKE_C_COMPILER=`which gcc-9 gcc-8 gcc-7 gcc8 gcc7 gcc | head -n1`"
+        CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which g++-9 g++-8 g++-7 g++9 g++8 g++7 g++ | head -n1` -DCMAKE_C_COMPILER=`which gcc-9 gcc-8 gcc-7 gcc9 gcc8 gcc7 gcc | head -n1`"
     fi
     for type in ${USE_TYPE=debug asan tsan ubsan release relwithdebinfo}; do
       for option in ""; do
