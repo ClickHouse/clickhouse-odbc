@@ -203,9 +203,13 @@ void Connection::loadConfiguration() {
         auto str = stringFromMYTCHAR(ci.trace);
         if (!str.empty())
             log_enabled = !(str == "0" || str == "No" || str == "no");
-        if (log_enabled && !tracefile.empty() && tracefile != log_file) {
+        if (log_enabled && !tracefile.empty() && (tracefile != log_file || !log_stream.is_open())) {
             log_file = tracefile;
             log_stream = std::ofstream(log_file, std::ios::out | std::ios::app);
+            if (!log_header.empty()) {
+                LOG(log_header);
+                log_header.clear();
+            }
         }
     }
     if (url.empty())

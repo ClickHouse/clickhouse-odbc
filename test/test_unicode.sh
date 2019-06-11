@@ -42,7 +42,6 @@ elif [ `which apt` ]; then
         sudo apt install -y unixodbc-dev unixodbc
     fi
 fi
-
   for compiler in ""; do
     if [ "$compiler" = "_clang" ]; then
         CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which clang++-6.0 clang++-5.0 clang++60 clang++50 clang++ | head -n1` -DCMAKE_C_COMPILER=`which clang-6.0 clang-5.0 clang60 clang50 clang | head -n1`"
@@ -50,7 +49,7 @@ fi
     if [ "$compiler" = "_gcc" ]; then
         CMAKE_COMPILER_FLAGS="-DCMAKE_CXX_COMPILER=`which g++-8 g++-7 g++8 g++7 g++ | head -n1` -DCMAKE_C_COMPILER=`which gcc-7 gcc-8 gcc8 gcc7 gcc | head -n1`"
     fi
-    for type in debug; do
+    for type in ${USE_TYPE=debug}; do
       for option in ""; do
         build_dir=build${compiler}_$type$option
         echo build $compiler $type $option in ${build_dir}
