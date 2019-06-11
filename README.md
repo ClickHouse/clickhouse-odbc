@@ -55,40 +55,45 @@ Please use cmake3 to build the project on CentOS 7. You can install it with `yum
 
 2. libclickhouseodbc.so will be at ```build/driver/libclickhouseodbc.so```
 
-```
+```bash
 mkdir -p build; cd build && cmake .. && make -j $(nproc || sysctl -n hw.ncpu || echo 4)
 ```
 
 ## Building (Linux Debian based .deb package)
-```
+```bash
 sudo apt install -y devscripts debhelper cmake ninja-build lsb-release unixodbc-dev
 debuild -us -uc -i --source-option=--format="3.0 (native)"
 ```
 or
-```
+```bash
 sudo apt install -y sudo pbuilder fakeroot debhelper debian-archive-keyring debian-keyring
 sudo pbuilder create --configfile debian/.pbuilderrc && pdebuild --configfile debian/.pbuilderrc
 ```
 
 
 ## Building (windows visual studio)
-```cd vs && build_vs.bat```
+```bat
+cd vs && build_vs.bat
+```
 
 ## Building (windows cmake) (Developer only: setup window still not working)
-```cd vs && build_cmake.bat```
+```bat
+cd vs && build_cmake.bat
+```
 
 ## Build with tests (needs configured ~/.odbc.ini with DSN=clickhouse_localhost)
-```mkdir -p build; cd build
+```bash
+mkdir -p build; cd build
 ( cd ../contrib && git clone https://github.com/nanodbc/nanodbc )
 cmake -G Ninja -DTEST_DSN=clickhouse_localhost -DCMAKE_BUILD_TYPE=Debug -DUSE_DEBUG_17=1 .. && ninja
-ctest -V```
-
+ctest -V
+```
 
 ## ODBC configuration
 
-edit ~/.odbc.ini :
+Edit ~/.odbc.ini :
 
-```(ini)
+```ini
 [ClickHouse]
 Driver = $(PATH_OF_CLICKHOUSE_ODBC_SO)
 # Optional settings:
@@ -119,12 +124,12 @@ url = https://localhost
 ```
 
 Sometimes you should change ~/.odbcinst.ini or /etc/odbcinst.ini or /Library/ODBC/odbcinst.ini :
-```(ini)
+```ini
 [Clickhouse]
 Driver=$(PATH_OF_CLICKHOUSE_ODBC_SO)
 ```
 
 ## Testing
-Run ```isql -v ClickHouse```
+Run `isql -v ClickHouse`
 
 Also look [test](test)/ contents
