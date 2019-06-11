@@ -79,46 +79,49 @@ Environment::Environment() {
             LOG(std::endl << mbstr);
         }
 
-        std::string report;
-        report += " VERSION=" + std::string {VERSION_STRING};
+        log_header = " === Driver started ===";
+        log_header += " VERSION=" + std::string {VERSION_STRING};
 #if defined(_win64_)
-        report += " WIN64";
+        log_header += " WIN64";
 #elif defined(_win32_)
-        report += " WIN32";
+        log_header += " WIN32";
 #endif
 #if ODBC_IODBC
-        report += " ODBC_IODBC";
+        log_header += " ODBC_IODBC";
 #endif
 #if ODBC_CHAR16
-        report += " ODBC_CHAR16";
+        log_header += " ODBC_CHAR16";
 #endif
 #if ODBC_UNIXODBC
-        report += " ODBC_UNIXODBC";
+        log_header += " ODBC_UNIXODBC";
 #endif
 
 #if defined(UNICODE)
-        report += " UNICODE=" + std::to_string(UNICODE);
+        log_header += " UNICODE=" + std::to_string(UNICODE);
 #    if defined(ODBC_WCHAR)
-        report += " ODBC_WCHAR=" + std::to_string(ODBC_WCHAR);
+        log_header += " ODBC_WCHAR=" + std::to_string(ODBC_WCHAR);
 #    endif
-        report += " sizeof(SQLTCHAR)=" + std::to_string(sizeof(SQLTCHAR)) + " sizeof(wchar_t)=" + std::to_string(sizeof(wchar_t));
+        log_header += " sizeof(SQLTCHAR)=" + std::to_string(sizeof(SQLTCHAR)) + " sizeof(wchar_t)=" + std::to_string(sizeof(wchar_t));
 #endif
 #if defined(SQL_WCHART_CONVERT)
-        report += " SQL_WCHART_CONVERT";
+        log_header += " SQL_WCHART_CONVERT";
 #endif
 #if ODBCVER
         std::stringstream strm;
         strm << " ODBCVER=" << std::hex << ODBCVER << std::dec;
-        report += strm.str();
+        log_header += strm.str();
 #endif
 #if defined(ODBC_LIBRARIES)
-        report += " ODBC_LIBRARIES=" + std::string {ODBC_LIBRARIES};
+        log_header += " ODBC_LIBRARIES=" + std::string {ODBC_LIBRARIES};
 #endif
 #if defined(ODBC_INCLUDE_DIRECTORIES)
-        report += " ODBC_INCLUDE_DIRECTORIES=" + std::string {ODBC_INCLUDE_DIRECTORIES};
+        log_header += " ODBC_INCLUDE_DIRECTORIES=" + std::string {ODBC_INCLUDE_DIRECTORIES};
 #endif
 
-        LOG(" === Driver started ===" << report);
+        if (log_stream.is_open()) {
+            LOG(log_header);
+            log_header.clear();
+        }
     }
 }
 

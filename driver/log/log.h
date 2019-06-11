@@ -24,12 +24,14 @@ extern bool log_enabled;
 
 extern std::ofstream log_stream;
 extern std::string log_file;
+extern std::string log_header;
 
 std::ostream & log_prefix(std::ofstream & stream);
 
 #define LOG(message)                                                              \
     do {                                                                          \
-        if (log_enabled)                                                          \
+        if (log_enabled) {                                                         \
             log_prefix(log_stream);                                               \
-        log_stream << __FILE__ << ":" << __LINE__ << " " << message << std::endl; \
+            log_stream << __FILE__ << ":" << __LINE__ << " " << message << std::endl; \
+        } \
     } while (false)

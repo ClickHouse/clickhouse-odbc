@@ -182,9 +182,6 @@ RETCODE fillOutputStringImpl(
             *out_value_length = symbols;
     }
 
-LOG("fillOutputStringImpl: " << symbols << " = " /* << value*/ );
-
-
     if (out_value_max_length < 0)
         return SQL_ERROR;
 

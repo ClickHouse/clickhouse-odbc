@@ -3,10 +3,13 @@
 #
 # ubuntu:
 # prepare old (trusty or earlier) host system:
+
+# sudo ln -s gutsy /usr/share/debootstrap/scripts/eoan
 # sudo ln -s gutsy /usr/share/debootstrap/scripts/disco
 # sudo ln -s gutsy /usr/share/debootstrap/scripts/cosmic
 # sudo ln -s gutsy /usr/share/debootstrap/scripts/artful
 # sudo ln -s gutsy /usr/share/debootstrap/scripts/bionic
+# sudo ln -s sid /usr/share/debootstrap/scripts/buster
 # build ubuntu:
 # sudo DIST=trusty pbuilder create --configfile debian/.pbuilderrc && DIST=trusty pdebuild --configfile debian/.pbuilderrc
 # sudo DIST=xenial pbuilder create --configfile debian/.pbuilderrc && DIST=xenial pdebuild --configfile debian/.pbuilderrc
@@ -56,7 +59,7 @@ DEBIAN_SUITES=($UNSTABLE_CODENAME $TESTING_CODENAME $STABLE_CODENAME $STABLE_BAC
     "experimental" "unstable" "testing" "stable")
 
 # List of Ubuntu suites. Update these when needed.
-UBUNTU_SUITES=("disco" "cosmic" "bionic" "artful" "zesty" "xenial" "trusty" "devel")
+UBUNTU_SUITES=("eoan" "disco" "cosmic" "bionic" "artful" "zesty" "xenial" "trusty" "devel")
 
 # Set a default distribution if none is used. Note that you can set your own default (i.e. ${DIST:="unstable"}).
 HOST_DIST=`lsb_release --short --codename`

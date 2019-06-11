@@ -12,7 +12,8 @@ bool log_enabled =
     ;
 
 std::string log_file = LOG_DEFAULT_FILE;
-std::ofstream log_stream(log_file, std::ios::out | std::ios::app);
+std::ofstream log_stream = log_enabled ? std::ofstream(log_file, std::ios::out | std::ios::app) : std::ofstream();
+std::string log_header;
 
 std::chrono::high_resolution_clock hr_clock;
 
