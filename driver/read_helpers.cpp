@@ -1,6 +1,8 @@
 #include "read_helpers.h"
 
 #include <stdexcept>
+#include <string>
+#include <iostream>
 
 void readSize(std::istream & istr, int32_t & res) {
     istr.read(reinterpret_cast<char *>(&res), sizeof(res));
