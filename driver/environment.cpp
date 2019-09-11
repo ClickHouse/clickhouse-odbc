@@ -125,11 +125,6 @@ Environment::Environment() {
     }
 }
 
-Environment::~Environment() {
-    LOG("========== ======== Driver stopped =====================");
-}
-
-
 const TypeInfo & Environment::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs) const {
     if (types_info.find(type_name) != types_info.end())
         return types_info.at(type_name);
@@ -137,4 +132,18 @@ const TypeInfo & Environment::getTypeInfo(const std::string & type_name, const s
         return types_info.at(type_name_without_parametrs);
     LOG("Unsupported type " << type_name << " : " << type_name_without_parametrs);
     throw SqlException("Unsupported type = " + type_name, "HY004");
+}
+
+template <>
+Connection& Environment::allocate_child<Connection>() {
+    auto child_sptr = std::make_shared<Connection>(*this);
+    auto& child = *child_sptr;
+    auto handle = child.get_handle();
+    connections.emplace(handle, std::move(child_sptr));
+    return child;
+}
+
+template <>
+void Environment::deallocate_child<Connection>(SQLHANDLE handle) noexcept {
+    connections.erase(handle);
 }

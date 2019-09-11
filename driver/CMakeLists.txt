@@ -1,6 +1,5 @@
 find_package (Threads)
 
-add_subdirectory(log)
 add_subdirectory(escaping)
 if (WIN32)
     add_subdirectory(win)
@@ -45,7 +44,9 @@ add_library(${libname} SHARED
     attr.cpp
     config.cpp
     connection.cpp
+    descriptor.cpp
     diagnostics.cpp
+    driver.cpp
     environment.cpp
     handles.cpp
     info.cpp
@@ -54,6 +55,25 @@ add_library(${libname} SHARED
     result_set.cpp
     statement.cpp
     type_parser.cpp
+
+    config.h
+    connection.h
+    descriptor.h
+    diagnostics.h
+    driver.h
+    environment.h
+    ini_defines.h
+    iostream_debug_helpers.h
+    platform.h
+    read_helpers.h
+    result_set.h
+    scope_guard.h
+    statement.h
+    string_ref.h
+    type_parser.h
+    unicode_t.h
+    utils.h
+
     ${WIN_SOURCES}
 )
 
@@ -81,7 +101,7 @@ if (NOT WIN32)
     target_include_directories (${libname} PRIVATE ${ODBC_INCLUDE_DIRECTORIES})
 endif()
 
-target_link_libraries(${libname} PRIVATE clickhouse-odbc-escaping clickhouse-odbc-log)
+target_link_libraries(${libname} PRIVATE clickhouse-odbc-escaping)
 
 if(USE_SSL)
     target_link_libraries(${libname} PRIVATE ${Poco_NetSSL_LIBRARY} ${Poco_Crypto_LIBRARY} ${Poco_Util_LIBRARY})

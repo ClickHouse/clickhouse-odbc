@@ -1,6 +1,5 @@
 #include "result_set.h"
 
-#include "log/log.h"
 #include "statement.h"
 
 namespace {

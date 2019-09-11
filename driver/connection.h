@@ -1,9 +1,11 @@
 #pragma once
 
+#include "driver.h"
+#include "environment.h"
+#include "diagnostics.h"
+
 #include <memory>
 #include <mutex>
-#include "diagnostics.h"
-#include "environment.h"
 
 namespace Poco {
 namespace Net {
@@ -11,7 +13,10 @@ namespace Net {
 }
 }
 
-struct Connection {
+class Connection
+    : public Child<Environment, Connection>
+{
+public:
     Environment & environment;
 
     std::string data_source;
@@ -37,6 +42,7 @@ struct Connection {
     DiagnosticRecord diagnostic_record;
     int retry_count = 3;
 
+public:
     Connection(Environment & env_);
 
     /// Returns the completed connection string.
@@ -58,6 +64,16 @@ struct Connection {
 
     void init(const std::string & connection_string);
 
+    // Leave unimplemented for general case.
+    template <typename T> T& allocate_child();
+    template <typename T> void deallocate_child(SQLHANDLE) noexcept;
+
+    template <> Descriptor& allocate_child<Descriptor>();
+    template <> void deallocate_child<Descriptor>(SQLHANDLE handle) noexcept;
+
+    template <> Statement& allocate_child<Statement>();
+    template <> void deallocate_child<Statement>(SQLHANDLE handle) noexcept;
+
 private:
     /// Load uninitialized fields from odbc.ini
     void loadConfiguration();
@@ -67,4 +83,6 @@ private:
 
 private:
     std::string database;
+    std::unordered_map<SQLHANDLE, std::shared_ptr<Descriptor>> descriptors;
+    std::unordered_map<SQLHANDLE, std::shared_ptr<Statement>> statements;
 };

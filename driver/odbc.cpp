@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <Poco/Net/HTTPClientSession.h>
+#include "driver.h"
 #include "connection.h"
 #include "diagnostics.h"
 #include "environment.h"
-#include "log/log.h"
 #include "result_set.h"
 #include "scope_guard.h"
 #include "statement.h"

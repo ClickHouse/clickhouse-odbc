@@ -1,11 +1,87 @@
 #pragma once
 
-#include <string.h>
-#include "log/log.h"
 #include "platform.h"
 #include "string_ref.h"
 #include "unicode_t.h"
+
+#include <chrono>
 #include <iomanip>
+#include <sstream>
+#include <thread>
+
+#include <cstring>
+
+#ifdef _win_
+#   include <processthreadsapi.h>
+#else
+#   include <sys/types.h>
+#   include <unistd.h>
+#endif
+
+#if __cplusplus >= 201703L
+
+#include <type_traits>
+
+using std::is_invocable;
+using std::is_invocable_r;
+
+#else
+
+template <typename F, typename... Args>
+struct is_invocable :
+    std::is_constructible<
+        std::function<void(Args...)>,
+        std::reference_wrapper<typename std::remove_reference<F>::type>
+    >
+{
+};
+
+template <typename R, typename F, typename... Args>
+struct is_invocable_r
+    : public std::is_constructible<
+        std::function<R(Args...)>,
+        std::reference_wrapper<typename std::remove_reference<F>::type>
+    >
+{
+};
+
+#endif
+
+class Environment;
+class Connection;
+class Descriptor;
+class Statement;
+
+template <typename T> constexpr auto & get_object_type_name() { return "HANDLE"; }
+template <> constexpr auto & get_object_type_name<Environment>() { return "ENV"; }
+template <> constexpr auto & get_object_type_name<Connection>() { return "DBC"; }
+template <> constexpr auto & get_object_type_name<Descriptor>() { return "DESC"; }
+template <> constexpr auto & get_object_type_name<Statement>() { return "STMT"; }
+
+template <typename T> constexpr int get_object_handle_type() { return 0; }
+template <> constexpr int get_object_handle_type<Environment>() { return SQL_HANDLE_ENV; }
+template <> constexpr int get_object_handle_type<Connection>() { return SQL_HANDLE_DBC; }
+template <> constexpr int get_object_handle_type<Descriptor>() { return SQL_HANDLE_DESC; }
+template <> constexpr int get_object_handle_type<Statement>() { return SQL_HANDLE_STMT; }
+
+template <typename T>
+inline std::string to_hex_string(T n) {
+    std::stringstream stream;
+    stream << "0x" << std::setfill('0') << std::setw(sizeof(T) * 2) << std::hex << n;
+    return stream.str();
+}
+
+inline auto get_pid() {
+#ifdef _win_
+    return GetCurrentProcessId();
+#else
+    return getpid();
+#endif
+}
+
+inline auto get_tid() {
+    return std::this_thread::get_id();
+}
 
 template<
     class CharT,

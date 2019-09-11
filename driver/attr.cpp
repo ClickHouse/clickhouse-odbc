@@ -1,7 +1,6 @@
 #include <Poco/Net/HTTPClientSession.h>
 #include "connection.h"
 #include "environment.h"
-#include "log/log.h"
 #include "scope_guard.h"
 #include "statement.h"
 #include "utils.h"

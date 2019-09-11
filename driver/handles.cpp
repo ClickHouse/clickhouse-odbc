@@ -1,55 +1,62 @@
-#include <Poco/Net/HTTPClientSession.h>
-#include "connection.h"
+#include "driver.h"
 #include "environment.h"
-#include "log/log.h"
+#include "connection.h"
+#include "descriptor.h"
 #include "statement.h"
 #include "utils.h"
 
-static RETCODE allocEnv(SQLHENV * out_environment) {
-    if (nullptr == out_environment)
-        return SQL_INVALID_HANDLE;
-    try {
-        *out_environment = new Environment;
+#include <Poco/Net/HTTPClientSession.h>
+
+namespace {
+
+RETCODE allocEnv(SQLHENV * out_environment_handle) noexcept {
+    return Driver::get_instance().call([&] () {
+        if (nullptr == out_environment_handle)
+            return SQL_INVALID_HANDLE;
+
+        *out_environment_handle = Driver::get_instance().allocate_child<Environment>().get_handle();
         return SQL_SUCCESS;
-    } catch (...) {
-        LOG(__FUNCTION__ << " Exception");
-        return SQL_ERROR;
-    }
+    });
 }
 
-static RETCODE allocConnect(SQLHENV environment, SQLHDBC * out_connection) {
-    LOG(__FUNCTION__ << " environment=" << environment << " out_connection=" << out_connection);
-    if (nullptr == out_connection)
-        return SQL_INVALID_HANDLE;
+RETCODE allocConnect(SQLHENV environment_handle, SQLHDBC * out_connection_handle) noexcept {
+    return Driver::get_instance().callWith(environment_handle, [&] (Environment & environment) {
+        if (nullptr == out_connection_handle)
+            return SQL_INVALID_HANDLE;
 
-    try {
-        *out_connection = new Connection(*reinterpret_cast<Environment *>(environment));
+        *out_connection_handle = environment.allocate_child<Connection>().get_handle();
         return SQL_SUCCESS;
-    } catch (...) {
-        LOG(__FUNCTION__ << " Exception");
-        return SQL_ERROR;
-    }
+    });
 }
 
-static RETCODE allocStmt(SQLHDBC connection, SQLHSTMT * out_statement) {
-    if (nullptr == out_statement || nullptr == connection)
-        return SQL_INVALID_HANDLE;
+RETCODE allocStmt(SQLHDBC connection_handle, SQLHSTMT * out_statement_handle) noexcept {
+    return Driver::get_instance().callWith(connection_handle, [&] (Connection & connection) {
+        if (nullptr == out_statement_handle)
+            return SQL_INVALID_HANDLE;
 
-    try {
-        *out_statement = new Statement(*reinterpret_cast<Connection *>(connection));
+        *out_statement_handle = connection.allocate_child<Statement>().get_handle();
         return SQL_SUCCESS;
-    } catch (...) {
-        LOG(__FUNCTION__ << " Exception");
-        return SQL_ERROR;
-    }
+    });
 }
 
-template <typename Handle>
-static RETCODE freeHandle(SQLHANDLE handle_opaque) {
-    delete reinterpret_cast<Handle *>(handle_opaque);
-    handle_opaque = nullptr;
-    return SQL_SUCCESS;
+RETCODE allocDesc(SQLHDBC connection_handle, SQLHDESC * out_descriptor_handle) noexcept {
+    return Driver::get_instance().callWith(connection_handle, [&] (Connection & connection) {
+        if (nullptr == out_descriptor_handle)
+            return SQL_INVALID_HANDLE;
+
+        *out_descriptor_handle = connection.allocate_child<Descriptor>().get_handle();
+        return SQL_SUCCESS;
+    });
 }
+
+RETCODE freeHandle(SQLHANDLE handle) noexcept {
+    return Driver::get_instance().callWith(handle, [&] (auto & object) {
+        object.deallocate_self();
+        return SQL_SUCCESS;
+    });
+}
+
+} // namespace
 
 
 extern "C" {
@@ -64,7 +71,10 @@ RETCODE SQL_API SQLAllocHandle(SQLSMALLINT handle_type, SQLHANDLE input_handle, 
             return allocConnect((SQLHENV)input_handle, (SQLHDBC *)output_handle);
         case SQL_HANDLE_STMT:
             return allocStmt((SQLHDBC)input_handle, (SQLHSTMT *)output_handle);
+        case SQL_HANDLE_DESC:
+            return allocDesc((SQLHDBC)input_handle, (SQLHDESC *)output_handle);
         default:
+            LOG("AllocHandle: Unknown handleType=" << handleType);
             return SQL_ERROR;
     }
 }
@@ -84,57 +94,67 @@ RETCODE SQL_API SQLAllocStmt(SQLHDBC input_handle, SQLHSTMT * output_handle) {
     return allocStmt(input_handle, output_handle);
 }
 
-
 RETCODE SQL_API SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE handle) {
     LOG(__FUNCTION__ << " handleType=" << handleType << " handle=" << handle);
 
     switch (handleType) {
         case SQL_HANDLE_ENV:
-            return freeHandle<Environment>(handle);
         case SQL_HANDLE_DBC:
-            return freeHandle<Connection>(handle);
         case SQL_HANDLE_STMT:
-            return freeHandle<Statement>(handle);
+        case SQL_HANDLE_DESC:
+            return freeHandle(handle);
         default:
             LOG("FreeHandle: Unknown handleType=" << handleType);
             return SQL_ERROR;
     }
 }
 
-
 RETCODE SQL_API SQLFreeEnv(HENV handle) {
     LOG(__FUNCTION__);
-    return freeHandle<Environment>(handle);
+    return freeHandle(handle);
 }
 
 RETCODE SQL_API SQLFreeConnect(HDBC handle) {
     LOG(__FUNCTION__);
-    return freeHandle<Connection>(handle);
+    return freeHandle(handle);
 }
 
 RETCODE SQL_API SQLFreeStmt(HSTMT statement_handle, SQLUSMALLINT option) {
-    LOG(__FUNCTION__);
+    LOG(__FUNCTION__ << " option=" << option);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
-        LOG("option: " + std::to_string(option));
-
+    return Driver::get_instance().callWith(statement_handle, [&] (Statement & statement) {
         switch (option) {
-            case SQL_DROP:
-                return freeHandle<Statement>(statement_handle);
-
             case SQL_CLOSE: /// Close the cursor, ignore the remaining results. If there is no cursor, then noop.
                 statement.reset();
+
+
+
+                //-/
+
+
+
+
+            case SQL_DROP:
+                return freeHandle(handle);
 
             case SQL_UNBIND:
                 statement.bindings.clear();
                 return SQL_SUCCESS;
 
             case SQL_RESET_PARAMS:
-                return SQL_SUCCESS;
+
+
+
+                //-/
+
+
+
+                return SQL_ERROR;
 
             default:
                 return SQL_ERROR;
         }
     });
 }
-}
+
+} // extern "C"

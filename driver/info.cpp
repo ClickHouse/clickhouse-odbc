@@ -1,6 +1,5 @@
 #include <Poco/NumberFormatter.h>
 #include "connection.h"
-#include "log/log.h"
 #include "utils.h"
 #include "win/version.h"
 

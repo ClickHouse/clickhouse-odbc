@@ -1,19 +1,16 @@
 #include "statement.h"
+#include "lexer.h"
+#include "escaping/escape_sequences.h"
+#include "platform.h"
+#include "win/version.h"
+
 #include <Poco/Base64Encoder.h>
 #include <Poco/Exception.h>
 #include <Poco/Net/HTTPClientSession.h>
 #include <Poco/Net/HTTPRequest.h>
 #include <Poco/URI.h>
-#include "escaping/escape_sequences.h"
-#include "platform.h"
-#include "win/version.h"
 
-Statement::Statement(Connection & conn_) : connection(conn_), metadata_id(conn_.environment.metadata_id) {
-    ard.reset(new DescriptorClass);
-    apd.reset(new DescriptorClass);
-    ird.reset(new DescriptorClass);
-    ipd.reset(new DescriptorClass);
-}
+Statement::Statement(Connection & conn_) : connection(conn_), metadata_id(conn_.environment.metadata_id) {}
 
 bool Statement::getScanEscapeSequences() const {
     return scan_escape_sequences;
@@ -115,10 +112,38 @@ bool Statement::fetchRow() {
 
 void Statement::prepareQuery(const std::string & q) {
     query = q;
-    if (scan_escape_sequences) {
-        prepared_query = replaceEscapeSequences(query);
-    } else {
-        prepared_query = q;
+    prepared_query.clear();
+    params.clear();
+
+    Lexer lex(query);
+    for (
+         Token tok = lex.Peek();
+         tok.type != Token::INVALID && tok.type != Token::EOS;
+         tok = lex.Peek()
+    ) {
+        switch (tok.type) {
+            case Token::PARAM: {
+                params.emplace_back("odbc_" + std::to_string(params.size()));
+                prepared_query += "{" + params.back() + "}";
+                lex.Consume();
+                break;
+            }
+            case Token::LCURLY: {
+                if (scan_escape_sequences) {
+                    prepared_query += processEscapeSequence(lex);
+                }
+                else {
+                    prepared_query += tok.literal.to_string();
+                    lex.Consume();
+                }
+                break;
+            }
+            default: {
+                prepared_query += tok.literal.to_string();
+                lex.Consume();
+                break;
+            }
+        }
     }
 
     prepared = true;
@@ -126,7 +151,8 @@ void Statement::prepareQuery(const std::string & q) {
 
 void Statement::setQuery(const std::string & q) {
     query = q;
-    prepared_query = q;
+    prepared_query = query;
+    params.clear();
 }
 
 void Statement::reset() {
@@ -136,8 +162,108 @@ void Statement::reset() {
     diagnostic_record.reset();
     result = ResultSet();
 
-    ard.reset(new DescriptorClass);
-    apd.reset(new DescriptorClass);
-    ird.reset(new DescriptorClass);
-    ipd.reset(new DescriptorClass);
+
+
+
+
+    explicit_ard.reset();
+    explicit_apd.reset();
+    explicit_ird.reset();
+    explicit_ipd.reset();
+}
+
+Descriptor& Statement::ard() {
+    auto desc = explicit_ard.lock();
+    if (!desc) {
+        if (!implicit_ard)
+            implicit_ard = make_ard();
+
+        desc = implicit_ard;
+        explicit_ard = desc;
+    }
+    return *desc;
+}
+
+Descriptor& Statement::apd() {
+    auto desc = explicit_apd.lock();
+    if (!desc) {
+        if (!implicit_apd)
+            implicit_apd = make_apd();
+
+        desc = implicit_apd;
+        explicit_apd = desc;
+    }
+    return *desc;
+}
+
+Descriptor& Statement::ird() {
+    auto desc = explicit_ird.lock();
+    if (!desc) {
+        if (!implicit_ird)
+            implicit_ird = make_ird();
+
+        desc = implicit_ird;
+        explicit_ird = desc;
+    }
+    return *desc;
+}
+
+Descriptor& Statement::ipd() {
+    auto desc = explicit_ipd.lock();
+    if (!desc) {
+        if (!implicit_ipd)
+            implicit_ipd = make_ipd();
+
+        desc = implicit_ipd;
+        explicit_ipd = desc;
+    }
+    return *desc;
+}
+
+void Statement::set_ard(std::shared_ptr<Descriptor> desc) {
+    explicit_ard = desc;
+}
+
+void Statement::set_apd(std::shared_ptr<Descriptor> desc) {
+    explicit_apd = desc;
+}
+
+void Statement::set_ird(std::shared_ptr<Descriptor> desc) {
+    explicit_ird = desc;
+}
+
+void Statement::set_ipd(std::shared_ptr<Descriptor> desc) {
+    explicit_ipd = desc;
+}
+
+std::shared_ptr<Descriptor> Statement::make_ard() {
+    auto desc = std::make_shared<Descriptor>();
+
+
+
+    return desc;
+}
+
+std::shared_ptr<Descriptor> Statement::make_apd() {
+    auto desc = std::make_shared<Descriptor>();
+
+
+
+    return desc;
+}
+
+std::shared_ptr<Descriptor> Statement::make_ird() {
+    auto desc = std::make_shared<Descriptor>();
+
+
+
+    return desc;
+}
+
+std::shared_ptr<Descriptor> Statement::make_ipd() {
+    auto desc = std::make_shared<Descriptor>();
+
+
+
+    return desc;
 }

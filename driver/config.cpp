@@ -3,7 +3,6 @@
 #include <odbcinst.h>
 #include <string.h>
 #include "utils.h"
-#include "log/log.h"
 
 void getDSNinfo(ConnInfo * ci, bool overwrite) {
 
@@ -32,7 +31,7 @@ void getDSNinfo(ConnInfo * ci, bool overwrite) {
     GET_CONFIG(sslmode, INI_SSLMODE, "");
     GET_CONFIG(stringmaxlength, INI_STRINGMAXLENGTH, "1048575");
     GET_CONFIG(trace, INI_TRACE, "");
-    GET_CONFIG(tracefile, INI_TRACEFILE, LOG_DEFAULT_FILE);
+    GET_CONFIG(tracefile, INI_TRACEFILE, SQL_ATTR_CH_DRIVER_TRACEFILE_DEFAULT);
 
 #undef GET_CONFIG
 }

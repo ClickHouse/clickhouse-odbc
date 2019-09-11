@@ -1,10 +1,17 @@
 #pragma once
 
+#include "driver.h"
+#include "connection.h"
+#include "descriptor.h"
+#include "diagnostics.h"
+#include "result_set.h"
+
+#include <Poco/Net/HTTPResponse.h>
+
 #include <memory>
 #include <sstream>
-#include <Poco/Net/HTTPResponse.h>
-#include "connection.h"
-#include "result_set.h"
+#include <string>
+#include <vector>
 
 /// Information where and how to add values when reading.
 struct Binding {
@@ -14,9 +21,9 @@ struct Binding {
     SQLLEN * out_value_size_or_indicator;
 };
 
-struct DescriptorClass {};
-
-class Statement {
+class Statement
+    : public Child<Connection, Statement>
+{
 public:
     Statement(Connection & conn_);
 
@@ -57,6 +64,42 @@ public:
     /// Send request to a server.
     void sendRequest(IResultMutatorPtr mutator = nullptr);
 
+    /// Actual ARD observer.
+    Descriptor& ard();
+
+    /// Actual APD observer.
+    Descriptor& apd();
+
+    /// Actual IRD observer.
+    Descriptor& ird();
+
+    /// Actual IPD observer.
+    Descriptor& ipd();
+
+    /// Explicit ARD setter.
+    void set_ard(std::shared_ptr<Descriptor> desc);
+
+    /// Explicit APD setter.
+    void set_apd(std::shared_ptr<Descriptor> desc);
+
+    /// Explicit IRD setter.
+    void set_ird(std::shared_ptr<Descriptor> desc);
+
+    /// Explicit IPD setter.
+    void set_ipd(std::shared_ptr<Descriptor> desc);
+
+    /// Default ARD factory.
+    std::shared_ptr<Descriptor> make_ard();
+
+    /// Default APD factory.
+    std::shared_ptr<Descriptor> make_apd();
+
+    /// Default IRD factory.
+    std::shared_ptr<Descriptor> make_ird();
+
+    /// Default IPD factory.
+    std::shared_ptr<Descriptor> make_ipd();
+
 public:
     Connection & connection;
 
@@ -66,17 +109,22 @@ public:
     std::istream * in = nullptr;
     DiagnosticRecord diagnostic_record;
 
-    std::unique_ptr<DescriptorClass> ard;
-    std::unique_ptr<DescriptorClass> apd;
-    std::unique_ptr<DescriptorClass> ird;
-    std::unique_ptr<DescriptorClass> ipd;
-
     std::map<SQLUSMALLINT, Binding> bindings;
 
     SQLULEN * rows_fetched_ptr = nullptr;
     SQLULEN row_array_size = 1;
 
 private:
+    std::shared_ptr<Descriptor> implicit_ard;
+    std::shared_ptr<Descriptor> implicit_apd;
+    std::shared_ptr<Descriptor> implicit_ird;
+    std::shared_ptr<Descriptor> implicit_ipd;
+
+    std::weak_ptr<Descriptor> explicit_ard;
+    std::weak_ptr<Descriptor> explicit_apd;
+    std::weak_ptr<Descriptor> explicit_ird;
+    std::weak_ptr<Descriptor> explicit_ipd;
+
     std::unique_ptr<Poco::Net::HTTPResponse> response;
 
     /// An SQLUINTEGER value that determines

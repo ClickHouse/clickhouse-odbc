@@ -1,8 +1,10 @@
 #pragma once
 
+#include "driver.h"
+#include "diagnostics.h"
+
 #include <map>
 #include <stdexcept>
-#include "diagnostics.h"
 
 struct TypeInfo {
     std::string sql_type_name;
@@ -21,14 +23,24 @@ struct TypeInfo {
 };
 
 
-struct Environment {
+class Environment
+    : public Child<Driver, Environment>
+{
+public:
     Environment();
-    ~Environment();
+
+    // Leave unimplemented for general case.
+    template <typename T> T& allocate_child();
+    template <typename T> void deallocate_child(SQLHANDLE) noexcept;
+
+    template <> Connection& allocate_child<Connection>();
+    template <> void deallocate_child<Connection>(SQLHANDLE handle) noexcept;
 
     static const auto string_max_size = 0xFFFFFF;
     static const std::map<std::string, TypeInfo> types_info;
     const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs = "") const;
 
+public:
     SQLUINTEGER metadata_id = SQL_FALSE;
     int odbc_version =
 #if defined(SQL_OV_ODBC3_80)
@@ -38,4 +50,7 @@ struct Environment {
 #endif
 
     DiagnosticRecord diagnostic_record;
+
+private:
+    std::unordered_map<SQLHANDLE, std::shared_ptr<Connection>> connections;
 };

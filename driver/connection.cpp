@@ -309,3 +309,31 @@ void Connection::setDefaults() {
     if (connection_timeout == 0)
         connection_timeout = timeout;
 }
+
+template <>
+Descriptor& Connection::allocate_child<Descriptor>() {
+    auto child_sptr = std::make_shared<Descriptor>(*this);
+    auto& child = *child_sptr;
+    auto handle = child.get_handle();
+    descriptors.emplace(handle, std::move(child_sptr));
+    return child;
+}
+
+template <>
+void Connection::deallocate_child<Descriptor>(SQLHANDLE handle) noexcept {
+    descriptors.erase(handle);
+}
+
+template <>
+Statement& Connection::allocate_child<Statement>() {
+    auto child_sptr = std::make_shared<Statement>(*this);
+    auto& child = *child_sptr;
+    auto handle = child.get_handle();
+    statements.emplace(handle, std::move(child_sptr));
+    return child;
+}
+
+template <>
+void Connection::deallocate_child<Statement>(SQLHANDLE handle) noexcept {
+    statements.erase(handle);
+}
