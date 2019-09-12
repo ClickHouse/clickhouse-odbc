@@ -21,10 +21,10 @@
 #define INI_TRACE TEXT("Trace")
 #define INI_TRACEFILE TEXT("TraceFile")
 
-#ifndef WIN32
-#    define ODBC_INI TEXT(".odbc.ini")
-#    define ODBCINST_INI TEXT("odbcinst.ini")
-#else
+#ifdef _win_
 #    define ODBC_INI TEXT("ODBC.INI")
 #    define ODBCINST_INI TEXT("ODBCINST.INI")
+#else
+#    define ODBC_INI TEXT(".odbc.ini")
+#    define ODBCINST_INI TEXT("odbcinst.ini")
 #endif

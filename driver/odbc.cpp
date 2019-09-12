@@ -1,20 +1,24 @@
+#include "driver.h"
+#include "utils.h"
+#include "scope_guard.h"
+#include "string_ref.h"
+#include "type_parser.h"
+#include "attributes.h"
+#include "diagnostics.h"
+#include "environment.h"
+#include "connection.h"
+#include "descriptor.h"
+#include "statement.h"
+#include "result_set.h"
+
 #include <iostream>
 #include <locale>
 #include <sstream>
 #include <stdexcept>
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
+
 #include <Poco/Net/HTTPClientSession.h>
-#include "driver.h"
-#include "connection.h"
-#include "diagnostics.h"
-#include "environment.h"
-#include "result_set.h"
-#include "scope_guard.h"
-#include "statement.h"
-#include "string_ref.h"
-#include "type_parser.h"
-#include "utils.h"
 
 /** Functions from the ODBC interface can not directly call other functions.
   * Because not a function from this library will be called, but a wrapper from the driver manager,
@@ -36,7 +40,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     SQLSMALLINT password_size) {
     // LOG(__FUNCTION__ << " dsn_size=" << dsn_size << " dsn=" << dsn << " user_size=" << user_size << " user=" << user << " password_size=" << password_size << " password=" << password);
 
-    return doWith<Connection>(connection_handle, [&](Connection & connection) {
+    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
         std::string dsn_str = stringFromSQLSymbols(dsn, dsn_size);
         std::string user_str = stringFromSQLSymbols(user, user_size);
         std::string password_str = stringFromSQLSymbols(password, password_size);
@@ -61,7 +65,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
     LOG(__FUNCTION__ << " connection_str_in=" << connection_str_in << " : " << connection_str_in_size
                      << /* " connection_str_out=" << connection_str_out << */ " " << connection_str_out_max_size);
 
-    return doWith<Connection>(connection_handle, [&](Connection & connection) {
+    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
         // if (connection_str_in_size > 0) hex_print(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(connection_str_in)), static_cast<size_t>(connection_str_in_size)});
         auto connection_str = stringFromSQLSymbols2(connection_str_in, connection_str_in_size);
         // LOG("connection_str=" << str);
@@ -77,7 +81,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
 RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size) {
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
         const std::string & query = stringFromSQLSymbols2(statement_text, statement_text_size);
         if (!statement.isEmpty())
             throw std::runtime_error("Prepare called, but statement query is not empty.");
@@ -96,7 +100,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * 
 RETCODE SQL_API SQLExecute(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
         statement.sendRequest();
         return SQL_SUCCESS;
     });
@@ -106,7 +110,7 @@ RETCODE SQL_API SQLExecute(HSTMT statement_handle) {
 RETCODE SQL_API FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size) {
     //LOG(__FUNCTION__);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
         const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
 
         LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << query);
@@ -135,7 +139,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR
 RETCODE SQL_API SQLNumResultCols(HSTMT statement_handle, SQLSMALLINT * column_count) {
     LOG(__FUNCTION__);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
         *column_count = (SQLSMALLINT)statement.result.getNumColumns();
         LOG(*column_count);
         return SQL_SUCCESS;
@@ -157,7 +161,7 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
         out_num_value) {
     LOG(__FUNCTION__ << "(col=" << column_number << ", field=" << field_identifier << ")");
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
         if (column_number < 1 || column_number > statement.result.getNumColumns()) {
             LOG(__FUNCTION__ << ": Column number is out of range.");
             throw SqlException("Column number is out of range.", "07009");
@@ -204,7 +208,7 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
             case SQL_DESC_LENGTH:
                 if (type_info.IsStringType())
                     num_value = std::min<int32_t>(
-                        statement.connection.stringmaxlength, column_info.fixed_size ? column_info.fixed_size : column_info.display_size);
+                        statement.get_parent().stringmaxlength, column_info.fixed_size ? column_info.fixed_size : column_info.display_size);
                 break;
             case SQL_DESC_LITERAL_PREFIX:
                 break;
@@ -220,7 +224,7 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
                 break;
             case SQL_DESC_OCTET_LENGTH:
                 if (type_info.IsStringType())
-                    num_value = std::min<int32_t>(statement.connection.stringmaxlength,
+                    num_value = std::min<int32_t>(statement.get_parent().stringmaxlength,
                                     column_info.fixed_size ? column_info.fixed_size : column_info.display_size)
                         * SIZEOF_CHAR;
                 else
@@ -281,7 +285,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
     SQLULEN * out_column_size,
     SQLSMALLINT * out_decimal_digits,
     SQLSMALLINT * out_is_nullable) {
-    return doWith<Statement>(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
         if (column_number < 1 || column_number > statement.result.getNumColumns())
             throw std::runtime_error("Column number is out of range.");
 
@@ -297,7 +301,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
             *out_type = type_info.sql_type;
         if (out_column_size)
             *out_column_size = std::min<int32_t>(
-                statement.connection.stringmaxlength, column_info.fixed_size ? column_info.fixed_size : type_info.column_size);
+                statement.get_parent().stringmaxlength, column_info.fixed_size ? column_info.fixed_size : type_info.column_size);
         if (out_decimal_digits)
             *out_decimal_digits = 0;
         if (out_is_nullable)
@@ -319,7 +323,7 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
     SCOPE_EXIT({ LOG("impl_SQLGetData finish."); }); // for timing only
 #endif
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
         if (column_or_param_number < 1 || column_or_param_number > statement.result.getNumColumns()) {
             LOG(__FUNCTION__ << ": Column number is out of range (throw)." << column_or_param_number);
             throw std::runtime_error("Column number is out of range.");
@@ -406,7 +410,7 @@ impl_SQLFetch(HSTMT statement_handle) {
     SCOPE_EXIT({ LOG("impl_SQLFetch finish."); }); // for timing only
 #endif
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
         if (!statement.fetchRow())
             return SQL_NO_DATA;
 
@@ -441,9 +445,9 @@ RETCODE SQL_API SQLFetch(HSTMT statement_handle) {
 RETCODE SQL_API SQLFetchScroll(HSTMT statement_handle, SQLSMALLINT orientation, SQLLEN offset) {
     LOG(__FUNCTION__);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
         if (orientation != SQL_FETCH_NEXT)
-            throw std::runtime_error("Fetch type out of range"); /// TODO sqlstate = HY106
+            throw SqlException("Fetch type out of range", "HY106");
 
         return impl_SQLFetch(statement_handle);
     });
@@ -469,7 +473,7 @@ RETCODE SQL_API SQLBindCol(HSTMT statement_handle,
     SQLLEN * out_value_size_or_indicator) {
     LOG(__FUNCTION__);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
         if (column_number < 1 || column_number > statement.result.getNumColumns())
             throw SqlException(
                 "Column number " + std::to_string(column_number) + " is out of range: " + std::to_string(statement.result.getNumColumns()),
@@ -503,7 +507,7 @@ RETCODE SQL_API SQLBindCol(HSTMT statement_handle,
 RETCODE SQL_API SQLRowCount(HSTMT statement_handle, SQLLEN * out_row_count) {
     LOG(__FUNCTION__);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
         if (out_row_count) {
             *out_row_count = statement.result.getNumRows();
             LOG("getNumRows=" << *out_row_count);
@@ -523,99 +527,123 @@ RETCODE SQL_API SQLMoreResults(HSTMT hstmt) {
 RETCODE SQL_API SQLDisconnect(HDBC connection_handle) {
     LOG(__FUNCTION__);
 
-    return doWith<Connection>(connection_handle, [&](Connection & connection) {
+    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
         connection.session->reset();
         return SQL_SUCCESS;
     });
 }
 
-
-RETCODE
-impl_SQLGetDiagRec(SQLSMALLINT handle_type,
+/// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlgetdiagrec-function
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDiagRec)(
+    SQLSMALLINT handle_type,
     SQLHANDLE handle,
     SQLSMALLINT record_number,
     SQLTCHAR * out_sqlstate,
     SQLINTEGER * out_native_error_code,
     SQLTCHAR * out_mesage,
     SQLSMALLINT out_message_max_size,
-    SQLSMALLINT * out_message_size) {
-    LOG(__FUNCTION__ << " handle_type: " << handle_type << ", record_number: " << record_number
-                     << ", out_message_max_size: " << out_message_max_size);
-
-    if (nullptr == handle)
-        return SQL_INVALID_HANDLE;
-
-    if (record_number <= 0 || out_message_max_size < 0)
-        return SQL_ERROR;
-
-    if (record_number > 1)
-        return SQL_NO_DATA;
-
-    DiagnosticRecord * diagnostic_record = nullptr;
-    switch (handle_type) {
-        case SQL_HANDLE_ENV:
-            diagnostic_record = &reinterpret_cast<Environment *>(handle)->diagnostic_record;
-            break;
-        case SQL_HANDLE_DBC:
-            diagnostic_record = &reinterpret_cast<Connection *>(handle)->diagnostic_record;
-            break;
-        case SQL_HANDLE_STMT:
-            diagnostic_record = &reinterpret_cast<Statement *>(handle)->diagnostic_record;
-            break;
-        case SQL_HANDLE_DESC:
-            // TODO (artpaul) implement
-            return SQL_NO_DATA;
-        default:
+    SQLSMALLINT * out_message_size
+) {
+    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, [&] (auto & object) {
+        if (record_number < 1 || out_message_max_size < 0)
             return SQL_ERROR;
-    }
 
-    if (diagnostic_record->native_error_code == 0)
-        return SQL_NO_DATA;
+        if (record_number > object.get_status_count())
+            return SQL_NO_DATA;
 
-    /// The five-letter SQLSTATE and the trailing zero.
-    if (out_sqlstate) {
-        size_t size = 6;
-        size_t written = 0;
-        fillOutputPlatformString(diagnostic_record->sql_state, out_sqlstate, size, &written, true);
-    }
-    if (out_native_error_code)
-        *out_native_error_code = diagnostic_record->native_error_code;
+        auto & record = object.get_status(record_number);
 
-    return fillOutputPlatformString(diagnostic_record->message, out_mesage, out_message_max_size, out_message_size, false);
+        fillOutputPlatformString(record.template get_attr_as<std::string>(SQL_DIAG_SQLSTATE), out_sqlstate, 6, nullptr, true);
+
+        if (out_native_error_code != nullptr) {
+            *out_native_error_code = record.template get_attr_as<decltype(*out_native_error_code)>(SQL_DIAG_NATIVE);
+        }
+
+        return fillOutputPlatformString(record.template get_attr_as<std::string>(SQL_DIAG_MESSAGE_TEXT), out_mesage, out_message_max_size, out_message_size, true);
+    });
 }
-
-
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLGetDiagRec)(SQLSMALLINT handle_type,
-    SQLHANDLE handle,
-    SQLSMALLINT record_number,
-    SQLTCHAR * out_sqlstate,
-    SQLINTEGER * out_native_error_code,
-    SQLTCHAR * out_mesage,
-    SQLSMALLINT out_message_max_size,
-    SQLSMALLINT * out_message_size) {
-    return impl_SQLGetDiagRec(
-        handle_type, handle, record_number, out_sqlstate, out_native_error_code, out_mesage, out_message_max_size, out_message_size);
-}
-
 
 /// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlgetdiagfield-function
-RETCODE SQL_API SQLGetDiagField(SQLSMALLINT handle_type,
+SQLRETURN SQL_API SQLGetDiagField(
+    SQLSMALLINT handle_type,
     SQLHANDLE handle,
     SQLSMALLINT record_number,
     SQLSMALLINT field_id,
     SQLPOINTER out_mesage,
     SQLSMALLINT out_message_max_size,
-    SQLSMALLINT * out_message_size) {
-    LOG(__FUNCTION__);
+    SQLSMALLINT * out_message_size
+) {
+    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, [&] (auto & object) {
+        // Exit with error if the requested field is relevant only to statements.
+        if (get_object_handle_type<decltype(object)>() != SQL_HANDLE_STMT) {
+            switch (field_id) {
+                case SQL_DIAG_CURSOR_ROW_COUNT:
+                case SQL_DIAG_DYNAMIC_FUNCTION:
+                case SQL_DIAG_DYNAMIC_FUNCTION_CODE:
+                case SQL_DIAG_ROW_COUNT:
+                    return SQL_ERROR;
+            }
+        }
 
-    return impl_SQLGetDiagRec(handle_type,
-        handle,
-        record_number,
-        nullptr,
-        nullptr,
-        reinterpret_cast<SQLTCHAR *>(out_mesage),
-        out_message_max_size,
-        out_message_size);
+        // Ignore (adjust) record_number if the requested field is relevant only to the header.
+        switch (field_id) {
+            case SQL_DIAG_CURSOR_ROW_COUNT:
+            case SQL_DIAG_DYNAMIC_FUNCTION:
+            case SQL_DIAG_DYNAMIC_FUNCTION_CODE:
+            case SQL_DIAG_NUMBER:
+            case SQL_DIAG_RETURNCODE:
+            case SQL_DIAG_ROW_COUNT:
+                record_number = 0;
+                break;
+        }
+
+        if (record_number < 0)
+            return SQL_ERROR;
+
+        if (record_number > 0 && record_number > object.get_status_count())
+            return SQL_NO_DATA;
+
+        auto extract_field = [&] (auto & record) {
+            switch (field_id) {
+
+#define CASE_ATTR_NUM(NAME, TYPE) \
+    case NAME: return fillOutputNumber(record.template get_attr_as<TYPE>(NAME), out_mesage, out_message_max_size, out_message_size);
+
+#define CASE_ATTR_STR(NAME) \
+    case NAME: return fillOutputPlatformString(record.template get_attr_as<std::string>(NAME), out_mesage, out_message_max_size, out_message_size);
+
+                CASE_ATTR_NUM(SQL_DIAG_CURSOR_ROW_COUNT, SQLLEN);
+                CASE_ATTR_STR(SQL_DIAG_DYNAMIC_FUNCTION);
+                CASE_ATTR_NUM(SQL_DIAG_DYNAMIC_FUNCTION_CODE, SQLINTEGER);
+                CASE_ATTR_NUM(SQL_DIAG_NUMBER, SQLINTEGER);
+                CASE_ATTR_NUM(SQL_DIAG_RETURNCODE, SQLRETURN);
+                CASE_ATTR_NUM(SQL_DIAG_ROW_COUNT, SQLLEN);
+
+                CASE_ATTR_STR(SQL_DIAG_CLASS_ORIGIN);
+                CASE_ATTR_NUM(SQL_DIAG_COLUMN_NUMBER, SQLINTEGER);
+                CASE_ATTR_STR(SQL_DIAG_CONNECTION_NAME);
+                CASE_ATTR_STR(SQL_DIAG_MESSAGE_TEXT);
+                CASE_ATTR_NUM(SQL_DIAG_NATIVE, SQLINTEGER);
+                CASE_ATTR_NUM(SQL_DIAG_ROW_NUMBER, SQLLEN);
+                CASE_ATTR_STR(SQL_DIAG_SERVER_NAME);
+                CASE_ATTR_STR(SQL_DIAG_SQLSTATE);
+                CASE_ATTR_STR(SQL_DIAG_SUBCLASS_ORIGIN);
+
+#undef CASE_ATTR_NUM
+#undef CASE_ATTR_STR
+
+            }
+
+            return SQL_ERROR;
+        };
+
+        if (record_number == 0) {
+            return extract_field(object.get_header());
+        }
+        else {
+            return extract_field(object.get_status(record_number));
+        }
+    });
 }
 
 /// Description: https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqltables
@@ -631,7 +659,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
     LOG(__FUNCTION__);
 
     // TODO (artpaul) Take statement.getMetatadaId() into account.
-    return doWith<Statement>(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
         const std::string catalog = stringFromSQLSymbols(catalog_name, catalog_name_length);
 
         std::stringstream query;
@@ -657,7 +685,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
                      ", '' AS REMARKS"
                      " FROM system.tables"
                      " WHERE (database == '";
-            query << statement.connection.getDatabase() << "')";
+            query << statement.get_parent().getDatabase() << "')";
             query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
         }
         // Get a list of databases on the current connection's server.
@@ -747,7 +775,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
         Environment * const env;
     };
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
         std::stringstream query;
 
         query << "SELECT"
@@ -795,7 +823,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
 
         statement.setQuery(query.str());
-        statement.sendRequest(IResultMutatorPtr(new ColumnsMutator(&statement.connection.environment)));
+        statement.sendRequest(IResultMutatorPtr(new ColumnsMutator(&statement.get_parent().get_parent())));
         return SQL_SUCCESS;
     });
 }
@@ -804,7 +832,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
 RETCODE SQL_API SQLGetTypeInfo(HSTMT statement_handle, SQLSMALLINT type) {
     LOG(__FUNCTION__ << "(type = " << type << ")");
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
         std::stringstream query;
         query << "SELECT * FROM (";
 
@@ -858,7 +886,7 @@ RETCODE SQL_API SQLGetTypeInfo(HSTMT statement_handle, SQLSMALLINT type) {
                      ", toInt16(0) AS INTERVAL_PRECISION";
         };
 
-        for (const auto & name_info : statement.connection.environment.types_info) {
+        for (const auto & name_info : statement.get_parent().get_parent().types_info) {
             add_query_for_type(name_info.first, name_info.second);
         }
 
@@ -868,13 +896,13 @@ RETCODE SQL_API SQLGetTypeInfo(HSTMT statement_handle, SQLSMALLINT type) {
         //      are SQL_TYPE_DATE, SQL_TYPE_TIME, and SQL_TYPE_TIMESTAMP, respectively;
         //      in ODBC 2.x, the data types are SQL_DATE, SQL_TIME, and SQL_TIMESTAMP.
         {
-            auto info = statement.connection.environment.getTypeInfo("Date");
+            auto info = statement.get_parent().get_parent().getTypeInfo("Date");
             info.sql_type = SQL_DATE;
             add_query_for_type("Date", info);
         }
 
         {
-            auto info = statement.connection.environment.getTypeInfo("DateTime");
+            auto info = statement.get_parent().get_parent().getTypeInfo("DateTime");
             info.sql_type = SQL_TIMESTAMP;
             add_query_for_type("DateTime", info);
         }
@@ -894,8 +922,8 @@ RETCODE SQL_API SQLGetTypeInfo(HSTMT statement_handle, SQLSMALLINT type) {
 RETCODE SQL_API SQLNumParams(HSTMT statement_handle, SQLSMALLINT * out_params_count) {
     LOG(__FUNCTION__);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) {
-        *out_params_count = 0;
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
+        *out_params_count = statement.ipd().get_attr_as<SQLSMALLINT>(SQL_DESC_COUNT);
         return SQL_SUCCESS;
     });
 }
@@ -909,7 +937,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle,
     SQLINTEGER * out_query_length) {
     LOG(__FUNCTION__);
 
-    return doWith<Connection>(connection_handle, [&](Connection & connection) {
+    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
         std::string query_str = stringFromSQLSymbols(query, query_length);
         return fillOutputPlatformString(query_str, out_query, out_query_max_length, out_query_length, false);
     });
@@ -919,7 +947,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle,
 RETCODE SQL_API SQLCloseCursor(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
         statement.reset();
         return SQL_SUCCESS;
     });
@@ -971,11 +999,13 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLGetCursorName)(
 RETCODE SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionId, SQLUSMALLINT * Supported) {
     LOG(__FUNCTION__ << ":" << __LINE__ << " "
                      << " id=" << FunctionId << " ptr=" << Supported);
-    return doWith<Connection>(connection_handle, [&](Connection & connection) -> RETCODE {
+    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) -> RETCODE {
         if (FunctionId == SQL_API_ODBC3_ALL_FUNCTIONS) {
             memset(Supported, 0, sizeof(Supported[0]) * SQL_API_ODBC3_ALL_FUNCTIONS_SIZE);
+
 #define SET_EXISTS(x) Supported[(x) >> 4] |= (1 << ((x)&0xF))
-            // #define CLR_EXISTS(x) Supported[(x) >> 4] &= ~(1 << ((x) & 0xF))
+// #define CLR_EXISTS(x) Supported[(x) >> 4] &= ~(1 << ((x) & 0xF))
+
             // info.cpp:
             SET_EXISTS(SQL_API_SQLGETINFO);
 

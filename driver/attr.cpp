@@ -11,7 +11,7 @@ RETCODE
 impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     LOG(__FUNCTION__);
 
-    return doWith<Environment>(environment_handle, [&](Environment & environment) {
+    return CALL_WITH_HANDLE(environment_handle, [&](Environment & environment) {
         LOG("SetEnvAttr: " << attribute);
 
         switch (attribute) {
@@ -56,7 +56,7 @@ impl_SQLGetEnvAttr(SQLHENV environment_handle,
     SQLINTEGER * out_value_length) {
     LOG(__FUNCTION__);
 
-    return doWith<Environment>(environment_handle, [&](Environment & environment) -> RETCODE {
+    return CALL_WITH_HANDLE(environment_handle, [&](Environment & environment) -> RETCODE {
         LOG("GetEnvAttr: " << attribute);
         const char * name = nullptr;
 
@@ -84,7 +84,7 @@ RETCODE
 impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     LOG(__FUNCTION__);
 
-    return doWith<Connection>(connection_handle, [&](Connection & connection) {
+    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
         LOG("SetConnectAttr: " << attribute << " = " << value << " (" << value_length << ")");
 
         switch (attribute) {
@@ -108,10 +108,12 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINT
 
             case SQL_ATTR_TRACE: {
                 if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_ON)) {
-                    log_enabled = true;
-                } else if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_OFF)) {
-                    log_enabled = false;
-                } else {
+                    Driver::get_instance().set_attr(SQL_ATTR_TRACE, true);
+                }
+                else if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_OFF)) {
+                    Driver::get_instance().set_attr(SQL_ATTR_TRACE, false);
+                }
+                else {
                     LOG("SetConnectAttr: SQL_ATTR_TRACE: Unknown value " << value);
                     return SQL_ERROR;
                 }
@@ -119,14 +121,9 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINT
             }
 
             case SQL_ATTR_TRACEFILE: {
-                auto tracefile = stringFromSQLBytes((SQLTCHAR *)value, value_length);
-                if (!tracefile.empty()) {
-                    log_file = tracefile;
-                    log_stream = std::ofstream(log_file, std::ios::out | std::ios::app);
-                    return SQL_SUCCESS;
-                }
-                LOG("SetConnectAttr: SQL_ATTR_TRACEFILE: Empty file " << tracefile);
-                return SQL_ERROR;
+                const std::string tracefile = stringFromSQLBytes((SQLTCHAR *)value, value_length);
+                Driver::get_instance().set_attr(SQL_ATTR_TRACEFILE, tracefile);
+                return SQL_SUCCESS;
             }
 
 #if defined(SQL_APPLICATION_NAME)
@@ -167,7 +164,7 @@ impl_SQLGetConnectAttr(
     SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
     LOG(__FUNCTION__);
 
-    return doWith<Connection>(connection_handle, [&](Connection & connection) -> RETCODE {
+    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) -> RETCODE {
         LOG("GetConnectAttr: " << attribute);
 
         const char * name = nullptr;
@@ -179,7 +176,7 @@ impl_SQLGetConnectAttr(
                 SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout);
             CASE_NUM(SQL_ATTR_TXN_ISOLATION, SQLINTEGER, SQL_TXN_SERIALIZABLE); // mssql linked server
             CASE_NUM(SQL_ATTR_AUTOCOMMIT, SQLINTEGER, SQL_AUTOCOMMIT_ON);
-            CASE_NUM(SQL_ATTR_TRACE, SQLINTEGER, log_enabled ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF);
+            CASE_NUM(SQL_ATTR_TRACE, SQLINTEGER, (Driver::get_instance().is_logging_enabled() ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
 
             case SQL_ATTR_CURRENT_CATALOG:
                 fillOutputPlatformString(connection.getDatabase(), out_value, out_value_max_length, out_value_length);
@@ -188,9 +185,11 @@ impl_SQLGetConnectAttr(
             case SQL_ATTR_ANSI_APP:
                 return SQL_ERROR;
 
-            case SQL_ATTR_TRACEFILE:
-                fillOutputPlatformString(log_file, out_value, out_value_max_length, out_value_length);
+            case SQL_ATTR_TRACEFILE: {
+                const auto tracefile = Driver::get_instance().get_attr_as<std::string>(SQL_ATTR_TRACEFILE);
+                fillOutputPlatformString(tracefile, out_value, out_value_max_length, out_value_length);
                 return SQL_SUCCESS;
+            }
 
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:
@@ -216,7 +215,7 @@ RETCODE
 impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     LOG(__FUNCTION__);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
         LOG("SetStmtAttr: " << attribute << " value=" << value << " value_length=" << value_length);
 
         switch (attribute) {
@@ -280,16 +279,16 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute, SQLPOINTER 
 
 static SQLHDESC descHandleFromStatementHandle(Statement & statement, SQLINTEGER descType) {
     switch (descType) {
-        case SQL_ATTR_APP_ROW_DESC: /* 10010 */
-            return (HSTMT)statement.ard.get();
-        case SQL_ATTR_APP_PARAM_DESC: /* 10011 */
-            return (HSTMT)statement.apd.get();
-        case SQL_ATTR_IMP_ROW_DESC: /* 10012 */
-            return (HSTMT)statement.ird.get();
-        case SQL_ATTR_IMP_PARAM_DESC: /* 10013 */
-            return (HSTMT)statement.ipd.get();
+        case SQL_ATTR_APP_ROW_DESC:
+            return statement.ard().get_handle();
+        case SQL_ATTR_APP_PARAM_DESC:
+            return statement.apd().get_handle();
+        case SQL_ATTR_IMP_ROW_DESC:
+            return statement.ird().get_handle();
+        case SQL_ATTR_IMP_PARAM_DESC:
+            return statement.ipd().get_handle();
     }
-    return (HSTMT)0;
+    return 0;
 }
 
 RETCODE
@@ -300,7 +299,7 @@ impl_SQLGetStmtAttr(
     SCOPE_EXIT({ LOG("impl_SQLGetStmtAttr finish."); }); // for timing only
 #endif
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
         LOG("GetStmtAttr: " << attribute << " out_value=" << out_value << " out_value_max_length=" << out_value_max_length);
 
         const char * name = nullptr;

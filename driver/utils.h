@@ -4,10 +4,17 @@
 #include "string_ref.h"
 #include "unicode_t.h"
 
+#ifndef NDEBUG
+#    if USE_DEBUG_17
+#        include "iostream_debug_helpers.h"
+#    endif
+#endif
+
 #include <chrono>
 #include <iomanip>
 #include <sstream>
 #include <thread>
+#include <type_traits>
 
 #include <cstring>
 
@@ -19,8 +26,6 @@
 #endif
 
 #if __cplusplus >= 201703L
-
-#include <type_traits>
 
 using std::is_invocable;
 using std::is_invocable_r;
@@ -83,6 +88,12 @@ inline auto get_tid() {
     return std::this_thread::get_id();
 }
 
+inline std::string to_upper_copy(const std::string & str) {
+    std::string ret{str};
+    std::transform(ret.begin(), ret.end(), ret.begin(), ::toupper);
+    return ret;
+}
+
 template<
     class CharT,
     class Traits = std::char_traits<CharT>,
@@ -95,26 +106,6 @@ inline void hex_print(std::ostream &stream, const std::basic_string<CharT, Trait
         stream << std::setw(2) << static_cast<int>(c) << ' ';
     stream << std::dec << '\n';
 }
-
-/** Checks `handle`. Catches exceptions and puts them into the DiagnosticRecord.
-  */
-template <typename Handle, typename F>
-RETCODE doWith(SQLHANDLE handle_opaque, F && f) {
-    if (nullptr == handle_opaque)
-        return SQL_INVALID_HANDLE;
-
-    Handle & handle = *reinterpret_cast<Handle *>(handle_opaque);
-
-    try {
-        handle.diagnostic_record.reset();
-        return f(handle);
-    } catch (...) {
-        handle.diagnostic_record.fromException();
-        LOG("Exception: " << handle.diagnostic_record.message);
-        return SQL_ERROR;
-    }
-}
-
 
 /// Parse a string of the form `key1=value1;key2=value2` ... TODO Parsing values in curly brackets.
 static const char * nextKeyValuePair(const char * data, const char * end, StringRef & out_key, StringRef & out_value) {

@@ -26,8 +26,11 @@ struct TypeInfo {
 class Environment
     : public Child<Driver, Environment>
 {
+private:
+    using ChildType = Child<Driver, Environment>;
+
 public:
-    Environment();
+    explicit Environment(Driver & driver);
 
     // Leave unimplemented for general case.
     template <typename T> T& allocate_child();
@@ -48,8 +51,6 @@ public:
 #else
         SQL_OV_ODBC3;
 #endif
-
-    DiagnosticRecord diagnostic_record;
 
 private:
     std::unordered_map<SQLHANDLE, std::shared_ptr<Connection>> connections;

@@ -10,7 +10,15 @@
 #include <Poco/Net/HTTPRequest.h>
 #include <Poco/URI.h>
 
-Statement::Statement(Connection & conn_) : connection(conn_), metadata_id(conn_.environment.metadata_id) {}
+Statement::Statement(Connection & connection)
+    : ChildType(connection)
+    , metadata_id(connection.get_parent().metadata_id)
+{
+}
+
+Statement::~Statement() {
+    deallocate_implicit_descriptors();
+}
 
 bool Statement::getScanEscapeSequences() const {
     return scan_escape_sequences;
@@ -33,7 +41,7 @@ const std::string Statement::getQuery() const {
 }
 
 const TypeInfo & Statement::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs) const {
-    return connection.environment.getTypeInfo(type_name, type_name_without_parametrs);
+    return get_parent().get_parent().getTypeInfo(type_name, type_name_without_parametrs);
 }
 
 bool Statement::isEmpty() const {
@@ -45,6 +53,8 @@ bool Statement::isPrepared() const {
 }
 
 void Statement::sendRequest(IResultMutatorPtr mutator) {
+    auto & connection = get_parent();
+
     std::ostringstream user_password_base64;
     Poco::Base64Encoder base64_encoder(user_password_base64, Poco::BASE64_URL_ENCODING);
     base64_encoder << connection.user << ":" << connection.password;
@@ -158,25 +168,20 @@ void Statement::setQuery(const std::string & q) {
 void Statement::reset() {
     in = nullptr;
     response.reset();
-    connection.session->reset();
-    diagnostic_record.reset();
+    get_parent().session->reset();
+    reset_statuses();
+    reset_header();
     result = ResultSet();
-
-
-
-
-
-    explicit_ard.reset();
-    explicit_apd.reset();
-    explicit_ird.reset();
-    explicit_ipd.reset();
+    reset_descriptors();
 }
 
 Descriptor& Statement::ard() {
     auto desc = explicit_ard.lock();
     if (!desc) {
-        if (!implicit_ard)
-            implicit_ard = make_ard();
+        if (!implicit_ard) {
+            implicit_ard = allocate_descriptor();
+            init_as_ard(*implicit_ard);
+        }
 
         desc = implicit_ard;
         explicit_ard = desc;
@@ -187,8 +192,10 @@ Descriptor& Statement::ard() {
 Descriptor& Statement::apd() {
     auto desc = explicit_apd.lock();
     if (!desc) {
-        if (!implicit_apd)
-            implicit_apd = make_apd();
+        if (!implicit_apd) {
+            implicit_apd = allocate_descriptor();
+            init_as_apd(*implicit_apd);
+        }
 
         desc = implicit_apd;
         explicit_apd = desc;
@@ -199,8 +206,10 @@ Descriptor& Statement::apd() {
 Descriptor& Statement::ird() {
     auto desc = explicit_ird.lock();
     if (!desc) {
-        if (!implicit_ird)
-            implicit_ird = make_ird();
+        if (!implicit_ird) {
+            implicit_ird = allocate_descriptor();
+            init_as_ird(*implicit_ird);
+        }
 
         desc = implicit_ird;
         explicit_ird = desc;
@@ -211,8 +220,10 @@ Descriptor& Statement::ird() {
 Descriptor& Statement::ipd() {
     auto desc = explicit_ipd.lock();
     if (!desc) {
-        if (!implicit_ipd)
-            implicit_ipd = make_ipd();
+        if (!implicit_ipd) {
+            implicit_ipd = allocate_descriptor();
+            init_as_ipd(*implicit_ipd);
+        }
 
         desc = implicit_ipd;
         explicit_ipd = desc;
@@ -236,34 +247,66 @@ void Statement::set_ipd(std::shared_ptr<Descriptor> desc) {
     explicit_ipd = desc;
 }
 
-std::shared_ptr<Descriptor> Statement::make_ard() {
-    auto desc = std::make_shared<Descriptor>();
-
-
-
-    return desc;
+void Statement::reset_ard() {
+    set_ard(std::shared_ptr<Descriptor>{});
 }
 
-std::shared_ptr<Descriptor> Statement::make_apd() {
-    auto desc = std::make_shared<Descriptor>();
-
-
-
-    return desc;
+void Statement::reset_apd() {
+    set_apd(std::shared_ptr<Descriptor>{});
 }
 
-std::shared_ptr<Descriptor> Statement::make_ird() {
-    auto desc = std::make_shared<Descriptor>();
-
-
-
-    return desc;
+void Statement::reset_ird() {
+    set_ird(std::shared_ptr<Descriptor>{});
 }
 
-std::shared_ptr<Descriptor> Statement::make_ipd() {
-    auto desc = std::make_shared<Descriptor>();
-
-
-
-    return desc;
+void Statement::reset_ipd() {
+    set_ipd(std::shared_ptr<Descriptor>{});
 }
+
+void Statement::init_as_ard(Descriptor& desc) {
+    
+}
+
+void Statement::init_as_apd(Descriptor& desc) {
+
+}
+
+void Statement::init_as_ird(Descriptor& desc) {
+
+}
+
+void Statement::init_as_ipd(Descriptor& desc) {
+
+}
+
+void Statement::reset_descriptors() {
+    explicit_ard.reset();
+    explicit_apd.reset();
+    explicit_ird.reset();
+    explicit_ipd.reset();
+
+    if (implicit_ard) init_as_ard(*implicit_ard);
+    if (implicit_apd) init_as_apd(*implicit_apd);
+    if (implicit_ird) init_as_ird(*implicit_ird);
+    if (implicit_ipd) init_as_ipd(*implicit_ipd);
+}
+
+void Statement::deallocate_implicit_descriptors() {
+    dellocate_descriptor(implicit_ard);
+    dellocate_descriptor(implicit_apd);
+    dellocate_descriptor(implicit_ird);
+    dellocate_descriptor(implicit_ipd);
+}
+
+std::shared_ptr<Descriptor> Statement::allocate_descriptor() {
+    auto & desc = get_parent().allocate_child<Descriptor>();
+    return desc.shared_from_this();
+}
+
+void Statement::dellocate_descriptor(std::shared_ptr<Descriptor>& desc) {
+    if (desc) {
+        desc->deallocate_self();
+        desc.reset();
+    }
+}
+

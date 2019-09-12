@@ -10,8 +10,9 @@
 class Descriptor
     : public Child<Connection, Descriptor>
 {
-public:
-
 private:
+    using ChildType = Child<Connection, Descriptor>;
 
+public:
+    explicit Descriptor(Connection & connection);
 };

@@ -42,6 +42,7 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/config_cmake.h.in ${CMAKE_CURRENT_BI
 
 add_library(${libname} SHARED
     attr.cpp
+    attributes.cpp
     config.cpp
     connection.cpp
     descriptor.cpp
@@ -51,11 +52,13 @@ add_library(${libname} SHARED
     handles.cpp
     info.cpp
     odbc.cpp
+    object.cpp
     read_helpers.cpp
     result_set.cpp
     statement.cpp
     type_parser.cpp
 
+    attributes.h
     config.h
     connection.h
     descriptor.h
@@ -64,6 +67,7 @@ add_library(${libname} SHARED
     environment.h
     ini_defines.h
     iostream_debug_helpers.h
+    object.h
     platform.h
     read_helpers.h
     result_set.h

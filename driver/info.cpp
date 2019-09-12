@@ -47,7 +47,7 @@ RETCODE SQL_API SQLGetInfo(
       * what requests will be sent and what any software will do, meaning these features.
       */
 
-    return doWith<Connection>(connection_handle, [&](Connection & connection) -> RETCODE {
+    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) -> RETCODE {
         const char * name = nullptr;
 
         const auto mask_SQL_CONVERT_VARCHAR = SQL_CVT_BIGINT | SQL_CVT_BINARY | SQL_CVT_BIT |

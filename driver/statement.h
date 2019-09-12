@@ -3,7 +3,6 @@
 #include "driver.h"
 #include "connection.h"
 #include "descriptor.h"
-#include "diagnostics.h"
 #include "result_set.h"
 
 #include <Poco/Net/HTTPResponse.h>
@@ -24,8 +23,12 @@ struct Binding {
 class Statement
     : public Child<Connection, Statement>
 {
+private:
+    using ChildType = Child<Connection, Statement>;
+
 public:
-    Statement(Connection & conn_);
+    explicit Statement(Connection & connection);
+    virtual ~Statement();
 
     /// Whether the driver should scan the SQL string for escape sequences or not.
     bool getScanEscapeSequences() const;
@@ -64,50 +67,41 @@ public:
     /// Send request to a server.
     void sendRequest(IResultMutatorPtr mutator = nullptr);
 
-    /// Actual ARD observer.
+    /// Actual ARD, APD, IRD, IPD observers.
     Descriptor& ard();
-
-    /// Actual APD observer.
     Descriptor& apd();
-
-    /// Actual IRD observer.
     Descriptor& ird();
-
-    /// Actual IPD observer.
     Descriptor& ipd();
 
-    /// Explicit ARD setter.
+    /// Explicit ARD, APD, IRD, IPD setters.
     void set_ard(std::shared_ptr<Descriptor> desc);
-
-    /// Explicit APD setter.
     void set_apd(std::shared_ptr<Descriptor> desc);
-
-    /// Explicit IRD setter.
     void set_ird(std::shared_ptr<Descriptor> desc);
-
-    /// Explicit IPD setter.
     void set_ipd(std::shared_ptr<Descriptor> desc);
 
-    /// Default ARD factory.
-    std::shared_ptr<Descriptor> make_ard();
+    /// Explicit ARD, APD, IRD, IPD resetters.
+    void reset_ard();
+    void reset_apd();
+    void reset_ird();
+    void reset_ipd();
 
-    /// Default APD factory.
-    std::shared_ptr<Descriptor> make_apd();
+    /// Initialize a descriptor as an ARD, APD, IRD, IPD.
+    void init_as_ard(Descriptor& desc);
+    void init_as_apd(Descriptor& desc);
+    void init_as_ird(Descriptor& desc);
+    void init_as_ipd(Descriptor& desc);
 
-    /// Default IRD factory.
-    std::shared_ptr<Descriptor> make_ird();
-
-    /// Default IPD factory.
-    std::shared_ptr<Descriptor> make_ipd();
+private:
+    void reset_descriptors();
+    void deallocate_implicit_descriptors();
+    std::shared_ptr<Descriptor> allocate_descriptor();
+    void dellocate_descriptor(std::shared_ptr<Descriptor>& desc);
 
 public:
-    Connection & connection;
-
     ResultSet result;
     Row current_row;
 
     std::istream * in = nullptr;
-    DiagnosticRecord diagnostic_record;
 
     std::map<SQLUSMALLINT, Binding> bindings;
 

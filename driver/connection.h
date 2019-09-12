@@ -7,18 +7,15 @@
 #include <memory>
 #include <mutex>
 
-namespace Poco {
-namespace Net {
-    class HTTPClientSession;
-}
-}
+#include <Poco/Net/HTTPClientSession.h>
 
 class Connection
     : public Child<Environment, Connection>
 {
-public:
-    Environment & environment;
+private:
+    using ChildType = Child<Environment, Connection>;
 
+public:
     std::string data_source;
     std::string url;
     std::string proto;
@@ -39,11 +36,10 @@ public:
     std::string useragent;
 
     std::unique_ptr<Poco::Net::HTTPClientSession> session;
-    DiagnosticRecord diagnostic_record;
     int retry_count = 3;
 
 public:
-    Connection(Environment & env_);
+    explicit Connection(Environment & environment);
 
     /// Returns the completed connection string.
     std::string connectionString() const;

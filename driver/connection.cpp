@@ -1,16 +1,13 @@
 #include "connection.h"
+#include "utils.h"
+#include "string_ref.h"
+#include "config.h"
+#include "descriptor.h"
+#include "statement.h"
+
 #include <Poco/Net/HTTPClientSession.h>
 #include <Poco/NumberParser.h> // TODO: switch to std
 #include <Poco/URI.h>
-#include "config.h"
-#include "string_ref.h"
-#include "utils.h"
-
-//#if __has_include("config_cmake.h") // requre c++17
-
-#if CMAKE_BUILD
-#    include "config_cmake.h"
-#endif
 
 #if USE_SSL
 #    include <Poco/Net/AcceptCertificateHandler.h>
@@ -52,7 +49,10 @@ void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::str
 }
 
 
-Connection::Connection(Environment & env_) : environment(env_) {}
+Connection::Connection(Environment & environment)
+    : ChildType(environment)
+{
+}
 
 std::string Connection::connectionString() const {
     std::string ret;
@@ -198,20 +198,18 @@ void Connection::loadConfiguration() {
     stringToTCHAR(data_source, ci.dsn);
     getDSNinfo(&ci, true);
 
-    auto tracefile = stringFromMYTCHAR(ci.tracefile);
     {
-        auto str = stringFromMYTCHAR(ci.trace);
-        if (!str.empty())
-            log_enabled = !(str == "0" || str == "No" || str == "no");
-        if (log_enabled && !tracefile.empty() && (tracefile != log_file || !log_stream.is_open())) {
-            log_file = tracefile;
-            log_stream = std::ofstream(log_file, std::ios::out | std::ios::app);
-            if (!log_header.empty()) {
-                LOG(log_header);
-                log_header.clear();
-            }
+        const std::string tracefile = stringFromMYTCHAR(ci.tracefile);
+        if (!tracefile.empty()) {
+            Driver::get_instance().set_attr(SQL_ATTR_TRACEFILE, tracefile);
+        }
+
+        const std::string trace = to_upper_copy(stringFromMYTCHAR(ci.trace));
+        if (!trace.empty()) {
+            Driver::get_instance().set_attr(SQL_ATTR_TRACE, (trace == "0" || trace == "NO" ? SQL_OPT_TRACE_OFF : SQL_OPT_TRACE_ON));
         }
     }
+
     if (url.empty())
         url = stringFromMYTCHAR(ci.url);
     if (!port && ci.port[0] != 0) {
