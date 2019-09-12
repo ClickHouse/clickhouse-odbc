@@ -50,7 +50,7 @@ SQLRETURN allocDesc(SQLHDBC connection_handle, SQLHDESC * out_descriptor_handle)
 }
 
 SQLRETURN freeHandle(SQLHANDLE handle) noexcept {
-    return CALL_WITH_HANDLE(handle, [&] (auto & object) {
+    return CALL_WITH_HANDLE_SKIP_DIAG(handle, [&] (auto & object) {
         object.deallocate_self();
         return SQL_SUCCESS;
     });
