@@ -10,6 +10,7 @@
 #    endif
 #endif
 
+#include <algorithm>
 #include <chrono>
 #include <iomanip>
 #include <sstream>

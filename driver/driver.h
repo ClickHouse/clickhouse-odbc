@@ -72,105 +72,9 @@ public:
 
     static Driver & get_instance() noexcept;
 
-    template <typename Callable>
-    SQLRETURN call(Callable && callable, SQLHANDLE handle = nullptr, SQLSMALLINT handle_type = 0, bool skip_diag = false) noexcept {
-        try {
-            Object* obj_ptr = nullptr;
-
-            if (handle == nullptr) {
-                if (handle_type != 0)
-                    return SQL_INVALID_HANDLE;
-            }
-            else {
-                auto it = descendants.find(handle);
-                if (it == descendants.end())
-                    return SQL_INVALID_HANDLE;
-
-                obj_ptr = &it->second.get();
-            }
-
-            if (obj_ptr == nullptr) {
-                try {
-                    return do_call(callable);
-                }
-                catch (const SqlException & ex) {
-                    LOG(ex.get_sql_state() << " (" << ex.what() << ")");
-                    return SQL_ERROR;
-                }
-                catch (const Poco::Exception & ex) {
-                    LOG("HY000 (" << ex.displayText() << ")");
-                    return SQL_ERROR;
-                }
-                catch (const std::exception & ex) {
-                    LOG("HY000 (" << ex.what() << ")");
-                    return SQL_ERROR;
-                }
-                catch (...) {
-                    LOG("HY000 (Unknown exception)");
-                    return SQL_ERROR;
-                }
-            }
-            else {
-                try {
-
-#define TRY_DISPATCH_AS(ObjectType) \
-                    if ( \
-                        handle_type == 0 || \
-                        handle_type == get_object_handle_type<ObjectType>() \
-                    ) { \
-                        auto * obj = dynamic_cast_to<ObjectType>(obj_ptr); \
-                        if (obj) \
-                            return do_call(callable, *obj, skip_diag); \
-                    }
-
-                    TRY_DISPATCH_AS(Statement);
-                    TRY_DISPATCH_AS(Descriptor);
-                    TRY_DISPATCH_AS(Connection);
-                    TRY_DISPATCH_AS(Environment);
-
-#undef TRY_DISPATCH_AS
-
-                }
-                catch (const SqlException & ex) {
-                    LOG(ex.get_sql_state() << " (" << ex.what() << ")");
-                    if (!skip_diag)
-                        obj_ptr->fill(SQL_ERROR, ex.get_sql_state(), ex.what(), 1);
-                    return SQL_ERROR;
-                }
-                catch (const Poco::Exception & ex) {
-                    LOG("HY000 (" << ex.displayText() << ")");
-                    if (!skip_diag)
-                        obj_ptr->fill(SQL_ERROR, "HY000", ex.displayText(), 1);
-                    return SQL_ERROR;
-                }
-                catch (const std::exception & ex) {
-                    LOG("HY000 (" << ex.what() << ")");
-                    if (!skip_diag)
-                        obj_ptr->fill(SQL_ERROR, "HY000", ex.what(), 1);
-                    return SQL_ERROR;
-                }
-                catch (...) {
-                    LOG("HY000 (Unknown exception)");
-                    if (!skip_diag)
-                        obj_ptr->fill(SQL_ERROR, "HY000", "Unknown exception", 2);
-                    return SQL_ERROR;
-                }
-            }
-        }
-        catch (...) {
-            LOG("Unknown exception");
-            return SQL_ERROR;
-        }
-
-        return SQL_INVALID_HANDLE;
-    }
-
     // Leave unimplemented for general case.
     template <typename T> T & allocate_child();
     template <typename T> void deallocate_child(SQLHANDLE) noexcept;
-
-    template <> Environment & allocate_child<Environment>();
-    template <> void deallocate_child<Environment>(SQLHANDLE handle) noexcept;
 
     void register_descendant(Object & descendant);
     void unregister_descendant(Object & descendant) noexcept;
@@ -187,12 +91,6 @@ public:
 private:
     // Leave unimplemented for general case.
     template <typename T> T * dynamic_cast_to(Object *);
-
-    // Move this to cpp to avoid the need of fully specifying these types here.
-    template <> Environment * dynamic_cast_to<Environment>(Object * obj);
-    template <> Connection * dynamic_cast_to<Connection>(Object * obj);
-    template <> Descriptor * dynamic_cast_to<Descriptor>(Object * obj);
-    template <> Statement * dynamic_cast_to<Statement>(Object * obj);
 
     template <typename Callable>
     static inline SQLRETURN do_call(Callable & callable,
@@ -271,6 +169,10 @@ private:
         return SQL_INVALID_HANDLE;
     }
 
+public:
+    template <typename Callable>
+    SQLRETURN call(Callable && callable, SQLHANDLE handle = nullptr, SQLSMALLINT handle_type = 0, bool skip_diag = false) noexcept;
+
 private:
     std::string log_file_name;
     std::ofstream log_file_stream;
@@ -279,3 +181,105 @@ private:
     std::unordered_map<SQLHANDLE, std::reference_wrapper<Object>> descendants;
     std::unordered_map<SQLHANDLE, std::shared_ptr<Environment>> environments;
 };
+
+template <> Environment & Driver::allocate_child<Environment>();
+template <> void Driver::deallocate_child<Environment>(SQLHANDLE handle) noexcept;
+
+// Move this to cpp to avoid the need of fully specifying these types here.
+template <> Environment * Driver::dynamic_cast_to<Environment>(Object * obj);
+template <> Connection * Driver::dynamic_cast_to<Connection>(Object * obj);
+template <> Descriptor * Driver::dynamic_cast_to<Descriptor>(Object * obj);
+template <> Statement * Driver::dynamic_cast_to<Statement>(Object * obj);
+
+template <typename Callable>
+SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLINT handle_type, bool skip_diag) noexcept {
+    try {
+        Object* obj_ptr = nullptr;
+
+        if (handle == nullptr) {
+            if (handle_type != 0)
+                return SQL_INVALID_HANDLE;
+        }
+        else {
+            auto it = descendants.find(handle);
+            if (it == descendants.end())
+                return SQL_INVALID_HANDLE;
+
+            obj_ptr = &it->second.get();
+        }
+
+        if (obj_ptr == nullptr) {
+            try {
+                return do_call(callable);
+            }
+            catch (const SqlException & ex) {
+                LOG(ex.get_sql_state() << " (" << ex.what() << ")");
+                return SQL_ERROR;
+            }
+            catch (const Poco::Exception & ex) {
+                LOG("HY000 (" << ex.displayText() << ")");
+                return SQL_ERROR;
+            }
+            catch (const std::exception & ex) {
+                LOG("HY000 (" << ex.what() << ")");
+                return SQL_ERROR;
+            }
+            catch (...) {
+                LOG("HY000 (Unknown exception)");
+                return SQL_ERROR;
+            }
+        }
+        else {
+            try {
+
+#define TRY_DISPATCH_AS(ObjectType) \
+    if ( \
+        handle_type == 0 || \
+        handle_type == get_object_handle_type<ObjectType>() \
+    ) { \
+        auto * obj = dynamic_cast_to<ObjectType>(obj_ptr); \
+        if (obj) \
+            return do_call(callable, *obj, skip_diag); \
+    }
+
+                TRY_DISPATCH_AS(Statement);
+                TRY_DISPATCH_AS(Descriptor);
+                TRY_DISPATCH_AS(Connection);
+                TRY_DISPATCH_AS(Environment);
+
+#undef TRY_DISPATCH_AS
+
+            }
+            catch (const SqlException & ex) {
+                LOG(ex.get_sql_state() << " (" << ex.what() << ")");
+                if (!skip_diag)
+                    obj_ptr->fill(SQL_ERROR, ex.get_sql_state(), ex.what(), 1);
+                return SQL_ERROR;
+            }
+            catch (const Poco::Exception & ex) {
+                LOG("HY000 (" << ex.displayText() << ")");
+                if (!skip_diag)
+                    obj_ptr->fill(SQL_ERROR, "HY000", ex.displayText(), 1);
+                return SQL_ERROR;
+            }
+            catch (const std::exception & ex) {
+                LOG("HY000 (" << ex.what() << ")");
+                if (!skip_diag)
+                    obj_ptr->fill(SQL_ERROR, "HY000", ex.what(), 1);
+                return SQL_ERROR;
+            }
+            catch (...) {
+                LOG("HY000 (Unknown exception)");
+                if (!skip_diag)
+                    obj_ptr->fill(SQL_ERROR, "HY000", "Unknown exception", 2);
+                return SQL_ERROR;
+            }
+        }
+    }
+    catch (...) {
+        LOG("Unknown exception");
+        return SQL_ERROR;
+    }
+
+    return SQL_INVALID_HANDLE;
+}

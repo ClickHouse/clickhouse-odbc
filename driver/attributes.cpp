@@ -1,5 +1,3 @@
-#pragma once
-
 #include "attributes.h"
 
 bool AttributeContainer::has_attr_integer(int attr) const {

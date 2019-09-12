@@ -27,43 +27,10 @@ public:
     bool has_attr_string(int attr) const;
     bool has_attr(int attr) const;
 
-    template <typename T>
-    T get_attr_as(int attr) const {
-        auto it = integers.find(attr);
-        return (it == integers.end() ?
-            T{} : static_cast<T>(it->second));
-    }
+    template <typename T> inline T get_attr_as(int attr) const;
 
-    template <>
-    std::string get_attr_as<std::string>(int attr) const {
-        auto it = strings.find(attr);
-        return (it == strings.end() ?
-            std::string{} : it->second);
-    }
-
-    template <typename T>
-    void set_attr_silent(int attr, const T& value) {
-        strings.erase(attr);
-        integers[attr] = static_cast<std::int64_t>(value);
-    }
-
-    template <>
-    void set_attr_silent<std::string>(int attr, const std::string& value) {
-        integers.erase(attr);
-        strings[attr] = value;
-    }
-
-    template <typename T>
-    void set_attr(int attr, const T& value) {
-        set_attr_silent(attr, value);
-        on_attr_change(attr);
-    }
-
-    template <>
-    void set_attr<std::string>(int attr, const std::string& value) {
-        set_attr_silent(attr, value);
-        on_attr_change(attr);
-    }
+    template <typename T> inline void set_attr_silent(int attr, const T& value);
+    template <typename T> inline void set_attr(int attr, const T& value);
 
     virtual void on_attr_change(int attr);
 
@@ -71,3 +38,41 @@ private:
     std::unordered_map<int, std::int64_t> integers;
     std::unordered_map<int, std::string> strings;
 };
+
+template <typename T>
+inline T AttributeContainer::get_attr_as(int attr) const {
+    auto it = integers.find(attr);
+    return (it == integers.end() ?
+        T{} : static_cast<T>(it->second));
+}
+
+template <>
+inline std::string AttributeContainer::get_attr_as<std::string>(int attr) const {
+    auto it = strings.find(attr);
+    return (it == strings.end() ?
+        std::string{} : it->second);
+}
+
+template <typename T>
+inline void AttributeContainer::set_attr_silent(int attr, const T& value) {
+    strings.erase(attr);
+    integers[attr] = static_cast<std::int64_t>(value);
+}
+
+template <>
+inline void AttributeContainer::set_attr_silent<std::string>(int attr, const std::string& value) {
+    integers.erase(attr);
+    strings[attr] = value;
+}
+
+template <typename T>
+inline void AttributeContainer::set_attr(int attr, const T& value) {
+    set_attr_silent(attr, value);
+    on_attr_change(attr);
+}
+
+template <>
+inline void AttributeContainer::set_attr<std::string>(int attr, const std::string& value) {
+    set_attr_silent(attr, value);
+    on_attr_change(attr);
+}

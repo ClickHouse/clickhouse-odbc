@@ -36,9 +36,6 @@ public:
     template <typename T> T& allocate_child();
     template <typename T> void deallocate_child(SQLHANDLE) noexcept;
 
-    template <> Connection& allocate_child<Connection>();
-    template <> void deallocate_child<Connection>(SQLHANDLE handle) noexcept;
-
     static const auto string_max_size = 0xFFFFFF;
     static const std::map<std::string, TypeInfo> types_info;
     const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs = "") const;
@@ -55,3 +52,6 @@ public:
 private:
     std::unordered_map<SQLHANDLE, std::shared_ptr<Connection>> connections;
 };
+
+template <> Connection& Environment::allocate_child<Connection>();
+template <> void Environment::deallocate_child<Connection>(SQLHANDLE handle) noexcept;

@@ -72,11 +72,11 @@ public:
 #endif
 
     bool is_logging_enabled() const {
-        parent.is_logging_enabled();
+        return parent.is_logging_enabled();
     }
 
     std::ostream & get_log_stream() {
-        parent.get_log_stream();
+        return parent.get_log_stream();
     }
 
     void write_log_message_prefix(std::ostream & stream) {

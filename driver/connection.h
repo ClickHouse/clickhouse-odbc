@@ -64,12 +64,6 @@ public:
     template <typename T> T& allocate_child();
     template <typename T> void deallocate_child(SQLHANDLE) noexcept;
 
-    template <> Descriptor& allocate_child<Descriptor>();
-    template <> void deallocate_child<Descriptor>(SQLHANDLE handle) noexcept;
-
-    template <> Statement& allocate_child<Statement>();
-    template <> void deallocate_child<Statement>(SQLHANDLE handle) noexcept;
-
 private:
     /// Load uninitialized fields from odbc.ini
     void loadConfiguration();
@@ -82,3 +76,9 @@ private:
     std::unordered_map<SQLHANDLE, std::shared_ptr<Descriptor>> descriptors;
     std::unordered_map<SQLHANDLE, std::shared_ptr<Statement>> statements;
 };
+
+template <> Descriptor& Connection::allocate_child<Descriptor>();
+template <> void Connection::deallocate_child<Descriptor>(SQLHANDLE handle) noexcept;
+
+template <> Statement& Connection::allocate_child<Statement>();
+template <> void Connection::deallocate_child<Statement>(SQLHANDLE handle) noexcept;
