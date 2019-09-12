@@ -10,12 +10,9 @@
 Driver::Driver() noexcept {
     set_attr_silent(SQL_ATTR_TRACE, DRIVER_TRACE_DEFAULT);
     set_attr<std::string>(SQL_ATTR_TRACEFILE, DRIVER_TRACEFILE_DEFAULT);
-
-    LOG("==================== ODBC Driver instance constructed ====================");
 }
 
 Driver::~Driver() {
-    LOG("==================== ODBC Driver instance destructing ====================");
 }
 
 Driver & Driver::get_instance() noexcept {
