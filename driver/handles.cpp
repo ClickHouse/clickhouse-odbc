@@ -133,7 +133,7 @@ SQLRETURN SQL_API SQLFreeStmt(HSTMT statement_handle, SQLUSMALLINT option) {
 
 
 
-                return SQL_SUCCESS;
+//              return SQL_SUCCESS;
 
             case SQL_DROP:
                 return freeHandle(statement_handle);

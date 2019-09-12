@@ -133,8 +133,7 @@ void Statement::prepareQuery(const std::string & q) {
 
 void Statement::setQuery(const std::string & q) {
     query = q;
-    prepared_query = query;
-    params.clear();
+    prepared_query = q;
 }
 
 void Statement::reset() {
