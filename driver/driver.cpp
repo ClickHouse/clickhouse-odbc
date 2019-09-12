@@ -110,8 +110,7 @@ void Driver::write_log_message_prefix(std::ostream & stream) {
     stream << std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::system_clock::now().time_since_epoch()
     ).count();
-    stream << " [PID=" << get_pid() << "]";
-    stream << " [THREAD=" << get_tid() << "]";
+    stream << " [" << get_pid() << ":" << get_tid() << "]";
 }
 
 void Driver::write_log_session_start(std::ostream & stream) {
@@ -119,8 +118,8 @@ void Driver::write_log_session_start(std::ostream & stream) {
     {
         auto t = std::time(nullptr);
         char mbstr[100] = {};
-        if (std::strftime(mbstr, sizeof(mbstr), "%Y.%m.%d %T", std::localtime(&t)))
-            stream << " (" << mbstr << ")" << std::endl;
+        if (std::strftime(mbstr, sizeof(mbstr), "%F %T %Z", std::localtime(&t)))
+            stream << " (" << mbstr << ")";
     }
     stream << " ====================" << std::endl;
 
@@ -171,8 +170,8 @@ void Driver::write_log_session_end(std::ostream & stream) {
     {
         auto t = std::time(nullptr);
         char mbstr[100] = {};
-        if (std::strftime(mbstr, sizeof(mbstr), "%Y.%m.%d %T", std::localtime(&t)))
-            stream << " (" << mbstr << ")" << std::endl;
+        if (std::strftime(mbstr, sizeof(mbstr), "%F %T %Z", std::localtime(&t)))
+            stream << " (" << mbstr << ")";
     }
     stream << " ====================" << std::endl;
 }

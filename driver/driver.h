@@ -28,9 +28,9 @@
             if (context_.is_logging_enabled()) { \
                 auto & stream_ = context_.get_log_stream(); \
                 context_.write_log_message_prefix(stream_); \
-                stream_ << file << ":" << line; \
-                stream_ << " (in " << function << ")"; \
-                stream_ << " " << message << std::endl; \
+                stream_ << " " << file << ":" << line; \
+                stream_ << " in " << function << ": "; \
+                stream_ << message << std::endl; \
             } \
         } \
         catch (const std::exception & ex) { \
