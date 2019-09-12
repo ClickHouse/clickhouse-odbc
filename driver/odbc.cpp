@@ -544,7 +544,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDiagRec)(
     SQLSMALLINT out_message_max_size,
     SQLSMALLINT * out_message_size
 ) {
-    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, [&] (auto & object) {
+    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, [&] (auto & object) -> SQLRETURN {
         if (record_number < 1 || out_message_max_size < 0)
             return SQL_ERROR;
 
@@ -553,10 +553,15 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDiagRec)(
 
         auto & record = object.get_status(record_number);
 
-        fillOutputPlatformString(record.template get_attr_as<std::string>(SQL_DIAG_SQLSTATE), out_sqlstate, 6, nullptr, true);
+        /// The five-letter SQLSTATE and the trailing zero.
+        if (out_sqlstate) {
+            std::size_t size = 6;
+            std::size_t written = 0;
+            fillOutputPlatformString(record.template get_attr_as<std::string>(SQL_DIAG_SQLSTATE), out_sqlstate, size, &written, true);
+        }
 
         if (out_native_error_code != nullptr) {
-            *out_native_error_code = record.template get_attr_as<decltype(*out_native_error_code)>(SQL_DIAG_NATIVE);
+            *out_native_error_code = record.template get_attr_as<SQLINTEGER>(SQL_DIAG_NATIVE);
         }
 
         return fillOutputPlatformString(record.template get_attr_as<std::string>(SQL_DIAG_MESSAGE_TEXT), out_mesage, out_message_max_size, out_message_size, true);
@@ -573,7 +578,15 @@ SQLRETURN SQL_API SQLGetDiagField(
     SQLSMALLINT out_message_max_size,
     SQLSMALLINT * out_message_size
 ) {
-    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, [&] (auto & object) {
+#define CASE_ATTR_NUM(NAME, TYPE) \
+    case NAME: \
+        return fillOutputNumber(record.template get_attr_as<TYPE>(NAME), out_mesage, out_message_max_size, out_message_size);
+
+#define CASE_ATTR_STR(NAME) \
+    case NAME: \
+        return fillOutputPlatformString(record.template get_attr_as<std::string>(NAME), out_mesage, out_message_max_size, out_message_size);
+
+    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, [&] (auto & object) -> SQLRETURN {
         // Exit with error if the requested field is relevant only to statements.
         if (get_object_handle_type<decltype(object)>() != SQL_HANDLE_STMT) {
             switch (field_id) {
@@ -603,15 +616,8 @@ SQLRETURN SQL_API SQLGetDiagField(
         if (record_number > 0 && record_number > object.get_status_count())
             return SQL_NO_DATA;
 
-        auto extract_field = [&] (auto & record) {
+        auto extract_field = [&] (auto & record) -> SQLRETURN {
             switch (field_id) {
-
-#define CASE_ATTR_NUM(NAME, TYPE) \
-    case NAME: return fillOutputNumber(record.template get_attr_as<TYPE>(NAME), out_mesage, out_message_max_size, out_message_size);
-
-#define CASE_ATTR_STR(NAME) \
-    case NAME: return fillOutputPlatformString(record.template get_attr_as<std::string>(NAME), out_mesage, out_message_max_size, out_message_size);
-
                 CASE_ATTR_NUM(SQL_DIAG_CURSOR_ROW_COUNT, SQLLEN);
                 CASE_ATTR_STR(SQL_DIAG_DYNAMIC_FUNCTION);
                 CASE_ATTR_NUM(SQL_DIAG_DYNAMIC_FUNCTION_CODE, SQLINTEGER);
@@ -628,10 +634,6 @@ SQLRETURN SQL_API SQLGetDiagField(
                 CASE_ATTR_STR(SQL_DIAG_SERVER_NAME);
                 CASE_ATTR_STR(SQL_DIAG_SQLSTATE);
                 CASE_ATTR_STR(SQL_DIAG_SUBCLASS_ORIGIN);
-
-#undef CASE_ATTR_NUM
-#undef CASE_ATTR_STR
-
             }
 
             return SQL_ERROR;
@@ -644,6 +646,9 @@ SQLRETURN SQL_API SQLGetDiagField(
             return extract_field(object.get_status(record_number));
         }
     });
+
+#undef CASE_ATTR_NUM
+#undef CASE_ATTR_STR
 }
 
 /// Description: https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqltables
@@ -997,14 +1002,14 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLGetCursorName)(
 
 /// This function can be implemented in the driver manager.
 RETCODE SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionId, SQLUSMALLINT * Supported) {
-    LOG(__FUNCTION__ << ":" << __LINE__ << " "
-                     << " id=" << FunctionId << " ptr=" << Supported);
-    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) -> RETCODE {
-        if (FunctionId == SQL_API_ODBC3_ALL_FUNCTIONS) {
-            memset(Supported, 0, sizeof(Supported[0]) * SQL_API_ODBC3_ALL_FUNCTIONS_SIZE);
+    LOG(__FUNCTION__ << ":" << __LINE__ << " " << " id=" << FunctionId << " ptr=" << Supported);
 
 #define SET_EXISTS(x) Supported[(x) >> 4] |= (1 << ((x)&0xF))
 // #define CLR_EXISTS(x) Supported[(x) >> 4] &= ~(1 << ((x) & 0xF))
+
+    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) -> RETCODE {
+        if (FunctionId == SQL_API_ODBC3_ALL_FUNCTIONS) {
+            memset(Supported, 0, sizeof(Supported[0]) * SQL_API_ODBC3_ALL_FUNCTIONS_SIZE);
 
             // info.cpp:
             SET_EXISTS(SQL_API_SQLGETINFO);
@@ -1066,16 +1071,14 @@ RETCODE SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionId,
             // CLR_EXISTS(SQL_API_SQLCOLUMNPRIVILEGES);
 
             /// TODO: more here, but all not implemented
-#undef SET_EXISTS
-            // #undef CLR_EXISTS
+
             return SQL_SUCCESS;
         } else if (FunctionId == SQL_API_ALL_FUNCTIONS) {
             //memset(Supported, 0, sizeof(Supported[0]) * 100);
             return SQL_ERROR;
         } else {
-            /*
-		switch (FunctionId)
-		{
+/*
+		switch (FunctionId) {
 			case SQL_API_SQLBINDCOL:
 				*Supported = SQL_TRUE;
 				break;
@@ -1083,12 +1086,15 @@ RETCODE SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionId,
 				*Supported = SQL_FALSE;
 				break;
 		}
-        */
+*/
             return SQL_ERROR;
         }
 
         return SQL_ERROR;
     });
+
+#undef SET_EXISTS
+// #undef CLR_EXISTS
 }
 
 

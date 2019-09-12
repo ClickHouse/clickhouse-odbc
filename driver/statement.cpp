@@ -1,5 +1,5 @@
 #include "statement.h"
-#include "lexer.h"
+#include "escaping/lexer.h"
 #include "escaping/escape_sequences.h"
 #include "platform.h"
 #include "win/version.h"
@@ -122,38 +122,10 @@ bool Statement::fetchRow() {
 
 void Statement::prepareQuery(const std::string & q) {
     query = q;
-    prepared_query.clear();
-    params.clear();
-
-    Lexer lex(query);
-    for (
-         Token tok = lex.Peek();
-         tok.type != Token::INVALID && tok.type != Token::EOS;
-         tok = lex.Peek()
-    ) {
-        switch (tok.type) {
-            case Token::PARAM: {
-                params.emplace_back("odbc_" + std::to_string(params.size()));
-                prepared_query += "{" + params.back() + "}";
-                lex.Consume();
-                break;
-            }
-            case Token::LCURLY: {
-                if (scan_escape_sequences) {
-                    prepared_query += processEscapeSequence(lex);
-                }
-                else {
-                    prepared_query += tok.literal.to_string();
-                    lex.Consume();
-                }
-                break;
-            }
-            default: {
-                prepared_query += tok.literal.to_string();
-                lex.Consume();
-                break;
-            }
-        }
+    if (scan_escape_sequences) {
+        prepared_query = replaceEscapeSequences(query);
+    } else {
+        prepared_query = q;
     }
 
     prepared = true;
