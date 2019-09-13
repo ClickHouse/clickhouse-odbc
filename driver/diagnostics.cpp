@@ -28,6 +28,7 @@ DiagnosticStatusRecord::DiagnosticStatusRecord() {
 void DiagnosticStatusRecord::reset() {
 }
 
+// WARNING: Do not modify SQL_DIAG_NUMBER field of the header record manually!
 DiagnosticHeaderRecord & DiagnosticsContainer::get_header() {
     return header;
 }
@@ -59,6 +60,7 @@ void DiagnosticsContainer::fill(const std::string& sql_status, const std::string
 
 void DiagnosticsContainer::reset_header() {
     header.reset();
+    statuses.clear();
 }
 
 void DiagnosticsContainer::set_return_code(SQLRETURN rc) {
@@ -70,7 +72,8 @@ SQLRETURN DiagnosticsContainer::get_return_code() const {
 }
 
 std::size_t DiagnosticsContainer::get_status_count() const {
-    return header.get_attr_as<SQLINTEGER>(SQL_DIAG_NUMBER);
+//  return header.get_attr_as<SQLINTEGER>(SQL_DIAG_NUMBER);
+    return statuses.size();
 }
 
 DiagnosticStatusRecord & DiagnosticsContainer::get_status(std::size_t num) {
@@ -80,9 +83,10 @@ DiagnosticStatusRecord & DiagnosticsContainer::get_status(std::size_t num) {
 void DiagnosticsContainer::insert_status(DiagnosticStatusRecord && rec) {
     // TODO: implement proper oredring of status records here.
     statuses.emplace_back(std::move(rec));
-    header.set_attr(SQL_DIAG_NUMBER, get_status_count() + 1);
+    header.set_attr(SQL_DIAG_NUMBER, statuses.size());
 }
 
 void DiagnosticsContainer::reset_statuses() {
-    header.set_attr(SQL_DIAG_NUMBER, 0);
+    statuses.clear();
+    header.set_attr(SQL_DIAG_NUMBER, statuses.size());
 }
