@@ -136,7 +136,7 @@ void Statement::setQuery(const std::string & q) {
     prepared_query = q;
 }
 
-void Statement::reset() {
+void Statement::close_cursor() {
     in = nullptr;
     response.reset();
     get_parent().session->reset();
@@ -144,6 +144,13 @@ void Statement::reset() {
     reset_header();
     result = ResultSet();
     reset_descriptors();
+}
+
+void Statement::reset_col_bindings() {
+    bindings.clear();
+}
+
+void Statement::reset_param_bindings() {
 }
 
 Descriptor& Statement::ard() {

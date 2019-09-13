@@ -62,7 +62,13 @@ public:
     void setQuery(const std::string & q);
 
     /// Reset statement to initial state.
-    void reset();
+    void close_cursor();
+
+    /// Reset/release row/column buffer bindings.
+    void reset_col_bindings();
+
+    /// Reset/release parameter buffer bindings.
+    void reset_param_bindings();
 
     /// Send request to a server.
     void sendRequest(IResultMutatorPtr mutator = nullptr);

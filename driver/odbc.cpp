@@ -1006,7 +1006,7 @@ RETCODE SQL_API SQLCloseCursor(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
-        statement.reset();
+        statement.close_cursor();
         return SQL_SUCCESS;
     });
 }

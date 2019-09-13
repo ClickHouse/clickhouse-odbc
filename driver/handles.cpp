@@ -125,32 +125,19 @@ SQLRETURN SQL_API SQLFreeStmt(HSTMT statement_handle, SQLUSMALLINT option) {
     return CALL_WITH_HANDLE(statement_handle, [&] (Statement & statement) -> SQLRETURN {
         switch (option) {
             case SQL_CLOSE: /// Close the cursor, ignore the remaining results. If there is no cursor, then noop.
-                statement.reset();
-
-
-
-                //-/
-
-
-
-//              return SQL_SUCCESS;
+                statement.close_cursor();
+                return SQL_SUCCESS;
 
             case SQL_DROP:
                 return freeHandle(statement_handle);
 
             case SQL_UNBIND:
-                statement.bindings.clear();
+                statement.reset_col_bindings();
                 return SQL_SUCCESS;
 
             case SQL_RESET_PARAMS:
-
-
-
-                //-/
-
-
-
-                return SQL_ERROR;
+                statement.reset_param_bindings();
+                return SQL_SUCCESS;
         }
 
         return SQL_ERROR;
