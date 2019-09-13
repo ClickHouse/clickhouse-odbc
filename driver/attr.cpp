@@ -5,13 +5,15 @@
 #include "statement.h"
 #include "utils.h"
 
-extern "C" {
+namespace { namespace impl {
 
-RETCODE
-impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
-    LOG(__FUNCTION__);
-
-    return CALL_WITH_HANDLE(environment_handle, [&](Environment & environment) {
+SQLRETURN SetEnvAttr(
+    SQLHENV environment_handle,
+    SQLINTEGER attribute,
+    SQLPOINTER value,
+    SQLINTEGER value_length
+) noexcept {
+    auto func = [&](Environment & environment) {
         LOG("SetEnvAttr: " << attribute);
 
         switch (attribute) {
@@ -44,19 +46,19 @@ impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute, SQLPOINTER 
                 //throw std::runtime_error("Unsupported environment attribute.");
                 return SQL_ERROR;
         }
-    });
+    };
+
+    return CALL_WITH_HANDLE(environment_handle, func);
 }
 
-
-RETCODE
-impl_SQLGetEnvAttr(SQLHENV environment_handle,
+SQLRETURN GetEnvAttr(
+    SQLHENV environment_handle,
     SQLINTEGER attribute,
     SQLPOINTER out_value,
     SQLINTEGER out_value_max_length,
-    SQLINTEGER * out_value_length) {
-    LOG(__FUNCTION__);
-
-    return CALL_WITH_HANDLE(environment_handle, [&](Environment & environment) -> RETCODE {
+    SQLINTEGER * out_value_length
+) noexcept {
+    auto func = [&](Environment & environment) -> SQLRETURN {
         LOG("GetEnvAttr: " << attribute);
         const char * name = nullptr;
 
@@ -75,16 +77,18 @@ impl_SQLGetEnvAttr(SQLHENV environment_handle,
                 //throw std::runtime_error("Unsupported environment attribute.");
                 return SQL_ERROR;
         }
-    });
+    };
+
+    return CALL_WITH_HANDLE(environment_handle, func);
 }
 
-
-/// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlsetconnectattr-function
-RETCODE
-impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
-    LOG(__FUNCTION__);
-
-    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
+SQLRETURN SetConnectAttr(
+    SQLHDBC connection_handle,
+    SQLINTEGER attribute,
+    SQLPOINTER value,
+    SQLINTEGER value_length
+) noexcept {
+    auto func = [&](Connection & connection) {
         LOG("SetConnectAttr: " << attribute << " = " << value << " (" << value_length << ")");
 
         switch (attribute) {
@@ -155,16 +159,19 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINT
                 //throw SqlException("Unsupported connection attribute.", "HY092");
                 return SQL_ERROR;
         }
-    });
+    };
+
+    return CALL_WITH_HANDLE(connection_handle, func);
 }
 
-
-RETCODE
-impl_SQLGetConnectAttr(
-    SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
-    LOG(__FUNCTION__);
-
-    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) -> RETCODE {
+SQLRETURN GetConnectAttr(
+    SQLHDBC connection_handle,
+    SQLINTEGER attribute,
+    SQLPOINTER out_value,
+    SQLINTEGER out_value_max_length,
+    SQLINTEGER * out_value_length
+) noexcept {
+    auto func = [&](Connection & connection) -> SQLRETURN {
         LOG("GetConnectAttr: " << attribute);
 
         const char * name = nullptr;
@@ -207,15 +214,18 @@ impl_SQLGetConnectAttr(
         }
 
         return SQL_SUCCESS;
-    });
+    };
+
+    return CALL_WITH_HANDLE(connection_handle, func);
 }
 
-
-RETCODE
-impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
-    LOG(__FUNCTION__);
-
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
+SQLRETURN SetStmtAttr(
+    SQLHSTMT statement_handle,
+    SQLINTEGER attribute,
+    SQLPOINTER value,
+    SQLINTEGER value_length
+) noexcept {
+    auto func = [&](Statement & statement) {
         LOG("SetStmtAttr: " << attribute << " value=" << value << " value_length=" << value_length);
 
         switch (attribute) {
@@ -273,11 +283,12 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute, SQLPOINTER 
                 //throw std::runtime_error("Unsupported statement attribute.");
                 return SQL_ERROR;
         }
-    });
+    };
+
+    return CALL_WITH_HANDLE(statement_handle, func);
 }
 
-
-static SQLHDESC descHandleFromStatementHandle(Statement & statement, SQLINTEGER descType) {
+SQLHDESC descHandleFromStatementHandle(Statement & statement, SQLINTEGER descType) {
     switch (descType) {
         case SQL_ATTR_APP_ROW_DESC:
             return statement.ard().get_handle();
@@ -291,15 +302,14 @@ static SQLHDESC descHandleFromStatementHandle(Statement & statement, SQLINTEGER 
     return 0;
 }
 
-RETCODE
-impl_SQLGetStmtAttr(
-    SQLHSTMT statement_handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
-    LOG(__FUNCTION__);
-#ifndef NDEBUG
-    SCOPE_EXIT({ LOG("impl_SQLGetStmtAttr finish."); }); // for timing only
-#endif
-
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
+SQLRETURN GetStmtAttr(
+    SQLHSTMT statement_handle,
+    SQLINTEGER attribute,
+    SQLPOINTER out_value,
+    SQLINTEGER out_value_max_length,
+    SQLINTEGER * out_value_length
+) {
+    auto func = [&](Statement & statement) -> SQLRETURN {
         LOG("GetStmtAttr: " << attribute << " out_value=" << out_value << " out_value_max_length=" << out_value_max_length);
 
         const char * name = nullptr;
@@ -358,60 +368,63 @@ impl_SQLGetStmtAttr(
         }
 
         return SQL_SUCCESS;
-    });
+    };
+
+    return CALL_WITH_HANDLE(statement_handle, func);
 }
 
+} } // namespace impl
 
-RETCODE SQL_API SQLSetEnvAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
-    return impl_SQLSetEnvAttr(handle, attribute, value, value_length);
+
+extern "C" {
+
+SQLRETURN SQL_API SQLSetEnvAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+    return impl::SetEnvAttr(handle, attribute, value, value_length);
 }
 
-RETCODE SQL_API SQLSetConnectAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
-    return impl_SQLSetConnectAttr(handle, attribute, value, value_length);
+SQLRETURN SQL_API SQLSetConnectAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+    return impl::SetConnectAttr(handle, attribute, value, value_length);
 }
 
-RETCODE SQL_API SQLSetStmtAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
-    return impl_SQLSetStmtAttr(handle, attribute, value, value_length);
+SQLRETURN SQL_API SQLSetStmtAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+    return impl::SetStmtAttr(handle, attribute, value, value_length);
 }
 
-RETCODE SQL_API SQLGetEnvAttr(
+SQLRETURN SQL_API SQLGetEnvAttr(
     SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
-    return impl_SQLGetEnvAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
+    return impl::GetEnvAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
-RETCODE SQL_API SQLGetConnectAttr(
+SQLRETURN SQL_API SQLGetConnectAttr(
     SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
-    return impl_SQLGetConnectAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
+    return impl::GetConnectAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
-RETCODE SQL_API SQLGetStmtAttr(
+SQLRETURN SQL_API SQLGetStmtAttr(
     SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
-    return impl_SQLGetStmtAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
+    return impl::GetStmtAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
-RETCODE SQL_API SQLGetConnectOption(SQLHDBC connection_handle, UWORD attribute, PTR out_value) {
-    LOG(__FUNCTION__);
+SQLRETURN SQL_API SQLGetConnectOption(SQLHDBC connection_handle, UWORD attribute, PTR out_value) {
     SQLINTEGER value_max_length = 64;
     SQLINTEGER value_length_unused = 0;
-    return impl_SQLGetConnectAttr(connection_handle, attribute, out_value, value_max_length, &value_length_unused);
+    return impl::GetConnectAttr(connection_handle, attribute, out_value, value_max_length, &value_length_unused);
 }
 
-RETCODE SQL_API SQLGetStmtOption(SQLHSTMT statement_handle, UWORD attribute, PTR out_value) {
-    LOG(__FUNCTION__);
+SQLRETURN SQL_API SQLGetStmtOption(SQLHSTMT statement_handle, UWORD attribute, PTR out_value) {
     SQLINTEGER value_max_length = 64;
     SQLINTEGER value_length_unused = 0;
-    return impl_SQLGetStmtAttr(statement_handle, attribute, out_value, value_max_length, &value_length_unused);
+    return impl::GetStmtAttr(statement_handle, attribute, out_value, value_max_length, &value_length_unused);
 }
 
-RETCODE SQL_API SQLSetConnectOption(SQLHDBC connection_handle, UWORD attribute, SQLULEN value) {
-    LOG(__FUNCTION__);
-    return impl_SQLSetConnectAttr(connection_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
+SQLRETURN SQL_API SQLSetConnectOption(SQLHDBC connection_handle, UWORD attribute, SQLULEN value) {
+    return impl::SetConnectAttr(connection_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
 }
 
-RETCODE SQL_API SQLSetStmtOption(SQLHSTMT statement_handle, UWORD attribute, SQLULEN value) {
-    LOG(__FUNCTION__);
+SQLRETURN SQL_API SQLSetStmtOption(SQLHSTMT statement_handle, UWORD attribute, SQLULEN value) {
     /// TODO (artpaul)
     /// See https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/sqlsetstmtoption-mapping for correct implementation.
-    return impl_SQLSetStmtAttr(statement_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
+    return impl::SetStmtAttr(statement_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
 }
-}
+
+} // extern "C"

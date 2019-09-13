@@ -27,8 +27,135 @@
   * which already have other addresses.
   */
 
-extern "C" {
+namespace { namespace impl {
 
+SQLRETURN GetDiagRec(
+    SQLSMALLINT handle_type,
+    SQLHANDLE handle,
+    SQLSMALLINT record_number,
+    SQLTCHAR * out_sqlstate,
+    SQLINTEGER * out_native_error_code,
+    SQLTCHAR * out_mesage,
+    SQLSMALLINT out_message_max_size,
+    SQLSMALLINT * out_message_size
+) noexcept {
+    auto func = [&] (auto & object) -> SQLRETURN {
+        if (record_number < 1 || out_message_max_size < 0)
+            return SQL_ERROR;
+
+        if (record_number > object.get_status_count())
+            return SQL_NO_DATA;
+
+        auto & record = object.get_status(record_number);
+
+        /// The five-letter SQLSTATE and the trailing zero.
+        if (out_sqlstate) {
+            std::size_t size = 6;
+            std::size_t written = 0;
+            fillOutputPlatformString(record.template get_attr_as<std::string>(SQL_DIAG_SQLSTATE), out_sqlstate, size, &written, true);
+        }
+
+        if (out_native_error_code != nullptr) {
+            *out_native_error_code = record.template get_attr_as<SQLINTEGER>(SQL_DIAG_NATIVE);
+        }
+
+        return fillOutputPlatformString(record.template get_attr_as<std::string>(SQL_DIAG_MESSAGE_TEXT), out_mesage, out_message_max_size, out_message_size, true);
+    };
+
+    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, func);
+}
+
+SQLRETURN GetDiagField(
+    SQLSMALLINT handle_type,
+    SQLHANDLE handle,
+    SQLSMALLINT record_number,
+    SQLSMALLINT field_id,
+    SQLPOINTER out_mesage,
+    SQLSMALLINT out_message_max_size,
+    SQLSMALLINT * out_message_size
+) noexcept {
+    auto func = [&] (auto & object) -> SQLRETURN {
+        // Exit with error if the requested field is relevant only to statements.
+        if (get_object_handle_type<decltype(object)>() != SQL_HANDLE_STMT) {
+            switch (field_id) {
+                case SQL_DIAG_CURSOR_ROW_COUNT:
+                case SQL_DIAG_DYNAMIC_FUNCTION:
+                case SQL_DIAG_DYNAMIC_FUNCTION_CODE:
+                case SQL_DIAG_ROW_COUNT:
+                    return SQL_ERROR;
+            }
+        }
+
+        // Ignore (adjust) record_number if the requested field is relevant only to the header.
+        switch (field_id) {
+            case SQL_DIAG_CURSOR_ROW_COUNT:
+            case SQL_DIAG_DYNAMIC_FUNCTION:
+            case SQL_DIAG_DYNAMIC_FUNCTION_CODE:
+            case SQL_DIAG_NUMBER:
+            case SQL_DIAG_RETURNCODE:
+            case SQL_DIAG_ROW_COUNT:
+                record_number = 0;
+                break;
+        }
+
+        if (record_number < 0)
+            return SQL_ERROR;
+
+        if (record_number > 0 && record_number > object.get_status_count())
+            return SQL_NO_DATA;
+
+        auto extract_field = [&] (auto & record) -> SQLRETURN {
+            switch (field_id) {
+
+#define CASE_ATTR_NUM(NAME, TYPE) \
+    case NAME: \
+        return fillOutputNumber(record.template get_attr_as<TYPE>(NAME), out_mesage, out_message_max_size, out_message_size);
+
+#define CASE_ATTR_STR(NAME) \
+    case NAME: \
+        return fillOutputPlatformString(record.template get_attr_as<std::string>(NAME), out_mesage, out_message_max_size, out_message_size);
+
+                CASE_ATTR_NUM(SQL_DIAG_CURSOR_ROW_COUNT, SQLLEN);
+                CASE_ATTR_STR(SQL_DIAG_DYNAMIC_FUNCTION);
+                CASE_ATTR_NUM(SQL_DIAG_DYNAMIC_FUNCTION_CODE, SQLINTEGER);
+                CASE_ATTR_NUM(SQL_DIAG_NUMBER, SQLINTEGER);
+                CASE_ATTR_NUM(SQL_DIAG_RETURNCODE, SQLRETURN);
+                CASE_ATTR_NUM(SQL_DIAG_ROW_COUNT, SQLLEN);
+
+                CASE_ATTR_STR(SQL_DIAG_CLASS_ORIGIN);
+                CASE_ATTR_NUM(SQL_DIAG_COLUMN_NUMBER, SQLINTEGER);
+                CASE_ATTR_STR(SQL_DIAG_CONNECTION_NAME);
+                CASE_ATTR_STR(SQL_DIAG_MESSAGE_TEXT);
+                CASE_ATTR_NUM(SQL_DIAG_NATIVE, SQLINTEGER);
+                CASE_ATTR_NUM(SQL_DIAG_ROW_NUMBER, SQLLEN);
+                CASE_ATTR_STR(SQL_DIAG_SERVER_NAME);
+                CASE_ATTR_STR(SQL_DIAG_SQLSTATE);
+                CASE_ATTR_STR(SQL_DIAG_SUBCLASS_ORIGIN);
+
+#undef CASE_ATTR_NUM
+#undef CASE_ATTR_STR
+
+            }
+
+            return SQL_ERROR;
+        };
+
+        if (record_number == 0) {
+            return extract_field(object.get_header());
+        }
+        else {
+            return extract_field(object.get_status(record_number));
+        }
+    };
+
+    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, func);
+}
+
+
+} } // namespace impl
+
+
+extern "C" {
 
 /// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlconnect-function
 RETCODE SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
@@ -544,28 +671,16 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDiagRec)(
     SQLSMALLINT out_message_max_size,
     SQLSMALLINT * out_message_size
 ) {
-    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, [&] (auto & object) -> SQLRETURN {
-        if (record_number < 1 || out_message_max_size < 0)
-            return SQL_ERROR;
-
-        if (record_number > object.get_status_count())
-            return SQL_NO_DATA;
-
-        auto & record = object.get_status(record_number);
-
-        /// The five-letter SQLSTATE and the trailing zero.
-        if (out_sqlstate) {
-            std::size_t size = 6;
-            std::size_t written = 0;
-            fillOutputPlatformString(record.template get_attr_as<std::string>(SQL_DIAG_SQLSTATE), out_sqlstate, size, &written, true);
-        }
-
-        if (out_native_error_code != nullptr) {
-            *out_native_error_code = record.template get_attr_as<SQLINTEGER>(SQL_DIAG_NATIVE);
-        }
-
-        return fillOutputPlatformString(record.template get_attr_as<std::string>(SQL_DIAG_MESSAGE_TEXT), out_mesage, out_message_max_size, out_message_size, true);
-    });
+    return impl::GetDiagRec(
+        handle_type,
+        handle,
+        record_number,
+        out_sqlstate,
+        out_native_error_code,
+        out_mesage,
+        out_message_max_size,
+        out_message_size
+    );
 }
 
 /// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlgetdiagfield-function
@@ -578,77 +693,15 @@ SQLRETURN SQL_API SQLGetDiagField(
     SQLSMALLINT out_message_max_size,
     SQLSMALLINT * out_message_size
 ) {
-#define CASE_ATTR_NUM(NAME, TYPE) \
-    case NAME: \
-        return fillOutputNumber(record.template get_attr_as<TYPE>(NAME), out_mesage, out_message_max_size, out_message_size);
-
-#define CASE_ATTR_STR(NAME) \
-    case NAME: \
-        return fillOutputPlatformString(record.template get_attr_as<std::string>(NAME), out_mesage, out_message_max_size, out_message_size);
-
-    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, [&] (auto & object) -> SQLRETURN {
-        // Exit with error if the requested field is relevant only to statements.
-        if (get_object_handle_type<decltype(object)>() != SQL_HANDLE_STMT) {
-            switch (field_id) {
-                case SQL_DIAG_CURSOR_ROW_COUNT:
-                case SQL_DIAG_DYNAMIC_FUNCTION:
-                case SQL_DIAG_DYNAMIC_FUNCTION_CODE:
-                case SQL_DIAG_ROW_COUNT:
-                    return SQL_ERROR;
-            }
-        }
-
-        // Ignore (adjust) record_number if the requested field is relevant only to the header.
-        switch (field_id) {
-            case SQL_DIAG_CURSOR_ROW_COUNT:
-            case SQL_DIAG_DYNAMIC_FUNCTION:
-            case SQL_DIAG_DYNAMIC_FUNCTION_CODE:
-            case SQL_DIAG_NUMBER:
-            case SQL_DIAG_RETURNCODE:
-            case SQL_DIAG_ROW_COUNT:
-                record_number = 0;
-                break;
-        }
-
-        if (record_number < 0)
-            return SQL_ERROR;
-
-        if (record_number > 0 && record_number > object.get_status_count())
-            return SQL_NO_DATA;
-
-        auto extract_field = [&] (auto & record) -> SQLRETURN {
-            switch (field_id) {
-                CASE_ATTR_NUM(SQL_DIAG_CURSOR_ROW_COUNT, SQLLEN);
-                CASE_ATTR_STR(SQL_DIAG_DYNAMIC_FUNCTION);
-                CASE_ATTR_NUM(SQL_DIAG_DYNAMIC_FUNCTION_CODE, SQLINTEGER);
-                CASE_ATTR_NUM(SQL_DIAG_NUMBER, SQLINTEGER);
-                CASE_ATTR_NUM(SQL_DIAG_RETURNCODE, SQLRETURN);
-                CASE_ATTR_NUM(SQL_DIAG_ROW_COUNT, SQLLEN);
-
-                CASE_ATTR_STR(SQL_DIAG_CLASS_ORIGIN);
-                CASE_ATTR_NUM(SQL_DIAG_COLUMN_NUMBER, SQLINTEGER);
-                CASE_ATTR_STR(SQL_DIAG_CONNECTION_NAME);
-                CASE_ATTR_STR(SQL_DIAG_MESSAGE_TEXT);
-                CASE_ATTR_NUM(SQL_DIAG_NATIVE, SQLINTEGER);
-                CASE_ATTR_NUM(SQL_DIAG_ROW_NUMBER, SQLLEN);
-                CASE_ATTR_STR(SQL_DIAG_SERVER_NAME);
-                CASE_ATTR_STR(SQL_DIAG_SQLSTATE);
-                CASE_ATTR_STR(SQL_DIAG_SUBCLASS_ORIGIN);
-            }
-
-            return SQL_ERROR;
-        };
-
-        if (record_number == 0) {
-            return extract_field(object.get_header());
-        }
-        else {
-            return extract_field(object.get_status(record_number));
-        }
-    });
-
-#undef CASE_ATTR_NUM
-#undef CASE_ATTR_STR
+    return impl::GetDiagField(
+        handle_type,
+        handle,
+        record_number,
+        field_id,
+        out_mesage,
+        out_message_max_size,
+        out_message_size
+    );
 }
 
 /// Description: https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqltables
@@ -1409,4 +1462,5 @@ RETCODE SQL_API SQLDummyOrdinal(void) {
     return SQL_ERROR;
 #endif
 }
-}
+
+} // extern "C"

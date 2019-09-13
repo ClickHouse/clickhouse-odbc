@@ -24,10 +24,34 @@
 
 extern "C" {
 
-RETCODE SQL_API SQLGetInfo(
-    HDBC connection_handle, SQLUSMALLINT info_type, PTR out_value, SQLSMALLINT out_value_max_length, SQLSMALLINT * out_value_length) {
-    LOG(__FUNCTION__);
+SQLRETURN SQL_API SQLGetInfo(
+    HDBC connection_handle,
+    SQLUSMALLINT info_type,
+    PTR out_value,
+    SQLSMALLINT out_value_max_length,
+    SQLSMALLINT * out_value_length
+) {
     LOG("GetInfo with info_type: " << info_type << ", out_value_max_length: " << out_value_max_length);
+
+    /** How are all these values selected?
+      * Part of them provides true information about the capabilities of the DBMS.
+      * But in most cases, the possibilities are declared "in reserve" to see,
+      * what requests will be sent and what any software will do, meaning these features.
+      */
+
+    auto func = [&](Connection & connection) -> SQLRETURN {
+        const char * name = nullptr;
+
+        const auto mask_SQL_CONVERT_VARCHAR = SQL_CVT_BIGINT | SQL_CVT_BINARY | SQL_CVT_BIT |
+#if defined(SQL_CVT_GUID)
+            SQL_CVT_GUID |
+#endif
+            SQL_CVT_CHAR | SQL_CVT_DATE | SQL_CVT_DECIMAL | SQL_CVT_DOUBLE | SQL_CVT_FLOAT
+            | SQL_CVT_INTEGER /*| SQL_CVT_INTERVAL_YEAR_MONTH | SQL_CVT_INTERVAL_DAY_TIME*/ | SQL_CVT_LONGVARBINARY | SQL_CVT_LONGVARCHAR
+            | SQL_CVT_NUMERIC | SQL_CVT_REAL | SQL_CVT_SMALLINT | SQL_CVT_TIME | SQL_CVT_TIMESTAMP | SQL_CVT_TINYINT | SQL_CVT_VARBINARY
+            | SQL_CVT_VARCHAR;
+
+        switch (info_type) {
 
 #if defined(UNICODE)
 #    define CASE_STRING(NAME, VALUE)             \
@@ -41,25 +65,6 @@ RETCODE SQL_API SQLGetInfo(
             return fillOutputPlatformString(VALUE, out_value, out_value_max_length, out_value_length);
 #endif
 
-    /** How are all these values selected?
-      * Part of them provides true information about the capabilities of the DBMS.
-      * But in most cases, the possibilities are declared "in reserve" to see,
-      * what requests will be sent and what any software will do, meaning these features.
-      */
-
-    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) -> RETCODE {
-        const char * name = nullptr;
-
-        const auto mask_SQL_CONVERT_VARCHAR = SQL_CVT_BIGINT | SQL_CVT_BINARY | SQL_CVT_BIT |
-#if defined(SQL_CVT_GUID)
-            SQL_CVT_GUID |
-#endif
-            SQL_CVT_CHAR | SQL_CVT_DATE | SQL_CVT_DECIMAL | SQL_CVT_DOUBLE | SQL_CVT_FLOAT
-            | SQL_CVT_INTEGER /*| SQL_CVT_INTERVAL_YEAR_MONTH | SQL_CVT_INTERVAL_DAY_TIME*/ | SQL_CVT_LONGVARBINARY | SQL_CVT_LONGVARCHAR
-            | SQL_CVT_NUMERIC | SQL_CVT_REAL | SQL_CVT_SMALLINT | SQL_CVT_TIME | SQL_CVT_TIMESTAMP | SQL_CVT_TINYINT | SQL_CVT_VARBINARY
-            | SQL_CVT_VARCHAR;
-
-        switch (info_type) {
             CASE_STRING(SQL_DRIVER_VER, VERSION_STRING)
             CASE_STRING(SQL_DRIVER_ODBC_VER, "03.80")
             CASE_STRING(SQL_DM_VER, "03.80.0000.0000")
@@ -322,9 +327,13 @@ RETCODE SQL_API SQLGetInfo(
 
             default:
                 throw std::runtime_error("Unsupported info type: " + std::to_string(info_type));
-        }
-    });
 
 #undef CASE_STRING
+
+        }
+    };
+
+    return CALL_WITH_HANDLE(connection_handle, func);
 }
-}
+
+} // extern "C"
