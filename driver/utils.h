@@ -11,6 +11,7 @@
 #endif
 
 #include <algorithm>
+#include <functional>
 #include <chrono>
 #include <iomanip>
 #include <sstream>
