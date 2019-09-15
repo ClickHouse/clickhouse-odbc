@@ -133,14 +133,13 @@ after_script:
   - echo "Compose ODBC config"
   - |
     cat > ~/.odbc.ini <<-EOF
-[clickhouse_localhost]
-Driver=${ODBC_DRIVER_PATH}
-url=http://${CLICKHOUSE_SERVER_IP}
-
-[clickhouse_localhost_w]
-Driver=${ODBC_DRIVERW_PATH}
-url=http://${CLICKHOUSE_SERVER_IP}
-EOF
+    [clickhouse_localhost]
+    Driver=${ODBC_DRIVER_PATH}
+    url=http://${CLICKHOUSE_SERVER_IP}
+    [clickhouse_localhost_w]
+    Driver=${ODBC_DRIVERW_PATH}
+    url=http://${CLICKHOUSE_SERVER_IP}
+    EOF
   - cat ~/.odbc.ini
   - echo "run tests"
   - ctest -V
