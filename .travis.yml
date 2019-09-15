@@ -116,7 +116,7 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-get install -y $ODBC_LIB binutils | tee build.log 2>&1 || (cat build.log && exit 1); fi
   # TODO: Download image in background to save time
   - echo "Clickhouse image ${CLICKHOUSE_SERVER_IMAGE}"
-  - sudo docker pull ${CLICKHOUSE_SERVER_IMAGE}
+  - docker pull ${CLICKHOUSE_SERVER_IMAGE}
 
 script:
   - mkdir -p build
@@ -125,8 +125,8 @@ script:
 
 after_script:
   # Test against the clickhouse-server:
-  - CLICKHOUSE_SERVER_CONTAINER=$(sudo docker run  -d ${CLICKHOUSE_SERVER_IMAGE})
-  - CLICKHOUSE_SERVER_IP=$(sudo docker inspect -f '{{ .NetworkSettings.IPAddress }}' ${CLICKHOUSE_SERVER_CONTAINER})
+  - CLICKHOUSE_SERVER_CONTAINER=$(docker run  -d ${CLICKHOUSE_SERVER_IMAGE})
+  - CLICKHOUSE_SERVER_IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' ${CLICKHOUSE_SERVER_CONTAINER})
   # TODO: think about paths on windows
   - ODBC_DRIVER_PATH=$(realpath driver/libclickhouseodbc.so)
   - ODBC_DRIVERW_PATH=$(realpath driver/libclickhouseodbc.so)
