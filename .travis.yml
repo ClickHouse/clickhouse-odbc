@@ -121,7 +121,7 @@ install:
 script:
   - mkdir -p build
   - cd build
-  - cmake ..  -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` $CMAKE_FLAGS -DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w && ninja all
+  - cmake ..  -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` $CMAKE_FLAGS -DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w && cmake --build . --target all
 
 after_script:
   # Test against the clickhouse-server:
