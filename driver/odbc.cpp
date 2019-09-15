@@ -43,10 +43,10 @@ SQLRETURN GetDiagRec(
         if (record_number < 1 || out_message_max_size < 0)
             return SQL_ERROR;
 
-        if (record_number > object.get_status_count())
+        if (record_number > object.get_diag_status_count())
             return SQL_NO_DATA;
 
-        auto & record = object.get_status(record_number);
+        const auto & record = object.get_diag_status(record_number);
 
         /// The five-letter SQLSTATE and the trailing zero.
         if (out_sqlstate) {
@@ -101,11 +101,12 @@ SQLRETURN GetDiagField(
         if (record_number < 0)
             return SQL_ERROR;
 
-        if (record_number > 0 && record_number > object.get_status_count())
+        if (record_number > 0 && record_number > object.get_diag_status_count())
             return SQL_NO_DATA;
 
-        auto extract_field = [&] (auto & record) -> SQLRETURN {
-            switch (field_id) {
+        const auto & record = object.get_diag_status(record_number);
+
+        switch (field_id) {
 
 #define CASE_ATTR_NUM(NAME, TYPE) \
     case NAME: \
@@ -115,42 +116,175 @@ SQLRETURN GetDiagField(
     case NAME: \
         return fillOutputPlatformString(record.template get_attr_as<std::string>(NAME), out_mesage, out_message_max_size, out_message_size);
 
-                CASE_ATTR_NUM(SQL_DIAG_CURSOR_ROW_COUNT, SQLLEN);
-                CASE_ATTR_STR(SQL_DIAG_DYNAMIC_FUNCTION);
-                CASE_ATTR_NUM(SQL_DIAG_DYNAMIC_FUNCTION_CODE, SQLINTEGER);
-                CASE_ATTR_NUM(SQL_DIAG_NUMBER, SQLINTEGER);
-                CASE_ATTR_NUM(SQL_DIAG_RETURNCODE, SQLRETURN);
-                CASE_ATTR_NUM(SQL_DIAG_ROW_COUNT, SQLLEN);
+            CASE_ATTR_NUM(SQL_DIAG_CURSOR_ROW_COUNT, SQLLEN);
+            CASE_ATTR_STR(SQL_DIAG_DYNAMIC_FUNCTION);
+            CASE_ATTR_NUM(SQL_DIAG_DYNAMIC_FUNCTION_CODE, SQLINTEGER);
+            CASE_ATTR_NUM(SQL_DIAG_NUMBER, SQLINTEGER);
+            CASE_ATTR_NUM(SQL_DIAG_RETURNCODE, SQLRETURN);
+            CASE_ATTR_NUM(SQL_DIAG_ROW_COUNT, SQLLEN);
 
-                CASE_ATTR_STR(SQL_DIAG_CLASS_ORIGIN);
-                CASE_ATTR_NUM(SQL_DIAG_COLUMN_NUMBER, SQLINTEGER);
-                CASE_ATTR_STR(SQL_DIAG_CONNECTION_NAME);
-                CASE_ATTR_STR(SQL_DIAG_MESSAGE_TEXT);
-                CASE_ATTR_NUM(SQL_DIAG_NATIVE, SQLINTEGER);
-                CASE_ATTR_NUM(SQL_DIAG_ROW_NUMBER, SQLLEN);
-                CASE_ATTR_STR(SQL_DIAG_SERVER_NAME);
-                CASE_ATTR_STR(SQL_DIAG_SQLSTATE);
-                CASE_ATTR_STR(SQL_DIAG_SUBCLASS_ORIGIN);
+            CASE_ATTR_STR(SQL_DIAG_CLASS_ORIGIN);
+            CASE_ATTR_NUM(SQL_DIAG_COLUMN_NUMBER, SQLINTEGER);
+            CASE_ATTR_STR(SQL_DIAG_CONNECTION_NAME);
+            CASE_ATTR_STR(SQL_DIAG_MESSAGE_TEXT);
+            CASE_ATTR_NUM(SQL_DIAG_NATIVE, SQLINTEGER);
+            CASE_ATTR_NUM(SQL_DIAG_ROW_NUMBER, SQLLEN);
+            CASE_ATTR_STR(SQL_DIAG_SERVER_NAME);
+            CASE_ATTR_STR(SQL_DIAG_SQLSTATE);
+            CASE_ATTR_STR(SQL_DIAG_SUBCLASS_ORIGIN);
 
 #undef CASE_ATTR_NUM
 #undef CASE_ATTR_STR
 
-            }
-
-            return SQL_ERROR;
-        };
-
-        if (record_number == 0) {
-            return extract_field(object.get_header());
         }
-        else {
-            return extract_field(object.get_status(record_number));
-        }
+
+        return SQL_ERROR;
     };
 
     return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, func);
 }
 
+SQLRETURN BindParameter(
+    SQLHSTMT        handle,
+    SQLUSMALLINT    parameter_number,
+    SQLSMALLINT     input_output_type,
+    SQLSMALLINT     value_type,
+    SQLSMALLINT     parameter_type,
+    SQLULEN         column_size,
+    SQLSMALLINT     decimal_digits,
+    SQLPOINTER      parameter_value_ptr,
+    SQLLEN          buffer_length,
+    SQLLEN *        StrLen_or_IndPtr
+) noexcept {
+    auto func = [&] (Statement & statement) {
+        auto & apd_desc = statement.get_effective_descriptor(SQL_ATTR_APP_PARAM_DESC);
+        auto & ipd_desc = statement.get_effective_descriptor(SQL_ATTR_IMP_PARAM_DESC);
+        const auto apd_record_count = apd_desc.get_record_count();
+        const auto ipd_record_count = ipd_desc.get_record_count();
+        auto & apd_record = apd_desc.get_record(parameter_number, SQL_ATTR_APP_PARAM_DESC);
+        auto & ipd_record = ipd_desc.get_record(parameter_number, SQL_ATTR_IMP_PARAM_DESC);
+
+        try {
+            ipd_record.set_attr(SQL_DESC_PARAMETER_TYPE, input_output_type);
+
+            // These two will trigger automatic (re)setting of SQL_DESC_TYPE and SQL_DESC_DATETIME_INTERVAL_CODE,
+            // and resetting of SQL_DESC_DATA_PTR.
+            apd_record.set_attr(SQL_DESC_CONCISE_TYPE,
+                (value_type == SQL_C_DEFAULT ? convert_sql_type_to_C_type(parameter_type) : value_type)
+            );
+            ipd_record.set_attr(SQL_DESC_CONCISE_TYPE, parameter_type);
+
+            switch (parameter_type) {
+                case SQL_CHAR:
+                case SQL_VARCHAR:
+                case SQL_LONGVARCHAR:
+                case SQL_BINARY:
+                case SQL_VARBINARY:
+                case SQL_LONGVARBINARY:
+                case SQL_TYPE_DATE:
+                case SQL_TYPE_TIME:
+                case SQL_TYPE_TIMESTAMP:
+                case SQL_INTERVAL_MONTH:
+                case SQL_INTERVAL_YEAR:
+                case SQL_INTERVAL_YEAR_TO_MONTH:
+                case SQL_INTERVAL_DAY:
+                case SQL_INTERVAL_HOUR:
+                case SQL_INTERVAL_MINUTE:
+                case SQL_INTERVAL_SECOND:
+                case SQL_INTERVAL_DAY_TO_HOUR:
+                case SQL_INTERVAL_DAY_TO_MINUTE:
+                case SQL_INTERVAL_DAY_TO_SECOND:
+                case SQL_INTERVAL_HOUR_TO_MINUTE:
+                case SQL_INTERVAL_HOUR_TO_SECOND:
+                case SQL_INTERVAL_MINUTE_TO_SECOND:
+                    ipd_record.set_attr(SQL_DESC_LENGTH, column_size);
+                    break;
+
+                case SQL_DECIMAL:
+                case SQL_NUMERIC:
+                case SQL_FLOAT:
+                case SQL_REAL:
+                case SQL_DOUBLE:
+                    ipd_record.set_attr(SQL_DESC_PRECISION, column_size);
+                    break;
+            }
+
+            switch (parameter_type) {
+                case SQL_TYPE_TIME:
+                case SQL_TYPE_TIMESTAMP:
+                case SQL_INTERVAL_SECOND:
+                case SQL_INTERVAL_DAY_TO_SECOND:
+                case SQL_INTERVAL_HOUR_TO_SECOND:
+                case SQL_INTERVAL_MINUTE_TO_SECOND:
+                    ipd_record.set_attr(SQL_DESC_PRECISION, decimal_digits);
+                    break;
+
+                case SQL_NUMERIC:
+                case SQL_DECIMAL:
+                    ipd_record.set_attr(SQL_DESC_SCALE, decimal_digits);
+                    break;
+            }
+
+            apd_record.set_attr(SQL_DESC_DATA_PTR, parameter_value_ptr);
+            apd_record.set_attr(SQL_DESC_OCTET_LENGTH, buffer_length);
+            apd_record.set_attr(SQL_DESC_OCTET_LENGTH_PTR, StrLen_or_IndPtr);
+            apd_record.set_attr(SQL_DESC_INDICATOR_PTR, StrLen_or_IndPtr);
+        }
+        catch (...) {
+            apd_desc.set_attr(SQL_DESC_COUNT, apd_record_count);
+            ipd_desc.set_attr(SQL_DESC_COUNT, ipd_record_count);
+
+            throw;
+        }
+
+        return SQL_SUCCESS;
+    };
+
+    return CALL_WITH_HANDLE(handle, func);
+}
+
+SQLRETURN NumParams(
+    SQLHSTMT        handle,
+    SQLSMALLINT *   out_parameter_count
+) noexcept {
+    auto func = [&] (Statement & statement) {
+        *out_parameter_count = statement.get_effective_descriptor(SQL_ATTR_IMP_PARAM_DESC).get_attr_as<SQLSMALLINT>(SQL_DESC_COUNT);
+        return SQL_SUCCESS;
+    };
+
+    return CALL_WITH_HANDLE(handle, func);
+}
+
+SQLRETURN DescribeParam(
+    SQLHSTMT        handle,
+    SQLUSMALLINT    parameter_number,
+    SQLSMALLINT *   out_data_type_ptr,
+    SQLULEN *       out_parameter_size_ptr,
+    SQLSMALLINT *   out_decimal_digits_ptr,
+    SQLSMALLINT *   out_nullable_ptr
+) noexcept {
+    auto func = [&] (Statement & statement) {
+        auto & ipd_desc = statement.get_effective_descriptor(SQL_ATTR_IMP_PARAM_DESC);
+
+        if (parameter_number < 0 || parameter_number > ipd_desc.get_record_count())
+            throw SqlException("Invalid descriptor index", "07009");
+
+        auto & ipd_record = ipd_desc.get_record(parameter_number, SQL_ATTR_IMP_PARAM_DESC);
+
+        *out_data_type_ptr = ipd_record.get_attr_as<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE);
+        *out_nullable_ptr = ipd_record.get_attr_as<SQLSMALLINT>(SQL_DESC_NULLABLE);
+
+        if (ipd_record.has_column_size())
+            *out_parameter_size_ptr = ipd_record.get_column_size();
+
+        if (ipd_record.has_decimal_digits())
+            *out_decimal_digits_ptr = ipd_record.get_decimal_digits();
+
+        return SQL_SUCCESS;
+    };
+
+    return CALL_WITH_HANDLE(handle, func);
+}
 
 } } // namespace impl
 
@@ -977,13 +1111,15 @@ RETCODE SQL_API SQLGetTypeInfo(HSTMT statement_handle, SQLSMALLINT type) {
 }
 
 
-RETCODE SQL_API SQLNumParams(HSTMT statement_handle, SQLSMALLINT * out_params_count) {
+SQLRETURN SQL_API SQLNumParams(
+    SQLHSTMT        StatementHandle,
+    SQLSMALLINT *   ParameterCountPtr
+) {
     LOG(__FUNCTION__);
-
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        *out_params_count = statement.ipd().get_attr_as<SQLSMALLINT>(SQL_DESC_COUNT);
-        return SQL_SUCCESS;
-    });
+    return impl::NumParams(
+        StatementHandle,
+        ParameterCountPtr
+    );
 }
 
 
@@ -1118,6 +1254,8 @@ RETCODE SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionId,
             // CLR_EXISTS(SQL_API_SQLPARAMDATA);
             // CLR_EXISTS(SQL_API_SQLPUTDATA);
             // CLR_EXISTS(SQL_API_SQLSETCURSORNAME);
+            SET_EXISTS(SQL_API_SQLBINDPARAMETER);
+            SET_EXISTS(SQL_API_SQLDESCRIBEPARAM);
             // CLR_EXISTS(SQL_API_SQLSETPARAM);
             // CLR_EXISTS(SQL_API_SQLSPECIALCOLUMNS);
             // CLR_EXISTS(SQL_API_SQLSTATISTICS);
@@ -1224,11 +1362,23 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLColumnPrivileges)(HSTMT hstmt,
     return SQL_ERROR;
 }
 
-
-RETCODE SQL_API SQLDescribeParam(
-    HSTMT hstmt, SQLUSMALLINT ipar, SQLSMALLINT * pfSqlType, SQLULEN * pcbParamDef, SQLSMALLINT * pibScale, SQLSMALLINT * pfNullable) {
+SQLRETURN SQL_API SQLDescribeParam(
+    SQLHSTMT        StatementHandle,
+    SQLUSMALLINT    ParameterNumber,
+    SQLSMALLINT *   DataTypePtr,
+    SQLULEN *       ParameterSizePtr,
+    SQLSMALLINT *   DecimalDigitsPtr,
+    SQLSMALLINT *   NullablePtr
+) {
     LOG(__FUNCTION__);
-    return SQL_ERROR;
+    return impl::DescribeParam(
+        StatementHandle,
+        ParameterNumber,
+        DataTypePtr,
+        ParameterSizePtr,
+        DecimalDigitsPtr,
+        NullablePtr
+    );
 }
 
 
@@ -1319,19 +1469,31 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLTablePrivileges)(HSTMT hstmt,
     return SQL_ERROR;
 }
 
-
-RETCODE SQL_API SQLBindParameter(HSTMT hstmt,
-    SQLUSMALLINT ipar,
-    SQLSMALLINT fParamType,
-    SQLSMALLINT fCType,
-    SQLSMALLINT fSqlType,
-    SQLULEN cbColDef,
-    SQLSMALLINT ibScale,
-    PTR rgbValue,
-    SQLLEN cbValueMax,
-    SQLLEN * pcbValue) {
+SQLRETURN SQL_API SQLBindParameter(
+    SQLHSTMT        StatementHandle,
+    SQLUSMALLINT    ParameterNumber,
+    SQLSMALLINT     InputOutputType,
+    SQLSMALLINT     ValueType,
+    SQLSMALLINT     ParameterType,
+    SQLULEN         ColumnSize,
+    SQLSMALLINT     DecimalDigits,
+    SQLPOINTER      ParameterValuePtr,
+    SQLLEN          BufferLength,
+    SQLLEN *        StrLen_or_IndPtr
+) {
     LOG(__FUNCTION__);
-    return SQL_ERROR;
+    return impl::BindParameter(
+        StatementHandle,
+        ParameterNumber,
+        InputOutputType,
+        ValueType,
+        ParameterType,
+        ColumnSize,
+        DecimalDigits,
+        ParameterValuePtr,
+        BufferLength,
+        StrLen_or_IndPtr
+    );
 }
 
 /*

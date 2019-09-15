@@ -219,16 +219,95 @@ SQLRETURN GetConnectAttr(
     return CALL_WITH_HANDLE(connection_handle, func);
 }
 
+SQLRETURN set_descriptor_handle(Statement & statement, SQLINTEGER descriptor_type, SQLHANDLE descriptor_handle) {
+    switch (descriptor_type) {
+        case SQL_ATTR_APP_ROW_DESC:
+        case SQL_ATTR_APP_PARAM_DESC:
+            if (descriptor_handle == 0) {
+                statement.set_implicit_descriptor(descriptor_type);
+                return SQL_SUCCESS;
+            }
+            break;
+        case SQL_ATTR_IMP_ROW_DESC:   /* 10012 (read-only) */
+        case SQL_ATTR_IMP_PARAM_DESC: /* 10013 (read-only) */
+            return SQL_ERROR;
+    }
+
+    std::exception_ptr ex;
+
+    auto func = [&] (Descriptor & descriptor) {
+        try {
+            if (descriptor.get_parent().get_handle() != statement.get_parent().get_handle())
+                throw SqlException("Invalid attribute value", "HY024");
+
+            if (descriptor.get_attr_as<SQLSMALLINT>(SQL_DESC_ALLOC_TYPE) == SQL_DESC_ALLOC_AUTO)
+                throw SqlException("Invalid use of an automatically allocated descriptor handle", "HY017");
+
+            switch (descriptor_type) {
+                case SQL_ATTR_APP_ROW_DESC:
+                case SQL_ATTR_APP_PARAM_DESC:
+                    statement.set_explicit_descriptor(descriptor_type, descriptor.shared_from_this());
+                    return SQL_SUCCESS;
+            }
+        }
+        catch (...) {
+            ex = std::current_exception();
+        }
+
+        return SQL_ERROR;
+    };
+
+    auto rc = CALL_WITH_HANDLE_SKIP_DIAG(descriptor_handle, func);
+
+    if (ex)
+        std::rethrow_exception(ex);
+
+    if (rc == SQL_INVALID_HANDLE)
+        throw SqlException("Invalid attribute value", "HY024");
+
+    return rc;
+}
+
 SQLRETURN SetStmtAttr(
     SQLHSTMT statement_handle,
     SQLINTEGER attribute,
     SQLPOINTER value,
     SQLINTEGER value_length
 ) noexcept {
-    auto func = [&](Statement & statement) {
+    auto func = [&](Statement & statement) -> SQLRETURN {
         LOG("SetStmtAttr: " << attribute << " value=" << value << " value_length=" << value_length);
 
         switch (attribute) {
+
+#define CASE_SET_IN_DESC(STMT_ATTR, DESC_TYPE, DESC_ATTR, VALUE_TYPE) \
+            case STMT_ATTR: \
+                statement.get_effective_descriptor(DESC_TYPE).set_attr(DESC_ATTR, reinterpret_cast<VALUE_TYPE>(value)); \
+                return SQL_SUCCESS;
+
+            CASE_SET_IN_DESC(SQL_ATTR_PARAM_BIND_OFFSET_PTR, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
+            CASE_SET_IN_DESC(SQL_ATTR_PARAM_BIND_TYPE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
+            CASE_SET_IN_DESC(SQL_ATTR_PARAM_OPERATION_PTR, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_SET_IN_DESC(SQL_ATTR_PARAM_STATUS_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_SET_IN_DESC(SQL_ATTR_PARAMS_PROCESSED_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
+            CASE_SET_IN_DESC(SQL_ATTR_PARAMSET_SIZE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
+
+//          CASE_SET_IN_DESC(SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
+            case SQL_ATTR_ROW_ARRAY_SIZE: // TODO: set value to the descriptor.
+                statement.row_array_size = reinterpret_cast<decltype(statement.row_array_size)>(value);
+                return SQL_SUCCESS;
+
+            CASE_SET_IN_DESC(SQL_ATTR_ROW_BIND_OFFSET_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
+            CASE_SET_IN_DESC(SQL_ATTR_ROW_BIND_TYPE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
+            CASE_SET_IN_DESC(SQL_ATTR_ROW_OPERATION_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_SET_IN_DESC(SQL_ATTR_ROW_STATUS_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+
+//          CASE_SET_IN_DESC(SQL_ATTR_ROWS_FETCHED_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
+            case SQL_ATTR_ROWS_FETCHED_PTR: // TODO: set value to the descriptor.
+                statement.rows_fetched_ptr = static_cast<SQLULEN *>(value);
+                return SQL_SUCCESS;
+
+#undef CASE_SET_IN_DESC
+
             case SQL_ATTR_NOSCAN:
                 statement.setScanEscapeSequences((SQLULEN)value != SQL_NOSCAN_ON);
                 return SQL_SUCCESS;
@@ -237,16 +316,12 @@ SQLRETURN SetStmtAttr(
                 statement.setMetadataId(reinterpret_cast<intptr_t>(value));
                 return SQL_SUCCESS;
 
-            case SQL_ATTR_ROWS_FETCHED_PTR:
-                statement.rows_fetched_ptr = static_cast<SQLULEN *>(value);
-                return SQL_SUCCESS;
-
-            case SQL_ATTR_ROW_ARRAY_SIZE:
-                statement.row_array_size = reinterpret_cast<decltype(statement.row_array_size)>(value);
-                return SQL_SUCCESS;
-
             case SQL_ATTR_APP_ROW_DESC:
             case SQL_ATTR_APP_PARAM_DESC:
+            case SQL_ATTR_IMP_ROW_DESC:
+            case SQL_ATTR_IMP_PARAM_DESC:
+                return set_descriptor_handle(statement, attribute, reinterpret_cast<SQLHANDLE>(value));
+
             case SQL_ATTR_CURSOR_SCROLLABLE:
             case SQL_ATTR_CURSOR_SENSITIVITY:
             case SQL_ATTR_ASYNC_ENABLE:
@@ -257,27 +332,13 @@ SQLRETURN SetStmtAttr(
             case SQL_ATTR_KEYSET_SIZE:
             case SQL_ATTR_MAX_LENGTH:
             case SQL_ATTR_MAX_ROWS:
-            case SQL_ATTR_PARAM_BIND_OFFSET_PTR:
-            case SQL_ATTR_PARAM_BIND_TYPE:
-            case SQL_ATTR_PARAM_OPERATION_PTR:
-            case SQL_ATTR_PARAM_STATUS_PTR:
-            case SQL_ATTR_PARAMS_PROCESSED_PTR:
-            case SQL_ATTR_PARAMSET_SIZE:
             case SQL_ATTR_QUERY_TIMEOUT:
             case SQL_ATTR_RETRIEVE_DATA:
             case SQL_ATTR_ROW_NUMBER:
-            case SQL_ATTR_ROW_OPERATION_PTR:
-            case SQL_ATTR_ROW_STATUS_PTR: /// Libreoffice Base
             case SQL_ATTR_SIMULATE_CURSOR:
             case SQL_ATTR_USE_BOOKMARKS:
                 return SQL_SUCCESS;
 
-            case SQL_ATTR_IMP_ROW_DESC:   /* 10012 (read-only) */
-            case SQL_ATTR_IMP_PARAM_DESC: /* 10013 (read-only) */
-                return SQL_ERROR;
-
-            case SQL_ATTR_ROW_BIND_OFFSET_PTR:
-            case SQL_ATTR_ROW_BIND_TYPE:
             default:
                 LOG("SetStmtAttr: Unsupported attribute " << attribute);
                 //throw std::runtime_error("Unsupported statement attribute.");
@@ -286,20 +347,6 @@ SQLRETURN SetStmtAttr(
     };
 
     return CALL_WITH_HANDLE(statement_handle, func);
-}
-
-SQLHDESC descHandleFromStatementHandle(Statement & statement, SQLINTEGER descType) {
-    switch (descType) {
-        case SQL_ATTR_APP_ROW_DESC:
-            return statement.ard().get_handle();
-        case SQL_ATTR_APP_PARAM_DESC:
-            return statement.apd().get_handle();
-        case SQL_ATTR_IMP_ROW_DESC:
-            return statement.ird().get_handle();
-        case SQL_ATTR_IMP_PARAM_DESC:
-            return statement.ipd().get_handle();
-    }
-    return 0;
 }
 
 SQLRETURN GetStmtAttr(
@@ -315,22 +362,41 @@ SQLRETURN GetStmtAttr(
         const char * name = nullptr;
 
         switch (attribute) {
+
+#define CASE_GET_FROM_DESC(STMT_ATTR, DESC_TYPE, DESC_ATTR, VALUE_TYPE) \
+            case STMT_ATTR: \
+                return fillOutputNumber<VALUE_TYPE>(statement.get_effective_descriptor(DESC_TYPE).get_attr_as<VALUE_TYPE>(DESC_ATTR), out_value, out_value_max_length, out_value_length);
+
+            CASE_GET_FROM_DESC(SQL_ATTR_PARAM_BIND_OFFSET_PTR, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
+            CASE_GET_FROM_DESC(SQL_ATTR_PARAM_BIND_TYPE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
+            CASE_GET_FROM_DESC(SQL_ATTR_PARAM_OPERATION_PTR, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_GET_FROM_DESC(SQL_ATTR_PARAM_STATUS_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_GET_FROM_DESC(SQL_ATTR_PARAMS_PROCESSED_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
+            CASE_GET_FROM_DESC(SQL_ATTR_PARAMSET_SIZE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
+
+            // TODO: use value from the descriptor.
+//          CASE_GET_FROM_DESC(SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
+            CASE_FALLTHROUGH(SQL_ATTR_ROW_ARRAY_SIZE)
+                return fillOutputNumber<SQLULEN>(statement.row_array_size, out_value, out_value_max_length, out_value_length);
+
+            CASE_GET_FROM_DESC(SQL_ATTR_ROW_BIND_OFFSET_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
+            CASE_GET_FROM_DESC(SQL_ATTR_ROW_BIND_TYPE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
+            CASE_GET_FROM_DESC(SQL_ATTR_ROW_OPERATION_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_GET_FROM_DESC(SQL_ATTR_ROW_STATUS_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+
+            // TODO: use value from the descriptor.
+//          CASE_GET_FROM_DESC(SQL_ATTR_ROWS_FETCHED_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
+            CASE_FALLTHROUGH(SQL_ATTR_ROWS_FETCHED_PTR)
+                return fillOutputNumber<SQLULEN *>(statement.rows_fetched_ptr, out_value, out_value_max_length, out_value_length);
+
+#undef CASE_GET_FROM_DESC
+
             CASE_FALLTHROUGH(SQL_ATTR_APP_ROW_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_APP_PARAM_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_IMP_ROW_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_IMP_PARAM_DESC)
-            if (out_value_length)
-                *out_value_length = sizeof(HSTMT *);
-            *((HSTMT *)out_value) = (HSTMT *)descHandleFromStatementHandle(statement, attribute);
-            break;
-
-            CASE_FALLTHROUGH(SQL_ATTR_ROWS_FETCHED_PTR)
-            if (out_value)
-                out_value = static_cast<SQLPOINTER>(statement.rows_fetched_ptr);
-            else
-                LOG("GetStmtAttr: " << name << " no pointer passed.");
-            return SQL_ERROR;
-            break;
+                return fillOutputNumber<SQLHANDLE>(statement.get_effective_descriptor(attribute).get_handle(),
+                                                   out_value, out_value_max_length, out_value_length);
 
             CASE_NUM(SQL_ATTR_CURSOR_SCROLLABLE, SQLULEN, SQL_NONSCROLLABLE);
             CASE_NUM(SQL_ATTR_CURSOR_SENSITIVITY, SQLULEN, SQL_INSENSITIVE);
@@ -346,20 +412,9 @@ SQLRETURN GetStmtAttr(
             CASE_NUM(SQL_ATTR_RETRIEVE_DATA, SQLULEN, SQL_RD_ON);
             CASE_NUM(SQL_ATTR_ROW_NUMBER, SQLULEN, statement.result.getNumRows());
             CASE_NUM(SQL_ATTR_USE_BOOKMARKS, SQLULEN, SQL_UB_OFF);
-            CASE_NUM(SQL_ATTR_ROW_BIND_TYPE, SQLULEN, SQL_BIND_TYPE_DEFAULT);
-            CASE_NUM(SQL_ATTR_ROW_ARRAY_SIZE, SQLULEN, statement.row_array_size);
 
             case SQL_ATTR_FETCH_BOOKMARK_PTR:
             case SQL_ATTR_KEYSET_SIZE:
-            case SQL_ATTR_PARAM_BIND_OFFSET_PTR:
-            case SQL_ATTR_PARAM_BIND_TYPE:
-            case SQL_ATTR_PARAM_OPERATION_PTR:
-            case SQL_ATTR_PARAM_STATUS_PTR:
-            case SQL_ATTR_PARAMS_PROCESSED_PTR:
-            case SQL_ATTR_PARAMSET_SIZE:
-            case SQL_ATTR_ROW_BIND_OFFSET_PTR:
-            case SQL_ATTR_ROW_OPERATION_PTR:
-            case SQL_ATTR_ROW_STATUS_PTR:
             case SQL_ATTR_SIMULATE_CURSOR:
             default:
                 LOG("GetStmtAttr: Unsupported attribute " << attribute);

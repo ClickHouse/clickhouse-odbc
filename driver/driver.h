@@ -79,7 +79,7 @@ public:
     void register_descendant(Object & descendant);
     void unregister_descendant(Object & descendant) noexcept;
 
-    virtual void on_attr_change(int attr) override;
+    virtual void on_attr_change(int attr) final override;
 
     bool is_logging_enabled() const;
     std::ostream & get_log_stream();
@@ -130,8 +130,7 @@ private:
     ) {
         SQLRETURN rc = SQL_SUCCESS;
         if (!skip_diag) {
-            object.reset_statuses();
-            object.reset_header();
+            object.reset_diag();
         }
         rc = callable(object);
         if (!skip_diag) {
@@ -149,8 +148,7 @@ private:
     ) {
         SQLRETURN rc = SQL_SUCCESS;
         if (!skip_diag) {
-            object.reset_statuses();
-            object.reset_header();
+            object.reset_diag();
         }
         callable(object);
         if (!skip_diag) {
@@ -253,25 +251,25 @@ SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLINT handl
             catch (const SqlException & ex) {
                 LOG(ex.get_sql_state() << " (" << ex.what() << ")");
                 if (!skip_diag)
-                    obj_ptr->fill(SQL_ERROR, ex.get_sql_state(), ex.what(), 1);
+                    obj_ptr->fill_diag(SQL_ERROR, ex.get_sql_state(), ex.what(), 1);
                 return SQL_ERROR;
             }
             catch (const Poco::Exception & ex) {
                 LOG("HY000 (" << ex.displayText() << ")");
                 if (!skip_diag)
-                    obj_ptr->fill(SQL_ERROR, "HY000", ex.displayText(), 1);
+                    obj_ptr->fill_diag(SQL_ERROR, "HY000", ex.displayText(), 1);
                 return SQL_ERROR;
             }
             catch (const std::exception & ex) {
                 LOG("HY000 (" << ex.what() << ")");
                 if (!skip_diag)
-                    obj_ptr->fill(SQL_ERROR, "HY000", ex.what(), 1);
+                    obj_ptr->fill_diag(SQL_ERROR, "HY000", ex.what(), 1);
                 return SQL_ERROR;
             }
             catch (...) {
                 LOG("HY000 (Unknown exception)");
                 if (!skip_diag)
-                    obj_ptr->fill(SQL_ERROR, "HY000", "Unknown exception", 2);
+                    obj_ptr->fill_diag(SQL_ERROR, "HY000", "Unknown exception", 2);
                 return SQL_ERROR;
             }
         }

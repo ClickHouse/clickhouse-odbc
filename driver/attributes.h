@@ -27,10 +27,12 @@ public:
     bool has_attr_string(int attr) const;
     bool has_attr(int attr) const;
 
-    template <typename T> inline T get_attr_as(int attr) const;
+    template <typename T> inline T get_attr_as(int attr, const T & def = T{}) const;
 
-    template <typename T> inline void set_attr_silent(int attr, const T& value);
-    template <typename T> inline void set_attr(int attr, const T& value);
+    template <typename T> inline T set_attr_silent(int attr, const T& value);
+    template <typename T> inline T set_attr(int attr, const T& value);
+
+    void reset_attrs();
 
     virtual void on_attr_change(int attr);
 
@@ -40,39 +42,81 @@ private:
 };
 
 template <typename T>
-inline T AttributeContainer::get_attr_as(int attr) const {
+inline T AttributeContainer::get_attr_as(int attr, const T & def) const {
     auto it = integers.find(attr);
     return (it == integers.end() ?
-        T{} : static_cast<T>(it->second));
+        def : (T)(it->second));
 }
 
 template <>
-inline std::string AttributeContainer::get_attr_as<std::string>(int attr) const {
+inline std::string AttributeContainer::get_attr_as<std::string>(int attr, const std::string & def) const {
     auto it = strings.find(attr);
     return (it == strings.end() ?
-        std::string{} : it->second);
+        def : it->second);
 }
 
 template <typename T>
-inline void AttributeContainer::set_attr_silent(int attr, const T& value) {
+inline T AttributeContainer::set_attr_silent(int attr, const T& value) {
+    std::int64_t old_value = 0;
     strings.erase(attr);
-    integers[attr] = static_cast<std::int64_t>(value);
+    auto it = integers.find(attr);
+    if (it == integers.end()) {
+        integers.emplace(attr, (std::int64_t)value);
+    }
+    else {
+        old_value = it->second;
+        it->second = (std::int64_t)value;
+    }
+    return (T)old_value;
 }
 
 template <>
-inline void AttributeContainer::set_attr_silent<std::string>(int attr, const std::string& value) {
+inline std::string AttributeContainer::set_attr_silent<std::string>(int attr, const std::string& value) {
+    std::string old_value;
     integers.erase(attr);
-    strings[attr] = value;
+    auto it = strings.find(attr);
+    if (it == strings.end()) {
+        strings.emplace(attr, value);
+    }
+    else {
+        old_value = std::move(it->second);
+        it->second = value;
+    }
+    return old_value;
 }
 
 template <typename T>
-inline void AttributeContainer::set_attr(int attr, const T& value) {
-    set_attr_silent(attr, value);
-    on_attr_change(attr);
+inline T AttributeContainer::set_attr(int attr, const T& value) {
+    std::int64_t old_value = 0;
+    strings.erase(attr);
+    auto it = integers.find(attr);
+    if (it == integers.end()) {
+        integers.emplace(attr, (std::int64_t)value);
+        on_attr_change(attr);
+    }
+    else {
+        old_value = it->second;
+        it->second = (std::int64_t)value;
+        if (old_value != (std::int64_t)value)
+            on_attr_change(attr);
+    }
+    return (T)old_value;
 }
 
 template <>
-inline void AttributeContainer::set_attr<std::string>(int attr, const std::string& value) {
-    set_attr_silent(attr, value);
-    on_attr_change(attr);
+inline std::string AttributeContainer::set_attr<std::string>(int attr, const std::string& value) {
+    std::string old_value;
+    integers.erase(attr);
+    auto it = strings.find(attr);
+    if (it == strings.end()) {
+        strings.emplace(attr, value);
+        on_attr_change(attr);
+    }
+    else {
+        old_value = std::move(it->second);
+        it->second = value;
+        if (old_value != value)
+            on_attr_change(attr);
+    }
+    return old_value;
 }

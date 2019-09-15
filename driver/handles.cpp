@@ -7,6 +7,8 @@
 
 #include <Poco/Net/HTTPClientSession.h>
 
+#include <type_traits>
+
 namespace {
 
 SQLRETURN allocEnv(SQLHENV * out_environment_handle) noexcept {
@@ -44,13 +46,22 @@ SQLRETURN allocDesc(SQLHDBC connection_handle, SQLHDESC * out_descriptor_handle)
         if (nullptr == out_descriptor_handle)
             return SQL_INVALID_HANDLE;
 
-        *out_descriptor_handle = connection.allocate_child<Descriptor>().get_handle();
+        auto & descriptor = connection.allocate_child<Descriptor>();
+        connection.init_as_ad(descriptor, true);
+        *out_descriptor_handle = descriptor.get_handle();
         return SQL_SUCCESS;
     });
 }
 
 SQLRETURN freeHandle(SQLHANDLE handle) noexcept {
     return CALL_WITH_HANDLE_SKIP_DIAG(handle, [&] (auto & object) {
+        if ( // Refuse to manually deallocate an automatically allocated descriptor.
+            std::is_convertible<std::decay<decltype(object)> *, Descriptor *>::value &&
+            object.template get_attr_as<SQLSMALLINT>(SQL_DESC_ALLOC_TYPE) != SQL_DESC_ALLOC_USER
+        ) {
+            return SQL_ERROR;
+        }
+
         object.deallocate_self();
         return SQL_SUCCESS;
     });

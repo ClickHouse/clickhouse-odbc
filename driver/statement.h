@@ -73,35 +73,23 @@ public:
     /// Send request to a server.
     void sendRequest(IResultMutatorPtr mutator = nullptr);
 
-    /// Actual ARD, APD, IRD, IPD observers.
-    Descriptor& ard();
-    Descriptor& apd();
-    Descriptor& ird();
-    Descriptor& ipd();
+    /// Access the effective descriptor by its role (type).
+    Descriptor & get_effective_descriptor(SQLINTEGER type);
 
-    /// Explicit ARD, APD, IRD, IPD setters.
-    void set_ard(std::shared_ptr<Descriptor> desc);
-    void set_apd(std::shared_ptr<Descriptor> desc);
-    void set_ird(std::shared_ptr<Descriptor> desc);
-    void set_ipd(std::shared_ptr<Descriptor> desc);
+    /// Set an explicit descriptor for a role (type).
+    void set_explicit_descriptor(SQLINTEGER type, std::shared_ptr<Descriptor> desc);
 
-    /// Explicit ARD, APD, IRD, IPD resetters.
-    void reset_ard();
-    void reset_apd();
-    void reset_ird();
-    void reset_ipd();
-
-    /// Initialize a descriptor as an ARD, APD, IRD, IPD.
-    void init_as_ard(Descriptor& desc);
-    void init_as_apd(Descriptor& desc);
-    void init_as_ird(Descriptor& desc);
-    void init_as_ipd(Descriptor& desc);
+    /// Make an implicit descriptor active again.
+    void set_implicit_descriptor(SQLINTEGER type);
 
 private:
-    void reset_descriptors();
+    Descriptor & choose(std::shared_ptr<Descriptor> & implicit_desc, std::weak_ptr<Descriptor> & explicit_desc);
+
+    void allocate_implicit_descriptors();
     void deallocate_implicit_descriptors();
+
     std::shared_ptr<Descriptor> allocate_descriptor();
-    void dellocate_descriptor(std::shared_ptr<Descriptor>& desc);
+    void dellocate_descriptor(std::shared_ptr<Descriptor> & desc);
 
 public:
     ResultSet result;

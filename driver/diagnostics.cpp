@@ -12,81 +12,88 @@ const std::string& SqlException::get_sql_state() const noexcept {
     return sql_state;
 }
 
-DiagnosticHeaderRecord::DiagnosticHeaderRecord() {
-    reset();
-}
-
-void DiagnosticHeaderRecord::reset() {
-    set_attr(SQL_DIAG_NUMBER, 0);
-    set_attr(SQL_DIAG_RETURNCODE, SQL_SUCCESS);
-}
-
-DiagnosticStatusRecord::DiagnosticStatusRecord() {
-    reset();
-}
-
-void DiagnosticStatusRecord::reset() {
-}
-
-// WARNING: Do not modify SQL_DIAG_NUMBER field of the header record manually!
-DiagnosticHeaderRecord & DiagnosticsContainer::get_header() {
-    return header;
-}
-
-void DiagnosticsContainer::fill(SQLRETURN rc, const std::string& sql_status, const std::string& message, SQLINTEGER native_error_code) {
+void DiagnosticsContainer::fill_diag(SQLRETURN rc, const std::string& sql_status, const std::string& message, SQLINTEGER native_error_code) {
     set_return_code(rc);
-    fill(sql_status, message, native_error_code);
+    fill_diag(sql_status, message, native_error_code);
 }
 
-void DiagnosticsContainer::fill(const std::string& sql_status, const std::string& message, SQLINTEGER native_error_code) {
-    DiagnosticStatusRecord status;
+void DiagnosticsContainer::fill_diag(const std::string& sql_status, const std::string& message, SQLINTEGER native_error_code) {
+    DiagnosticsRecord status;
     status.set_attr(SQL_DIAG_SQLSTATE, sql_status);
     status.set_attr(SQL_DIAG_MESSAGE_TEXT, message);
     status.set_attr(SQL_DIAG_NATIVE, native_error_code);
-    insert_status(std::move(status));
+    insert_diag_status(std::move(status));
 }
 
-void DiagnosticsContainer::fill(SQLRETURN rc, const std::string& sql_status, const std::string& message) {
+void DiagnosticsContainer::fill_diag(SQLRETURN rc, const std::string& sql_status, const std::string& message) {
     set_return_code(rc);
-    fill(sql_status, message);
+    fill_diag(sql_status, message);
 }
 
-void DiagnosticsContainer::fill(const std::string& sql_status, const std::string& message) {
-    DiagnosticStatusRecord status;
+void DiagnosticsContainer::fill_diag(const std::string& sql_status, const std::string& message) {
+    DiagnosticsRecord status;
     status.set_attr(SQL_DIAG_SQLSTATE, sql_status);
     status.set_attr(SQL_DIAG_MESSAGE_TEXT, message);
-    insert_status(std::move(status));
+    insert_diag_status(std::move(status));
 }
 
-void DiagnosticsContainer::reset_header() {
-    header.reset();
-    statuses.clear();
+DiagnosticsRecord & DiagnosticsContainer::get_diag_header() {
+    return get_diag_status(0);
 }
 
 void DiagnosticsContainer::set_return_code(SQLRETURN rc) {
-    header.set_attr(SQL_DIAG_RETURNCODE, rc);
+    get_diag_header().set_attr(SQL_DIAG_RETURNCODE, rc);
 }
 
-SQLRETURN DiagnosticsContainer::get_return_code() const {
-    return header.get_attr_as<SQLRETURN>(SQL_DIAG_RETURNCODE);
+SQLRETURN DiagnosticsContainer::get_return_code() {
+    return get_diag_header().get_attr_as<SQLRETURN>(SQL_DIAG_RETURNCODE, SQL_SUCCESS);
 }
 
-std::size_t DiagnosticsContainer::get_status_count() const {
-//  return header.get_attr_as<SQLINTEGER>(SQL_DIAG_NUMBER);
-    return statuses.size();
+std::size_t DiagnosticsContainer::get_diag_status_count() {
+    return get_diag_header().get_attr_as<SQLINTEGER>(SQL_DIAG_NUMBER, 0);
 }
 
-DiagnosticStatusRecord & DiagnosticsContainer::get_status(std::size_t num) {
-    return statuses.at(num - 1);
+DiagnosticsRecord & DiagnosticsContainer::get_diag_status(std::size_t num) {
+    if (records.empty()) {
+        // Initialize at least 0th HEADER record.
+        records.reserve(10);
+        records.emplace_back();
+        records[0].set_attr(SQL_DIAG_NUMBER, 0);
+        records[0].set_attr(SQL_DIAG_RETURNCODE, SQL_SUCCESS);
+    }
+
+    // Short-circuit on 0th HEADER record.
+    if (num == 0) {
+        return records[0];
+    }
+
+    const auto curr_rec_count = records[0].get_attr_as<SQLINTEGER>(SQL_DIAG_NUMBER, 0) + 1; // +1 for 0th HEADER record
+
+    for (std::size_t i = curr_rec_count; i <= num && i < records.size(); ++i) {
+        records[i].reset_attrs();
+    }
+
+    while (records.size() < curr_rec_count || records.size() <= num) {
+        records.emplace_back();
+    }
+
+    if (curr_rec_count <= num) {
+        records[0].set_attr(SQL_DESC_COUNT, num);
+    }
+
+    return records[num];
 }
 
-void DiagnosticsContainer::insert_status(DiagnosticStatusRecord && rec) {
-    // TODO: implement proper oredring of status records here.
-    statuses.emplace_back(std::move(rec));
-    header.set_attr(SQL_DIAG_NUMBER, statuses.size());
+void DiagnosticsContainer::insert_diag_status(DiagnosticsRecord && rec) {
+    // TODO: implement proper ordering of status records here.
+    const auto new_rec_count = get_diag_status_count() + 1; // +1 for this new record
+    auto & new_rec = get_diag_status(new_rec_count);
+    new_rec = std::move(rec);
+    get_diag_header().set_attr(SQL_DIAG_NUMBER, new_rec_count);
 }
 
-void DiagnosticsContainer::reset_statuses() {
-    statuses.clear();
-    header.set_attr(SQL_DIAG_NUMBER, statuses.size());
+void DiagnosticsContainer::reset_diag() {
+    auto & header = get_diag_header();
+    header.set_attr(SQL_DIAG_NUMBER, 0);
+    header.set_attr(SQL_DIAG_RETURNCODE, SQL_SUCCESS);
 }
