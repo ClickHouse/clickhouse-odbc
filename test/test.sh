@@ -21,7 +21,6 @@ DSN="${DSN=clickhouse_localhost}"
 [ -z $RUNNER ] && RUNNER=`which iusql` && [ -n $RUNNER ] && RUNNER_PARAMS0="-v -b"
 [ -z $RUNNER ] && RUNNER=`which iodbctestw` && DSN="DSN=${DSN}"
 [ -z $RUNNER ] && RUNNER=`which iodbctest` && DSN="DSN=${DSN}"
-[ -z $RUNNER ] && echo "ERROR: unable to find neither of isql, iusql, iodbctestw, nor iodbctest. Please install missing packages" && exit -1
 
 function q {
     echo "Asking [$*]"
@@ -31,6 +30,7 @@ function q {
 }
 
 echo "Using: $RUNNER $DSN $RUNNER_PARAMS0 $RUNNER_PARAMS"
+[ -z $RUNNER ] && echo "ERROR: unable to find neither of isql, iusql, iodbctestw, nor iodbctest. Please install missing packages" && exit -1
 
 q "SELECT * FROM system.build_options;"
 q "CREATE DATABASE IF NOT EXISTS test;"
