@@ -123,11 +123,13 @@ script:
   - mkdir -p build
   - cd build
   - cmake .. -G Ninja -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` $CMAKE_FLAGS -DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w && cmake --build . --target all
+  # Run unit-tests only
+  - ctest -R '.*-ut.*'
 
 after_script:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then echo "Unable to test on OSX since docker is not supported on Travis OSX agents."; exit ${TRAVIS_TEST_RESULT}; fi
   # TODO: install Perl (DBI::ODBC) and Python (pyodbc) dependencies
-  - sudo apt install python-pip unixodbc-dev; pip install pyodbc
+  - sudo apt install python-pip unixodbc-dev; sudo pip install pyodbc
   - sudo apt install unixodbc
   - echo "Clickhouse image ${CLICKHOUSE_SERVER_IMAGE}"; docker pull ${CLICKHOUSE_SERVER_IMAGE}; fi
   # Test against the clickhouse-server:
