@@ -16,8 +16,9 @@
 DSN=${DSN=clickhouse_localhost}
 [ -z $RUNNER ] && RUNNER=`which isql` && [ -n $RUNNER ] && RUNNER_PARAMS0="-v -b"
 [ -z $RUNNER ] && RUNNER=`which iusql` && [ -n $RUNNER ] && RUNNER_PARAMS0="-v -b"
-[ -z $RUNNER ] && RUNNER=`which iodbctestw`
-[ -z $RUNNER ] && RUNNER=`which iodbctest`
+[ -z $RUNNER ] && RUNNER=`which iodbctestw` && DSN="DSN=${DSN}"
+[ -z $RUNNER ] && RUNNER=`which iodbctest` && DSN="DSN=${DSN}"
+[ -z $RUNNER ] echo "ERROR: unable to find neither of isql, iusql, iodbctestw, nor iodbctest. Please install missing packages"; exit -1
 
 function q {
     echo "Asking [$*]"
