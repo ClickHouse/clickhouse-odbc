@@ -37,10 +37,6 @@ SQLRETURN SetEnvAttr(
                 return SQL_SUCCESS;
             }
 
-            case SQL_ATTR_METADATA_ID:
-                environment.metadata_id = reinterpret_cast<intptr_t>(value);
-                return SQL_SUCCESS;
-
             default:
                 LOG("SetEnvAttr: Unsupported attribute " << attribute);
                 //throw std::runtime_error("Unsupported environment attribute.");
@@ -60,14 +56,11 @@ SQLRETURN GetEnvAttr(
 ) noexcept {
     auto func = [&](Environment & environment) -> SQLRETURN {
         LOG("GetEnvAttr: " << attribute);
-        const char * name = nullptr;
 
         switch (attribute) {
             case SQL_ATTR_ODBC_VERSION:
                 fillOutputNumber<SQLUINTEGER>(environment.odbc_version, out_value, out_value_max_length, out_value_length);
                 return SQL_SUCCESS;
-
-                CASE_NUM(SQL_ATTR_METADATA_ID, SQLUINTEGER, environment.metadata_id);
 
             case SQL_ATTR_CONNECTION_POOLING:
             case SQL_ATTR_CP_MATCH:
@@ -139,13 +132,16 @@ SQLRETURN SetConnectAttr(
             }
 #endif
 
+            case SQL_ATTR_METADATA_ID:
+                connection.set_attr(SQL_ATTR_METADATA_ID, value);
+                return SQL_SUCCESS;
+
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:
             case SQL_ATTR_AUTO_IPD:
             case SQL_ATTR_AUTOCOMMIT:
             case SQL_ATTR_CONNECTION_DEAD:
             case SQL_ATTR_LOGIN_TIMEOUT: // We have no special login procedure - cant set login timeout separately
-            case SQL_ATTR_METADATA_ID:
             case SQL_ATTR_ODBC_CURSORS:
             case SQL_ATTR_PACKET_SIZE:
             case SQL_ATTR_QUIET_MODE:
@@ -198,10 +194,15 @@ SQLRETURN GetConnectAttr(
                 return SQL_SUCCESS;
             }
 
+            case SQL_ATTR_METADATA_ID:
+                return fillOutputNumber<SQLUINTEGER>(
+                    connection.get_attr_as<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE),
+                    out_value, out_value_max_length, out_value_length
+                );
+
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:
             case SQL_ATTR_AUTO_IPD:
-            case SQL_ATTR_METADATA_ID:
             case SQL_ATTR_ODBC_CURSORS:
             case SQL_ATTR_PACKET_SIZE:
             case SQL_ATTR_QUIET_MODE:
@@ -290,30 +291,21 @@ SQLRETURN SetStmtAttr(
             CASE_SET_IN_DESC(SQL_ATTR_PARAM_STATUS_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
             CASE_SET_IN_DESC(SQL_ATTR_PARAMS_PROCESSED_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
             CASE_SET_IN_DESC(SQL_ATTR_PARAMSET_SIZE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
-
-//          CASE_SET_IN_DESC(SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
-            case SQL_ATTR_ROW_ARRAY_SIZE: // TODO: set value to the descriptor.
-                statement.row_array_size = reinterpret_cast<decltype(statement.row_array_size)>(value);
-                return SQL_SUCCESS;
-
+            CASE_SET_IN_DESC(SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
             CASE_SET_IN_DESC(SQL_ATTR_ROW_BIND_OFFSET_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
             CASE_SET_IN_DESC(SQL_ATTR_ROW_BIND_TYPE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
             CASE_SET_IN_DESC(SQL_ATTR_ROW_OPERATION_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
             CASE_SET_IN_DESC(SQL_ATTR_ROW_STATUS_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
-
-//          CASE_SET_IN_DESC(SQL_ATTR_ROWS_FETCHED_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
-            case SQL_ATTR_ROWS_FETCHED_PTR: // TODO: set value to the descriptor.
-                statement.rows_fetched_ptr = static_cast<SQLULEN *>(value);
-                return SQL_SUCCESS;
+            CASE_SET_IN_DESC(SQL_ATTR_ROWS_FETCHED_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
 
 #undef CASE_SET_IN_DESC
 
             case SQL_ATTR_NOSCAN:
-                statement.setScanEscapeSequences((SQLULEN)value != SQL_NOSCAN_ON);
+                statement.set_attr(SQL_ATTR_NOSCAN, value);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_METADATA_ID:
-                statement.setMetadataId(reinterpret_cast<intptr_t>(value));
+                statement.set_attr(SQL_ATTR_METADATA_ID, value);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_APP_ROW_DESC:
@@ -373,21 +365,12 @@ SQLRETURN GetStmtAttr(
             CASE_GET_FROM_DESC(SQL_ATTR_PARAM_STATUS_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
             CASE_GET_FROM_DESC(SQL_ATTR_PARAMS_PROCESSED_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
             CASE_GET_FROM_DESC(SQL_ATTR_PARAMSET_SIZE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
-
-            // TODO: use value from the descriptor.
-//          CASE_GET_FROM_DESC(SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
-            CASE_FALLTHROUGH(SQL_ATTR_ROW_ARRAY_SIZE)
-                return fillOutputNumber<SQLULEN>(statement.row_array_size, out_value, out_value_max_length, out_value_length);
-
+            CASE_GET_FROM_DESC(SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
             CASE_GET_FROM_DESC(SQL_ATTR_ROW_BIND_OFFSET_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
             CASE_GET_FROM_DESC(SQL_ATTR_ROW_BIND_TYPE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
             CASE_GET_FROM_DESC(SQL_ATTR_ROW_OPERATION_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
             CASE_GET_FROM_DESC(SQL_ATTR_ROW_STATUS_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
-
-            // TODO: use value from the descriptor.
-//          CASE_GET_FROM_DESC(SQL_ATTR_ROWS_FETCHED_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
-            CASE_FALLTHROUGH(SQL_ATTR_ROWS_FETCHED_PTR)
-                return fillOutputNumber<SQLULEN *>(statement.rows_fetched_ptr, out_value, out_value_max_length, out_value_length);
+            CASE_GET_FROM_DESC(SQL_ATTR_ROWS_FETCHED_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
 
 #undef CASE_GET_FROM_DESC
 
@@ -406,8 +389,22 @@ SQLRETURN GetStmtAttr(
             CASE_NUM(SQL_ATTR_ENABLE_AUTO_IPD, SQLULEN, SQL_FALSE);
             CASE_NUM(SQL_ATTR_MAX_LENGTH, SQLULEN, 0);
             CASE_NUM(SQL_ATTR_MAX_ROWS, SQLULEN, 0);
-            CASE_NUM(SQL_ATTR_METADATA_ID, SQLUINTEGER, statement.getMetadataId());
-            CASE_NUM(SQL_ATTR_NOSCAN, SQLULEN, (statement.getScanEscapeSequences() ? SQL_NOSCAN_OFF : SQL_NOSCAN_ON));
+
+            CASE_FALLTHROUGH(SQL_ATTR_METADATA_ID)
+                return fillOutputNumber<SQLULEN>(
+                    statement.get_attr_as<SQLULEN>(
+                        SQL_ATTR_METADATA_ID,
+                        statement.get_parent().get_attr_as<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE)
+                    ),
+                    out_value, out_value_max_length, out_value_length
+                );
+
+            CASE_FALLTHROUGH(SQL_ATTR_NOSCAN)
+                return fillOutputNumber<SQLULEN>(
+                    statement.get_attr_as<SQLULEN>(SQL_ATTR_NOSCAN, SQL_NOSCAN_OFF),
+                    out_value, out_value_max_length, out_value_length
+                );
+
             CASE_NUM(SQL_ATTR_QUERY_TIMEOUT, SQLULEN, 0);
             CASE_NUM(SQL_ATTR_RETRIEVE_DATA, SQLULEN, SQL_RD_ON);
             CASE_NUM(SQL_ATTR_ROW_NUMBER, SQLULEN, statement.result.getNumRows());

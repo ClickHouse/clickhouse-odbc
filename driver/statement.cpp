@@ -12,7 +12,6 @@
 
 Statement::Statement(Connection & connection)
     : ChildType(connection)
-    , metadata_id(connection.get_parent().metadata_id)
 {
     allocate_implicit_descriptors();
 }
@@ -21,39 +20,21 @@ Statement::~Statement() {
     deallocate_implicit_descriptors();
 }
 
-bool Statement::getScanEscapeSequences() const {
-    return scan_escape_sequences;
-}
-
-void Statement::setScanEscapeSequences(bool value) {
-    scan_escape_sequences = value;
-}
-
-SQLUINTEGER Statement::getMetadataId() const {
-    return metadata_id;
-}
-
-void Statement::setMetadataId(SQLUINTEGER id) {
-    metadata_id = id;
-}
-
-const std::string Statement::getQuery() const {
-    return query;
-}
-
 const TypeInfo & Statement::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs) const {
     return get_parent().get_parent().getTypeInfo(type_name, type_name_without_parametrs);
 }
 
-bool Statement::isEmpty() const {
-    return query.empty();
+void Statement::prepareQuery(const std::string & q) {
+    query = q;
+    if (get_attr_as<SQLULEN>(SQL_ATTR_NOSCAN, SQL_NOSCAN_OFF) == SQL_NOSCAN_ON) {
+        prepared_query = query;
+    }
+    else {
+        prepared_query = replaceEscapeSequences(query);
+    }
 }
 
-bool Statement::isPrepared() const {
-    return prepared;
-}
-
-void Statement::sendRequest(IResultMutatorPtr mutator) {
+void Statement::executeQuery(IResultMutatorPtr mutator) {
     auto & connection = get_parent();
 
     std::ostringstream user_password_base64;
@@ -116,25 +97,14 @@ void Statement::sendRequest(IResultMutatorPtr mutator) {
     result.init(this, std::move(mutator));
 }
 
+void Statement::executeQuery(const std::string & q, IResultMutatorPtr mutator) {
+    prepareQuery(q);
+    executeQuery(std::move(mutator));
+}
+
 bool Statement::fetchRow() {
     current_row = result.fetch();
     return current_row.isValid();
-}
-
-void Statement::prepareQuery(const std::string & q) {
-    query = q;
-    if (scan_escape_sequences) {
-        prepared_query = replaceEscapeSequences(query);
-    } else {
-        prepared_query = q;
-    }
-
-    prepared = true;
-}
-
-void Statement::setQuery(const std::string & q) {
-    query = q;
-    prepared_query = q;
 }
 
 void Statement::close_cursor() {
@@ -187,6 +157,8 @@ Descriptor & Statement::choose(
 }
 
 void Statement::allocate_implicit_descriptors() {
+    deallocate_implicit_descriptors();
+
     implicit_ard = allocate_descriptor();
     implicit_apd = allocate_descriptor();
     implicit_ird = allocate_descriptor();

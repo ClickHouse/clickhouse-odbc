@@ -110,6 +110,8 @@ void assignTypeInfo(const TypeAst & ast, ColumnInfo * info) {
 
 void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_) {
     statement = statement_;
+    rows_fetched_ptr = statement->get_effective_descriptor(SQL_ATTR_IMP_ROW_DESC).get_attr_as<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
+    row_array_size = statement->get_effective_descriptor(SQL_ATTR_APP_ROW_DESC).get_attr_as<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
     mutator = (mutator_ ? std::move(mutator_) : IResultMutatorPtr(new EmptyMutator));
 
     if (in().peek() == EOF)
@@ -193,8 +195,8 @@ Row ResultSet::fetch() {
         return {};
 
     ++rows;
-    if (statement->rows_fetched_ptr)
-        *statement->rows_fetched_ptr = rows;
+    if (rows_fetched_ptr)
+        *rows_fetched_ptr = rows;
 
     const Row & row = *iterator;
     ++iterator;
@@ -228,7 +230,7 @@ bool ResultSet::readNextBlockCache() {
 }
 
 bool ResultSet::readNextBlock() {
-    auto max_block_size = statement->row_array_size;
+    const auto max_block_size = row_array_size;
 
     current_block.data.clear();
     current_block.data.reserve(max_block_size);

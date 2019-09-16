@@ -41,7 +41,6 @@ public:
     const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs = "") const;
 
 public:
-    SQLUINTEGER metadata_id = SQL_FALSE;
     int odbc_version =
 #if defined(SQL_OV_ODBC3_80)
         SQL_OV_ODBC3_80;

@@ -87,6 +87,8 @@ private:
 
 private:
     Statement * statement = nullptr;
+    SQLULEN * rows_fetched_ptr = nullptr;
+    SQLULEN row_array_size = 1;
     IResultMutatorPtr mutator;
     std::vector<ColumnInfo> columns_info;
     std::deque<Row> current_block_buffer;

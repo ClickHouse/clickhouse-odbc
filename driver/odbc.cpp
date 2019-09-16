@@ -343,16 +343,8 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * 
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        const std::string & query = stringFromSQLSymbols2(statement_text, statement_text_size);
-        if (!statement.isEmpty())
-            throw std::runtime_error("Prepare called, but statement query is not empty.");
-        if (query.empty())
-            throw std::runtime_error("Prepare called with empty query.");
-
+        const auto query = stringFromSQLSymbols2(statement_text, statement_text_size);
         statement.prepareQuery(query);
-
-        LOG("query(" << query.size() << ") = [" << query << "]");
-
         return SQL_SUCCESS;
     });
 }
@@ -362,36 +354,18 @@ RETCODE SQL_API SQLExecute(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        statement.sendRequest();
+        statement.executeQuery();
         return SQL_SUCCESS;
     });
 }
 
 
 RETCODE SQL_API FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size) {
-    //LOG(__FUNCTION__);
+    LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        const std::string & query = stringFromSQLSymbols(statement_text, statement_text_size);
-
-        LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << query);
-
-        if (!statement.isEmpty()) {
-            if (!statement.isPrepared()) {
-                throw std::runtime_error("ExecDirect called, but statement query is not empty.");
-            } else if (statement.getQuery() != query) {
-                throw std::runtime_error("ExecDirect called, but statement query is not equal to prepared. [" + statement.getQuery()
-                    + "] != [" + query + "]...");
-            }
-        } else {
-            if (query.empty())
-                throw std::runtime_error("ExecDirect called with empty query.");
-
-            statement.prepareQuery(query);
-        }
-
-        //LOG(query);
-        statement.sendRequest();
+        const auto query = stringFromSQLSymbols(statement_text, statement_text_size);
+        statement.executeQuery(query);
         return SQL_SUCCESS;
     });
 }
@@ -794,6 +768,7 @@ RETCODE SQL_API SQLDisconnect(HDBC connection_handle) {
     });
 }
 
+
 /// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlgetdiagrec-function
 SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDiagRec)(
     SQLSMALLINT handle_type,
@@ -817,6 +792,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDiagRec)(
     );
 }
 
+
 /// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlgetdiagfield-function
 SQLRETURN SQL_API SQLGetDiagField(
     SQLSMALLINT handle_type,
@@ -837,6 +813,7 @@ SQLRETURN SQL_API SQLGetDiagField(
         out_message_size
     );
 }
+
 
 /// Description: https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqltables
 RETCODE SQL_API FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
@@ -914,8 +891,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
             query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
         }
 
-        statement.setQuery(query.str());
-        statement.sendRequest();
+        statement.executeQuery(query.str());
         return SQL_SUCCESS;
     });
 }
@@ -1014,8 +990,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
 
-        statement.setQuery(query.str());
-        statement.sendRequest(IResultMutatorPtr(new ColumnsMutator(&statement.get_parent().get_parent())));
+        statement.executeQuery(query.str(), IResultMutatorPtr(new ColumnsMutator(&statement.get_parent().get_parent())));
         return SQL_SUCCESS;
     });
 }
@@ -1104,8 +1079,7 @@ RETCODE SQL_API SQLGetTypeInfo(HSTMT statement_handle, SQLSMALLINT type) {
         if (first)
             query.str("SELECT 1 WHERE 0");
 
-        statement.setQuery(query.str());
-        statement.sendRequest();
+        statement.executeQuery(query.str());
         return SQL_SUCCESS;
     });
 }
@@ -1157,9 +1131,6 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLBrowseConnect)(HDBC connection_handle,
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
-
-
-/// Not implemented.
 
 
 RETCODE SQL_API SQLCancel(HSTMT StatementHandle) {
@@ -1362,6 +1333,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLColumnPrivileges)(HSTMT hstmt,
     return SQL_ERROR;
 }
 
+
 SQLRETURN SQL_API SQLDescribeParam(
     SQLHSTMT        StatementHandle,
     SQLUSMALLINT    ParameterNumber,
@@ -1469,6 +1441,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLTablePrivileges)(HSTMT hstmt,
     return SQL_ERROR;
 }
 
+
 SQLRETURN SQL_API SQLBindParameter(
     SQLHSTMT        StatementHandle,
     SQLUSMALLINT    ParameterNumber,
@@ -1495,6 +1468,7 @@ SQLRETURN SQL_API SQLBindParameter(
         StrLen_or_IndPtr
     );
 }
+
 
 /*
 RETCODE SQL_API
@@ -1529,6 +1503,7 @@ RETCODE SQL_API SQLEndTran(SQLSMALLINT HandleType, SQLHANDLE Handle, SQLSMALLINT
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
+
 
 RETCODE SQL_API FUNCTION_MAYBE_W(SQLError)(SQLHENV hDrvEnv,
     SQLHDBC hDrvDbc,
@@ -1608,6 +1583,7 @@ RETCODE SQL_API SQLTransact(SQLHENV hDrvEnv, SQLHDBC hDrvDbc, UWORD nType) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
+
 
 /*
  *	This function is used to cause the Driver Manager to
