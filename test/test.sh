@@ -14,7 +14,7 @@
 # ./test.sh | grep -i error
 
 #using trap to preserve error exit code
-trap "printf '\n\n\nLast log:\n'; tail -n200 /tmp/clickhouse-odbc.log" EXIT
+#trap "printf '\n\n\nLast log:\n'; tail -n200 /tmp/clickhouse-odbc.log" EXIT
 
 DSN=${DSN=clickhouse_localhost}
 [ -z $RUNNER ] && RUNNER=`which isql` && [ -n $RUNNER ] && RUNNER_PARAMS0="-v -b"
