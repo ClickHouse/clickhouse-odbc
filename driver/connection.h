@@ -2,12 +2,15 @@
 
 #include "driver.h"
 #include "environment.h"
-#include "diagnostics.h"
 
 #include <memory>
 #include <mutex>
 
 #include <Poco/Net/HTTPClientSession.h>
+
+class DescriptorRecord;
+class Descriptor;
+class Statement;
 
 class Connection
     : public Child<Environment, Connection>
@@ -59,6 +62,20 @@ public:
         const std::string & database_);
 
     void init(const std::string & connection_string);
+
+    // Reset the descriptor and initialize it with default attributes.
+    void init_as_ad(Descriptor & desc, bool user = false); // as Application Descriptor
+    void init_as_id(Descriptor & desc); // as Implementation Descriptor
+
+    // Reset the descriptor and initialize it with default attributes.
+    void init_as_desc(Descriptor & desc, SQLINTEGER role, bool user = false); // ARD, APD, IRD, IPD
+
+    // Reset the descriptor record and initialize it with default attributes.
+    void init_as_ad_rec(DescriptorRecord & rec); // as a record of Application Descriptor
+    void init_as_id_rec(DescriptorRecord & rec); // as a record of Implementation Descriptor
+
+    // Reset the descriptor record and initialize it with default attributes.
+    void init_as_desc_rec(DescriptorRecord & rec, SQLINTEGER desc_role); // ARD, APD, IRD, IPD
 
     // Leave unimplemented for general case.
     template <typename T> T& allocate_child();

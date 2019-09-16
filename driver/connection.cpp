@@ -308,6 +308,77 @@ void Connection::setDefaults() {
         connection_timeout = timeout;
 }
 
+void Connection::init_as_ad(Descriptor & desc, bool user) {
+    desc.reset_attrs();
+    desc.set_attr(SQL_DESC_ALLOC_TYPE, (user ? SQL_DESC_ALLOC_USER : SQL_DESC_ALLOC_AUTO));
+    desc.set_attr(SQL_DESC_ARRAY_SIZE, 1);
+    desc.set_attr(SQL_DESC_ARRAY_STATUS_PTR, 0);
+    desc.set_attr(SQL_DESC_BIND_OFFSET_PTR, 0);
+    desc.set_attr(SQL_DESC_BIND_TYPE, SQL_BIND_TYPE_DEFAULT);
+}
+
+void Connection::init_as_id(Descriptor & desc) {
+    desc.reset_attrs();
+    desc.set_attr(SQL_DESC_ALLOC_TYPE, SQL_DESC_ALLOC_AUTO);
+    desc.set_attr(SQL_DESC_ARRAY_STATUS_PTR, 0);
+    desc.set_attr(SQL_DESC_ROWS_PROCESSED_PTR, 0);
+}
+
+void Connection::init_as_desc(Descriptor & desc, SQLINTEGER role, bool user) {
+    switch (role) {
+        case SQL_ATTR_APP_ROW_DESC: {
+            init_as_ad(desc, user);
+            break;
+        }
+        case SQL_ATTR_APP_PARAM_DESC: {
+            init_as_ad(desc, user);
+            break;
+        }
+        case SQL_ATTR_IMP_ROW_DESC: {
+            init_as_id(desc);
+            break;
+        }
+        case SQL_ATTR_IMP_PARAM_DESC: {
+            init_as_id(desc);
+            break;
+        }
+    }
+}
+
+void Connection::init_as_ad_rec(DescriptorRecord & rec) {
+    rec.reset_attrs();
+    rec.set_attr(SQL_DESC_TYPE, SQL_C_DEFAULT); // Also sets SQL_DESC_CONCISE_TYPE (to SQL_C_DEFAULT) and SQL_DESC_DATETIME_INTERVAL_CODE (to 0).
+    rec.set_attr(SQL_DESC_OCTET_LENGTH_PTR, 0);
+    rec.set_attr(SQL_DESC_INDICATOR_PTR, 0);
+    rec.set_attr(SQL_DESC_DATA_PTR, 0);
+}
+
+void Connection::init_as_id_rec(DescriptorRecord & rec) {
+    rec.reset_attrs();
+}
+
+void Connection::init_as_desc_rec(DescriptorRecord & rec, SQLINTEGER desc_role) {
+    switch (desc_role) {
+        case SQL_ATTR_APP_ROW_DESC: {
+            init_as_ad_rec(rec);
+            break;
+        }
+        case SQL_ATTR_APP_PARAM_DESC: {
+            init_as_ad_rec(rec);
+            break;
+        }
+        case SQL_ATTR_IMP_ROW_DESC: {
+            init_as_id_rec(rec);
+            break;
+        }
+        case SQL_ATTR_IMP_PARAM_DESC: {
+            init_as_id_rec(rec);
+            rec.set_attr(SQL_DESC_PARAMETER_TYPE, SQL_PARAM_INPUT);
+            break;
+        }
+    }
+}
+
 template <>
 Descriptor& Connection::allocate_child<Descriptor>() {
     auto child_sptr = std::make_shared<Descriptor>(*this);

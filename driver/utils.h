@@ -1,6 +1,7 @@
 #pragma once
 
 #include "platform.h"
+#include "type_info.h"
 #include "string_ref.h"
 #include "unicode_t.h"
 

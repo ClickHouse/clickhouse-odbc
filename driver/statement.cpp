@@ -14,6 +14,7 @@ Statement::Statement(Connection & connection)
     : ChildType(connection)
     , metadata_id(connection.get_parent().metadata_id)
 {
+    allocate_implicit_descriptors();
 }
 
 Statement::~Statement() {
@@ -136,130 +137,65 @@ void Statement::setQuery(const std::string & q) {
     prepared_query = q;
 }
 
-void Statement::reset() {
+void Statement::close_cursor() {
     in = nullptr;
     response.reset();
     get_parent().session->reset();
-    reset_statuses();
-    reset_header();
     result = ResultSet();
-    reset_descriptors();
+    reset_diag();
 }
 
-Descriptor& Statement::ard() {
-    auto desc = explicit_ard.lock();
-    if (!desc) {
-        if (!implicit_ard) {
-            implicit_ard = allocate_descriptor();
-            init_as_ard(*implicit_ard);
-        }
+void Statement::reset_col_bindings() {
+    bindings.clear();
+//  get_effective_descriptor(SQL_ATTR_APP_ROW_DESC).set_attr(SQL_DESC_COUNT, 0);
+}
 
-        desc = implicit_ard;
-        explicit_ard = desc;
+void Statement::reset_param_bindings() {
+    get_effective_descriptor(SQL_ATTR_APP_PARAM_DESC).set_attr(SQL_DESC_COUNT, 0);
+}
+
+Descriptor& Statement::get_effective_descriptor(SQLINTEGER type) {
+    switch (type) {
+        case SQL_ATTR_APP_ROW_DESC:   return choose(implicit_ard, explicit_ard);
+        case SQL_ATTR_APP_PARAM_DESC: return choose(implicit_apd, explicit_apd);
+        case SQL_ATTR_IMP_ROW_DESC:   return choose(implicit_ird, explicit_ird);
+        case SQL_ATTR_IMP_PARAM_DESC: return choose(implicit_ipd, explicit_ipd);
     }
-    return *desc;
+    throw std::runtime_error("unknown descriptor type");
 }
 
-Descriptor& Statement::apd() {
-    auto desc = explicit_apd.lock();
-    if (!desc) {
-        if (!implicit_apd) {
-            implicit_apd = allocate_descriptor();
-            init_as_apd(*implicit_apd);
-        }
-
-        desc = implicit_apd;
-        explicit_apd = desc;
+void Statement::set_explicit_descriptor(SQLINTEGER type, std::shared_ptr<Descriptor> desc) {
+    switch (type) {
+        case SQL_ATTR_APP_ROW_DESC:   explicit_ard = desc; return;
+        case SQL_ATTR_APP_PARAM_DESC: explicit_apd = desc; return;
+        case SQL_ATTR_IMP_ROW_DESC:   explicit_ird = desc; return;
+        case SQL_ATTR_IMP_PARAM_DESC: explicit_ipd = desc; return;
     }
-    return *desc;
+    throw std::runtime_error("unknown descriptor type");
 }
 
-Descriptor& Statement::ird() {
-    auto desc = explicit_ird.lock();
-    if (!desc) {
-        if (!implicit_ird) {
-            implicit_ird = allocate_descriptor();
-            init_as_ird(*implicit_ird);
-        }
-
-        desc = implicit_ird;
-        explicit_ird = desc;
-    }
-    return *desc;
+void Statement::set_implicit_descriptor(SQLINTEGER type) {
+    return set_explicit_descriptor(type, std::shared_ptr<Descriptor>{});
 }
 
-Descriptor& Statement::ipd() {
-    auto desc = explicit_ipd.lock();
-    if (!desc) {
-        if (!implicit_ipd) {
-            implicit_ipd = allocate_descriptor();
-            init_as_ipd(*implicit_ipd);
-        }
-
-        desc = implicit_ipd;
-        explicit_ipd = desc;
-    }
-    return *desc;
+Descriptor & Statement::choose(
+    std::shared_ptr<Descriptor> & implicit_desc,
+    std::weak_ptr<Descriptor> & explicit_desc
+) {
+    auto desc = explicit_desc.lock();
+    return (desc ? *desc : *implicit_desc);
 }
 
-void Statement::set_ard(std::shared_ptr<Descriptor> desc) {
-    explicit_ard = desc;
-}
+void Statement::allocate_implicit_descriptors() {
+    implicit_ard = allocate_descriptor();
+    implicit_apd = allocate_descriptor();
+    implicit_ird = allocate_descriptor();
+    implicit_ipd = allocate_descriptor();
 
-void Statement::set_apd(std::shared_ptr<Descriptor> desc) {
-    explicit_apd = desc;
-}
-
-void Statement::set_ird(std::shared_ptr<Descriptor> desc) {
-    explicit_ird = desc;
-}
-
-void Statement::set_ipd(std::shared_ptr<Descriptor> desc) {
-    explicit_ipd = desc;
-}
-
-void Statement::reset_ard() {
-    set_ard(std::shared_ptr<Descriptor>{});
-}
-
-void Statement::reset_apd() {
-    set_apd(std::shared_ptr<Descriptor>{});
-}
-
-void Statement::reset_ird() {
-    set_ird(std::shared_ptr<Descriptor>{});
-}
-
-void Statement::reset_ipd() {
-    set_ipd(std::shared_ptr<Descriptor>{});
-}
-
-void Statement::init_as_ard(Descriptor& desc) {
-    
-}
-
-void Statement::init_as_apd(Descriptor& desc) {
-
-}
-
-void Statement::init_as_ird(Descriptor& desc) {
-
-}
-
-void Statement::init_as_ipd(Descriptor& desc) {
-
-}
-
-void Statement::reset_descriptors() {
-    explicit_ard.reset();
-    explicit_apd.reset();
-    explicit_ird.reset();
-    explicit_ipd.reset();
-
-    if (implicit_ard) init_as_ard(*implicit_ard);
-    if (implicit_apd) init_as_apd(*implicit_apd);
-    if (implicit_ird) init_as_ird(*implicit_ird);
-    if (implicit_ipd) init_as_ipd(*implicit_ipd);
+    get_parent().init_as_desc(*implicit_ard, SQL_ATTR_APP_ROW_DESC);
+    get_parent().init_as_desc(*implicit_apd, SQL_ATTR_APP_PARAM_DESC);
+    get_parent().init_as_desc(*implicit_ird, SQL_ATTR_IMP_ROW_DESC);
+    get_parent().init_as_desc(*implicit_ipd, SQL_ATTR_IMP_PARAM_DESC);
 }
 
 void Statement::deallocate_implicit_descriptors() {
@@ -274,10 +210,9 @@ std::shared_ptr<Descriptor> Statement::allocate_descriptor() {
     return desc.shared_from_this();
 }
 
-void Statement::dellocate_descriptor(std::shared_ptr<Descriptor>& desc) {
+void Statement::dellocate_descriptor(std::shared_ptr<Descriptor> & desc) {
     if (desc) {
         desc->deallocate_self();
         desc.reset();
     }
 }
-
