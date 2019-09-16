@@ -55,7 +55,7 @@ matrix:
           addons:
             apt:
               sources: [ ubuntu-toolchain-r-test ]
-              packages: [ ninja-build, libstdc++-8-dev, libiodbc2-dev, libiodbc2 ]
+              packages: [ ninja-build, libstdc++-8-dev, iodbc, libiodbc2-dev, libiodbc2 ]
 
         # gcc8 iodbc
         - os: linux
@@ -63,7 +63,7 @@ matrix:
           addons:
             apt:
               sources: [ ubuntu-toolchain-r-test ]
-              packages: [ ninja-build, gcc-8, g++-8, libiodbc2-dev, libiodbc2 ]
+              packages: [ ninja-build, gcc-8, g++-8, iodbc, libiodbc2-dev, libiodbc2 ]
 
         # clang8 unixodbc
         #- os: linux
@@ -88,7 +88,7 @@ matrix:
           addons:
             apt:
               sources: [ ubuntu-toolchain-r-test ]
-              packages: [ ninja-build, gcc-7, g++-7 ]
+              packages: [ ninja-build, gcc-7, g++-7, unixodbc]
 
         - os: osx
           env: MATRIX_EVAL="export HOMEBREW_PACKAGES='libiodbc'" 
