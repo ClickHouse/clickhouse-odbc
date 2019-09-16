@@ -13,6 +13,9 @@
 # Should not have any errors:
 # ./test.sh | grep -i error
 
+#using trap to preserve error exit code
+trap "printf '\n\n\nLast log:\n'; tail -n200 /tmp/clickhouse-odbc.log" EXIT
+
 DSN=${DSN=clickhouse_localhost}
 [ -z $RUNNER ] && RUNNER=`which isql` && [ -n $RUNNER ] && RUNNER_PARAMS0="-v -b"
 [ -z $RUNNER ] && RUNNER=`which iusql` && [ -n $RUNNER ] && RUNNER_PARAMS0="-v -b"
@@ -182,7 +185,3 @@ q "drop table test.lc;"
 
 
 # q "SELECT number, toString(number), toDate(number) FROM system.numbers LIMIT 10000;"
-
-echo "\n\n\nLast log:\n"
-# cat /tmp/clickhouse-odbc-stderr.$USER
-tail -n200 /tmp/clickhouse-odbc.log
