@@ -107,6 +107,9 @@ matrix:
         - os: osx
           compiler: gcc
 
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ninja; fi
 
 install:
   - eval "${MATRIX_EVAL}"
@@ -121,7 +124,7 @@ install:
 script:
   - mkdir -p build
   - cd build
-  - cmake ..  -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` $CMAKE_FLAGS -DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w && cmake --build . --target all
+  - cmake .. -G Ninja -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` $CMAKE_FLAGS -DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w && cmake --build . --target all
 
 after_script:
   # Test against the clickhouse-server:
