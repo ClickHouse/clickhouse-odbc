@@ -131,10 +131,12 @@ script:
   # TODO: install Perl (DBI::ODBC) and Python (pyodbc) dependencies
   - sudo apt install python-pip unixodbc-dev python-dev; sudo pip install pyodbc
   - sudo apt install unixodbc
+  # To simplify things a bit, start ClickHouse server in docker
   - echo "Clickhouse image ${CLICKHOUSE_SERVER_IMAGE}"; docker pull ${CLICKHOUSE_SERVER_IMAGE}; fi
-  # Test against the clickhouse-server:
   - CLICKHOUSE_SERVER_CONTAINER=$(docker run  -d ${CLICKHOUSE_SERVER_IMAGE})
   - CLICKHOUSE_SERVER_IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' ${CLICKHOUSE_SERVER_CONTAINER})
+  - docker ps -a
+  - docker stats -a --no-stream
   # TODO: think about paths on windows
   - ODBC_DRIVER_PATH=$(realpath driver/libclickhouseodbc.so)
   - ODBC_DRIVERW_PATH=$(realpath driver/libclickhouseodbc.so)
