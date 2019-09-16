@@ -27,6 +27,8 @@ public:
     bool has_attr_string(int attr) const;
     bool has_attr(int attr) const;
 
+    template <typename T> inline bool has_attr_as(int attr) const;
+
     template <typename T> inline T get_attr_as(int attr, const T & def = T{}) const;
 
     template <typename T> inline T set_attr_silent(int attr, const T& value);
@@ -34,12 +36,23 @@ public:
 
     void reset_attrs();
 
+protected:
     virtual void on_attr_change(int attr);
 
 private:
     std::unordered_map<int, std::int64_t> integers;
     std::unordered_map<int, std::string> strings;
 };
+
+template <typename T>
+inline bool AttributeContainer::has_attr_as(int attr) const {
+    return has_attr_integer(attr);
+}
+
+template <>
+inline bool AttributeContainer::has_attr_as<std::string>(int attr) const {
+    return has_attr_string(attr);
+}
 
 template <typename T>
 inline T AttributeContainer::get_attr_as(int attr, const T & def) const {
