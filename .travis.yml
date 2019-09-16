@@ -40,12 +40,12 @@ matrix:
 
         # osx libiodbc unbundled
         - os: osx
-          env: MATRIX_EVAL="export CMAKE_FLAGS=-DUNBUNDLED=1"
+          env: MATRIX_EVAL="export CMAKE_FLAGS=-DUNBUNDLED=1 HOMEBREW_PACKAGES='libiodbc poco'" 
           git:
             submodules: false
-          addons:
-            homebrew:
-              packages: [ ninja, libiodbc, poco ]
+          # addons:
+          #   homebrew:
+          #     packages: [ ninja, libiodbc, poco ]
 
 
         # clang5 iodbc
@@ -91,14 +91,16 @@ matrix:
               packages: [ ninja-build, gcc-7, g++-7 ]
 
         - os: osx
-          addons:
-            homebrew:
-              packages: [ ninja, libiodbc ]
+          env: MATRIX_EVAL="export HOMEBREW_PACKAGES='libiodbc'" 
+          # addons:
+          #   homebrew:
+          #     packages: [ ninja, libiodbc ]
 
         - os: osx
-          addons:
-            homebrew:
-              packages: [ ninja, unixodbc ]
+          env: MATRIX_EVAL="export HOMEBREW_PACKAGES='unixodbc'" 
+          # addons:
+          #   homebrew:
+          #     packages: [ ninja, unixodbc ]
 
 
     exclude:
@@ -109,7 +111,7 @@ matrix:
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ninja; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ninja ${HOMEBREW_PACKAGES}; fi
 
 install:
   - eval "${MATRIX_EVAL}"
