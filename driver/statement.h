@@ -12,12 +12,27 @@
 #include <string>
 #include <vector>
 
-/// Information where and how to add values when reading.
-struct Binding {
-    SQLSMALLINT target_type;
-    PTR out_value;
-    SQLLEN out_value_max_size;
-    SQLLEN * out_value_size_or_indicator;
+/// Helper structure that represents information about where and
+/// how to get or put values when reading or writing bound buffers.
+struct BindingInfo {
+    SQLSMALLINT type = SQL_C_DEFAULT;
+    PTR value = nullptr;
+    SQLLEN value_max_size = 0;
+    SQLLEN * value_size_or_indicator = nullptr;
+};
+
+/// Helper structure that represents information about where and
+/// how to get or put values when reading or writing bound parameter buffers.
+struct ParamBindingInfo
+    : public BindingInfo
+{
+    SQLSMALLINT io_type = SQL_PARAM_INPUT;
+    SQLSMALLINT sql_type = SQL_UNKNOWN_TYPE;
+};
+
+/// Helper structure that represents different aspects of parameter info in a prepared query.
+struct ParamInfo {
+    std::string name;
 };
 
 class Statement
@@ -33,17 +48,33 @@ public:
     /// Lookup TypeInfo for given name of type.
     const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs = "") const;
 
-    /// Fetch next row.
-    bool fetchRow();
-
     /// Prepare query for execution.
     void prepareQuery(const std::string & q);
 
     /// Execute previously prepared query.
-    void executeQuery(IResultMutatorPtr mutator = nullptr);
+    void executeQuery(IResultMutatorPtr && mutator = IResultMutatorPtr{});
 
     /// Prepare and execute query.
-    void executeQuery(const std::string & q, IResultMutatorPtr mutator = nullptr);
+    void executeQuery(const std::string & q, IResultMutatorPtr && mutator = IResultMutatorPtr {});
+
+    /// Indicates whether there is an result set available for reading.
+    bool has_result_set() const;
+
+    /// Make the next result set current, if any.
+    bool advance_to_next_result_set();
+
+    const ColumnInfo & getColumnInfo(size_t i) const;
+
+    size_t getNumColumns() const;
+
+    bool has_current_row() const;
+
+    const Row & get_current_row() const;
+
+    /// Checked way of retrieving the number of the current row in the current result set.
+    std::size_t get_current_row_num() const;
+
+    bool advance_to_next_row();
 
     /// Reset statement to initial state.
     void close_cursor();
@@ -64,6 +95,10 @@ public:
     void set_implicit_descriptor(SQLINTEGER type);
 
 private:
+    void requestNextPackOfResultSets(IResultMutatorPtr && mutator);
+
+    ParamBindingInfo get_param_binding_info(std::size_t i);
+
     Descriptor & choose(std::shared_ptr<Descriptor> & implicit_desc, std::weak_ptr<Descriptor> & explicit_desc);
 
     void allocate_implicit_descriptors();
@@ -71,14 +106,6 @@ private:
 
     std::shared_ptr<Descriptor> allocate_descriptor();
     void dellocate_descriptor(std::shared_ptr<Descriptor> & desc);
-
-public:
-    ResultSet result;
-    Row current_row;
-
-    std::istream * in = nullptr;
-
-    std::map<SQLUSMALLINT, Binding> bindings;
 
 private:
     std::shared_ptr<Descriptor> implicit_ard;
@@ -91,8 +118,16 @@ private:
     std::weak_ptr<Descriptor> explicit_ird;
     std::weak_ptr<Descriptor> explicit_ipd;
 
-    std::unique_ptr<Poco::Net::HTTPResponse> response;
-
     std::string query;
     std::string prepared_query;
+    std::vector<ParamInfo> parameters;
+
+    std::unique_ptr<Poco::Net::HTTPResponse> response;
+    std::istream* in = nullptr;
+    std::unique_ptr<ResultSet> result_set;
+    std::size_t next_param_set = 0;
+
+public:
+    // TODO: switch to using the corresponding descriptor attributes.
+    std::map<SQLUSMALLINT, BindingInfo> bindings;
 };

@@ -375,8 +375,14 @@ RETCODE SQL_API SQLNumResultCols(HSTMT statement_handle, SQLSMALLINT * column_co
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        *column_count = (SQLSMALLINT)statement.result.getNumColumns();
-        LOG(*column_count);
+        if (column_count) {
+            if (statement.has_result_set()) {
+                *column_count = statement.getNumColumns();
+            }
+            else {
+                *column_count = 0;
+            }
+        }
         return SQL_SUCCESS;
     });
 }
@@ -397,17 +403,19 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
     LOG(__FUNCTION__ << "(col=" << column_number << ", field=" << field_identifier << ")");
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
-        if (column_number < 1 || column_number > statement.result.getNumColumns()) {
-            LOG(__FUNCTION__ << ": Column number is out of range.");
-            throw SqlException("Column number is out of range.", "07009");
-        }
+        if (!statement.has_result_set())
+            throw SqlException("Column info is not available", "07009");
 
-        size_t column_idx = column_number - 1;
+        if (column_number < 1 || column_number > statement.getNumColumns())
+            throw SqlException("Column number " + std::to_string(column_number) + " is out of range: 1.." +
+                std::to_string(statement.getNumColumns()), "07009");
+
+        const auto column_idx = column_number - 1;
 
         SQLLEN num_value = 0;
         std::string str_value;
 
-        const ColumnInfo & column_info = statement.result.getColumnInfo(column_idx);
+        const ColumnInfo & column_info = statement.getColumnInfo(column_idx);
         const TypeInfo & type_info = statement.getTypeInfo(column_info.type, column_info.type_without_parameters);
 
         switch (field_identifier) {
@@ -428,7 +436,7 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
                 num_value = type_info.sql_type;
                 break;
             case SQL_DESC_COUNT:
-                num_value = statement.result.getNumColumns();
+                num_value = statement.getNumColumns();
                 break;
             case SQL_DESC_DISPLAY_SIZE:
                 // TODO (artpaul) https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/display-size
@@ -521,12 +529,16 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
     SQLSMALLINT * out_decimal_digits,
     SQLSMALLINT * out_is_nullable) {
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        if (column_number < 1 || column_number > statement.result.getNumColumns())
-            throw std::runtime_error("Column number is out of range.");
+        if (!statement.has_result_set())
+            throw SqlException("Column info is not available", "07009");
 
-        size_t column_idx = column_number - 1;
+        if (column_number < 1 || column_number > statement.getNumColumns())
+            throw SqlException("Column number " + std::to_string(column_number) + " is out of range: 1.." +
+                std::to_string(statement.getNumColumns()), "07009");
 
-        const ColumnInfo & column_info = statement.result.getColumnInfo(column_idx);
+        const auto column_idx = column_number - 1;
+
+        const ColumnInfo & column_info = statement.getColumnInfo(column_idx);
         const TypeInfo & type_info = statement.getTypeInfo(column_info.type, column_info.type_without_parameters);
 
         LOG(__FUNCTION__ << " column_number=" << column_number << "name=" << column_info.name << " type=" << type_info.sql_type
@@ -559,14 +571,19 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
 #endif
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
-        if (column_or_param_number < 1 || column_or_param_number > statement.result.getNumColumns()) {
-            LOG(__FUNCTION__ << ": Column number is out of range (throw)." << column_or_param_number);
-            throw std::runtime_error("Column number is out of range.");
-        }
+        if (!statement.has_result_set())
+            throw SqlException("Column info is not available", "07009");
 
-        size_t column_idx = column_or_param_number - 1;
+        if (column_or_param_number < 1 || column_or_param_number > statement.getNumColumns())
+            throw SqlException("Column number " + std::to_string(column_or_param_number) + " is out of range: 1.." +
+                std::to_string(statement.getNumColumns()), "07009");
 
-        const Field & field = statement.current_row.data[column_idx];
+        if (!statement.has_current_row())
+            throw SqlException("Invalid cursor state", "24000");
+
+        const auto column_idx = column_or_param_number - 1;
+
+        const Field & field = statement.get_current_row().data[column_idx];
 
         LOG("column: " << column_idx << ", target_type: " << target_type << ", out_value_max_size: " << out_value_max_size
                        << " null=" << field.is_null << " data=" << field.data);
@@ -646,8 +663,19 @@ impl_SQLFetch(HSTMT statement_handle) {
 #endif
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
-        if (!statement.fetchRow())
+        auto * rows_fetched_ptr = statement.get_effective_descriptor(SQL_ATTR_IMP_ROW_DESC).get_attr_as<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
+
+        if (rows_fetched_ptr)
+            *rows_fetched_ptr = 0;
+
+        if (!statement.has_result_set())
             return SQL_NO_DATA;
+
+        if (!statement.advance_to_next_row())
+            return SQL_NO_DATA;
+
+        if (rows_fetched_ptr)
+            *rows_fetched_ptr = 1;
 
         // LOG("impl_SQLFetch statement.bindings.size()=" << statement.bindings.size());
 
@@ -656,10 +684,10 @@ impl_SQLFetch(HSTMT statement_handle) {
         for (auto & col_num_binding : statement.bindings) {
             auto code = impl_SQLGetData(statement_handle,
                 col_num_binding.first,
-                col_num_binding.second.target_type,
-                col_num_binding.second.out_value,
-                col_num_binding.second.out_value_max_size,
-                col_num_binding.second.out_value_size_or_indicator);
+                col_num_binding.second.type,
+                col_num_binding.second.value,
+                col_num_binding.second.value_max_size,
+                col_num_binding.second.value_size_or_indicator);
 
             if (code == SQL_SUCCESS_WITH_INFO)
                 res = code;
@@ -709,12 +737,15 @@ RETCODE SQL_API SQLBindCol(HSTMT statement_handle,
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        if (column_number < 1 || column_number > statement.result.getNumColumns())
-            throw SqlException(
-                "Column number " + std::to_string(column_number) + " is out of range: " + std::to_string(statement.result.getNumColumns()),
-                "07009");
         if (out_value_max_size < 0)
             throw SqlException("Invalid string or buffer length", "HY090");
+
+        if (!statement.has_result_set())
+            throw SqlException("Column info is not available", "07009");
+
+        if (column_number < 1 || column_number > statement.getNumColumns())
+            throw SqlException("Column number " + std::to_string(column_number) + " is out of range: 1.." +
+                std::to_string(statement.getNumColumns()), "07009");
 
         // Unbinding column
         if (out_value_size_or_indicator == nullptr) {
@@ -722,15 +753,17 @@ RETCODE SQL_API SQLBindCol(HSTMT statement_handle,
             return SQL_SUCCESS;
         }
 
+        const auto column_idx = column_number - 1;
+
         if (target_type == SQL_C_DEFAULT) {
-            target_type = statement.getTypeInfo(statement.result.getColumnInfo(column_number - 1).type_without_parameters).sql_type;
+            target_type = statement.getTypeInfo(statement.getColumnInfo(column_idx).type_without_parameters).sql_type;
         }
 
-        Binding binding;
-        binding.target_type = target_type;
-        binding.out_value = out_value;
-        binding.out_value_max_size = out_value_max_size;
-        binding.out_value_size_or_indicator = out_value_size_or_indicator;
+        BindingInfo binding;
+        binding.type = target_type;
+        binding.value = out_value;
+        binding.value_max_size = out_value_max_size;
+        binding.value_size_or_indicator = out_value_size_or_indicator;
 
         statement.bindings[column_number] = binding;
 
@@ -744,7 +777,7 @@ RETCODE SQL_API SQLRowCount(HSTMT statement_handle, SQLLEN * out_row_count) {
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
         if (out_row_count) {
-            *out_row_count = statement.result.getNumRows();
+            *out_row_count = statement.get_diag_header().get_attr_as<SQLLEN>(SQL_DIAG_ROW_COUNT, 0);
             LOG("getNumRows=" << *out_row_count);
         }
         return SQL_SUCCESS;
@@ -752,10 +785,12 @@ RETCODE SQL_API SQLRowCount(HSTMT statement_handle, SQLLEN * out_row_count) {
 }
 
 
-RETCODE SQL_API SQLMoreResults(HSTMT hstmt) {
+RETCODE SQL_API SQLMoreResults(HSTMT statement_handle) {
     LOG(__FUNCTION__);
-    // TODO (artpaul) MS Excel call this function.
-    return SQL_NO_DATA;
+
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
+        return (statement.advance_to_next_result_set() ? SQL_SUCCESS : SQL_NO_DATA);
+    });
 }
 
 

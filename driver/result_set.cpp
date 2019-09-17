@@ -2,17 +2,6 @@
 
 #include "statement.h"
 
-namespace {
-
-class EmptyMutator : public IResultMutator {
-public:
-    void UpdateColumnInfo(std::vector<ColumnInfo> *) override {}
-
-    void UpdateRow(const std::vector<ColumnInfo> &, Row *) override {}
-};
-
-} // namespace
-
 uint64_t Field::getUInt() const {
     try {
         return std::stoull(data);
@@ -108,41 +97,41 @@ void assignTypeInfo(const TypeAst & ast, ColumnInfo * info) {
     }
 }
 
-void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_) {
-    statement = statement_;
-    rows_fetched_ptr = statement->get_effective_descriptor(SQL_ATTR_IMP_ROW_DESC).get_attr_as<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
-    row_array_size = statement->get_effective_descriptor(SQL_ATTR_APP_ROW_DESC).get_attr_as<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
-    mutator = (mutator_ ? std::move(mutator_) : IResultMutatorPtr(new EmptyMutator));
-
-    if (in().peek() == EOF)
+ResultSet::ResultSet(std::istream & in_, IResultMutatorPtr && mutator_)
+    : in(in_)
+    , mutator(std::move(mutator_))
+{
+    if (in.peek() == EOF) {
+        finished = true;
         return;
+    }
 
     int32_t num_header_rows = 0;
-    readSize(in(), num_header_rows);
+    readSize(in, num_header_rows);
     if (!num_header_rows)
         return;
 
     for (size_t row_n = 0; row_n < num_header_rows; ++row_n) {
         /// Title: number of columns, their names and types.
         int32_t num_columns = 0;
-        readSize(in(), num_columns);
+        readSize(in, num_columns);
 
         if (num_columns <= 1)
             return;
 
         std::string row_name;
-        readString(in(), row_name);
+        readString(in, row_name);
         --num_columns;
 
         if (row_name == "name") {
             columns_info.resize(num_columns);
             for (size_t i = 0; i < num_columns; ++i) {
-                readString(in(), columns_info[i].name);
+                readString(in, columns_info[i].name);
             }
         } else if (row_name == "type") {
             columns_info.resize(num_columns);
             for (size_t i = 0; i < num_columns; ++i) {
-                readString(in(), columns_info[i].type);
+                readString(in, columns_info[i].type);
                 {
                     TypeAst ast;
                     if (TypeParser(columns_info[i].type).parse(&ast)) {
@@ -162,17 +151,15 @@ void ResultSet::init(Statement * statement_, IResultMutatorPtr mutator_) {
             LOG("Unknown header " << row_name << "; Columns left: " << num_columns);
             for (size_t i = 0; i < num_columns; ++i) {
                 std::string dummy;
-                readString(in(), dummy);
+                readString(in, dummy);
             }
         }
     }
-    mutator->UpdateColumnInfo(&columns_info);
 
-    readNextBlock();
-}
+    if (mutator)
+        mutator->UpdateColumnInfo(&columns_info);
 
-bool ResultSet::empty() const {
-    return columns_info.empty();
+    prepareSomeRows();
 }
 
 size_t ResultSet::getNumColumns() const {
@@ -183,67 +170,63 @@ const ColumnInfo & ResultSet::getColumnInfo(size_t i) const {
     return columns_info.at(i);
 }
 
-size_t ResultSet::getNumRows() const {
-    return rows;
+bool ResultSet::has_current_row() const {
+    return current_row.isValid();
 }
 
-Row ResultSet::fetch() {
-    if (empty())
-        return {};
-
-    if (current_block.data.end() == iterator && !readNextBlock())
-        return {};
-
-    ++rows;
-    if (rows_fetched_ptr)
-        *rows_fetched_ptr = rows;
-
-    const Row & row = *iterator;
-    ++iterator;
-    return row;
+const Row & ResultSet::get_current_row() const {
+    return current_row;
 }
 
-std::istream & ResultSet::in() {
-    return *statement->in;
+std::size_t ResultSet::get_current_row_num() const {
+    return current_row_num;
 }
 
-bool ResultSet::readNextBlockCache() {
-    size_t max_block_size = 1000; // How many rows read to calculate max columns sizes
-    size_t readed = 0;
-    for (size_t i = 0; i < max_block_size && in().peek() != EOF; ++i) {
-        size_t num_columns = getNumColumns();
+bool ResultSet::advance_to_next_row() {
+    if (endOfSet()) {
+        current_row = Row{};
+    }
+    else {
+        current_row = std::move(ready_raw_rows.front());
+        ready_raw_rows.pop_front();
+        ++current_row_num;
+
+        if (mutator)
+            mutator->UpdateRow(columns_info, &current_row);
+    }
+
+    return has_current_row();
+}
+
+IResultMutatorPtr ResultSet::release_mutator() {
+    return std::move(mutator);
+}
+
+bool ResultSet::endOfSet() {
+    if (ready_raw_rows.empty())
+        prepareSomeRows();
+
+    return ready_raw_rows.empty();
+}
+
+size_t ResultSet::prepareSomeRows(size_t max_ready_rows) {
+    while (!finished && ready_raw_rows.size() < max_ready_rows) {
+        if (in.peek() == EOF /* || TODO: reached the end of the current rowset */) {
+            finished = true;
+            break;
+        }
+
+        const auto num_columns = getNumColumns();
         Row row(num_columns);
 
         for (size_t j = 0; j < num_columns; ++j) {
-            readString(in(), row.data[j].data, &row.data[j].is_null);
+            readString(in, row.data[j].data, &row.data[j].is_null);
             columns_info[j].display_size
                 = std::max<decltype(columns_info[j].display_size)>(row.data[j].data.size(), columns_info[j].display_size);
-
-            //LOG("read Row/Col " << i <<":"<< j << " name=" << row.data[j].data << " display_size=" << columns_info[j].display_size);
         }
 
-        current_block_buffer.emplace_back(std::move(row));
-        ++readed;
+        ready_raw_rows.emplace_back(std::move(row));
     }
 
-    return readed;
-}
-
-bool ResultSet::readNextBlock() {
-    const auto max_block_size = row_array_size;
-
-    current_block.data.clear();
-    current_block.data.reserve(max_block_size);
-
-    for (size_t i = 0; i < max_block_size && (current_block_buffer.size() || readNextBlockCache()); ++i) {
-        auto row = current_block_buffer.front();
-        current_block_buffer.pop_front();
-
-        mutator->UpdateRow(columns_info, &row);
-
-        current_block.data.emplace_back(std::move(row));
-    }
-
-    iterator = current_block.data.begin();
-    return !current_block.data.empty();
+    return ready_raw_rows.size();
 }

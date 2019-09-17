@@ -407,7 +407,7 @@ SQLRETURN GetStmtAttr(
 
             CASE_NUM(SQL_ATTR_QUERY_TIMEOUT, SQLULEN, 0);
             CASE_NUM(SQL_ATTR_RETRIEVE_DATA, SQLULEN, SQL_RD_ON);
-            CASE_NUM(SQL_ATTR_ROW_NUMBER, SQLULEN, statement.result.getNumRows());
+            CASE_NUM(SQL_ATTR_ROW_NUMBER, SQLULEN, statement.get_current_row_num());
             CASE_NUM(SQL_ATTR_USE_BOOKMARKS, SQLULEN, SQL_UB_OFF);
 
             case SQL_ATTR_FETCH_BOOKMARK_PTR:

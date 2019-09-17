@@ -4,7 +4,9 @@
 #include "config.h"
 #include "descriptor.h"
 #include "statement.h"
+#include "win/version.h"
 
+#include <Poco/Base64Encoder.h>
 #include <Poco/Net/HTTPClientSession.h>
 #include <Poco/NumberParser.h> // TODO: switch to std
 #include <Poco/URI.h>
@@ -306,6 +308,25 @@ void Connection::setDefaults() {
         timeout = 30;
     if (connection_timeout == 0)
         connection_timeout = timeout;
+}
+
+std::string Connection::buildCredentialsString() const {
+    std::ostringstream user_password_base64;
+    Poco::Base64Encoder base64_encoder(user_password_base64, Poco::BASE64_URL_ENCODING);
+    base64_encoder << user << ":" << password;
+    base64_encoder.close();
+    return user_password_base64.str();
+}
+
+std::string Connection::buildUserAgentString() const {
+    std::ostringstream user_agent;
+    user_agent << "clickhouse-odbc/" << VERSION_STRING << " (" << CMAKE_SYSTEM << ")";
+#if defined(UNICODE)
+    user_agent << " UNICODE";
+#endif
+    if (!useragent.empty())
+        user_agent << " " << useragent;
+    return user_agent.str();
 }
 
 void Connection::init_as_ad(Descriptor & desc, bool user) {

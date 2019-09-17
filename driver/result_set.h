@@ -40,14 +40,6 @@ public:
     }
 };
 
-
-class Block {
-public:
-    using Data = std::vector<Row>;
-    Data data;
-};
-
-
 struct ColumnInfo {
     std::string name;
     std::string type;
@@ -70,31 +62,30 @@ using IResultMutatorPtr = std::unique_ptr<IResultMutator>;
 
 class ResultSet {
 public:
-    void init(Statement * statement_, IResultMutatorPtr mutator_);
+    explicit ResultSet(std::istream & in_, IResultMutatorPtr && mutator_);
 
-    bool empty() const;
     const ColumnInfo & getColumnInfo(size_t i) const;
     size_t getNumColumns() const;
-    size_t getNumRows() const;
 
-    Row fetch();
+    bool has_current_row() const;
+    const Row & get_current_row() const;
+    std::size_t get_current_row_num() const;
+    bool advance_to_next_row();
 
-private:
-    std::istream & in();
-
-    bool readNextBlock();
-    bool readNextBlockCache();
+    IResultMutatorPtr release_mutator();
 
 private:
-    Statement * statement = nullptr;
-    SQLULEN * rows_fetched_ptr = nullptr;
-    SQLULEN row_array_size = 1;
+    bool endOfSet();
+    size_t prepareSomeRows(size_t max_ready_rows = 100);
+
+private:
+    std::istream & in;
     IResultMutatorPtr mutator;
     std::vector<ColumnInfo> columns_info;
-    std::deque<Row> current_block_buffer;
-    Block current_block;
-    Block::Data::const_iterator iterator;
-    size_t rows = 0;
+    std::deque<Row> ready_raw_rows;
+    Row current_row;
+    std::size_t current_row_num = 0;
+    bool finished = false;
 };
 
 void assignTypeInfo(const TypeAst & ast, ColumnInfo * info);

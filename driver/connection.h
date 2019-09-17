@@ -63,6 +63,12 @@ public:
 
     void init(const std::string & connection_string);
 
+    // Return a Base64 encoded string of "user:password".
+    std::string buildCredentialsString() const;
+
+    // Return a crafted User-Agent string.
+    std::string buildUserAgentString() const;
+
     // Reset the descriptor and initialize it with default attributes.
     void init_as_ad(Descriptor & desc, bool user = false); // as Application Descriptor
     void init_as_id(Descriptor & desc); // as Implementation Descriptor

@@ -185,3 +185,36 @@ bool interval_code_has_second_component(SQLSMALLINT code) noexcept {
 
     return false;
 }
+
+bool is_input_param(SQLSMALLINT param_io_type) {
+    switch (param_io_type) {
+        case SQL_PARAM_INPUT:
+        case SQL_PARAM_INPUT_OUTPUT:
+        case SQL_PARAM_INPUT_OUTPUT_STREAM:
+            return true;
+    }
+
+    return false;
+}
+
+bool is_output_param(SQLSMALLINT param_io_type) {
+    switch (param_io_type) {
+        case SQL_PARAM_OUTPUT:
+        case SQL_PARAM_INPUT_OUTPUT:
+        case SQL_PARAM_OUTPUT_STREAM:
+        case SQL_PARAM_INPUT_OUTPUT_STREAM:
+            return true;
+    }
+
+    return false;
+}
+
+bool is_stream_param(SQLSMALLINT param_io_type) {
+    switch (param_io_type) {
+        case SQL_PARAM_OUTPUT_STREAM:
+        case SQL_PARAM_INPUT_OUTPUT_STREAM:
+            return true;
+    }
+
+    return false;
+}
