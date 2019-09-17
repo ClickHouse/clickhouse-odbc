@@ -56,6 +56,7 @@ add_library(${libname}_static STATIC
     read_helpers.cpp
     result_set.cpp
     statement.cpp
+    type_info.cpp
     type_parser.cpp
 
     attributes.h
@@ -74,6 +75,7 @@ add_library(${libname}_static STATIC
     scope_guard.h
     statement.h
     string_ref.h
+    type_info.h
     type_parser.h
     unicode_t.h
     utils.h
