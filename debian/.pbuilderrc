@@ -92,7 +92,8 @@ BASETGZ=${SET_BASETGZ}
 BASETGZ=${BASETGZ:="/var/cache/pbuilder/$NAME-base.tgz"}
 DISTRIBUTION="$DIST"
 BUILDRESULT=${SET_BUILDRESULT}
-BUILDRESULT=${BUILDRESULT:="/var/cache/pbuilder/$NAME/result/"}
+#BUILDRESULT=${BUILDRESULT:="/var/cache/pbuilder/$NAME/result/"}
+BUILDRESULT=${BUILDRESULT:=".."}
 APTCACHE="/var/cache/pbuilder/$NAME/aptcache/"
 BUILDPLACE="/var/cache/pbuilder/build/"
 ALLOWUNTRUSTED=${SET_ALLOWUNTRUSTED:=${ALLOWUNTRUSTED}}
