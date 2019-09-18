@@ -159,8 +159,10 @@ SQLRETURN BindParameter(
     auto func = [&] (Statement & statement) {
         auto & apd_desc = statement.get_effective_descriptor(SQL_ATTR_APP_PARAM_DESC);
         auto & ipd_desc = statement.get_effective_descriptor(SQL_ATTR_IMP_PARAM_DESC);
+
         const auto apd_record_count = apd_desc.get_record_count();
         const auto ipd_record_count = ipd_desc.get_record_count();
+
         auto & apd_record = apd_desc.get_record(parameter_number, SQL_ATTR_APP_PARAM_DESC);
         auto & ipd_record = ipd_desc.get_record(parameter_number, SQL_ATTR_IMP_PARAM_DESC);
 

@@ -195,7 +195,7 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
 
     const auto param_bindings = getParamsBindingInfo();
 
-    if (parameters.size() < param_bindings.size())
+    if (param_bindings.size() < parameters.size())
         throw SqlException("COUNT field incorrect", "07002");
 
     for (std::size_t i = 0; i < parameters.size(); ++i) {
@@ -448,7 +448,7 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
 
     param_bindings.reserve(apd_record_count);
 
-    for (std::size_t i = 0; i < apd_record_count; ++i) {
+    for (std::size_t i = 1; i <= apd_record_count; ++i) {
         ParamBindingInfo binding_info;
 
         auto & apd_record = apd_desc.get_record(i, SQL_ATTR_APP_PARAM_DESC);

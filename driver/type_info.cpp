@@ -20,7 +20,7 @@ SQLSMALLINT convert_sql_type_to_C_type(SQLSMALLINT sql_type) noexcept {
         case SQL_TINYINT:                  return SQL_C_TINYINT;
         case SQL_SMALLINT:                 return SQL_C_SHORT;
         case SQL_INTEGER:                  return SQL_C_LONG;
-        case SQL_BIGINT:                   return SQL_C_SBIGINT; // TODO: or SQL_C_SBIGINT?
+        case SQL_BIGINT:                   return SQL_C_SBIGINT;
         case SQL_REAL:                     return SQL_C_FLOAT;
 
         case SQL_FLOAT:
