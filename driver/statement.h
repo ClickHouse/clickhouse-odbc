@@ -18,7 +18,8 @@ struct BindingInfo {
     SQLSMALLINT type = SQL_C_DEFAULT;
     PTR value = nullptr;
     SQLLEN value_max_size = 0;
-    SQLLEN * value_size_or_indicator = nullptr;
+    SQLLEN * value_size = nullptr;
+    SQLLEN * indicator = nullptr;
 };
 
 /// Helper structure that represents information about where and
@@ -33,6 +34,7 @@ struct ParamBindingInfo
 /// Helper structure that represents different aspects of parameter info in a prepared query.
 struct ParamInfo {
     std::string name;
+    std::string tmp_placeholder;
 };
 
 class Statement
@@ -99,7 +101,7 @@ private:
 
     void processEscapeSequences();
     void extractParametersinfo();
-    std::string buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings);
+    std::string buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings) const;
     std::vector<ParamBindingInfo> getParamsBindingInfo();
 
     Descriptor & choose(std::shared_ptr<Descriptor> & implicit_desc, std::weak_ptr<Descriptor> & explicit_desc);

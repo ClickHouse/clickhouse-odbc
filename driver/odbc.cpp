@@ -687,7 +687,7 @@ impl_SQLFetch(HSTMT statement_handle) {
                 col_num_binding.second.type,
                 col_num_binding.second.value,
                 col_num_binding.second.value_max_size,
-                col_num_binding.second.value_size_or_indicator);
+                col_num_binding.second.value_size/* or .indicator */);
 
             if (code == SQL_SUCCESS_WITH_INFO)
                 res = code;
@@ -763,7 +763,8 @@ RETCODE SQL_API SQLBindCol(HSTMT statement_handle,
         binding.type = target_type;
         binding.value = out_value;
         binding.value_max_size = out_value_max_size;
-        binding.value_size_or_indicator = out_value_size_or_indicator;
+        binding.value_size = out_value_size_or_indicator;
+        binding.indicator = out_value_size_or_indicator;
 
         statement.bindings[column_number] = binding;
 

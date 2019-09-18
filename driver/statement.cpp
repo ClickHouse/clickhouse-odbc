@@ -8,6 +8,8 @@
 #include <Poco/Net/HTTPClientSession.h>
 #include <Poco/Net/HTTPRequest.h>
 #include <Poco/URI.h>
+#include <Poco/UUID.h>
+#include <Poco/UUIDGenerator.h>
 
 namespace {
 
@@ -26,21 +28,24 @@ namespace {
             if (!binding_info.value)
                 return std::string{};
 
-           const auto ind = reinterpret_cast<intptr_t>(binding_info.value_size_or_indicator);
-            switch (ind) {
-                case 0:
-                case SQL_NTS:
-                    break;
+            const auto * ind_ptr = binding_info.indicator;
 
-                case SQL_NULL_DATA:
-                    return std::string{};
+            if (ind_ptr) {
+                switch (*ind_ptr) {
+                    case 0:
+                    case SQL_NTS:
+                        break;
 
-                case SQL_DEFAULT_PARAM:
-                    return std::to_string(F{});
+                    case SQL_NULL_DATA:
+                        return std::string{};
 
-                default:
-                    if (ind == SQL_DATA_AT_EXEC || ind < 0)
-                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
+                    case SQL_DEFAULT_PARAM:
+                        return std::to_string(F{});
+
+                    default:
+                        if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
+                            throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
+                }
             }
 
             return std::to_string(*(F*)binding_info.value);
@@ -48,56 +53,68 @@ namespace {
 
         template <>
         std::string from<SQLCHAR *>(const BindingInfo& binding_info) {
-            if (!binding_info.value)
-                return std::string{};
-
-            const auto ind = reinterpret_cast<intptr_t>(binding_info.value_size_or_indicator);
             const auto * cstr = reinterpret_cast<const char *>(binding_info.value);
 
-            switch (ind) {
-                case 0:
-                case SQL_NTS:
-                    return std::string{cstr};
+            if (!cstr)
+                return std::string{};
 
-                case SQL_NULL_DATA:
-                case SQL_DEFAULT_PARAM:
-                    return std::string{};
+            const auto * sz_ptr = binding_info.value_size;
+            const auto * ind_ptr = binding_info.indicator;
 
-                default:
-                    if (ind == SQL_DATA_AT_EXEC || ind < 0)
-                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
+            if (ind_ptr) {
+                switch (*ind_ptr) {
+                    case 0:
+                    case SQL_NTS:
+                        return std::string{cstr};
+
+                    case SQL_NULL_DATA:
+                    case SQL_DEFAULT_PARAM:
+                        return std::string{};
+
+                    default:
+                        if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
+                            throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
+                }
             }
 
-            const auto size = *reinterpret_cast<SQLLEN *>(binding_info.value_size_or_indicator);
-            return std::string(cstr, size);
+            if (!sz_ptr || *sz_ptr < 0)
+                std::string{cstr};
+
+            return std::string{cstr, static_cast<std::size_t>(*sz_ptr)};
         }
 
         template <>
         std::string from<SQLWCHAR *>(const BindingInfo& binding_info) {
-            if (!binding_info.value)
+            const auto * wcstr = reinterpret_cast<const wchar_t *>(binding_info.value);
+
+            if (!wcstr)
                 return std::string{};
+
+            const auto * sz_ptr = binding_info.value_size;
+            const auto * ind_ptr = binding_info.indicator;
 
             std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> convert;
 
-            const auto ind = reinterpret_cast<intptr_t>(binding_info.value_size_or_indicator);
-            const auto * wcstr = reinterpret_cast<const wchar_t *>(binding_info.value);
+            if (ind_ptr) {
+                switch (*ind_ptr) {
+                    case 0:
+                    case SQL_NTS:
+                        return convert.to_bytes(wcstr);
 
-            switch (ind) {
-                case 0:
-                case SQL_NTS:
-                    return convert.to_bytes(wcstr);
+                    case SQL_NULL_DATA:
+                    case SQL_DEFAULT_PARAM:
+                        return std::string{};
 
-                case SQL_NULL_DATA:
-                case SQL_DEFAULT_PARAM:
-                    return std::string{};
-
-                default:
-                    if (ind == SQL_DATA_AT_EXEC || ind < 0)
-                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
+                    default:
+                        if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
+                            throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
+                }
             }
 
-            const auto size = *reinterpret_cast<SQLLEN *>(binding_info.value_size_or_indicator);
-            const auto* wcstr_last = wcstr + size / sizeof(decltype(*wcstr));
+            if (!sz_ptr || *sz_ptr < 0)
+                convert.to_bytes(wcstr);
+
+            const auto* wcstr_last = wcstr + static_cast<std::size_t>(*sz_ptr) / sizeof(decltype(*wcstr));
             return convert.to_bytes(wcstr, wcstr_last);
         }
     };
@@ -183,7 +200,7 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
 
     for (std::size_t i = 0; i < parameters.size(); ++i) {
         const auto & param_info = parameters[i];
-        const auto binding_info = param_bindings[i];
+        const auto & binding_info = param_bindings[i];
 
         if (!is_input_param(binding_info.io_type) || is_stream_param(binding_info.io_type))
             throw std::runtime_error("Unable to extract data from bound param buffer: param IO type is not supported");
@@ -246,10 +263,89 @@ void Statement::processEscapeSequences() {
 }
 
 void Statement::extractParametersinfo() {
+    // TODO: implement this all in an upgraded Lexer.
+
+    parameters.clear();
+    std::string placeholder;
+
+    // Craft a temporary unique placeholder for the parameters (same for all).
+    {
+        Poco::UUIDGenerator uuid_gen;
+        do {
+            const auto uuid = uuid_gen.createOne();
+            placeholder = '@' + uuid.toString();
+        } while (query.find(placeholder) != std::string::npos);
+    }
+
+    // Replace all unquoted ? characters with the placeholder and populate 'parameters' array.
+
+    char quoted_by = '\0';
+    for (std::size_t i = 0; i < query.size(); ++i) {
+        const char curr = query[i];
+        const char next = (i < query.size() ? query[i + 1] : '\0');
+
+        switch (curr) {
+            case '\\': {
+                ++i; // Skip the next char unconditionally.
+                break;
+            }
+
+            case '"':
+            case '\'': {
+                if (quoted_by == curr) {
+                    if (next == curr) {
+                        ++i; // Skip the next char unconditionally: '' or "" SQL escaping.
+                        break;
+                    }
+                    else {
+                        quoted_by = '\0';
+                    }
+                }
+                else {
+                    quoted_by = curr;
+                }
+                break;
+            }
+
+            case '?': {
+                if (quoted_by == '\0') {
+                    query.replace(i, 1, placeholder);
+                    i += placeholder.size();
+                    i -= 1;
+
+                    ParamInfo param_info;
+                    param_info.name = "odbc_" + std::to_string(parameters.size() + 1);
+                    param_info.tmp_placeholder = placeholder;
+                    parameters.emplace_back(param_info);
+                }
+                break;
+            }
+        }
+    }
 }
 
-std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings) {
-    return query;
+std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings) const {
+    auto prepared_query = query;
+
+    if (parameters.size() < param_bindings.size())
+        throw SqlException("COUNT field incorrect", "07002");
+
+    for (std::size_t i = 0; i < parameters.size(); ++i) {
+        const auto & param_info = parameters[i];
+        const auto & binding_info = param_bindings[i];
+
+        const auto pos = prepared_query.find(param_info.tmp_placeholder);
+
+        if (pos == std::string::npos)
+            throw SqlException("COUNT field incorrect", "07002");
+
+        const std::string param_placeholder = "{" + param_info.name + ":" +
+            convert_C_or_sql_type_to_data_source_type(binding_info.sql_type, binding_info.value_max_size) + "}";
+
+        prepared_query.replace(pos, param_info.tmp_placeholder.size(), param_placeholder);
+    }
+
+    return prepared_query;
 }
 
 void Statement::executeQuery(const std::string & q, IResultMutatorPtr && mutator) {
@@ -348,8 +444,9 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
 
     const auto single_set_struct_size = apd_desc.get_attr_as<SQLULEN>(SQL_DESC_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN);
     const auto * bind_offset_ptr = apd_desc.get_attr_as<SQLULEN *>(SQL_DESC_BIND_OFFSET_PTR, 0);
-
     const auto bind_offset = (bind_offset_ptr ? *bind_offset_ptr : 0);
+
+    param_bindings.reserve(apd_record_count);
 
     for (std::size_t i = 0; i < apd_record_count; ++i) {
         ParamBindingInfo binding_info;
@@ -358,13 +455,16 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
         auto & ipd_record = ipd_desc.get_record(i, SQL_ATTR_IMP_PARAM_DESC);
 
         const auto * data_ptr = apd_record.get_attr_as<SQLPOINTER>(SQL_DESC_DATA_PTR, 0);
+        const auto * sz_ptr = apd_record.get_attr_as<SQLLEN *>(SQL_DESC_OCTET_LENGTH_PTR, 0);
         const auto * ind_ptr = apd_record.get_attr_as<SQLLEN *>(SQL_DESC_INDICATOR_PTR, 0);
 
         binding_info.io_type = ipd_record.get_attr_as<SQLSMALLINT>(SQL_DESC_PARAMETER_TYPE, SQL_PARAM_INPUT);
         binding_info.type = apd_record.get_attr_as<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
         binding_info.sql_type = ipd_record.get_attr_as<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_UNKNOWN_TYPE);
+        binding_info.value_max_size = ipd_record.get_attr_as<SQLULEN>(SQL_DESC_LENGTH, 0); // TODO: or SQL_DESC_OCTET_LENGTH ?
         binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + i * single_set_struct_size + bind_offset) : 0);
-        binding_info.value_size_or_indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + i * sizeof(SQLLEN) + bind_offset) : 0);
+        binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + i * sizeof(SQLLEN) + bind_offset) : 0);
+        binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + i * sizeof(SQLLEN) + bind_offset) : 0);
 
         param_bindings.emplace_back(binding_info);
     }
