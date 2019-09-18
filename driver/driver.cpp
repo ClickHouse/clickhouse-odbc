@@ -20,6 +20,14 @@ Driver & Driver::getInstance() noexcept {
     return driver;
 }
 
+const Driver & Driver::getDriver() const noexcept {
+    return *this;
+}
+
+Driver & Driver::getDriver() noexcept {
+    return *this;
+}
+
 template <>
 Environment & Driver::allocateChild<Environment>() {
     auto child_sptr = std::make_shared<Environment>(*this);

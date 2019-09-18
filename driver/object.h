@@ -20,13 +20,15 @@ public:
 
     explicit Object() noexcept;
     explicit Object(SQLHANDLE h) noexcept;
-    virtual ~Object();
+    virtual ~Object() = default;
 
     SQLHANDLE getHandle() const noexcept;
 
 private:
     SQLHANDLE const handle;
 };
+
+class Driver;
 
 template <typename Parent, typename Self>
 class Child
@@ -37,12 +39,22 @@ public:
     explicit Child(Parent & p) noexcept
         : parent(p)
     {
+        getDriver().registerDescendant(*this);
     }
 
     explicit Child(Parent & p, SQLHANDLE h) noexcept
         : Object(h)
         , parent(p)
     {
+        getDriver().registerDescendant(*this);
+    }
+
+    virtual ~Child() {
+        getDriver().unregisterDescendant(*this);
+    }
+
+    Driver & getDriver() const noexcept {
+        return parent.getDriver();
     }
 
     Parent & getParent() const noexcept {

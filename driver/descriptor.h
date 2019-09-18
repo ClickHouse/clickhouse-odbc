@@ -11,13 +11,14 @@ class DescriptorRecord
     : public AttributeContainer
 {
 public:
-    virtual void onAttrChange(int attr) final override;
-
     bool hasColumnSize() const;
     SQLULEN getColumnSize() const;
 
     bool hasDecimalDigits() const;
     SQLSMALLINT getDecimalDigits() const;
+
+protected:
+    virtual void onAttrChange(int attr) final override;
 
 private:
     void consistencyCheck();

@@ -72,6 +72,9 @@ public:
 
     static Driver & getInstance() noexcept;
 
+    const Driver & getDriver() const noexcept;
+    Driver & getDriver() noexcept;
+
     // Leave unimplemented for general case.
     template <typename T> T & allocateChild();
     template <typename T> void deallocateChild(SQLHANDLE) noexcept;
@@ -79,14 +82,15 @@ public:
     void registerDescendant(Object & descendant);
     void unregisterDescendant(Object & descendant) noexcept;
 
-    virtual void onAttrChange(int attr) final override;
-
     bool isLoggingEnabled() const;
     std::ostream & getLogStream();
     void writeLogMessagePrefix(std::ostream & stream);
 
     void writeLogSessionStart(std::ostream & stream);
     void writeLogSessionEnd(std::ostream & stream);
+
+protected:
+    virtual void onAttrChange(int attr) final override;
 
 private:
     // Leave unimplemented for general case.

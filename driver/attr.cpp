@@ -105,10 +105,10 @@ SQLRETURN SetConnectAttr(
 
             case SQL_ATTR_TRACE: {
                 if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_ON)) {
-                    Driver::getInstance().setAttr(SQL_ATTR_TRACE, true);
+                    connection.getDriver().setAttr(SQL_ATTR_TRACE, true);
                 }
                 else if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_OFF)) {
-                    Driver::getInstance().setAttr(SQL_ATTR_TRACE, false);
+                    connection.getDriver().setAttr(SQL_ATTR_TRACE, false);
                 }
                 else {
                     LOG("SetConnectAttr: SQL_ATTR_TRACE: Unknown value " << value);
@@ -119,7 +119,7 @@ SQLRETURN SetConnectAttr(
 
             case SQL_ATTR_TRACEFILE: {
                 const std::string tracefile = stringFromSQLBytes((SQLTCHAR *)value, value_length);
-                Driver::getInstance().setAttr(SQL_ATTR_TRACEFILE, tracefile);
+                connection.getDriver().setAttr(SQL_ATTR_TRACEFILE, tracefile);
                 return SQL_SUCCESS;
             }
 
@@ -179,7 +179,7 @@ SQLRETURN GetConnectAttr(
                 SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout);
             CASE_NUM(SQL_ATTR_TXN_ISOLATION, SQLINTEGER, SQL_TXN_SERIALIZABLE); // mssql linked server
             CASE_NUM(SQL_ATTR_AUTOCOMMIT, SQLINTEGER, SQL_AUTOCOMMIT_ON);
-            CASE_NUM(SQL_ATTR_TRACE, SQLINTEGER, (Driver::getInstance().isLoggingEnabled() ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
+            CASE_NUM(SQL_ATTR_TRACE, SQLINTEGER, (connection.getDriver().isLoggingEnabled() ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
 
             case SQL_ATTR_CURRENT_CATALOG:
                 fillOutputPlatformString(connection.getDatabase(), out_value, out_value_max_length, out_value_length);
@@ -189,7 +189,7 @@ SQLRETURN GetConnectAttr(
                 return SQL_ERROR;
 
             case SQL_ATTR_TRACEFILE: {
-                const auto tracefile = Driver::getInstance().getAttrAs<std::string>(SQL_ATTR_TRACEFILE);
+                const auto tracefile = connection.getDriver().getAttrAs<std::string>(SQL_ATTR_TRACEFILE);
                 fillOutputPlatformString(tracefile, out_value, out_value_max_length, out_value_length);
                 return SQL_SUCCESS;
             }
