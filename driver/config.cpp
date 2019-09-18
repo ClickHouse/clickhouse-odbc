@@ -19,7 +19,7 @@ void getDSNinfo(ConnInfo * ci, bool overwrite) {
         static_cast<LPCTSTR>(static_cast<const void *>(ODBC_INI))); \
         }
 
-        // LOG("config: " << INI_NAME << " : " << STRING(NAME)); hex_print(log_stream, std::string(static_cast<const char*>(static_cast<const void *>(ci->NAME)), bytes));
+        // LOG("config: " << INI_NAME << " : " << STRING(NAME)); hexPrint(log_stream, std::string(static_cast<const char*>(static_cast<const void *>(ci->NAME)), bytes));
 
     GET_CONFIG(desc, INI_KDESC, "");
     GET_CONFIG(url, INI_URL, "");

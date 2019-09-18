@@ -66,12 +66,12 @@ public:
     const ColumnInfo & getColumnInfo(size_t i) const;
     size_t getNumColumns() const;
 
-    bool has_current_row() const;
-    const Row & get_current_row() const;
-    std::size_t get_current_row_num() const;
-    bool advance_to_next_row();
+    bool hasCurrentRow() const;
+    const Row & getCurrentRow() const;
+    std::size_t getCurrentRowNum() const;
+    bool advanceToNextRow();
 
-    IResultMutatorPtr release_mutator();
+    IResultMutatorPtr releaseMutator();
 
 private:
     bool endOfSet();

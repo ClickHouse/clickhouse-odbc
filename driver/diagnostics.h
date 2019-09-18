@@ -13,7 +13,7 @@ class SqlException
 {
 public:
     explicit SqlException(const std::string & message_, const std::string & sql_state_ = "HY000");
-    const std::string& get_sql_state() const noexcept;
+    const std::string& getSQLState() const noexcept;
 
 private:
     const std::string sql_state;
@@ -27,21 +27,21 @@ public:
 
 class DiagnosticsContainer {
 public:
-    void fill_diag(SQLRETURN rc, const std::string& sql_status, const std::string& message, SQLINTEGER native_error_code);
-    void fill_diag(const std::string& sql_status, const std::string& message, SQLINTEGER native_error_code);
-    void fill_diag(SQLRETURN rc, const std::string& sql_status, const std::string& message);
-    void fill_diag(const std::string& sql_status, const std::string& message);
+    void fillDiag(SQLRETURN rc, const std::string& sql_status, const std::string& message, SQLINTEGER native_error_code);
+    void fillDiag(const std::string& sql_status, const std::string& message, SQLINTEGER native_error_code);
+    void fillDiag(SQLRETURN rc, const std::string& sql_status, const std::string& message);
+    void fillDiag(const std::string& sql_status, const std::string& message);
 
-    DiagnosticsRecord & get_diag_header();
+    DiagnosticsRecord & getDiagHeader();
 
-    void set_return_code(SQLRETURN rc);
-    SQLRETURN get_return_code();
+    void setReturnCode(SQLRETURN rc);
+    SQLRETURN getReturnCode();
 
-    std::size_t get_diag_status_count();
-    DiagnosticsRecord & get_diag_status(std::size_t num);
-    void insert_diag_status(DiagnosticsRecord && rec);
+    std::size_t getDiagStatusCount();
+    DiagnosticsRecord & getDiagStatus(std::size_t num);
+    void insertDiagStatus(DiagnosticsRecord && rec);
 
-    void reset_diag();
+    void resetDiag();
 
 private:
     std::vector<DiagnosticsRecord> records;

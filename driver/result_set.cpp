@@ -170,19 +170,19 @@ const ColumnInfo & ResultSet::getColumnInfo(size_t i) const {
     return columns_info.at(i);
 }
 
-bool ResultSet::has_current_row() const {
+bool ResultSet::hasCurrentRow() const {
     return current_row.isValid();
 }
 
-const Row & ResultSet::get_current_row() const {
+const Row & ResultSet::getCurrentRow() const {
     return current_row;
 }
 
-std::size_t ResultSet::get_current_row_num() const {
+std::size_t ResultSet::getCurrentRowNum() const {
     return current_row_num;
 }
 
-bool ResultSet::advance_to_next_row() {
+bool ResultSet::advanceToNextRow() {
     if (endOfSet()) {
         current_row = Row{};
     }
@@ -195,10 +195,10 @@ bool ResultSet::advance_to_next_row() {
             mutator->UpdateRow(columns_info, &current_row);
     }
 
-    return has_current_row();
+    return hasCurrentRow();
 }
 
-IResultMutatorPtr ResultSet::release_mutator() {
+IResultMutatorPtr ResultSet::releaseMutator() {
     return std::move(mutator);
 }
 

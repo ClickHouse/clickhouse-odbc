@@ -16,7 +16,7 @@ SQLRETURN allocEnv(SQLHENV * out_environment_handle) noexcept {
         if (nullptr == out_environment_handle)
             return SQL_INVALID_HANDLE;
 
-        *out_environment_handle = Driver::get_instance().allocate_child<Environment>().get_handle();
+        *out_environment_handle = Driver::getInstance().allocateChild<Environment>().getHandle();
         return SQL_SUCCESS;
     });
 }
@@ -26,7 +26,7 @@ SQLRETURN allocConnect(SQLHENV environment_handle, SQLHDBC * out_connection_hand
         if (nullptr == out_connection_handle)
             return SQL_INVALID_HANDLE;
 
-        *out_connection_handle = environment.allocate_child<Connection>().get_handle();
+        *out_connection_handle = environment.allocateChild<Connection>().getHandle();
         return SQL_SUCCESS;
     });
 }
@@ -36,7 +36,7 @@ SQLRETURN allocStmt(SQLHDBC connection_handle, SQLHSTMT * out_statement_handle) 
         if (nullptr == out_statement_handle)
             return SQL_INVALID_HANDLE;
 
-        *out_statement_handle = connection.allocate_child<Statement>().get_handle();
+        *out_statement_handle = connection.allocateChild<Statement>().getHandle();
         return SQL_SUCCESS;
     });
 }
@@ -46,9 +46,9 @@ SQLRETURN allocDesc(SQLHDBC connection_handle, SQLHDESC * out_descriptor_handle)
         if (nullptr == out_descriptor_handle)
             return SQL_INVALID_HANDLE;
 
-        auto & descriptor = connection.allocate_child<Descriptor>();
-        connection.init_as_ad(descriptor, true);
-        *out_descriptor_handle = descriptor.get_handle();
+        auto & descriptor = connection.allocateChild<Descriptor>();
+        connection.initAsAD(descriptor, true);
+        *out_descriptor_handle = descriptor.getHandle();
         return SQL_SUCCESS;
     });
 }
@@ -57,12 +57,12 @@ SQLRETURN freeHandle(SQLHANDLE handle) noexcept {
     return CALL_WITH_HANDLE_SKIP_DIAG(handle, [&] (auto & object) {
         if ( // Refuse to manually deallocate an automatically allocated descriptor.
             std::is_convertible<std::decay<decltype(object)> *, Descriptor *>::value &&
-            object.template get_attr_as<SQLSMALLINT>(SQL_DESC_ALLOC_TYPE) != SQL_DESC_ALLOC_USER
+            object.template getAttrAs<SQLSMALLINT>(SQL_DESC_ALLOC_TYPE) != SQL_DESC_ALLOC_USER
         ) {
             return SQL_ERROR;
         }
 
-        object.deallocate_self();
+        object.deallocateSelf();
         return SQL_SUCCESS;
     });
 }
@@ -136,18 +136,18 @@ SQLRETURN SQL_API SQLFreeStmt(HSTMT statement_handle, SQLUSMALLINT option) {
     return CALL_WITH_HANDLE(statement_handle, [&] (Statement & statement) -> SQLRETURN {
         switch (option) {
             case SQL_CLOSE: /// Close the cursor, ignore the remaining results. If there is no cursor, then noop.
-                statement.close_cursor();
+                statement.closeCursor();
                 return SQL_SUCCESS;
 
             case SQL_DROP:
                 return freeHandle(statement_handle);
 
             case SQL_UNBIND:
-                statement.reset_col_bindings();
+                statement.resetColBindings();
                 return SQL_SUCCESS;
 
             case SQL_RESET_PARAMS:
-                statement.reset_param_bindings();
+                statement.resetParamBindings();
                 return SQL_SUCCESS;
         }
 

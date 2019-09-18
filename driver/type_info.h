@@ -4,22 +4,22 @@
 
 #include <string>
 
-SQLSMALLINT convert_sql_type_to_C_type(SQLSMALLINT sql_type) noexcept;
+SQLSMALLINT convertSQLTypeToCType(SQLSMALLINT sql_type) noexcept;
 
-bool is_verbose_type(SQLSMALLINT type) noexcept;
-bool is_concise_datetime_interval_type(SQLSMALLINT sql_type) noexcept;
-bool is_concise_non_datetime_interval_type(SQLSMALLINT sql_type) noexcept;
+bool isVerboseType(SQLSMALLINT type) noexcept;
+bool isConciseDateTimeIntervalType(SQLSMALLINT sql_type) noexcept;
+bool isConciseNonDateTimeIntervalType(SQLSMALLINT sql_type) noexcept;
 
-SQLSMALLINT try_convert_sql_type_to_verbose_type(SQLSMALLINT type) noexcept;
-SQLSMALLINT convert_sql_type_to_datetime_interval_code(SQLSMALLINT type) noexcept;
-SQLSMALLINT convert_datetime_interval_code_to_sql_type(SQLSMALLINT code, SQLSMALLINT verbose_type) noexcept;
+SQLSMALLINT tryConvertSQLTypeToVerboseType(SQLSMALLINT type) noexcept;
+SQLSMALLINT convertSQLTypeToDateTimeIntervalCode(SQLSMALLINT type) noexcept;
+SQLSMALLINT convertDateTimeIntervalCodeToSQLType(SQLSMALLINT code, SQLSMALLINT verbose_type) noexcept;
 
-bool is_interval_code(SQLSMALLINT code) noexcept;
-bool interval_code_has_second_component(SQLSMALLINT code) noexcept;
+bool isIntervalCode(SQLSMALLINT code) noexcept;
+bool intervalCodeHasSecondComponent(SQLSMALLINT code) noexcept;
 
-bool is_input_param(SQLSMALLINT param_io_type) noexcept;
-bool is_output_param(SQLSMALLINT param_io_type) noexcept;
-bool is_stream_param(SQLSMALLINT param_io_type) noexcept;
+bool isInputParam(SQLSMALLINT param_io_type) noexcept;
+bool isOutputParam(SQLSMALLINT param_io_type) noexcept;
+bool isStreamParam(SQLSMALLINT param_io_type) noexcept;
 
-std::string convert_C_type_to_data_source_type(SQLSMALLINT C_type, std::size_t length);
-std::string convert_C_or_sql_type_to_data_source_type(SQLSMALLINT sql_type, std::size_t length);
+std::string convertCTypeToDataSourceType(SQLSMALLINT C_type, std::size_t length);
+std::string convertCOrSQLTypeToDataSourceType(SQLSMALLINT sql_type, std::size_t length);

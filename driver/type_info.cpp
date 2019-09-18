@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-SQLSMALLINT convert_sql_type_to_C_type(SQLSMALLINT sql_type) noexcept {
+SQLSMALLINT convertSQLTypeToCType(SQLSMALLINT sql_type) noexcept {
     switch (sql_type) {
         case SQL_CHAR:
         case SQL_VARCHAR:
@@ -56,7 +56,7 @@ SQLSMALLINT convert_sql_type_to_C_type(SQLSMALLINT sql_type) noexcept {
     return SQL_C_DEFAULT;
 }
 
-bool is_verbose_type(SQLSMALLINT type) noexcept {
+bool isVerboseType(SQLSMALLINT type) noexcept {
     switch (type) {
         case SQL_DATETIME:
         case SQL_INTERVAL:
@@ -66,15 +66,15 @@ bool is_verbose_type(SQLSMALLINT type) noexcept {
     return false;
 }
 
-bool is_concise_datetime_interval_type(SQLSMALLINT sql_type) noexcept {
-    return (!is_verbose_type(sql_type) && is_verbose_type(try_convert_sql_type_to_verbose_type(sql_type)));
+bool isConciseDateTimeIntervalType(SQLSMALLINT sql_type) noexcept {
+    return (!isVerboseType(sql_type) && isVerboseType(tryConvertSQLTypeToVerboseType(sql_type)));
 }
 
-bool is_concise_non_datetime_interval_type(SQLSMALLINT sql_type) noexcept {
-    return !is_verbose_type(try_convert_sql_type_to_verbose_type(sql_type));
+bool isConciseNonDateTimeIntervalType(SQLSMALLINT sql_type) noexcept {
+    return !isVerboseType(tryConvertSQLTypeToVerboseType(sql_type));
 }
 
-SQLSMALLINT try_convert_sql_type_to_verbose_type(SQLSMALLINT type) noexcept {
+SQLSMALLINT tryConvertSQLTypeToVerboseType(SQLSMALLINT type) noexcept {
     switch (type) {
         case SQL_TYPE_DATE:
         case SQL_TYPE_TIME:
@@ -100,7 +100,7 @@ SQLSMALLINT try_convert_sql_type_to_verbose_type(SQLSMALLINT type) noexcept {
     return type;
 }
 
-SQLSMALLINT convert_sql_type_to_datetime_interval_code(SQLSMALLINT type) noexcept {
+SQLSMALLINT convertSQLTypeToDateTimeIntervalCode(SQLSMALLINT type) noexcept {
     switch (type) {
         case SQL_TYPE_DATE:                 return SQL_CODE_DATE;
         case SQL_TYPE_TIME:                 return SQL_CODE_TIME;
@@ -123,7 +123,7 @@ SQLSMALLINT convert_sql_type_to_datetime_interval_code(SQLSMALLINT type) noexcep
     return 0;
 }
 
-SQLSMALLINT convert_datetime_interval_code_to_sql_type(SQLSMALLINT code, SQLSMALLINT verbose_type) noexcept {
+SQLSMALLINT convertDateTimeIntervalCodeToSQLType(SQLSMALLINT code, SQLSMALLINT verbose_type) noexcept {
     switch (verbose_type) {
         case SQL_DATETIME:
             switch (code) {
@@ -155,7 +155,7 @@ SQLSMALLINT convert_datetime_interval_code_to_sql_type(SQLSMALLINT code, SQLSMAL
     return SQL_UNKNOWN_TYPE;
 }
 
-bool is_interval_code(SQLSMALLINT code) noexcept {
+bool isIntervalCode(SQLSMALLINT code) noexcept {
     switch (code) {
         case SQL_CODE_YEAR:
         case SQL_CODE_MONTH:
@@ -176,7 +176,7 @@ bool is_interval_code(SQLSMALLINT code) noexcept {
     return false;
 }
 
-bool interval_code_has_second_component(SQLSMALLINT code) noexcept {
+bool intervalCodeHasSecondComponent(SQLSMALLINT code) noexcept {
     switch (code) {
         case SQL_CODE_SECOND:
         case SQL_CODE_DAY_TO_SECOND:
@@ -188,7 +188,7 @@ bool interval_code_has_second_component(SQLSMALLINT code) noexcept {
     return false;
 }
 
-bool is_input_param(SQLSMALLINT param_io_type) noexcept {
+bool isInputParam(SQLSMALLINT param_io_type) noexcept {
     switch (param_io_type) {
         case SQL_PARAM_INPUT:
         case SQL_PARAM_INPUT_OUTPUT:
@@ -199,7 +199,7 @@ bool is_input_param(SQLSMALLINT param_io_type) noexcept {
     return false;
 }
 
-bool is_output_param(SQLSMALLINT param_io_type) noexcept {
+bool isOutputParam(SQLSMALLINT param_io_type) noexcept {
     switch (param_io_type) {
         case SQL_PARAM_OUTPUT:
         case SQL_PARAM_INPUT_OUTPUT:
@@ -211,7 +211,7 @@ bool is_output_param(SQLSMALLINT param_io_type) noexcept {
     return false;
 }
 
-bool is_stream_param(SQLSMALLINT param_io_type) noexcept {
+bool isStreamParam(SQLSMALLINT param_io_type) noexcept {
     switch (param_io_type) {
         case SQL_PARAM_OUTPUT_STREAM:
         case SQL_PARAM_INPUT_OUTPUT_STREAM:
@@ -221,7 +221,7 @@ bool is_stream_param(SQLSMALLINT param_io_type) noexcept {
     return false;
 }
 
-std::string convert_C_type_to_data_source_type(SQLSMALLINT C_type, std::size_t length) {
+std::string convertCTypeToDataSourceType(SQLSMALLINT C_type, std::size_t length) {
     switch (C_type) {
         case SQL_C_WCHAR:
         case SQL_C_CHAR:
@@ -306,9 +306,9 @@ std::string convert_C_type_to_data_source_type(SQLSMALLINT C_type, std::size_t l
     throw std::runtime_error("Unable to deduce data source type from C type");
 }
 
-std::string convert_C_or_sql_type_to_data_source_type(SQLSMALLINT sql_type, std::size_t length) {
+std::string convertCOrSQLTypeToDataSourceType(SQLSMALLINT sql_type, std::size_t length) {
     try {
-        return convert_C_type_to_data_source_type(sql_type, length);
+        return convertCTypeToDataSourceType(sql_type, length);
     }
     catch (...) {
     }

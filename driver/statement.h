@@ -60,41 +60,41 @@ public:
     void executeQuery(const std::string & q, IResultMutatorPtr && mutator = IResultMutatorPtr {});
 
     /// Indicates whether there is an result set available for reading.
-    bool has_result_set() const;
+    bool hasResultSet() const;
 
     /// Make the next result set current, if any.
-    bool advance_to_next_result_set();
+    bool advanceToNextResultSet();
 
     const ColumnInfo & getColumnInfo(size_t i) const;
 
     size_t getNumColumns() const;
 
-    bool has_current_row() const;
+    bool hasCurrentRow() const;
 
-    const Row & get_current_row() const;
+    const Row & getCurrentRow() const;
 
     /// Checked way of retrieving the number of the current row in the current result set.
-    std::size_t get_current_row_num() const;
+    std::size_t getCurrentRowNum() const;
 
-    bool advance_to_next_row();
+    bool advanceToNextRow();
 
     /// Reset statement to initial state.
-    void close_cursor();
+    void closeCursor();
 
     /// Reset/release row/column buffer bindings.
-    void reset_col_bindings();
+    void resetColBindings();
 
     /// Reset/release parameter buffer bindings.
-    void reset_param_bindings();
+    void resetParamBindings();
 
     /// Access the effective descriptor by its role (type).
-    Descriptor & get_effective_descriptor(SQLINTEGER type);
+    Descriptor & getEffectiveDescriptor(SQLINTEGER type);
 
     /// Set an explicit descriptor for a role (type).
-    void set_explicit_descriptor(SQLINTEGER type, std::shared_ptr<Descriptor> desc);
+    void setExplicitDescriptor(SQLINTEGER type, std::shared_ptr<Descriptor> desc);
 
     /// Make an implicit descriptor active again.
-    void set_implicit_descriptor(SQLINTEGER type);
+    void setImplicitDescriptor(SQLINTEGER type);
 
 private:
     void requestNextPackOfResultSets(IResultMutatorPtr && mutator);
@@ -106,11 +106,11 @@ private:
 
     Descriptor & choose(std::shared_ptr<Descriptor> & implicit_desc, std::weak_ptr<Descriptor> & explicit_desc);
 
-    void allocate_implicit_descriptors();
-    void deallocate_implicit_descriptors();
+    void allocateImplicitDescriptors();
+    void deallocateImplicitDescriptors();
 
-    std::shared_ptr<Descriptor> allocate_descriptor();
-    void dellocate_descriptor(std::shared_ptr<Descriptor> & desc);
+    std::shared_ptr<Descriptor> allocateDescriptor();
+    void deallocateDescriptor(std::shared_ptr<Descriptor> & desc);
 
 private:
     std::shared_ptr<Descriptor> implicit_ard;

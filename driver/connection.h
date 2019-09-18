@@ -70,22 +70,22 @@ public:
     std::string buildUserAgentString() const;
 
     // Reset the descriptor and initialize it with default attributes.
-    void init_as_ad(Descriptor & desc, bool user = false); // as Application Descriptor
-    void init_as_id(Descriptor & desc); // as Implementation Descriptor
+    void initAsAD(Descriptor & desc, bool user = false); // as Application Descriptor
+    void initAsID(Descriptor & desc); // as Implementation Descriptor
 
     // Reset the descriptor and initialize it with default attributes.
-    void init_as_desc(Descriptor & desc, SQLINTEGER role, bool user = false); // ARD, APD, IRD, IPD
+    void initAsDesc(Descriptor & desc, SQLINTEGER role, bool user = false); // ARD, APD, IRD, IPD
 
     // Reset the descriptor record and initialize it with default attributes.
-    void init_as_ad_rec(DescriptorRecord & rec); // as a record of Application Descriptor
-    void init_as_id_rec(DescriptorRecord & rec); // as a record of Implementation Descriptor
+    void initAsADRec(DescriptorRecord & rec); // as a record of Application Descriptor
+    void initAsIDRec(DescriptorRecord & rec); // as a record of Implementation Descriptor
 
     // Reset the descriptor record and initialize it with default attributes.
-    void init_as_desc_rec(DescriptorRecord & rec, SQLINTEGER desc_role); // ARD, APD, IRD, IPD
+    void initAsDescRec(DescriptorRecord & rec, SQLINTEGER desc_role); // ARD, APD, IRD, IPD
 
     // Leave unimplemented for general case.
-    template <typename T> T& allocate_child();
-    template <typename T> void deallocate_child(SQLHANDLE) noexcept;
+    template <typename T> T& allocateChild();
+    template <typename T> void deallocateChild(SQLHANDLE) noexcept;
 
 private:
     /// Load uninitialized fields from odbc.ini
@@ -100,8 +100,8 @@ private:
     std::unordered_map<SQLHANDLE, std::shared_ptr<Statement>> statements;
 };
 
-template <> Descriptor& Connection::allocate_child<Descriptor>();
-template <> void Connection::deallocate_child<Descriptor>(SQLHANDLE handle) noexcept;
+template <> Descriptor& Connection::allocateChild<Descriptor>();
+template <> void Connection::deallocateChild<Descriptor>(SQLHANDLE handle) noexcept;
 
-template <> Statement& Connection::allocate_child<Statement>();
-template <> void Connection::deallocate_child<Statement>(SQLHANDLE handle) noexcept;
+template <> Statement& Connection::allocateChild<Statement>();
+template <> void Connection::deallocateChild<Statement>(SQLHANDLE handle) noexcept;

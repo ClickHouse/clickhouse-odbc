@@ -11,16 +11,16 @@ class DescriptorRecord
     : public AttributeContainer
 {
 public:
-    virtual void on_attr_change(int attr) final override;
+    virtual void onAttrChange(int attr) final override;
 
-    bool has_column_size() const;
-    SQLULEN get_column_size() const;
+    bool hasColumnSize() const;
+    SQLULEN getColumnSize() const;
 
-    bool has_decimal_digits() const;
-    SQLSMALLINT get_decimal_digits() const;
+    bool hasDecimalDigits() const;
+    SQLSMALLINT getDecimalDigits() const;
 
 private:
-    void consistency_check();
+    void consistencyCheck();
 };
 
 class Descriptor
@@ -32,8 +32,8 @@ private:
 public:
     explicit Descriptor(Connection & connection);
 
-    std::size_t get_record_count() const;
-    DescriptorRecord& get_record(std::size_t num, SQLINTEGER current_role);
+    std::size_t getRecordCount() const;
+    DescriptorRecord& getRecord(std::size_t num, SQLINTEGER current_role);
 
 private:
     std::vector<DescriptorRecord> records;

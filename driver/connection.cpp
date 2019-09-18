@@ -203,12 +203,12 @@ void Connection::loadConfiguration() {
     {
         const std::string tracefile = stringFromMYTCHAR(ci.tracefile);
         if (!tracefile.empty()) {
-            Driver::get_instance().set_attr(SQL_ATTR_TRACEFILE, tracefile);
+            Driver::getInstance().setAttr(SQL_ATTR_TRACEFILE, tracefile);
         }
 
-        const std::string trace = to_upper_copy(stringFromMYTCHAR(ci.trace));
+        const std::string trace = toUpperCopy(stringFromMYTCHAR(ci.trace));
         if (!trace.empty()) {
-            Driver::get_instance().set_attr(SQL_ATTR_TRACE, (trace == "0" || trace == "NO" ? SQL_OPT_TRACE_OFF : SQL_OPT_TRACE_ON));
+            Driver::getInstance().setAttr(SQL_ATTR_TRACE, (trace == "0" || trace == "NO" ? SQL_OPT_TRACE_OFF : SQL_OPT_TRACE_ON));
         }
     }
 
@@ -329,101 +329,101 @@ std::string Connection::buildUserAgentString() const {
     return user_agent.str();
 }
 
-void Connection::init_as_ad(Descriptor & desc, bool user) {
-    desc.reset_attrs();
-    desc.set_attr(SQL_DESC_ALLOC_TYPE, (user ? SQL_DESC_ALLOC_USER : SQL_DESC_ALLOC_AUTO));
-    desc.set_attr(SQL_DESC_ARRAY_SIZE, 1);
-    desc.set_attr(SQL_DESC_ARRAY_STATUS_PTR, 0);
-    desc.set_attr(SQL_DESC_BIND_OFFSET_PTR, 0);
-    desc.set_attr(SQL_DESC_BIND_TYPE, SQL_BIND_TYPE_DEFAULT);
+void Connection::initAsAD(Descriptor & desc, bool user) {
+    desc.resetAttrs();
+    desc.setAttr(SQL_DESC_ALLOC_TYPE, (user ? SQL_DESC_ALLOC_USER : SQL_DESC_ALLOC_AUTO));
+    desc.setAttr(SQL_DESC_ARRAY_SIZE, 1);
+    desc.setAttr(SQL_DESC_ARRAY_STATUS_PTR, 0);
+    desc.setAttr(SQL_DESC_BIND_OFFSET_PTR, 0);
+    desc.setAttr(SQL_DESC_BIND_TYPE, SQL_BIND_TYPE_DEFAULT);
 }
 
-void Connection::init_as_id(Descriptor & desc) {
-    desc.reset_attrs();
-    desc.set_attr(SQL_DESC_ALLOC_TYPE, SQL_DESC_ALLOC_AUTO);
-    desc.set_attr(SQL_DESC_ARRAY_STATUS_PTR, 0);
-    desc.set_attr(SQL_DESC_ROWS_PROCESSED_PTR, 0);
+void Connection::initAsID(Descriptor & desc) {
+    desc.resetAttrs();
+    desc.setAttr(SQL_DESC_ALLOC_TYPE, SQL_DESC_ALLOC_AUTO);
+    desc.setAttr(SQL_DESC_ARRAY_STATUS_PTR, 0);
+    desc.setAttr(SQL_DESC_ROWS_PROCESSED_PTR, 0);
 }
 
-void Connection::init_as_desc(Descriptor & desc, SQLINTEGER role, bool user) {
+void Connection::initAsDesc(Descriptor & desc, SQLINTEGER role, bool user) {
     switch (role) {
         case SQL_ATTR_APP_ROW_DESC: {
-            init_as_ad(desc, user);
+            initAsAD(desc, user);
             break;
         }
         case SQL_ATTR_APP_PARAM_DESC: {
-            init_as_ad(desc, user);
+            initAsAD(desc, user);
             break;
         }
         case SQL_ATTR_IMP_ROW_DESC: {
-            init_as_id(desc);
+            initAsID(desc);
             break;
         }
         case SQL_ATTR_IMP_PARAM_DESC: {
-            init_as_id(desc);
+            initAsID(desc);
             break;
         }
     }
 }
 
-void Connection::init_as_ad_rec(DescriptorRecord & rec) {
-    rec.reset_attrs();
-    rec.set_attr(SQL_DESC_TYPE, SQL_C_DEFAULT); // Also sets SQL_DESC_CONCISE_TYPE (to SQL_C_DEFAULT) and SQL_DESC_DATETIME_INTERVAL_CODE (to 0).
-    rec.set_attr(SQL_DESC_OCTET_LENGTH_PTR, 0);
-    rec.set_attr(SQL_DESC_INDICATOR_PTR, 0);
-    rec.set_attr(SQL_DESC_DATA_PTR, 0);
+void Connection::initAsADRec(DescriptorRecord & rec) {
+    rec.resetAttrs();
+    rec.setAttr(SQL_DESC_TYPE, SQL_C_DEFAULT); // Also sets SQL_DESC_CONCISE_TYPE (to SQL_C_DEFAULT) and SQL_DESC_DATETIME_INTERVAL_CODE (to 0).
+    rec.setAttr(SQL_DESC_OCTET_LENGTH_PTR, 0);
+    rec.setAttr(SQL_DESC_INDICATOR_PTR, 0);
+    rec.setAttr(SQL_DESC_DATA_PTR, 0);
 }
 
-void Connection::init_as_id_rec(DescriptorRecord & rec) {
-    rec.reset_attrs();
+void Connection::initAsIDRec(DescriptorRecord & rec) {
+    rec.resetAttrs();
 }
 
-void Connection::init_as_desc_rec(DescriptorRecord & rec, SQLINTEGER desc_role) {
+void Connection::initAsDescRec(DescriptorRecord & rec, SQLINTEGER desc_role) {
     switch (desc_role) {
         case SQL_ATTR_APP_ROW_DESC: {
-            init_as_ad_rec(rec);
+            initAsADRec(rec);
             break;
         }
         case SQL_ATTR_APP_PARAM_DESC: {
-            init_as_ad_rec(rec);
+            initAsADRec(rec);
             break;
         }
         case SQL_ATTR_IMP_ROW_DESC: {
-            init_as_id_rec(rec);
+            initAsIDRec(rec);
             break;
         }
         case SQL_ATTR_IMP_PARAM_DESC: {
-            init_as_id_rec(rec);
-            rec.set_attr(SQL_DESC_PARAMETER_TYPE, SQL_PARAM_INPUT);
+            initAsIDRec(rec);
+            rec.setAttr(SQL_DESC_PARAMETER_TYPE, SQL_PARAM_INPUT);
             break;
         }
     }
 }
 
 template <>
-Descriptor& Connection::allocate_child<Descriptor>() {
+Descriptor& Connection::allocateChild<Descriptor>() {
     auto child_sptr = std::make_shared<Descriptor>(*this);
     auto& child = *child_sptr;
-    auto handle = child.get_handle();
+    auto handle = child.getHandle();
     descriptors.emplace(handle, std::move(child_sptr));
     return child;
 }
 
 template <>
-void Connection::deallocate_child<Descriptor>(SQLHANDLE handle) noexcept {
+void Connection::deallocateChild<Descriptor>(SQLHANDLE handle) noexcept {
     descriptors.erase(handle);
 }
 
 template <>
-Statement& Connection::allocate_child<Statement>() {
+Statement& Connection::allocateChild<Statement>() {
     auto child_sptr = std::make_shared<Statement>(*this);
     auto& child = *child_sptr;
-    auto handle = child.get_handle();
+    auto handle = child.getHandle();
     statements.emplace(handle, std::move(child_sptr));
     return child;
 }
 
 template <>
-void Connection::deallocate_child<Statement>(SQLHANDLE handle) noexcept {
+void Connection::deallocateChild<Statement>(SQLHANDLE handle) noexcept {
     statements.erase(handle);
 }

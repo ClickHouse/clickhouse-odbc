@@ -25,9 +25,9 @@
     { \
         try { \
             auto & context_ = context; \
-            if (context_.is_logging_enabled()) { \
-                auto & stream_ = context_.get_log_stream(); \
-                context_.write_log_message_prefix(stream_); \
+            if (context_.isLoggingEnabled()) { \
+                auto & stream_ = context_.getLogStream(); \
+                context_.writeLogMessagePrefix(stream_); \
                 stream_ << " " << file << ":" << line; \
                 stream_ << " in " << function << ": "; \
                 stream_ << message << std::endl; \
@@ -43,13 +43,13 @@
 
 #define LOG_TARGET(context, message) LOG_INTERNAL(__FILE__, __LINE__, __func__, context, message);
 #define LOG_LOCAL(message)           LOG_INTERNAL(__FILE__, __LINE__, __func__, (*this), message);
-#define LOG(message)                 LOG_INTERNAL(__FILE__, __LINE__, __func__, (Driver::get_instance()), message);
+#define LOG(message)                 LOG_INTERNAL(__FILE__, __LINE__, __func__, (Driver::getInstance()), message);
 
-#define CALL(callable)                                                  (Driver::get_instance().call(callable))
-#define CALL_WITH_HANDLE(handle, callable)                              (Driver::get_instance().call(callable, handle))
-#define CALL_WITH_HANDLE_SKIP_DIAG(handle, callable)                    (Driver::get_instance().call(callable, handle, 0, true))
-#define CALL_WITH_TYPED_HANDLE(handle_type, handle, callable)           (Driver::get_instance().call(callable, handle, handle_type))
-#define CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, callable) (Driver::get_instance().call(callable, handle, handle_type, true))
+#define CALL(callable)                                                  (Driver::getInstance().call(callable))
+#define CALL_WITH_HANDLE(handle, callable)                              (Driver::getInstance().call(callable, handle))
+#define CALL_WITH_HANDLE_SKIP_DIAG(handle, callable)                    (Driver::getInstance().call(callable, handle, 0, true))
+#define CALL_WITH_TYPED_HANDLE(handle_type, handle, callable)           (Driver::getInstance().call(callable, handle, handle_type))
+#define CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, callable) (Driver::getInstance().call(callable, handle, handle_type, true))
 
 class Environment;
 class Connection;
@@ -70,30 +70,30 @@ public:
 
     ~Driver();
 
-    static Driver & get_instance() noexcept;
+    static Driver & getInstance() noexcept;
 
     // Leave unimplemented for general case.
-    template <typename T> T & allocate_child();
-    template <typename T> void deallocate_child(SQLHANDLE) noexcept;
+    template <typename T> T & allocateChild();
+    template <typename T> void deallocateChild(SQLHANDLE) noexcept;
 
-    void register_descendant(Object & descendant);
-    void unregister_descendant(Object & descendant) noexcept;
+    void registerDescendant(Object & descendant);
+    void unregisterDescendant(Object & descendant) noexcept;
 
-    virtual void on_attr_change(int attr) final override;
+    virtual void onAttrChange(int attr) final override;
 
-    bool is_logging_enabled() const;
-    std::ostream & get_log_stream();
-    void write_log_message_prefix(std::ostream & stream);
+    bool isLoggingEnabled() const;
+    std::ostream & getLogStream();
+    void writeLogMessagePrefix(std::ostream & stream);
 
-    void write_log_session_start(std::ostream & stream);
-    void write_log_session_end(std::ostream & stream);
+    void writeLogSessionStart(std::ostream & stream);
+    void writeLogSessionEnd(std::ostream & stream);
 
 private:
     // Leave unimplemented for general case.
-    template <typename T> T * dynamic_cast_to(Object *);
+    template <typename T> T * dynamicCastTo(Object *);
 
     template <typename Callable>
-    static inline SQLRETURN do_call(Callable & callable,
+    static inline SQLRETURN doCall(Callable & callable,
         typename std::enable_if<
             is_invocable_r<SQLRETURN, Callable>::value
         >::type * = nullptr
@@ -102,7 +102,7 @@ private:
     }
 
     template <typename Callable>
-    static inline SQLRETURN do_call(Callable & callable,
+    static inline SQLRETURN doCall(Callable & callable,
         typename std::enable_if<
             !is_invocable_r<SQLRETURN, Callable>::value &&
             is_invocable<Callable>::value
@@ -113,7 +113,7 @@ private:
     }
 
     template <typename Callable>
-    static inline SQLRETURN do_call(Callable & callable,
+    static inline SQLRETURN doCall(Callable & callable,
         typename std::enable_if<
             !is_invocable_r<SQLRETURN, Callable>::value &&
             !is_invocable<Callable>::value
@@ -123,24 +123,24 @@ private:
     }
 
     template <typename Callable, typename ObjectType>
-    static inline SQLRETURN do_call(Callable & callable, ObjectType & object, bool skip_diag,
+    static inline SQLRETURN doCall(Callable & callable, ObjectType & object, bool skip_diag,
         typename std::enable_if<
             is_invocable_r<SQLRETURN, Callable, ObjectType &>::value
         >::type * = nullptr
     ) {
         SQLRETURN rc = SQL_SUCCESS;
         if (!skip_diag) {
-            object.reset_diag();
+            object.resetDiag();
         }
         rc = callable(object);
         if (!skip_diag) {
-            object.set_return_code(rc);
+            object.setReturnCode(rc);
         }
         return rc;
     }
 
     template <typename Callable, typename ObjectType>
-    static inline SQLRETURN do_call(Callable & callable, ObjectType & object, bool skip_diag,
+    static inline SQLRETURN doCall(Callable & callable, ObjectType & object, bool skip_diag,
         typename std::enable_if<
             !is_invocable_r<SQLRETURN, Callable, ObjectType &>::value &&
             is_invocable<Callable, ObjectType &>::value
@@ -148,17 +148,17 @@ private:
     ) {
         SQLRETURN rc = SQL_SUCCESS;
         if (!skip_diag) {
-            object.reset_diag();
+            object.resetDiag();
         }
         callable(object);
         if (!skip_diag) {
-            rc = object.get_return_code();
+            rc = object.getReturnCode();
         }
         return rc;
     }
 
     template <typename Callable, typename ObjectType>
-    static inline SQLRETURN do_call(Callable & callable, ObjectType & object, bool skip_diag,
+    static inline SQLRETURN doCall(Callable & callable, ObjectType & object, bool skip_diag,
         typename std::enable_if<
             !is_invocable_r<SQLRETURN, Callable, ObjectType &>::value &&
             !is_invocable<Callable, ObjectType &>::value
@@ -180,14 +180,14 @@ private:
     std::unordered_map<SQLHANDLE, std::shared_ptr<Environment>> environments;
 };
 
-template <> Environment & Driver::allocate_child<Environment>();
-template <> void Driver::deallocate_child<Environment>(SQLHANDLE handle) noexcept;
+template <> Environment & Driver::allocateChild<Environment>();
+template <> void Driver::deallocateChild<Environment>(SQLHANDLE handle) noexcept;
 
 // Move this to cpp to avoid the need of fully specifying these types here.
-template <> Environment * Driver::dynamic_cast_to<Environment>(Object * obj);
-template <> Connection * Driver::dynamic_cast_to<Connection>(Object * obj);
-template <> Descriptor * Driver::dynamic_cast_to<Descriptor>(Object * obj);
-template <> Statement * Driver::dynamic_cast_to<Statement>(Object * obj);
+template <> Environment * Driver::dynamicCastTo<Environment>(Object * obj);
+template <> Connection * Driver::dynamicCastTo<Connection>(Object * obj);
+template <> Descriptor * Driver::dynamicCastTo<Descriptor>(Object * obj);
+template <> Statement * Driver::dynamicCastTo<Statement>(Object * obj);
 
 template <typename Callable>
 SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLINT handle_type, bool skip_diag) noexcept {
@@ -208,10 +208,10 @@ SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLINT handl
 
         if (obj_ptr == nullptr) {
             try {
-                return do_call(callable);
+                return doCall(callable);
             }
             catch (const SqlException & ex) {
-                LOG(ex.get_sql_state() << " (" << ex.what() << ")");
+                LOG(ex.getSQLState() << " (" << ex.what() << ")");
                 return SQL_ERROR;
             }
             catch (const Poco::Exception & ex) {
@@ -233,11 +233,11 @@ SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLINT handl
 #define TRY_DISPATCH_AS(ObjectType) \
     if ( \
         handle_type == 0 || \
-        handle_type == get_object_handle_type<ObjectType>() \
+        handle_type == getObjectHandleType<ObjectType>() \
     ) { \
-        auto * obj = dynamic_cast_to<ObjectType>(obj_ptr); \
+        auto * obj = dynamicCastTo<ObjectType>(obj_ptr); \
         if (obj) \
-            return do_call(callable, *obj, skip_diag); \
+            return doCall(callable, *obj, skip_diag); \
     }
 
                 TRY_DISPATCH_AS(Statement);
@@ -249,27 +249,27 @@ SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLINT handl
 
             }
             catch (const SqlException & ex) {
-                LOG(ex.get_sql_state() << " (" << ex.what() << ")");
+                LOG(ex.getSQLState() << " (" << ex.what() << ")");
                 if (!skip_diag)
-                    obj_ptr->fill_diag(SQL_ERROR, ex.get_sql_state(), ex.what(), 1);
+                    obj_ptr->fillDiag(SQL_ERROR, ex.getSQLState(), ex.what(), 1);
                 return SQL_ERROR;
             }
             catch (const Poco::Exception & ex) {
                 LOG("HY000 (" << ex.displayText() << ")");
                 if (!skip_diag)
-                    obj_ptr->fill_diag(SQL_ERROR, "HY000", ex.displayText(), 1);
+                    obj_ptr->fillDiag(SQL_ERROR, "HY000", ex.displayText(), 1);
                 return SQL_ERROR;
             }
             catch (const std::exception & ex) {
                 LOG("HY000 (" << ex.what() << ")");
                 if (!skip_diag)
-                    obj_ptr->fill_diag(SQL_ERROR, "HY000", ex.what(), 1);
+                    obj_ptr->fillDiag(SQL_ERROR, "HY000", ex.what(), 1);
                 return SQL_ERROR;
             }
             catch (...) {
                 LOG("HY000 (Unknown exception)");
                 if (!skip_diag)
-                    obj_ptr->fill_diag(SQL_ERROR, "HY000", "Unknown exception", 2);
+                    obj_ptr->fillDiag(SQL_ERROR, "HY000", "Unknown exception", 2);
                 return SQL_ERROR;
             }
         }

@@ -8,73 +8,73 @@
 #include <chrono>
 
 Driver::Driver() noexcept {
-    set_attr_silent(SQL_ATTR_TRACE, DRIVER_TRACE_DEFAULT);
-    set_attr<std::string>(SQL_ATTR_TRACEFILE, DRIVER_TRACEFILE_DEFAULT);
+    setAttrSilent(SQL_ATTR_TRACE, DRIVER_TRACE_DEFAULT);
+    setAttr<std::string>(SQL_ATTR_TRACEFILE, DRIVER_TRACEFILE_DEFAULT);
 }
 
 Driver::~Driver() {
 }
 
-Driver & Driver::get_instance() noexcept {
+Driver & Driver::getInstance() noexcept {
     static Driver driver;
     return driver;
 }
 
 template <>
-Environment & Driver::allocate_child<Environment>() {
+Environment & Driver::allocateChild<Environment>() {
     auto child_sptr = std::make_shared<Environment>(*this);
     auto & child = *child_sptr;
-    auto handle = child.get_handle();
+    auto handle = child.getHandle();
     environments.emplace(handle, std::move(child_sptr));
     return child;
 }
 
 template <>
-void Driver::deallocate_child<Environment>(SQLHANDLE handle) noexcept {
+void Driver::deallocateChild<Environment>(SQLHANDLE handle) noexcept {
     environments.erase(handle);
 }
 
-void Driver::register_descendant(Object & descendant) {
-    descendants.erase(descendant.get_handle());
-    descendants.emplace(descendant.get_handle(), std::ref(descendant));
+void Driver::registerDescendant(Object & descendant) {
+    descendants.erase(descendant.getHandle());
+    descendants.emplace(descendant.getHandle(), std::ref(descendant));
 }
 
-void Driver::unregister_descendant(Object & descendant) noexcept {
-    descendants.erase(descendant.get_handle());
+void Driver::unregisterDescendant(Object & descendant) noexcept {
+    descendants.erase(descendant.getHandle());
 }
 
 template <>
-Environment * Driver::dynamic_cast_to<Environment>(Object * obj) {
+Environment * Driver::dynamicCastTo<Environment>(Object * obj) {
     return dynamic_cast<Environment *>(obj);
 }
 
 template <>
-Connection * Driver::dynamic_cast_to<Connection>(Object * obj) {
+Connection * Driver::dynamicCastTo<Connection>(Object * obj) {
     return dynamic_cast<Connection *>(obj);
 }
 
 template <>
-Descriptor * Driver::dynamic_cast_to<Descriptor>(Object * obj) {
+Descriptor * Driver::dynamicCastTo<Descriptor>(Object * obj) {
     return dynamic_cast<Descriptor *>(obj);
 }
 
 template <>
-Statement * Driver::dynamic_cast_to<Statement>(Object * obj) {
+Statement * Driver::dynamicCastTo<Statement>(Object * obj) {
     return dynamic_cast<Statement *>(obj);
 }
 
-void Driver::on_attr_change(int attr) {
+void Driver::onAttrChange(int attr) {
     switch (attr) {
         case SQL_ATTR_TRACE:
         case SQL_ATTR_TRACEFILE: {
             bool stream_open = (log_file_stream.is_open() && log_file_stream);
-            const bool enable_logging = is_logging_enabled();
-            const auto tracefile = get_attr_as<std::string>(SQL_ATTR_TRACEFILE);
+            const bool enable_logging = isLoggingEnabled();
+            const auto tracefile = getAttrAs<std::string>(SQL_ATTR_TRACEFILE);
 
             if (enable_logging) {
                 if (stream_open && tracefile != log_file_name) {
                     LOG("Switching trace output to " << (tracefile.empty() ? "standard log output" : tracefile));
-                    write_log_session_end(get_log_stream());
+                    writeLogSessionEnd(getLogStream());
                     log_file_stream.close();
                     stream_open = false;
                 }
@@ -82,12 +82,12 @@ void Driver::on_attr_change(int attr) {
                 if (!stream_open) {
                     log_file_name = tracefile;
                     log_file_stream = (log_file_name.empty() ? std::ofstream{} : std::ofstream{log_file_name, std::ios_base::out | std::ios_base::app});
-                    write_log_session_start(get_log_stream());
+                    writeLogSessionStart(getLogStream());
                 }
             }
             else {
                 if (stream_open) {
-                    write_log_session_end(get_log_stream());
+                    writeLogSessionEnd(getLogStream());
                     log_file_stream = std::ofstream{};
                 }
                 log_file_name.clear();
@@ -98,22 +98,22 @@ void Driver::on_attr_change(int attr) {
     }
 }
 
-bool Driver::is_logging_enabled() const {
-    return (get_attr_as<SQLUINTEGER>(SQL_ATTR_TRACE) == SQL_OPT_TRACE_ON);
+bool Driver::isLoggingEnabled() const {
+    return (getAttrAs<SQLUINTEGER>(SQL_ATTR_TRACE) == SQL_OPT_TRACE_ON);
 }
 
-std::ostream & Driver::get_log_stream() {
+std::ostream & Driver::getLogStream() {
     return (log_file_stream ? log_file_stream : std::clog);
 }
 
-void Driver::write_log_message_prefix(std::ostream & stream) {
+void Driver::writeLogMessagePrefix(std::ostream & stream) {
     stream << std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::system_clock::now().time_since_epoch()
     ).count();
-    stream << " [" << get_pid() << ":" << get_tid() << "]";
+    stream << " [" << getPID() << ":" << getTID() << "]";
 }
 
-void Driver::write_log_session_start(std::ostream & stream) {
+void Driver::writeLogSessionStart(std::ostream & stream) {
     stream << "==================== ODBC Driver logging session started";
     {
         auto t = std::time(nullptr);
@@ -165,7 +165,7 @@ void Driver::write_log_session_start(std::ostream & stream) {
     stream << std::endl;
 }
 
-void Driver::write_log_session_end(std::ostream & stream) {
+void Driver::writeLogSessionEnd(std::ostream & stream) {
     stream << "==================== ODBC Driver logging session ended";
     {
         auto t = std::time(nullptr);

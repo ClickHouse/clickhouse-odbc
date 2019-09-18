@@ -4,19 +4,19 @@
 Object::Object() noexcept
     : handle(this)
 {
-    Driver::get_instance().register_descendant(*this);
+    Driver::getInstance().registerDescendant(*this);
 }
 
 Object::Object(SQLHANDLE h) noexcept
     : handle(h)
 {
-    Driver::get_instance().register_descendant(*this);
+    Driver::getInstance().registerDescendant(*this);
 }
 
 Object::~Object() {
-    Driver::get_instance().unregister_descendant(*this);
+    Driver::getInstance().unregisterDescendant(*this);
 }
 
-SQLHANDLE Object::get_handle() const noexcept {
+SQLHANDLE Object::getHandle() const noexcept {
     return handle;
 }

@@ -22,7 +22,7 @@ public:
     explicit Object(SQLHANDLE h) noexcept;
     virtual ~Object();
 
-    SQLHANDLE get_handle() const noexcept;
+    SQLHANDLE getHandle() const noexcept;
 
 private:
     SQLHANDLE const handle;
@@ -45,20 +45,20 @@ public:
     {
     }
 
-    Parent & get_parent() const noexcept {
+    Parent & getParent() const noexcept {
         return parent;
     }
 
-    const Self & get_self() const noexcept {
+    const Self & getSelf() const noexcept {
         return *static_cast<const Self *>(this);
     }
 
-    Self & get_self() noexcept {
+    Self & getSelf() noexcept {
         return *static_cast<Self *>(this);
     }
 
-    void deallocate_self() noexcept {
-        parent.template deallocate_child<Self>(get_handle());
+    void deallocateSelf() noexcept {
+        parent.template deallocateChild<Self>(getHandle());
     }
 
 #if __cplusplus < 201703L
@@ -71,17 +71,17 @@ public:
     }
 #endif
 
-    bool is_logging_enabled() const {
-        return parent.is_logging_enabled();
+    bool isLoggingEnabled() const {
+        return parent.isLoggingEnabled();
     }
 
-    std::ostream & get_log_stream() {
-        return parent.get_log_stream();
+    std::ostream & getLogStream() {
+        return parent.getLogStream();
     }
 
-    void write_log_message_prefix(std::ostream & stream) {
-        parent.write_log_message_prefix(stream);
-        stream << "[" << get_object_type_name<Self>() << "=" << to_hex_string(get_handle()) << "] ";
+    void writeLogMessagePrefix(std::ostream & stream) {
+        parent.writeLogMessagePrefix(stream);
+        stream << "[" << getObjectTypeName<Self>() << "=" << toHexString(getHandle()) << "] ";
     }
 
 private:

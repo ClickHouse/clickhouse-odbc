@@ -120,7 +120,7 @@ namespace {
     }
 
     template <typename T>
-    T read_ready_data_to(const BindingInfo& binding_info) {
+    T readReadyDataTo(const BindingInfo& binding_info) {
         switch (binding_info.type) {
             case SQL_C_CHAR:        return to<T>::template from<SQLCHAR *    >(binding_info);
             case SQL_C_WCHAR:       return to<T>::template from<SQLWCHAR *   >(binding_info);
@@ -149,26 +149,26 @@ namespace {
 Statement::Statement(Connection & connection)
     : ChildType(connection)
 {
-    allocate_implicit_descriptors();
+    allocateImplicitDescriptors();
 }
 
 Statement::~Statement() {
-    deallocate_implicit_descriptors();
+    deallocateImplicitDescriptors();
 }
 
 const TypeInfo & Statement::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs) const {
-    return get_parent().get_parent().getTypeInfo(type_name, type_name_without_parametrs);
+    return getParent().getParent().getTypeInfo(type_name, type_name_without_parametrs);
 }
 
 void Statement::prepareQuery(const std::string & q) {
-    close_cursor();
+    closeCursor();
     query = q;
     processEscapeSequences();
     extractParametersinfo();
 }
 
 void Statement::executeQuery(IResultMutatorPtr && mutator) {
-    auto * param_set_processed_ptr = get_effective_descriptor(SQL_ATTR_IMP_PARAM_DESC).get_attr_as<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
+    auto * param_set_processed_ptr = getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
     if (param_set_processed_ptr)
         *param_set_processed_ptr = 0;
 
@@ -177,13 +177,13 @@ void Statement::executeQuery(IResultMutatorPtr && mutator) {
 }
 
 void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
-    const auto param_set_array_size = get_effective_descriptor(SQL_ATTR_APP_PARAM_DESC).get_attr_as<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
+    const auto param_set_array_size = getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
     if (next_param_set >= param_set_array_size)
         return;
 
-    get_diag_header().set_attr(SQL_DIAG_ROW_COUNT, 0);
+    getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, 0);
 
-    auto & connection = get_parent();
+    auto & connection = getParent();
 
     if (connection.session && response && in)
         if (!*in || in->peek() != EOF)
@@ -202,16 +202,16 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
         const auto & param_info = parameters[i];
         const auto & binding_info = param_bindings[i];
 
-        if (!is_input_param(binding_info.io_type) || is_stream_param(binding_info.io_type))
+        if (!isInputParam(binding_info.io_type) || isStreamParam(binding_info.io_type))
             throw std::runtime_error("Unable to extract data from bound param buffer: param IO type is not supported");
 
-        uri.addQueryParameter("param_" + param_info.name, read_ready_data_to<std::string>(binding_info));
+        uri.addQueryParameter("param_" + param_info.name, readReadyDataTo<std::string>(binding_info));
     }
 
     const auto prepared_query = buildFinalQuery(param_bindings);
 
     // TODO: set this only after this single query is fully fetched (when output parameter support is added)
-    auto * param_set_processed_ptr = get_effective_descriptor(SQL_ATTR_IMP_PARAM_DESC).get_attr_as<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
+    auto * param_set_processed_ptr = getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
     if (param_set_processed_ptr)
         *param_set_processed_ptr = next_param_set;
 
@@ -258,7 +258,7 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
 }
 
 void Statement::processEscapeSequences() {
-    if (get_attr_as<SQLULEN>(SQL_ATTR_NOSCAN, SQL_NOSCAN_OFF) != SQL_NOSCAN_ON)
+    if (getAttrAs<SQLULEN>(SQL_ATTR_NOSCAN, SQL_NOSCAN_OFF) != SQL_NOSCAN_ON)
         query = replaceEscapeSequences(query);
 }
 
@@ -340,7 +340,7 @@ std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& para
             throw SqlException("COUNT field incorrect", "07002");
 
         const std::string param_placeholder = "{" + param_info.name + ":" +
-            convert_C_or_sql_type_to_data_source_type(binding_info.sql_type, binding_info.value_max_size) + "}";
+            convertCOrSQLTypeToDataSourceType(binding_info.sql_type, binding_info.value_max_size) + "}";
 
         prepared_query.replace(pos, param_info.tmp_placeholder.size(), param_placeholder);
     }
@@ -353,23 +353,23 @@ void Statement::executeQuery(const std::string & q, IResultMutatorPtr && mutator
     executeQuery(std::move(mutator));
 }
 
-bool Statement::has_result_set() const {
+bool Statement::hasResultSet() const {
     return !!result_set;
 }
 
-bool Statement::advance_to_next_result_set() {
-    get_diag_header().set_attr(SQL_DIAG_ROW_COUNT, 0);
+bool Statement::advanceToNextResultSet() {
+    getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, 0);
 
     IResultMutatorPtr mutator;
 
-    if (has_result_set())
-        mutator = result_set->release_mutator();
+    if (hasResultSet())
+        mutator = result_set->releaseMutator();
 
     // TODO: add support of detecting next result set on the wire, when protocol allows it.
     result_set.reset();
 
     requestNextPackOfResultSets(std::move(mutator));
-    return has_result_set();
+    return hasResultSet();
 }
 
 const ColumnInfo & Statement::getColumnInfo(size_t i) const {
@@ -377,35 +377,35 @@ const ColumnInfo & Statement::getColumnInfo(size_t i) const {
 }
 
 size_t Statement::getNumColumns() const {
-    return (has_result_set() ? result_set->getNumColumns() : 0);
+    return (hasResultSet() ? result_set->getNumColumns() : 0);
 }
 
-bool Statement::has_current_row() const {
-    return (has_result_set() ? result_set->has_current_row() : false);
+bool Statement::hasCurrentRow() const {
+    return (hasResultSet() ? result_set->hasCurrentRow() : false);
 }
 
-const Row & Statement::get_current_row() const {
-    return result_set->get_current_row();
+const Row & Statement::getCurrentRow() const {
+    return result_set->getCurrentRow();
 }
 
-std::size_t Statement::get_current_row_num() const {
-    return (has_result_set() ? result_set->get_current_row_num() : 0);
+std::size_t Statement::getCurrentRowNum() const {
+    return (hasResultSet() ? result_set->getCurrentRowNum() : 0);
 }
 
-bool Statement::advance_to_next_row() {
+bool Statement::advanceToNextRow() {
     bool advanced = false;
 
-    if (has_result_set()) {
-        advanced = result_set->advance_to_next_row();
+    if (hasResultSet()) {
+        advanced = result_set->advanceToNextRow();
         if (!advanced)
-            get_diag_header().set_attr(SQL_DIAG_ROW_COUNT, result_set->get_current_row_num());
+            getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, result_set->getCurrentRowNum());
     }
 
     return advanced;
 }
 
-void Statement::close_cursor() {
-    auto & connection = get_parent();
+void Statement::closeCursor() {
+    auto & connection = getParent();
     if (connection.session && response && in)
         if (!*in || in->peek() != EOF)
             connection.session->reset();
@@ -418,23 +418,23 @@ void Statement::close_cursor() {
     query.clear();
 }
 
-void Statement::reset_col_bindings() {
+void Statement::resetColBindings() {
     bindings.clear();
-//  get_effective_descriptor(SQL_ATTR_APP_ROW_DESC).set_attr(SQL_DESC_COUNT, 0);
+//  getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC).setAttr(SQL_DESC_COUNT, 0);
 }
 
-void Statement::reset_param_bindings() {
-    get_effective_descriptor(SQL_ATTR_APP_PARAM_DESC).set_attr(SQL_DESC_COUNT, 0);
+void Statement::resetParamBindings() {
+    getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).setAttr(SQL_DESC_COUNT, 0);
 }
 
 std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
     std::vector<ParamBindingInfo> param_bindings;
 
-    auto & apd_desc = get_effective_descriptor(SQL_ATTR_APP_PARAM_DESC);
-    auto & ipd_desc = get_effective_descriptor(SQL_ATTR_IMP_PARAM_DESC);
+    auto & apd_desc = getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC);
+    auto & ipd_desc = getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC);
 
-    const auto apd_record_count = apd_desc.get_record_count();
-    const auto ipd_record_count = ipd_desc.get_record_count();
+    const auto apd_record_count = apd_desc.getRecordCount();
+    const auto ipd_record_count = ipd_desc.getRecordCount();
 
     if (apd_record_count > ipd_record_count)
         throw SqlException("COUNT field incorrect", "07002");
@@ -442,8 +442,8 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
     if (apd_record_count > 0)
         param_bindings.reserve(apd_record_count);
 
-    const auto single_set_struct_size = apd_desc.get_attr_as<SQLULEN>(SQL_DESC_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN);
-    const auto * bind_offset_ptr = apd_desc.get_attr_as<SQLULEN *>(SQL_DESC_BIND_OFFSET_PTR, 0);
+    const auto single_set_struct_size = apd_desc.getAttrAs<SQLULEN>(SQL_DESC_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN);
+    const auto * bind_offset_ptr = apd_desc.getAttrAs<SQLULEN *>(SQL_DESC_BIND_OFFSET_PTR, 0);
     const auto bind_offset = (bind_offset_ptr ? *bind_offset_ptr : 0);
 
     param_bindings.reserve(apd_record_count);
@@ -451,17 +451,17 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
     for (std::size_t i = 1; i <= apd_record_count; ++i) {
         ParamBindingInfo binding_info;
 
-        auto & apd_record = apd_desc.get_record(i, SQL_ATTR_APP_PARAM_DESC);
-        auto & ipd_record = ipd_desc.get_record(i, SQL_ATTR_IMP_PARAM_DESC);
+        auto & apd_record = apd_desc.getRecord(i, SQL_ATTR_APP_PARAM_DESC);
+        auto & ipd_record = ipd_desc.getRecord(i, SQL_ATTR_IMP_PARAM_DESC);
 
-        const auto * data_ptr = apd_record.get_attr_as<SQLPOINTER>(SQL_DESC_DATA_PTR, 0);
-        const auto * sz_ptr = apd_record.get_attr_as<SQLLEN *>(SQL_DESC_OCTET_LENGTH_PTR, 0);
-        const auto * ind_ptr = apd_record.get_attr_as<SQLLEN *>(SQL_DESC_INDICATOR_PTR, 0);
+        const auto * data_ptr = apd_record.getAttrAs<SQLPOINTER>(SQL_DESC_DATA_PTR, 0);
+        const auto * sz_ptr = apd_record.getAttrAs<SQLLEN *>(SQL_DESC_OCTET_LENGTH_PTR, 0);
+        const auto * ind_ptr = apd_record.getAttrAs<SQLLEN *>(SQL_DESC_INDICATOR_PTR, 0);
 
-        binding_info.io_type = ipd_record.get_attr_as<SQLSMALLINT>(SQL_DESC_PARAMETER_TYPE, SQL_PARAM_INPUT);
-        binding_info.type = apd_record.get_attr_as<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
-        binding_info.sql_type = ipd_record.get_attr_as<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_UNKNOWN_TYPE);
-        binding_info.value_max_size = ipd_record.get_attr_as<SQLULEN>(SQL_DESC_LENGTH, 0); // TODO: or SQL_DESC_OCTET_LENGTH ?
+        binding_info.io_type = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_PARAMETER_TYPE, SQL_PARAM_INPUT);
+        binding_info.type = apd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
+        binding_info.sql_type = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_UNKNOWN_TYPE);
+        binding_info.value_max_size = ipd_record.getAttrAs<SQLULEN>(SQL_DESC_LENGTH, 0); // TODO: or SQL_DESC_OCTET_LENGTH ?
         binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + i * single_set_struct_size + bind_offset) : 0);
         binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + i * sizeof(SQLLEN) + bind_offset) : 0);
         binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + i * sizeof(SQLLEN) + bind_offset) : 0);
@@ -472,7 +472,7 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
     return param_bindings;
 }
 
-Descriptor& Statement::get_effective_descriptor(SQLINTEGER type) {
+Descriptor& Statement::getEffectiveDescriptor(SQLINTEGER type) {
     switch (type) {
         case SQL_ATTR_APP_ROW_DESC:   return choose(implicit_ard, explicit_ard);
         case SQL_ATTR_APP_PARAM_DESC: return choose(implicit_apd, explicit_apd);
@@ -482,7 +482,7 @@ Descriptor& Statement::get_effective_descriptor(SQLINTEGER type) {
     throw std::runtime_error("unknown descriptor type");
 }
 
-void Statement::set_explicit_descriptor(SQLINTEGER type, std::shared_ptr<Descriptor> desc) {
+void Statement::setExplicitDescriptor(SQLINTEGER type, std::shared_ptr<Descriptor> desc) {
     switch (type) {
         case SQL_ATTR_APP_ROW_DESC:   explicit_ard = desc; return;
         case SQL_ATTR_APP_PARAM_DESC: explicit_apd = desc; return;
@@ -492,8 +492,8 @@ void Statement::set_explicit_descriptor(SQLINTEGER type, std::shared_ptr<Descrip
     throw std::runtime_error("unknown descriptor type");
 }
 
-void Statement::set_implicit_descriptor(SQLINTEGER type) {
-    return set_explicit_descriptor(type, std::shared_ptr<Descriptor>{});
+void Statement::setImplicitDescriptor(SQLINTEGER type) {
+    return setExplicitDescriptor(type, std::shared_ptr<Descriptor>{});
 }
 
 Descriptor & Statement::choose(
@@ -504,35 +504,35 @@ Descriptor & Statement::choose(
     return (desc ? *desc : *implicit_desc);
 }
 
-void Statement::allocate_implicit_descriptors() {
-    deallocate_implicit_descriptors();
+void Statement::allocateImplicitDescriptors() {
+    deallocateImplicitDescriptors();
 
-    implicit_ard = allocate_descriptor();
-    implicit_apd = allocate_descriptor();
-    implicit_ird = allocate_descriptor();
-    implicit_ipd = allocate_descriptor();
+    implicit_ard = allocateDescriptor();
+    implicit_apd = allocateDescriptor();
+    implicit_ird = allocateDescriptor();
+    implicit_ipd = allocateDescriptor();
 
-    get_parent().init_as_desc(*implicit_ard, SQL_ATTR_APP_ROW_DESC);
-    get_parent().init_as_desc(*implicit_apd, SQL_ATTR_APP_PARAM_DESC);
-    get_parent().init_as_desc(*implicit_ird, SQL_ATTR_IMP_ROW_DESC);
-    get_parent().init_as_desc(*implicit_ipd, SQL_ATTR_IMP_PARAM_DESC);
+    getParent().initAsDesc(*implicit_ard, SQL_ATTR_APP_ROW_DESC);
+    getParent().initAsDesc(*implicit_apd, SQL_ATTR_APP_PARAM_DESC);
+    getParent().initAsDesc(*implicit_ird, SQL_ATTR_IMP_ROW_DESC);
+    getParent().initAsDesc(*implicit_ipd, SQL_ATTR_IMP_PARAM_DESC);
 }
 
-void Statement::deallocate_implicit_descriptors() {
-    dellocate_descriptor(implicit_ard);
-    dellocate_descriptor(implicit_apd);
-    dellocate_descriptor(implicit_ird);
-    dellocate_descriptor(implicit_ipd);
+void Statement::deallocateImplicitDescriptors() {
+    deallocateDescriptor(implicit_ard);
+    deallocateDescriptor(implicit_apd);
+    deallocateDescriptor(implicit_ird);
+    deallocateDescriptor(implicit_ipd);
 }
 
-std::shared_ptr<Descriptor> Statement::allocate_descriptor() {
-    auto & desc = get_parent().allocate_child<Descriptor>();
+std::shared_ptr<Descriptor> Statement::allocateDescriptor() {
+    auto & desc = getParent().allocateChild<Descriptor>();
     return desc.shared_from_this();
 }
 
-void Statement::dellocate_descriptor(std::shared_ptr<Descriptor> & desc) {
+void Statement::deallocateDescriptor(std::shared_ptr<Descriptor> & desc) {
     if (desc) {
-        desc->deallocate_self();
+        desc->deallocateSelf();
         desc.reset();
     }
 }

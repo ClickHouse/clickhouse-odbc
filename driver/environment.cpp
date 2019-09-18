@@ -59,15 +59,15 @@ const TypeInfo & Environment::getTypeInfo(const std::string & type_name, const s
 }
 
 template <>
-Connection& Environment::allocate_child<Connection>() {
+Connection& Environment::allocateChild<Connection>() {
     auto child_sptr = std::make_shared<Connection>(*this);
     auto& child = *child_sptr;
-    auto handle = child.get_handle();
+    auto handle = child.getHandle();
     connections.emplace(handle, std::move(child_sptr));
     return child;
 }
 
 template <>
-void Environment::deallocate_child<Connection>(SQLHANDLE handle) noexcept {
+void Environment::deallocateChild<Connection>(SQLHANDLE handle) noexcept {
     connections.erase(handle);
 }

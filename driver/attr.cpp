@@ -105,10 +105,10 @@ SQLRETURN SetConnectAttr(
 
             case SQL_ATTR_TRACE: {
                 if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_ON)) {
-                    Driver::get_instance().set_attr(SQL_ATTR_TRACE, true);
+                    Driver::getInstance().setAttr(SQL_ATTR_TRACE, true);
                 }
                 else if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_OFF)) {
-                    Driver::get_instance().set_attr(SQL_ATTR_TRACE, false);
+                    Driver::getInstance().setAttr(SQL_ATTR_TRACE, false);
                 }
                 else {
                     LOG("SetConnectAttr: SQL_ATTR_TRACE: Unknown value " << value);
@@ -119,7 +119,7 @@ SQLRETURN SetConnectAttr(
 
             case SQL_ATTR_TRACEFILE: {
                 const std::string tracefile = stringFromSQLBytes((SQLTCHAR *)value, value_length);
-                Driver::get_instance().set_attr(SQL_ATTR_TRACEFILE, tracefile);
+                Driver::getInstance().setAttr(SQL_ATTR_TRACEFILE, tracefile);
                 return SQL_SUCCESS;
             }
 
@@ -133,7 +133,7 @@ SQLRETURN SetConnectAttr(
 #endif
 
             case SQL_ATTR_METADATA_ID:
-                connection.set_attr(SQL_ATTR_METADATA_ID, value);
+                connection.setAttr(SQL_ATTR_METADATA_ID, value);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_ACCESS_MODE:
@@ -179,7 +179,7 @@ SQLRETURN GetConnectAttr(
                 SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout);
             CASE_NUM(SQL_ATTR_TXN_ISOLATION, SQLINTEGER, SQL_TXN_SERIALIZABLE); // mssql linked server
             CASE_NUM(SQL_ATTR_AUTOCOMMIT, SQLINTEGER, SQL_AUTOCOMMIT_ON);
-            CASE_NUM(SQL_ATTR_TRACE, SQLINTEGER, (Driver::get_instance().is_logging_enabled() ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
+            CASE_NUM(SQL_ATTR_TRACE, SQLINTEGER, (Driver::getInstance().isLoggingEnabled() ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
 
             case SQL_ATTR_CURRENT_CATALOG:
                 fillOutputPlatformString(connection.getDatabase(), out_value, out_value_max_length, out_value_length);
@@ -189,14 +189,14 @@ SQLRETURN GetConnectAttr(
                 return SQL_ERROR;
 
             case SQL_ATTR_TRACEFILE: {
-                const auto tracefile = Driver::get_instance().get_attr_as<std::string>(SQL_ATTR_TRACEFILE);
+                const auto tracefile = Driver::getInstance().getAttrAs<std::string>(SQL_ATTR_TRACEFILE);
                 fillOutputPlatformString(tracefile, out_value, out_value_max_length, out_value_length);
                 return SQL_SUCCESS;
             }
 
             case SQL_ATTR_METADATA_ID:
                 return fillOutputNumber<SQLUINTEGER>(
-                    connection.get_attr_as<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE),
+                    connection.getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE),
                     out_value, out_value_max_length, out_value_length
                 );
 
@@ -220,12 +220,12 @@ SQLRETURN GetConnectAttr(
     return CALL_WITH_HANDLE(connection_handle, func);
 }
 
-SQLRETURN set_descriptor_handle(Statement & statement, SQLINTEGER descriptor_type, SQLHANDLE descriptor_handle) {
+SQLRETURN setDescriptorHandle(Statement & statement, SQLINTEGER descriptor_type, SQLHANDLE descriptor_handle) {
     switch (descriptor_type) {
         case SQL_ATTR_APP_ROW_DESC:
         case SQL_ATTR_APP_PARAM_DESC:
             if (descriptor_handle == 0) {
-                statement.set_implicit_descriptor(descriptor_type);
+                statement.setImplicitDescriptor(descriptor_type);
                 return SQL_SUCCESS;
             }
             break;
@@ -238,16 +238,16 @@ SQLRETURN set_descriptor_handle(Statement & statement, SQLINTEGER descriptor_typ
 
     auto func = [&] (Descriptor & descriptor) {
         try {
-            if (descriptor.get_parent().get_handle() != statement.get_parent().get_handle())
+            if (descriptor.getParent().getHandle() != statement.getParent().getHandle())
                 throw SqlException("Invalid attribute value", "HY024");
 
-            if (descriptor.get_attr_as<SQLSMALLINT>(SQL_DESC_ALLOC_TYPE) == SQL_DESC_ALLOC_AUTO)
+            if (descriptor.getAttrAs<SQLSMALLINT>(SQL_DESC_ALLOC_TYPE) == SQL_DESC_ALLOC_AUTO)
                 throw SqlException("Invalid use of an automatically allocated descriptor handle", "HY017");
 
             switch (descriptor_type) {
                 case SQL_ATTR_APP_ROW_DESC:
                 case SQL_ATTR_APP_PARAM_DESC:
-                    statement.set_explicit_descriptor(descriptor_type, descriptor.shared_from_this());
+                    statement.setExplicitDescriptor(descriptor_type, descriptor.shared_from_this());
                     return SQL_SUCCESS;
             }
         }
@@ -282,7 +282,7 @@ SQLRETURN SetStmtAttr(
 
 #define CASE_SET_IN_DESC(STMT_ATTR, DESC_TYPE, DESC_ATTR, VALUE_TYPE) \
             case STMT_ATTR: \
-                statement.get_effective_descriptor(DESC_TYPE).set_attr(DESC_ATTR, reinterpret_cast<VALUE_TYPE>(value)); \
+                statement.getEffectiveDescriptor(DESC_TYPE).setAttr(DESC_ATTR, reinterpret_cast<VALUE_TYPE>(value)); \
                 return SQL_SUCCESS;
 
             CASE_SET_IN_DESC(SQL_ATTR_PARAM_BIND_OFFSET_PTR, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
@@ -301,18 +301,18 @@ SQLRETURN SetStmtAttr(
 #undef CASE_SET_IN_DESC
 
             case SQL_ATTR_NOSCAN:
-                statement.set_attr(SQL_ATTR_NOSCAN, value);
+                statement.setAttr(SQL_ATTR_NOSCAN, value);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_METADATA_ID:
-                statement.set_attr(SQL_ATTR_METADATA_ID, value);
+                statement.setAttr(SQL_ATTR_METADATA_ID, value);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_APP_ROW_DESC:
             case SQL_ATTR_APP_PARAM_DESC:
             case SQL_ATTR_IMP_ROW_DESC:
             case SQL_ATTR_IMP_PARAM_DESC:
-                return set_descriptor_handle(statement, attribute, reinterpret_cast<SQLHANDLE>(value));
+                return setDescriptorHandle(statement, attribute, reinterpret_cast<SQLHANDLE>(value));
 
             case SQL_ATTR_CURSOR_SCROLLABLE:
             case SQL_ATTR_CURSOR_SENSITIVITY:
@@ -357,7 +357,7 @@ SQLRETURN GetStmtAttr(
 
 #define CASE_GET_FROM_DESC(STMT_ATTR, DESC_TYPE, DESC_ATTR, VALUE_TYPE) \
             case STMT_ATTR: \
-                return fillOutputNumber<VALUE_TYPE>(statement.get_effective_descriptor(DESC_TYPE).get_attr_as<VALUE_TYPE>(DESC_ATTR), out_value, out_value_max_length, out_value_length);
+                return fillOutputNumber<VALUE_TYPE>(statement.getEffectiveDescriptor(DESC_TYPE).getAttrAs<VALUE_TYPE>(DESC_ATTR), out_value, out_value_max_length, out_value_length);
 
             CASE_GET_FROM_DESC(SQL_ATTR_PARAM_BIND_OFFSET_PTR, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
             CASE_GET_FROM_DESC(SQL_ATTR_PARAM_BIND_TYPE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
@@ -378,7 +378,7 @@ SQLRETURN GetStmtAttr(
             CASE_FALLTHROUGH(SQL_ATTR_APP_PARAM_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_IMP_ROW_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_IMP_PARAM_DESC)
-                return fillOutputNumber<SQLHANDLE>(statement.get_effective_descriptor(attribute).get_handle(),
+                return fillOutputNumber<SQLHANDLE>(statement.getEffectiveDescriptor(attribute).getHandle(),
                                                    out_value, out_value_max_length, out_value_length);
 
             CASE_NUM(SQL_ATTR_CURSOR_SCROLLABLE, SQLULEN, SQL_NONSCROLLABLE);
@@ -392,22 +392,22 @@ SQLRETURN GetStmtAttr(
 
             CASE_FALLTHROUGH(SQL_ATTR_METADATA_ID)
                 return fillOutputNumber<SQLULEN>(
-                    statement.get_attr_as<SQLULEN>(
+                    statement.getAttrAs<SQLULEN>(
                         SQL_ATTR_METADATA_ID,
-                        statement.get_parent().get_attr_as<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE)
+                        statement.getParent().getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE)
                     ),
                     out_value, out_value_max_length, out_value_length
                 );
 
             CASE_FALLTHROUGH(SQL_ATTR_NOSCAN)
                 return fillOutputNumber<SQLULEN>(
-                    statement.get_attr_as<SQLULEN>(SQL_ATTR_NOSCAN, SQL_NOSCAN_OFF),
+                    statement.getAttrAs<SQLULEN>(SQL_ATTR_NOSCAN, SQL_NOSCAN_OFF),
                     out_value, out_value_max_length, out_value_length
                 );
 
             CASE_NUM(SQL_ATTR_QUERY_TIMEOUT, SQLULEN, 0);
             CASE_NUM(SQL_ATTR_RETRIEVE_DATA, SQLULEN, SQL_RD_ON);
-            CASE_NUM(SQL_ATTR_ROW_NUMBER, SQLULEN, statement.get_current_row_num());
+            CASE_NUM(SQL_ATTR_ROW_NUMBER, SQLULEN, statement.getCurrentRowNum());
             CASE_NUM(SQL_ATTR_USE_BOOKMARKS, SQLULEN, SQL_UB_OFF);
 
             case SQL_ATTR_FETCH_BOOKMARK_PTR:
