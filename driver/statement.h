@@ -97,7 +97,10 @@ public:
 private:
     void requestNextPackOfResultSets(IResultMutatorPtr && mutator);
 
-    ParamBindingInfo get_param_binding_info(std::size_t i);
+    void processEscapeSequences();
+    void extractParametersinfo();
+    std::string buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings);
+    std::vector<ParamBindingInfo> getParamsBindingInfo();
 
     Descriptor & choose(std::shared_ptr<Descriptor> & implicit_desc, std::weak_ptr<Descriptor> & explicit_desc);
 
@@ -119,7 +122,6 @@ private:
     std::weak_ptr<Descriptor> explicit_ipd;
 
     std::string query;
-    std::string prepared_query;
     std::vector<ParamInfo> parameters;
 
     std::unique_ptr<Poco::Net::HTTPResponse> response;

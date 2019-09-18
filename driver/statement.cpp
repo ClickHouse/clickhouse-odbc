@@ -145,14 +145,9 @@ const TypeInfo & Statement::getTypeInfo(const std::string & type_name, const std
 
 void Statement::prepareQuery(const std::string & q) {
     close_cursor();
-
     query = q;
-    if (get_attr_as<SQLULEN>(SQL_ATTR_NOSCAN, SQL_NOSCAN_OFF) == SQL_NOSCAN_ON) {
-        prepared_query = query;
-    }
-    else {
-        prepared_query = replaceEscapeSequences(query);
-    }
+    processEscapeSequences();
+    extractParametersinfo();
 }
 
 void Statement::executeQuery(IResultMutatorPtr && mutator) {
@@ -181,15 +176,22 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
     uri.addQueryParameter("database", connection.getDatabase());
     uri.addQueryParameter("default_format", "ODBCDriver2");
 
+    const auto param_bindings = getParamsBindingInfo();
+
+    if (parameters.size() < param_bindings.size())
+        throw SqlException("COUNT field incorrect", "07002");
+
     for (std::size_t i = 0; i < parameters.size(); ++i) {
         const auto & param_info = parameters[i];
-        const auto binding_info = get_param_binding_info(i);
+        const auto binding_info = param_bindings[i];
 
         if (!is_input_param(binding_info.io_type) || is_stream_param(binding_info.io_type))
             throw std::runtime_error("Unable to extract data from bound param buffer: param IO type is not supported");
 
         uri.addQueryParameter("param_" + param_info.name, read_ready_data_to<std::string>(binding_info));
     }
+
+    const auto prepared_query = buildFinalQuery(param_bindings);
 
     // TODO: set this only after this single query is fully fetched (when output parameter support is added)
     auto * param_set_processed_ptr = get_effective_descriptor(SQL_ATTR_IMP_PARAM_DESC).get_attr_as<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
@@ -236,6 +238,18 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
     result_set.reset(new ResultSet{*in, std::move(mutator)});
 
     ++next_param_set;
+}
+
+void Statement::processEscapeSequences() {
+    if (get_attr_as<SQLULEN>(SQL_ATTR_NOSCAN, SQL_NOSCAN_OFF) != SQL_NOSCAN_ON)
+        query = replaceEscapeSequences(query);
+}
+
+void Statement::extractParametersinfo() {
+}
+
+std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings) {
+    return query;
 }
 
 void Statement::executeQuery(const std::string & q, IResultMutatorPtr && mutator) {
@@ -305,7 +319,6 @@ void Statement::close_cursor() {
     response.reset();
 
     parameters.clear();
-    prepared_query.clear();
     query.clear();
 }
 
@@ -318,27 +331,45 @@ void Statement::reset_param_bindings() {
     get_effective_descriptor(SQL_ATTR_APP_PARAM_DESC).set_attr(SQL_DESC_COUNT, 0);
 }
 
-ParamBindingInfo Statement::get_param_binding_info(std::size_t i) {
-    ParamBindingInfo binding_info;
+std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
+    std::vector<ParamBindingInfo> param_bindings;
 
-    auto & apd = get_effective_descriptor(SQL_ATTR_APP_PARAM_DESC);
-    auto & ipd = get_effective_descriptor(SQL_ATTR_IMP_PARAM_DESC);
+    auto & apd_desc = get_effective_descriptor(SQL_ATTR_APP_PARAM_DESC);
+    auto & ipd_desc = get_effective_descriptor(SQL_ATTR_IMP_PARAM_DESC);
 
-    const auto single_set_struct_size = apd.get_attr_as<SQLULEN>(SQL_DESC_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN);
-    const auto * bind_offset_ptr = apd.get_attr_as<SQLULEN *>(SQL_DESC_BIND_OFFSET_PTR, 0);
+    const auto apd_record_count = apd_desc.get_record_count();
+    const auto ipd_record_count = ipd_desc.get_record_count();
+
+    if (apd_record_count > ipd_record_count)
+        throw SqlException("COUNT field incorrect", "07002");
+
+    if (apd_record_count > 0)
+        param_bindings.reserve(apd_record_count);
+
+    const auto single_set_struct_size = apd_desc.get_attr_as<SQLULEN>(SQL_DESC_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN);
+    const auto * bind_offset_ptr = apd_desc.get_attr_as<SQLULEN *>(SQL_DESC_BIND_OFFSET_PTR, 0);
 
     const auto bind_offset = (bind_offset_ptr ? *bind_offset_ptr : 0);
 
-    const auto * data_ptr = apd.get_attr_as<SQLPOINTER>(SQL_DESC_DATA_PTR, 0);
-    const auto * ind_ptr = apd.get_attr_as<SQLLEN *>(SQL_DESC_INDICATOR_PTR, 0);
+    for (std::size_t i = 0; i < apd_record_count; ++i) {
+        ParamBindingInfo binding_info;
 
-    binding_info.io_type = ipd.get_attr_as<SQLSMALLINT>(SQL_DESC_PARAMETER_TYPE, SQL_PARAM_INPUT);
-    binding_info.type = apd.get_attr_as<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
-    binding_info.sql_type = ipd.get_attr_as<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_UNKNOWN_TYPE);
-    binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + i * single_set_struct_size + bind_offset) : 0);
-    binding_info.value_size_or_indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + i * sizeof(SQLLEN) + bind_offset) : 0);
+        auto & apd_record = apd_desc.get_record(i, SQL_ATTR_APP_PARAM_DESC);
+        auto & ipd_record = ipd_desc.get_record(i, SQL_ATTR_IMP_PARAM_DESC);
 
-    return binding_info;
+        const auto * data_ptr = apd_record.get_attr_as<SQLPOINTER>(SQL_DESC_DATA_PTR, 0);
+        const auto * ind_ptr = apd_record.get_attr_as<SQLLEN *>(SQL_DESC_INDICATOR_PTR, 0);
+
+        binding_info.io_type = ipd_record.get_attr_as<SQLSMALLINT>(SQL_DESC_PARAMETER_TYPE, SQL_PARAM_INPUT);
+        binding_info.type = apd_record.get_attr_as<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
+        binding_info.sql_type = ipd_record.get_attr_as<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_UNKNOWN_TYPE);
+        binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + i * single_set_struct_size + bind_offset) : 0);
+        binding_info.value_size_or_indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + i * sizeof(SQLLEN) + bind_offset) : 0);
+
+        param_bindings.emplace_back(binding_info);
+    }
+
+    return param_bindings;
 }
 
 Descriptor& Statement::get_effective_descriptor(SQLINTEGER type) {

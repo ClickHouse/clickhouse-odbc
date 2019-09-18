@@ -27,7 +27,6 @@ private:
     void normalizeDate(T & date) const;
 };
 
-
 class Row {
 public:
     Row() {}
