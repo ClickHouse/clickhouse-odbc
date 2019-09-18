@@ -48,76 +48,76 @@ namespace {
                 }
             }
 
-            return std::to_string(*(F*)binding_info.value);
-        }
-
-        template <>
-        std::string from<SQLCHAR *>(const BindingInfo& binding_info) {
-            const auto * cstr = reinterpret_cast<const char *>(binding_info.value);
-
-            if (!cstr)
-                return std::string{};
-
-            const auto * sz_ptr = binding_info.value_size;
-            const auto * ind_ptr = binding_info.indicator;
-
-            if (ind_ptr) {
-                switch (*ind_ptr) {
-                    case 0:
-                    case SQL_NTS:
-                        return std::string{cstr};
-
-                    case SQL_NULL_DATA:
-                    case SQL_DEFAULT_PARAM:
-                        return std::string{};
-
-                    default:
-                        if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
-                            throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
-                }
-            }
-
-            if (!sz_ptr || *sz_ptr < 0)
-                std::string{cstr};
-
-            return std::string{cstr, static_cast<std::size_t>(*sz_ptr)};
-        }
-
-        template <>
-        std::string from<SQLWCHAR *>(const BindingInfo& binding_info) {
-            const auto * wcstr = reinterpret_cast<const wchar_t *>(binding_info.value);
-
-            if (!wcstr)
-                return std::string{};
-
-            const auto * sz_ptr = binding_info.value_size;
-            const auto * ind_ptr = binding_info.indicator;
-
-            std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> convert;
-
-            if (ind_ptr) {
-                switch (*ind_ptr) {
-                    case 0:
-                    case SQL_NTS:
-                        return convert.to_bytes(wcstr);
-
-                    case SQL_NULL_DATA:
-                    case SQL_DEFAULT_PARAM:
-                        return std::string{};
-
-                    default:
-                        if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
-                            throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
-                }
-            }
-
-            if (!sz_ptr || *sz_ptr < 0)
-                convert.to_bytes(wcstr);
-
-            const auto* wcstr_last = wcstr + static_cast<std::size_t>(*sz_ptr) / sizeof(decltype(*wcstr));
-            return convert.to_bytes(wcstr, wcstr_last);
+            return std::to_string(*reinterpret_cast<F*>(binding_info.value));
         }
     };
+
+    template <>
+    std::string to<std::string>::from<SQLCHAR *>(const BindingInfo& binding_info) {
+        const auto * cstr = reinterpret_cast<const char *>(binding_info.value);
+
+        if (!cstr)
+            return std::string{};
+
+        const auto * sz_ptr = binding_info.value_size;
+        const auto * ind_ptr = binding_info.indicator;
+
+        if (ind_ptr) {
+            switch (*ind_ptr) {
+                case 0:
+                case SQL_NTS:
+                    return std::string{cstr};
+
+                case SQL_NULL_DATA:
+                case SQL_DEFAULT_PARAM:
+                    return std::string{};
+
+                default:
+                    if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
+                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
+            }
+        }
+
+        if (!sz_ptr || *sz_ptr < 0)
+            std::string{cstr};
+
+        return std::string{cstr, static_cast<std::size_t>(*sz_ptr)};
+    }
+
+    template <>
+    std::string to<std::string>::from<SQLWCHAR *>(const BindingInfo& binding_info) {
+        const auto * wcstr = reinterpret_cast<const wchar_t *>(binding_info.value);
+
+        if (!wcstr)
+            return std::string{};
+
+        const auto * sz_ptr = binding_info.value_size;
+        const auto * ind_ptr = binding_info.indicator;
+
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> convert;
+
+        if (ind_ptr) {
+            switch (*ind_ptr) {
+                case 0:
+                case SQL_NTS:
+                    return convert.to_bytes(wcstr);
+
+                case SQL_NULL_DATA:
+                case SQL_DEFAULT_PARAM:
+                    return std::string{};
+
+                default:
+                    if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
+                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
+            }
+        }
+
+        if (!sz_ptr || *sz_ptr < 0)
+            convert.to_bytes(wcstr);
+
+        const auto* wcstr_last = wcstr + static_cast<std::size_t>(*sz_ptr) / sizeof(decltype(*wcstr));
+        return convert.to_bytes(wcstr, wcstr_last);
+    }
 
     template <typename T>
     T read_ready_data_to(const BindingInfo& binding_info) {

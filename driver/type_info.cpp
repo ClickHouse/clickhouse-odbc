@@ -1,5 +1,7 @@
 #include "type_info.h"
 
+#include <stdexcept>
+
 SQLSMALLINT convert_sql_type_to_C_type(SQLSMALLINT sql_type) noexcept {
     switch (sql_type) {
         case SQL_CHAR:
@@ -186,7 +188,7 @@ bool interval_code_has_second_component(SQLSMALLINT code) noexcept {
     return false;
 }
 
-bool is_input_param(SQLSMALLINT param_io_type) {
+bool is_input_param(SQLSMALLINT param_io_type) noexcept {
     switch (param_io_type) {
         case SQL_PARAM_INPUT:
         case SQL_PARAM_INPUT_OUTPUT:
@@ -197,7 +199,7 @@ bool is_input_param(SQLSMALLINT param_io_type) {
     return false;
 }
 
-bool is_output_param(SQLSMALLINT param_io_type) {
+bool is_output_param(SQLSMALLINT param_io_type) noexcept {
     switch (param_io_type) {
         case SQL_PARAM_OUTPUT:
         case SQL_PARAM_INPUT_OUTPUT:
@@ -209,7 +211,7 @@ bool is_output_param(SQLSMALLINT param_io_type) {
     return false;
 }
 
-bool is_stream_param(SQLSMALLINT param_io_type) {
+bool is_stream_param(SQLSMALLINT param_io_type) noexcept {
     switch (param_io_type) {
         case SQL_PARAM_OUTPUT_STREAM:
         case SQL_PARAM_INPUT_OUTPUT_STREAM:
