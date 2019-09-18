@@ -60,26 +60,26 @@ class Connection;
 class Descriptor;
 class Statement;
 
-template <typename T> constexpr auto & get_object_type_name() { return "HANDLE"; }
-template <> constexpr auto & get_object_type_name<Environment>() { return "ENV"; }
-template <> constexpr auto & get_object_type_name<Connection>() { return "DBC"; }
-template <> constexpr auto & get_object_type_name<Descriptor>() { return "DESC"; }
-template <> constexpr auto & get_object_type_name<Statement>() { return "STMT"; }
+template <typename T> constexpr auto & getObjectTypeName() { return "HANDLE"; }
+template <> constexpr auto & getObjectTypeName<Environment>() { return "ENV"; }
+template <> constexpr auto & getObjectTypeName<Connection>() { return "DBC"; }
+template <> constexpr auto & getObjectTypeName<Descriptor>() { return "DESC"; }
+template <> constexpr auto & getObjectTypeName<Statement>() { return "STMT"; }
 
-template <typename T> constexpr int get_object_handle_type() { return 0; }
-template <> constexpr int get_object_handle_type<Environment>() { return SQL_HANDLE_ENV; }
-template <> constexpr int get_object_handle_type<Connection>() { return SQL_HANDLE_DBC; }
-template <> constexpr int get_object_handle_type<Descriptor>() { return SQL_HANDLE_DESC; }
-template <> constexpr int get_object_handle_type<Statement>() { return SQL_HANDLE_STMT; }
+template <typename T> constexpr int getObjectHandleType() { return 0; }
+template <> constexpr int getObjectHandleType<Environment>() { return SQL_HANDLE_ENV; }
+template <> constexpr int getObjectHandleType<Connection>() { return SQL_HANDLE_DBC; }
+template <> constexpr int getObjectHandleType<Descriptor>() { return SQL_HANDLE_DESC; }
+template <> constexpr int getObjectHandleType<Statement>() { return SQL_HANDLE_STMT; }
 
 template <typename T>
-inline std::string to_hex_string(T n) {
+inline std::string toHexString(T n) {
     std::stringstream stream;
     stream << "0x" << std::setfill('0') << std::setw(sizeof(T) * 2) << std::hex << n;
     return stream.str();
 }
 
-inline auto get_pid() {
+inline auto getPID() {
 #ifdef _win_
     return GetCurrentProcessId();
 #else
@@ -87,11 +87,11 @@ inline auto get_pid() {
 #endif
 }
 
-inline auto get_tid() {
+inline auto getTID() {
     return std::this_thread::get_id();
 }
 
-inline std::string to_upper_copy(const std::string & str) {
+inline std::string toUpperCopy(const std::string & str) {
     std::string ret{str};
     std::transform(ret.begin(), ret.end(), ret.begin(), ::toupper);
     return ret;
@@ -102,7 +102,7 @@ template<
     class Traits = std::char_traits<CharT>,
     class Allocator = std::allocator<CharT>
 >
-inline void hex_print(std::ostream &stream, const std::basic_string<CharT, Traits, Allocator>& s)
+inline void hexPrint(std::ostream &stream, const std::basic_string<CharT, Traits, Allocator>& s)
 {
     stream << "[" << s.size() << "] " << std::hex << std::setfill('0');
     for(unsigned char c : s)
