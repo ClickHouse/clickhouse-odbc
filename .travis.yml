@@ -121,7 +121,7 @@ install:
 
 before_script:
   # nanodbc for more tests
-  - cd /contrib; git clone https://github.com/nanodbc/nanodbc; cd ..
+  - cd ./contrib; git clone https://github.com/nanodbc/nanodbc; cd ..
   - ls -lah . ./contrib
 
 script:
@@ -134,6 +134,7 @@ script:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then echo "Unable to test on OSX since docker is not supported on Travis OSX agents."; exit ${TRAVIS_TEST_RESULT}; fi
   # Setting up test prerequisites: docker, pyodbc, odbc module for perl, isql (or iusql or other)
   - sudo apt install perl libdbi-perl libdbd-odbc-perl python-pip unixodbc unixodbc-dev python-dev
+  # Using absolute path to compiler to fix setup.py issue of pyodbc: unable to execute 'clang': No such file or directory
   - sudo CC=`which $CC` CXX=`which $CXX` pip install pyodbc -V --disable-pip-version-check
   # To simplify things a bit, start ClickHouse server in docker
   - echo "Clickhouse image ${CLICKHOUSE_SERVER_IMAGE}";
