@@ -4,13 +4,13 @@ add_executable(clickhouse-odbc-ut
     main.cpp
     escape_sequences_ut.cpp
     lexer_ut.cpp
-    AttributeContainer_test.cpp
+#    AttributeContainer_test.cpp
 )
 
 target_link_libraries(clickhouse-odbc-ut
     PRIVATE
     clickhouse-odbc-escaping
-    clickhouse-odbc_static
+#    clickhouse-odbc_static
     gtest-lib
     Threads::Threads
 )

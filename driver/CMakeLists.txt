@@ -40,8 +40,7 @@ message (STATUS "${libname}: UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/config_cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/config_cmake${_config_add}.h)
 
-# In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
-add_library(${libname}_static STATIC
+add_library(${libname} SHARED
     attr.cpp
     attributes.cpp
     config.cpp
@@ -52,6 +51,7 @@ add_library(${libname}_static STATIC
     environment.cpp
     handles.cpp
     info.cpp
+    odbc.cpp
     object.cpp
     read_helpers.cpp
     result_set.cpp
@@ -83,35 +83,31 @@ add_library(${libname}_static STATIC
     ${WIN_SOURCES}
 )
 
-add_library(${libname} SHARED
-    odbc.cpp
-)
-
 
 if (UNICODE)
-    target_compile_definitions(${libname}_static PUBLIC -DUNICODE=1 -D_UNICODE=1)
+    target_compile_definitions(${libname} PUBLIC -DUNICODE=1 -D_UNICODE=1)
     # Mode for unixodbc for working with wchar as in iodbc
     if (SQL_WCHART_CONVERT)
-        target_compile_definitions(${libname}_static PUBLIC -DSQL_WCHART_CONVERT=1)
+        target_compile_definitions(${libname} PUBLIC -DSQL_WCHART_CONVERT=1)
     endif ()
     #if(ODBC_IODBC)
     #    target_compile_definitions(${libname} PUBLIC -DSQL_NOUNICODEMAP=1)
     #endif()
 endif ()
 
-target_compile_definitions (${libname}_static PUBLIC "-DCMAKE_BUILD=1")
+target_compile_definitions (${libname} PRIVATE "-DCMAKE_BUILD=1")
 
-target_include_directories (${libname}_static PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories (${libname} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 #if (NOT USE_INTERNAL_POCO_LIBRARY)
-    target_include_directories (${libname}_static PRIVATE ${Poco_INCLUDE_DIRS})
+    target_include_directories (${libname} PRIVATE ${Poco_INCLUDE_DIRS})
 #endif()
 
 if (NOT WIN32)
-    target_include_directories (${libname}_static PUBLIC ${ODBC_INCLUDE_DIRECTORIES})
+    target_include_directories (${libname} PRIVATE ${ODBC_INCLUDE_DIRECTORIES})
 endif()
 
-target_link_libraries(${libname} PRIVATE ${libname}_static clickhouse-odbc-escaping)
+target_link_libraries(${libname} PRIVATE clickhouse-odbc-escaping)
 
 if(USE_SSL)
     target_link_libraries(${libname} PRIVATE ${Poco_NetSSL_LIBRARY} ${Poco_Crypto_LIBRARY} ${Poco_Util_LIBRARY})
