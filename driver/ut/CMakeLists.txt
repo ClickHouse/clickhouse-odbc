@@ -7,12 +7,18 @@ add_executable(clickhouse-odbc-ut
 #    AttributeContainer_test.cpp
 )
 
+target_include_directories(clickhouse-odbc-ut
+    PRIVATE
+    ${ODBC_INCLUDE_DIRECTORIES}
+)
+
 target_link_libraries(clickhouse-odbc-ut
     PRIVATE
     clickhouse-odbc-escaping
 #    clickhouse-odbc_static
     gtest-lib
     Threads::Threads
+    ${ODBC_LIBRARIES}
 )
 
 add_test(NAME "clickhouse-odbc-ut" COMMAND "clickhouse-odbc-ut")
