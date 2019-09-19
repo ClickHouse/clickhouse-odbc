@@ -420,11 +420,14 @@ void Statement::closeCursor() {
 
 void Statement::resetColBindings() {
     bindings.clear();
-//  getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC).setAttr(SQL_DESC_COUNT, 0);
+
+    getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC).setAttr(SQL_DESC_COUNT, 0);
+    getEffectiveDescriptor(SQL_ATTR_IMP_ROW_DESC).setAttr(SQL_DESC_COUNT, 0);
 }
 
 void Statement::resetParamBindings() {
     getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).setAttr(SQL_DESC_COUNT, 0);
+    getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).setAttr(SQL_DESC_COUNT, 0);
 }
 
 std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
