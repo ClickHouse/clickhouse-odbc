@@ -16,7 +16,7 @@ bool AttributeContainer::hasAttrString(int attr) const {
     return false;
 }
 
-bool AttributeContainer::has_attr(int attr) const {
+bool AttributeContainer::hasAttr(int attr) const {
     return (hasAttrInteger(attr) || hasAttrString(attr));
 }
 

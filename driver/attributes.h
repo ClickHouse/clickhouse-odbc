@@ -25,7 +25,7 @@ public:
 
     bool hasAttrInteger(int attr) const;
     bool hasAttrString(int attr) const;
-    bool has_attr(int attr) const;
+    bool hasAttr(int attr) const;
 
     template <typename T> inline bool hasAttrAs(int attr) const;
 
