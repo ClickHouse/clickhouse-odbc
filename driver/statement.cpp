@@ -263,6 +263,8 @@ void Statement::processEscapeSequences() {
 }
 
 void Statement::extractParametersinfo() {
+    getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).setAttr(SQL_DESC_COUNT, 0);
+
     // TODO: implement this all in an upgraded Lexer.
 
     parameters.clear();
@@ -322,6 +324,8 @@ void Statement::extractParametersinfo() {
             }
         }
     }
+
+    getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).setAttr(SQL_DESC_COUNT, parameters.size());
 }
 
 std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings) const {
