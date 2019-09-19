@@ -6,7 +6,7 @@ if (WIN32)
     #TODO: set(WIN_SOURCES "win/export.def")
 endif()
 
-function(makelib libname UNICODE)
+function(declare_odbc_lib_targets libname UNICODE)
 
 #option (UNICODE "Enable unicode" 0)
 if (UNICODE)
@@ -40,8 +40,8 @@ message (STATUS "${libname}: UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/config_cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/config_cmake${_config_add}.h)
 
-add_library(${libname} SHARED
-    attr.cpp
+# In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
+add_library(${libname}_static STATIC
     attributes.cpp
     config.cpp
     connection.cpp
@@ -49,9 +49,6 @@ add_library(${libname} SHARED
     diagnostics.cpp
     driver.cpp
     environment.cpp
-    handles.cpp
-    info.cpp
-    odbc.cpp
     object.cpp
     read_helpers.cpp
     result_set.cpp
@@ -83,63 +80,71 @@ add_library(${libname} SHARED
     ${WIN_SOURCES}
 )
 
+add_library(${libname} SHARED
+    odbc.cpp
+    handles.cpp
+    attr.cpp
+    info.cpp
+)
 
 if (UNICODE)
-    target_compile_definitions(${libname} PUBLIC -DUNICODE=1 -D_UNICODE=1)
+    target_compile_definitions(${libname}_static
+        PUBLIC UNICODE=1
+        PUBLIC _UNICODE=1
+    )
+
     # Mode for unixodbc for working with wchar as in iodbc
     if (SQL_WCHART_CONVERT)
-        target_compile_definitions(${libname} PUBLIC -DSQL_WCHART_CONVERT=1)
+        target_compile_definitions(${libname}_static PUBLIC SQL_WCHART_CONVERT=1)
     endif ()
+
     #if(ODBC_IODBC)
-    #    target_compile_definitions(${libname} PUBLIC -DSQL_NOUNICODEMAP=1)
+    #    target_compile_definitions(${libname}_static PUBLIC SQL_NOUNICODEMAP=1)
     #endif()
 endif ()
 
-target_compile_definitions (${libname} PRIVATE "-DCMAKE_BUILD=1")
+target_compile_definitions (${libname}_static PUBLIC CMAKE_BUILD=1)
 
-target_include_directories (${libname} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories (${libname}_static PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories (${libname}_static PUBLIC ${Poco_INCLUDE_DIRS})
+target_include_directories (${libname}_static PUBLIC ${ODBC_INCLUDE_DIRECTORIES})
 
-#if (NOT USE_INTERNAL_POCO_LIBRARY)
-    target_include_directories (${libname} PRIVATE ${Poco_INCLUDE_DIRS})
-#endif()
-
-if (NOT WIN32)
-    target_include_directories (${libname} PRIVATE ${ODBC_INCLUDE_DIRECTORIES})
-endif()
-
-target_link_libraries(${libname} PRIVATE clickhouse-odbc-escaping)
+target_link_libraries(${libname}_static PUBLIC clickhouse-odbc-escaping)
 
 if(USE_SSL)
-    target_link_libraries(${libname} PRIVATE ${Poco_NetSSL_LIBRARY} ${Poco_Crypto_LIBRARY} ${Poco_Util_LIBRARY})
-    target_include_directories (${libname} PRIVATE ${OPENSSL_INCLUDE_DIR})
+    target_link_libraries(${libname}_static PUBLIC ${Poco_NetSSL_LIBRARY} ${Poco_Crypto_LIBRARY})
+    target_include_directories (${libname}_static PUBLIC ${OPENSSL_INCLUDE_DIR})
 endif()
 
-target_link_libraries(${libname} PRIVATE
-    ${Poco_Net_LIBRARY}
-    ${Poco_Foundation_LIBRARY}
-    ${ODBC_LIBRARIES}
+target_link_libraries(${libname}_static
+    PUBLIC ${Poco_Net_LIBRARY}
+    PUBLIC ${Poco_Foundation_LIBRARY}
+    PUBLIC ${Poco_Util_LIBRARY}
+    PUBLIC ${ODBC_LIBRARIES}
 )
 
 if(NOT APPLE AND NOT WIN32)
-    target_link_libraries(${libname} PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script")
+    target_link_libraries(${libname}_static PUBLIC "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script")
 endif()
 
 if(WIN32)
-  target_link_libraries(${libname} PRIVATE clickhouse-odbc-win ws2_32 Iphlpapi legacy_stdio_definitions)
+    target_link_libraries(${libname}_static PUBLIC clickhouse-odbc-win ws2_32 Iphlpapi legacy_stdio_definitions)
 endif()
+
+if(ARCH_LINUX)
+    target_link_libraries(${libname}_static PUBLIC Threads::Threads)
+endif()
+
+target_link_libraries(${libname} PRIVATE ${libname}_static)
 
 if(NOT WIN32)
     install(TARGETS ${libname} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/odbc)
 endif()
 
-if(ARCH_LINUX)
-    target_link_libraries(${libname} PRIVATE Threads::Threads)
-endif()
-
 endfunction()
 
-makelib(clickhouse-odbc 0)
-makelib(clickhouse-odbcw 1)
+declare_odbc_lib_targets(clickhouse-odbc 0)
+declare_odbc_lib_targets(clickhouse-odbcw 1)
 
 set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
 set_target_properties(clickhouse-odbcw PROPERTIES OUTPUT_NAME "clickhouseodbcw")
