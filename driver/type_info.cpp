@@ -192,7 +192,9 @@ bool isInputParam(SQLSMALLINT param_io_type) noexcept {
     switch (param_io_type) {
         case SQL_PARAM_INPUT:
         case SQL_PARAM_INPUT_OUTPUT:
+#if (ODBCVER >= 0x0380)
         case SQL_PARAM_INPUT_OUTPUT_STREAM:
+#endif
             return true;
     }
 
@@ -203,8 +205,10 @@ bool isOutputParam(SQLSMALLINT param_io_type) noexcept {
     switch (param_io_type) {
         case SQL_PARAM_OUTPUT:
         case SQL_PARAM_INPUT_OUTPUT:
+#if (ODBCVER >= 0x0380)
         case SQL_PARAM_OUTPUT_STREAM:
         case SQL_PARAM_INPUT_OUTPUT_STREAM:
+#endif
             return true;
     }
 
@@ -212,11 +216,13 @@ bool isOutputParam(SQLSMALLINT param_io_type) noexcept {
 }
 
 bool isStreamParam(SQLSMALLINT param_io_type) noexcept {
+#if (ODBCVER >= 0x0380)
     switch (param_io_type) {
         case SQL_PARAM_OUTPUT_STREAM:
         case SQL_PARAM_INPUT_OUTPUT_STREAM:
             return true;
     }
+#endif
 
     return false;
 }
