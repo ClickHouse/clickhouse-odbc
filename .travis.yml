@@ -138,7 +138,8 @@ script:
   - sudo apt install perl libdbi-perl libdbd-odbc-perl python-pip unixodbc unixodbc-dev python-dev
   - sudo CC=`which $CC` CXX=`which $CXX` pip install pyodbc -V --disable-pip-version-check
   # To simplify things a bit, start ClickHouse server in docker
-  - echo "Clickhouse image ${CLICKHOUSE_SERVER_IMAGE}"; docker pull ${CLICKHOUSE_SERVER_IMAGE}; fi
+  - echo "Clickhouse image ${CLICKHOUSE_SERVER_IMAGE}";
+  - docker pull ${CLICKHOUSE_SERVER_IMAGE}
   - CLICKHOUSE_SERVER_CONTAINER=$(docker run  -d ${CLICKHOUSE_SERVER_IMAGE})
   - CLICKHOUSE_SERVER_IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' ${CLICKHOUSE_SERVER_CONTAINER})
   - docker ps -a
