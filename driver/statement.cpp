@@ -124,17 +124,20 @@ namespace {
         switch (binding_info.type) {
             case SQL_C_CHAR:        return to<T>::template from<SQLCHAR *    >(binding_info);
             case SQL_C_WCHAR:       return to<T>::template from<SQLWCHAR *   >(binding_info);
-            case SQL_C_SSHORT:      return to<T>::template from<SQLSMALLINT  >(binding_info);
-            case SQL_C_USHORT:      return to<T>::template from<SQLUSMALLINT >(binding_info);
-            case SQL_C_SLONG:       return to<T>::template from<SQLINTEGER   >(binding_info);
-            case SQL_C_ULONG:       return to<T>::template from<SQLUINTEGER  >(binding_info);
-            case SQL_C_FLOAT:       return to<T>::template from<SQLREAL      >(binding_info);
-            case SQL_C_DOUBLE:      return to<T>::template from<SQLDOUBLE    >(binding_info);
             case SQL_C_BIT:         return to<T>::template from<SQLCHAR      >(binding_info);
+            case SQL_C_TINYINT:     return to<T>::template from<SQLSCHAR     >(binding_info);
             case SQL_C_STINYINT:    return to<T>::template from<SQLSCHAR     >(binding_info);
             case SQL_C_UTINYINT:    return to<T>::template from<SQLCHAR      >(binding_info);
+            case SQL_C_SHORT:       return to<T>::template from<SQLSMALLINT  >(binding_info);
+            case SQL_C_SSHORT:      return to<T>::template from<SQLSMALLINT  >(binding_info);
+            case SQL_C_USHORT:      return to<T>::template from<SQLUSMALLINT >(binding_info);
+            case SQL_C_LONG:        return to<T>::template from<SQLINTEGER   >(binding_info);
+            case SQL_C_SLONG:       return to<T>::template from<SQLINTEGER   >(binding_info);
+            case SQL_C_ULONG:       return to<T>::template from<SQLUINTEGER  >(binding_info);
             case SQL_C_SBIGINT:     return to<T>::template from<SQLBIGINT    >(binding_info);
             case SQL_C_UBIGINT:     return to<T>::template from<SQLUBIGINT   >(binding_info);
+            case SQL_C_FLOAT:       return to<T>::template from<SQLREAL      >(binding_info);
+            case SQL_C_DOUBLE:      return to<T>::template from<SQLDOUBLE    >(binding_info);
             case SQL_C_BINARY:      return to<T>::template from<SQLCHAR *    >(binding_info);
 //          case SQL_C_BOOKMARK:    return to<T>::template from<BOOKMARK     >(binding_info);
 //          case SQL_C_VARBOOKMARK: return to<T>::template from<SQLCHAR *    >(binding_info);
