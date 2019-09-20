@@ -13,11 +13,14 @@
 # Should not have any errors:
 # ./test.sh | grep -i error
 
-DSN=${DSN=clickhouse_localhost}
+#using trap to preserve error exit code
+#trap "printf '\n\n\nLast log:\n'; tail -n200 /tmp/clickhouse-odbc.log" EXIT
+
+DSN="${DSN=clickhouse_localhost}"
 [ -z $RUNNER ] && RUNNER=`which isql` && [ -n $RUNNER ] && RUNNER_PARAMS0="-v -b"
 [ -z $RUNNER ] && RUNNER=`which iusql` && [ -n $RUNNER ] && RUNNER_PARAMS0="-v -b"
-[ -z $RUNNER ] && RUNNER=`which iodbctestw`
-[ -z $RUNNER ] && RUNNER=`which iodbctest`
+[ -z $RUNNER ] && RUNNER=`which iodbctestw` && DSN="DSN=${DSN}"
+[ -z $RUNNER ] && RUNNER=`which iodbctest` && DSN="DSN=${DSN}"
 
 function q {
     echo "Asking [$*]"
@@ -27,6 +30,7 @@ function q {
 }
 
 echo "Using: $RUNNER $DSN $RUNNER_PARAMS0 $RUNNER_PARAMS"
+[ -z $RUNNER ] && echo "ERROR: unable to find neither of isql, iusql, iodbctestw, nor iodbctest. Please install missing packages" && exit -1
 
 q "SELECT * FROM system.build_options;"
 q "CREATE DATABASE IF NOT EXISTS test;"
@@ -181,7 +185,3 @@ q "drop table test.lc;"
 
 
 # q "SELECT number, toString(number), toDate(number) FROM system.numbers LIMIT 10000;"
-
-echo "\n\n\nLast log:\n"
-# cat /tmp/clickhouse-odbc-stderr.$USER
-tail -n200 /tmp/clickhouse-odbc.log
