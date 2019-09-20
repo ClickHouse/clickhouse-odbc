@@ -147,7 +147,7 @@ script:
   - docker stats -a --no-stream
   # TODO: think about paths on windows
   - ODBC_DRIVER_PATH=$(realpath driver/libclickhouseodbc.so)
-  - ODBC_DRIVERW_PATH=$(realpath driver/libclickhouseodbc.so)
+  - ODBC_DRIVERW_PATH=$(realpath driver/libclickhouseodbcw.so)
   - echo "Compose ODBC config"
   - |
     cat > ~/.odbc.ini <<-EOF
