@@ -334,7 +334,7 @@ void Statement::extractParametersinfo() {
 std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings) const {
     auto prepared_query = query;
 
-    if (parameters.size() < param_bindings.size())
+    if (param_bindings.size() < parameters.size())
         throw SqlException("COUNT field incorrect", "07002");
 
     for (std::size_t i = 0; i < parameters.size(); ++i) {
@@ -446,19 +446,17 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
     const auto apd_record_count = apd_desc.getRecordCount();
     const auto ipd_record_count = ipd_desc.getRecordCount();
 
-    if (apd_record_count > ipd_record_count)
+    if (apd_record_count < ipd_record_count)
         throw SqlException("COUNT field incorrect", "07002");
 
-    if (apd_record_count > 0)
-        param_bindings.reserve(apd_record_count);
+    if (ipd_record_count > 0)
+        param_bindings.reserve(ipd_record_count);
 
     const auto single_set_struct_size = apd_desc.getAttrAs<SQLULEN>(SQL_DESC_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN);
     const auto * bind_offset_ptr = apd_desc.getAttrAs<SQLULEN *>(SQL_DESC_BIND_OFFSET_PTR, 0);
     const auto bind_offset = (bind_offset_ptr ? *bind_offset_ptr : 0);
 
-    param_bindings.reserve(apd_record_count);
-
-    for (std::size_t i = 1; i <= apd_record_count; ++i) {
+    for (std::size_t i = 1; i <= ipd_record_count; ++i) {
         ParamBindingInfo binding_info;
 
         auto & apd_record = apd_desc.getRecord(i, SQL_ATTR_APP_PARAM_DESC);
@@ -472,9 +470,9 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
         binding_info.type = apd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
         binding_info.sql_type = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_UNKNOWN_TYPE);
         binding_info.value_max_size = ipd_record.getAttrAs<SQLULEN>(SQL_DESC_LENGTH, 0); // TODO: or SQL_DESC_OCTET_LENGTH ?
-        binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + i * single_set_struct_size + bind_offset) : 0);
-        binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + i * sizeof(SQLLEN) + bind_offset) : 0);
-        binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + i * sizeof(SQLLEN) + bind_offset) : 0);
+        binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + (i - 1) * single_set_struct_size + bind_offset) : 0);
+        binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + (i - 1) * sizeof(SQLLEN) + bind_offset) : 0);
+        binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + (i - 1) * sizeof(SQLLEN) + bind_offset) : 0);
 
         param_bindings.emplace_back(binding_info);
     }
