@@ -15,8 +15,10 @@ SQLSMALLINT convertSQLTypeToCType(SQLSMALLINT sql_type) noexcept {
             return SQL_C_WCHAR;
 
         case SQL_DECIMAL:
-        case SQL_NUMERIC:
             return SQL_C_CHAR;
+
+        case SQL_NUMERIC:
+            return SQL_C_NUMERIC;
 
         case SQL_BIT:                      return SQL_C_BIT;
         case SQL_TINYINT:                  return SQL_C_TINYINT;

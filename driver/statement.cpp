@@ -299,7 +299,6 @@ namespace {
 //          case SQL_C_BOOKMARK:       return to<T>::template from< BOOKMARK             >(binding_info);
 //          case SQL_C_VARBOOKMARK:    return to<T>::template from< SQLCHAR *            >(binding_info);
 
-//          case SQL_DECIMAL:          return to<T>::template from< SQLDECIMAL           >(binding_info);
 //          case SQL_C_NUMERIC:        return to<T>::template from< SQL_NUMERIC_STRUCT   >(binding_info);
 
             case SQL_C_DATE:
