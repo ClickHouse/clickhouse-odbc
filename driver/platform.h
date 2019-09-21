@@ -1,8 +1,15 @@
 #pragma once
 
-//#if __has_include("config_cmake.h") // requre c++17
+#if defined(UNICODE) && UNICODE == 0
+#   undef UNICODE
+#endif
+
 #if CMAKE_BUILD
-#    include "config_cmake.h"
+#    if defined(UNICODE)
+#        include "config_cmakew.h"
+#    else
+#        include "config_cmake.h"
+#    endif
 #endif
 
 #if defined(__linux__)
