@@ -11,6 +11,8 @@
 #include <Poco/UUID.h>
 #include <Poco/UUIDGenerator.h>
 
+#include <cstdio>
+
 namespace {
 
     template <typename T>
@@ -119,28 +121,195 @@ namespace {
         return convert.to_bytes(wcstr, wcstr_last);
     }
 
+    template <>
+    std::string to<std::string>::from<SQLGUID>(const BindingInfo& binding_info) {
+        if (!binding_info.value)
+            return std::string{};
+
+        const auto * ind_ptr = binding_info.indicator;
+
+        if (ind_ptr) {
+            switch (*ind_ptr) {
+                case 0:
+                case SQL_NTS:
+                    break;
+
+                case SQL_NULL_DATA:
+                    return std::string{};
+
+                case SQL_DEFAULT_PARAM:
+                    return std::string{"00000000-0000-0000-0000-000000000000"};
+
+                default:
+                    if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
+                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
+            }
+        }
+
+        const auto & guid = *reinterpret_cast<SQLGUID*>(binding_info.value);
+
+        char buf[256];
+        const auto written = std::snprintf(buf, lengthof(buf), "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+            guid.Data1, guid.Data2, guid.Data3,
+            guid.Data4[0], guid.Data4[1], guid.Data4[2], guid.Data4[3],
+            guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]
+        );
+
+        if (written < 36 || written >= lengthof(buf))
+            buf[0] = '\0';
+
+        return std::string{buf};
+    }
+
+    template <>
+    std::string to<std::string>::from<SQL_DATE_STRUCT>(const BindingInfo& binding_info) {
+        if (!binding_info.value)
+            return std::string{};
+
+        const auto * ind_ptr = binding_info.indicator;
+
+        if (ind_ptr) {
+            switch (*ind_ptr) {
+                case 0:
+                case SQL_NTS:
+                    break;
+
+                case SQL_NULL_DATA:
+                    return std::string{};
+
+                case SQL_DEFAULT_PARAM:
+                    return std::string{"0000-00-00"};
+
+                default:
+                    if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
+                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
+            }
+        }
+
+        const auto & date = *reinterpret_cast<SQL_DATE_STRUCT*>(binding_info.value);
+
+        char buf[256];
+        const auto written = std::snprintf(buf, lengthof(buf), "%04d-%02d-%02d", (int)date.year, (int)date.month, (int)date.day);
+        if (written < 10 || written >= lengthof(buf))
+            buf[0] = '\0';
+
+        return std::string{buf};
+    }
+
+    template <>
+    std::string to<std::string>::from<SQL_TIME_STRUCT>(const BindingInfo& binding_info) {
+        if (!binding_info.value)
+            return std::string{};
+
+        const auto * ind_ptr = binding_info.indicator;
+
+        if (ind_ptr) {
+            switch (*ind_ptr) {
+                case 0:
+                case SQL_NTS:
+                    break;
+
+                case SQL_NULL_DATA:
+                    return std::string{};
+
+                case SQL_DEFAULT_PARAM:
+                    return std::string{"00:00:00"};
+
+                default:
+                    if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
+                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
+            }
+        }
+
+        const auto & time = *reinterpret_cast<SQL_TIME_STRUCT*>(binding_info.value);
+
+        char buf[256];
+        const auto written = std::snprintf(buf, lengthof(buf), "%02d:%02d:%02d", (int)time.hour, (int)time.minute, (int)time.second);
+        if (written < 8 || written >= lengthof(buf))
+            buf[0] = '\0';
+
+        return std::string{buf};
+    }
+
+    template <>
+    std::string to<std::string>::from<SQL_TIMESTAMP_STRUCT>(const BindingInfo& binding_info) {
+        if (!binding_info.value)
+            return std::string{};
+
+        const auto * ind_ptr = binding_info.indicator;
+
+        if (ind_ptr) {
+            switch (*ind_ptr) {
+                case 0:
+                case SQL_NTS:
+                    break;
+
+                case SQL_NULL_DATA:
+                    return std::string{};
+
+                case SQL_DEFAULT_PARAM:
+                    return std::string{"0000-00-00 00:00:00"};
+
+                default:
+                    if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
+                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
+            }
+        }
+
+        const auto & timestamp = *reinterpret_cast<SQL_TIMESTAMP_STRUCT*>(binding_info.value);
+
+        char buf[256];
+        const auto written = std::snprintf(buf, lengthof(buf), "%04d-%02d-%02d %02d:%02d:%02d",
+                (int)timestamp.year, (int)timestamp.month, (int)timestamp.day,
+                (int)timestamp.hour, (int)timestamp.minute, (int)timestamp.second
+        );
+        if (written < 8 || written >= lengthof(buf)) {
+            buf[0] = '\0';
+        }
+        else if (timestamp.fraction > 0 && timestamp.fraction < 1000000000) {
+            const auto written_more = std::snprintf(buf + written, lengthof(buf) - written, ".%09d", (int)timestamp.fraction);
+            if (written_more < 2 || written_more >= (lengthof(buf) - written))
+                buf[written] = '\0';
+        }
+
+        return std::string{buf};
+    }
+
     template <typename T>
     T readReadyDataTo(const BindingInfo& binding_info) {
         switch (binding_info.type) {
-            case SQL_C_CHAR:        return to<T>::template from<SQLCHAR *    >(binding_info);
-            case SQL_C_WCHAR:       return to<T>::template from<SQLWCHAR *   >(binding_info);
-            case SQL_C_BIT:         return to<T>::template from<SQLCHAR      >(binding_info);
-            case SQL_C_TINYINT:     return to<T>::template from<SQLSCHAR     >(binding_info);
-            case SQL_C_STINYINT:    return to<T>::template from<SQLSCHAR     >(binding_info);
-            case SQL_C_UTINYINT:    return to<T>::template from<SQLCHAR      >(binding_info);
-            case SQL_C_SHORT:       return to<T>::template from<SQLSMALLINT  >(binding_info);
-            case SQL_C_SSHORT:      return to<T>::template from<SQLSMALLINT  >(binding_info);
-            case SQL_C_USHORT:      return to<T>::template from<SQLUSMALLINT >(binding_info);
-            case SQL_C_LONG:        return to<T>::template from<SQLINTEGER   >(binding_info);
-            case SQL_C_SLONG:       return to<T>::template from<SQLINTEGER   >(binding_info);
-            case SQL_C_ULONG:       return to<T>::template from<SQLUINTEGER  >(binding_info);
-            case SQL_C_SBIGINT:     return to<T>::template from<SQLBIGINT    >(binding_info);
-            case SQL_C_UBIGINT:     return to<T>::template from<SQLUBIGINT   >(binding_info);
-            case SQL_C_FLOAT:       return to<T>::template from<SQLREAL      >(binding_info);
-            case SQL_C_DOUBLE:      return to<T>::template from<SQLDOUBLE    >(binding_info);
-            case SQL_C_BINARY:      return to<T>::template from<SQLCHAR *    >(binding_info);
-//          case SQL_C_BOOKMARK:    return to<T>::template from<BOOKMARK     >(binding_info);
-//          case SQL_C_VARBOOKMARK: return to<T>::template from<SQLCHAR *    >(binding_info);
+            case SQL_C_CHAR:           return to<T>::template from< SQLCHAR *            >(binding_info);
+            case SQL_C_WCHAR:          return to<T>::template from< SQLWCHAR *           >(binding_info);
+            case SQL_C_BIT:            return to<T>::template from< SQLCHAR              >(binding_info);
+            case SQL_C_TINYINT:        return to<T>::template from< SQLSCHAR             >(binding_info);
+            case SQL_C_STINYINT:       return to<T>::template from< SQLSCHAR             >(binding_info);
+            case SQL_C_UTINYINT:       return to<T>::template from< SQLCHAR              >(binding_info);
+            case SQL_C_SHORT:          return to<T>::template from< SQLSMALLINT          >(binding_info);
+            case SQL_C_SSHORT:         return to<T>::template from< SQLSMALLINT          >(binding_info);
+            case SQL_C_USHORT:         return to<T>::template from< SQLUSMALLINT         >(binding_info);
+            case SQL_C_LONG:           return to<T>::template from< SQLINTEGER           >(binding_info);
+            case SQL_C_SLONG:          return to<T>::template from< SQLINTEGER           >(binding_info);
+            case SQL_C_ULONG:          return to<T>::template from< SQLUINTEGER          >(binding_info);
+            case SQL_C_SBIGINT:        return to<T>::template from< SQLBIGINT            >(binding_info);
+            case SQL_C_UBIGINT:        return to<T>::template from< SQLUBIGINT           >(binding_info);
+            case SQL_C_FLOAT:          return to<T>::template from< SQLREAL              >(binding_info);
+            case SQL_C_DOUBLE:         return to<T>::template from< SQLDOUBLE            >(binding_info);
+            case SQL_C_BINARY:         return to<T>::template from< SQLCHAR *            >(binding_info);
+            case SQL_C_GUID:           return to<T>::template from< SQLGUID              >(binding_info);
+//          case SQL_C_BOOKMARK:       return to<T>::template from< BOOKMARK             >(binding_info);
+//          case SQL_C_VARBOOKMARK:    return to<T>::template from< SQLCHAR *            >(binding_info);
+
+//          case SQL_DECIMAL:          return to<T>::template from< SQLDECIMAL           >(binding_info);
+//          case SQL_C_NUMERIC:        return to<T>::template from< SQL_NUMERIC_STRUCT   >(binding_info);
+
+            case SQL_C_DATE:
+            case SQL_C_TYPE_DATE:      return to<T>::template from< SQL_DATE_STRUCT      >(binding_info);
+
+            case SQL_C_TIME:
+            case SQL_C_TYPE_TIME:      return to<T>::template from< SQL_TIME_STRUCT      >(binding_info);
+
+            case SQL_C_TIMESTAMP:
+            case SQL_C_TYPE_TIMESTAMP: return to<T>::template from< SQL_TIMESTAMP_STRUCT >(binding_info);
 
             default:
                 throw std::runtime_error("Unable to extract data from bound buffer: source type representation not supported");

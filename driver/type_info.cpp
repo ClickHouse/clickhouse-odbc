@@ -276,7 +276,7 @@ std::string convertCTypeToDataSourceType(SQLSMALLINT C_type, std::size_t length)
             return (length > 0 ? ("FixedString(" + std::to_string(length) + ")") : "String");
 
         case SQL_C_GUID:
-            return "LowCardinality(String)";
+            return "UUID";
 
 //      case SQL_C_BOOKMARK:
 //      case SQL_C_VARBOOKMARK:
@@ -291,7 +291,7 @@ std::string convertCTypeToDataSourceType(SQLSMALLINT C_type, std::size_t length)
 
         case SQL_C_TIMESTAMP:
         case SQL_C_TYPE_TIMESTAMP:
-            return "Timestamp";
+            return "DateTime";
 
         case SQL_C_INTERVAL_YEAR:
         case SQL_C_INTERVAL_MONTH:
@@ -368,7 +368,7 @@ std::string convertCOrSQLTypeToDataSourceType(SQLSMALLINT sql_type, std::size_t 
             return "String";
 
         case SQL_GUID:
-            return "LowCardinality(String)";
+            return "UUID";
 
         case SQL_TYPE_DATE:
             return "Date";
@@ -377,7 +377,7 @@ std::string convertCOrSQLTypeToDataSourceType(SQLSMALLINT sql_type, std::size_t 
             return "LowCardinality(String)";
 
         case SQL_TYPE_TIMESTAMP:
-            return "Timestamp";
+            return "DateTime";
 
         case SQL_INTERVAL_MONTH:
         case SQL_INTERVAL_YEAR:
