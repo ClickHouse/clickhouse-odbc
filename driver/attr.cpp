@@ -59,7 +59,7 @@ SQLRETURN GetEnvAttr(
 
         switch (attribute) {
             case SQL_ATTR_ODBC_VERSION:
-                fillOutputNumber<SQLUINTEGER>(environment.odbc_version, out_value, out_value_max_length, out_value_length);
+                fillOutputNumber<SQLUINTEGER>(environment.odbc_version, out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_CONNECTION_POOLING:
@@ -197,7 +197,7 @@ SQLRETURN GetConnectAttr(
             case SQL_ATTR_METADATA_ID:
                 return fillOutputNumber<SQLUINTEGER>(
                     connection.getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE),
-                    out_value, out_value_max_length, out_value_length
+                    out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length
                 );
 
             case SQL_ATTR_ACCESS_MODE:
@@ -357,7 +357,7 @@ SQLRETURN GetStmtAttr(
 
 #define CASE_GET_FROM_DESC(STMT_ATTR, DESC_TYPE, DESC_ATTR, VALUE_TYPE) \
             case STMT_ATTR: \
-                return fillOutputNumber<VALUE_TYPE>(statement.getEffectiveDescriptor(DESC_TYPE).getAttrAs<VALUE_TYPE>(DESC_ATTR), out_value, out_value_max_length, out_value_length);
+                return fillOutputNumber<VALUE_TYPE>(statement.getEffectiveDescriptor(DESC_TYPE).getAttrAs<VALUE_TYPE>(DESC_ATTR), out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length);
 
             CASE_GET_FROM_DESC(SQL_ATTR_PARAM_BIND_OFFSET_PTR, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
             CASE_GET_FROM_DESC(SQL_ATTR_PARAM_BIND_TYPE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
@@ -378,8 +378,8 @@ SQLRETURN GetStmtAttr(
             CASE_FALLTHROUGH(SQL_ATTR_APP_PARAM_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_IMP_ROW_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_IMP_PARAM_DESC)
-                return fillOutputNumber<SQLHANDLE>(statement.getEffectiveDescriptor(attribute).getHandle(),
-                                                   out_value, out_value_max_length, out_value_length);
+				return fillOutputNumber<SQLHANDLE>(statement.getEffectiveDescriptor(attribute).getHandle(),
+                    out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length);
 
             CASE_NUM(SQL_ATTR_CURSOR_SCROLLABLE, SQLULEN, SQL_NONSCROLLABLE);
             CASE_NUM(SQL_ATTR_CURSOR_SENSITIVITY, SQLULEN, SQL_INSENSITIVE);
@@ -396,13 +396,13 @@ SQLRETURN GetStmtAttr(
                         SQL_ATTR_METADATA_ID,
                         statement.getParent().getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE)
                     ),
-                    out_value, out_value_max_length, out_value_length
+                    out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length
                 );
 
             CASE_FALLTHROUGH(SQL_ATTR_NOSCAN)
                 return fillOutputNumber<SQLULEN>(
                     statement.getAttrAs<SQLULEN>(SQL_ATTR_NOSCAN, SQL_NOSCAN_OFF),
-                    out_value, out_value_max_length, out_value_length
+                    out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length
                 );
 
             CASE_NUM(SQL_ATTR_QUERY_TIMEOUT, SQLULEN, 0);

@@ -110,7 +110,7 @@ SQLRETURN GetDiagField(
 
 #define CASE_ATTR_NUM(NAME, TYPE) \
     case NAME: \
-        return fillOutputNumber(record.template getAttrAs<TYPE>(NAME), out_mesage, out_message_max_size, out_message_size);
+        return fillOutputNumber(record.template getAttrAs<TYPE>(NAME), out_mesage, SQLSMALLINT{0}/* out_value_max_length */, out_message_size);
 
 #define CASE_ATTR_STR(NAME) \
     case NAME: \
