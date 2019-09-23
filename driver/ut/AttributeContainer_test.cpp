@@ -112,6 +112,10 @@ TYPED_TEST(AttributeContainerT, SetAttributeCallBack)
     EXPECT_EQ(KEY, container.changed_attributes.back());
 
     EXPECT_NO_THROW(container.setAttr(KEY, VALUE));
+    ASSERT_EQ(1, container.changed_attributes.size());
+    EXPECT_EQ(KEY, container.changed_attributes.back());
+
+    EXPECT_NO_THROW(container.setAttr(KEY, OTHER_VALUE));
     ASSERT_EQ(2, container.changed_attributes.size());
     EXPECT_EQ(KEY, container.changed_attributes.back());
 
