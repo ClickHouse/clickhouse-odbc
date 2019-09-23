@@ -94,6 +94,9 @@ ctest -V
 Edit ~/.odbc.ini :
 
 ```ini
+[ODBC Data Sources]
+Clickhouse = Clickhouse
+
 [ClickHouse]
 Driver = $(PATH_OF_CLICKHOUSE_ODBC_SO)
 # Optional settings:
@@ -125,6 +128,9 @@ url = https://localhost
 
 Sometimes you should change ~/.odbcinst.ini or /etc/odbcinst.ini or /Library/ODBC/odbcinst.ini :
 ```ini
+[ODBC Drivers]
+Clickhouse = Installed
+
 [Clickhouse]
 Driver=$(PATH_OF_CLICKHOUSE_ODBC_SO)
 ```
