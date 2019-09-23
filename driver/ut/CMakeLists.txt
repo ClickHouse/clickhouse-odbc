@@ -1,29 +1,23 @@
-function(declare_odbc_ut_targets exename UNICODE)
-    if (UNICODE)
-        set (odbc_lib clickhouse-odbcw_static)
-    else()
-        set (odbc_lib clickhouse-odbc_static)
-    endif()
-
-    add_executable(${exename}
+function(declare_odbc_ut_targets libname UNICODE)
+    add_executable(${libname}-ut
         main.cpp
         escape_sequences_ut.cpp
         lexer_ut.cpp
         AttributeContainer_test.cpp
     )
 
-    target_link_libraries(${exename}
+    target_link_libraries(${libname}-ut
         PRIVATE clickhouse-odbc-escaping
-        PRIVATE ${odbc_lib}
+        PRIVATE ${libname}_static
         PRIVATE gtest-lib
         PRIVATE Threads::Threads
     )
 
-    add_test(NAME ${exename} COMMAND ${exename})
+    add_test(NAME ${libname}-ut COMMAND ${libname}-ut)
 endfunction()
 
-declare_odbc_ut_targets(clickhouse-odbc-ut 0)
-declare_odbc_ut_targets(clickhouse-odbcw-ut 1)
+declare_odbc_ut_targets(clickhouse-odbc 0)
+declare_odbc_ut_targets(clickhouse-odbcw 1)
 
 if (NANOODBC_LIBRARY)
     add_executable(clickhouse-odbc-nano nano.cpp)

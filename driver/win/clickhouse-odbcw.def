@@ -1,4 +1,4 @@
-LIBRARY clickhouseodbc
+LIBRARY clickhouseodbcw
 EXPORTS 
 
 DllMain                 @201

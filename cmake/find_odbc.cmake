@@ -72,6 +72,9 @@ if(NOT WIN32)
     endif()
 endif()
 
+if(APPLE AND ODBC_UNIXODBC)
+	list(APPEND ODBC_LIBRARIES -liconv)
+endif()
 
 if(NOT WIN32)
     if (ODBC_UNIXODBC)

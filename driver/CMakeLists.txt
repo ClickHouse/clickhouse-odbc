@@ -1,10 +1,6 @@
 find_package (Threads)
 
 add_subdirectory(escaping)
-if (WIN32)
-    add_subdirectory(win)
-    #TODO: set(WIN_SOURCES "win/export.def")
-endif()
 
 function(declare_odbc_lib_targets libname UNICODE)
 
@@ -76,15 +72,27 @@ add_library(${libname}_static STATIC
     type_parser.h
     unicode_t.h
     utils.h
-
-    ${WIN_SOURCES}
 )
+
+set (WIN_SOURCES)
+if (WIN32)
+    set (WIN_SOURCES
+        "win/dllmain.cpp"
+        "win/resource.h"
+        "win/setup.cpp"
+        "win/version.h"
+        "win/resource.rc"
+        "win/${libname}.def"
+    )
+endif()
 
 add_library(${libname} SHARED
     odbc.cpp
     handles.cpp
     attr.cpp
     info.cpp
+
+    ${WIN_SOURCES}
 )
 
 if (UNICODE)
@@ -128,7 +136,7 @@ if(NOT APPLE AND NOT WIN32)
 endif()
 
 if(WIN32)
-    target_link_libraries(${libname}_static PUBLIC clickhouse-odbc-win ws2_32 Iphlpapi legacy_stdio_definitions)
+    target_link_libraries(${libname}_static PUBLIC ws2_32 Iphlpapi legacy_stdio_definitions)
 endif()
 
 if(ARCH_LINUX)

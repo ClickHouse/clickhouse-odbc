@@ -30,8 +30,6 @@ elseif (NOT MISSING_INTERNAL_POCO_LIBRARY)
     set (POCO_STATIC 1 CACHE BOOL "")
 
     set (ENABLE_CPPUNIT 0 CACHE BOOL "")
-    set (ENABLE_XML 0 CACHE BOOL "")
-    set (ENABLE_JSON 0 CACHE BOOL "")
     set (ENABLE_MONGODB 0 CACHE BOOL "")
     set (ENABLE_DATA 0 CACHE BOOL "")
     set (ENABLE_ZIP 0 CACHE BOOL "")
@@ -44,8 +42,6 @@ elseif (NOT MISSING_INTERNAL_POCO_LIBRARY)
     set (ENABLE_DATA_ODBC 0 CACHE BOOL "")
     set (ENABLE_ENCODINGS 0 CACHE BOOL "")
     set (POCO_ENABLE_CPPUNIT 0 CACHE BOOL "")
-    set (POCO_ENABLE_XML 0 CACHE BOOL "")
-    set (POCO_ENABLE_JSON 0 CACHE BOOL "")
     set (POCO_ENABLE_MONGODB 0 CACHE BOOL "")
     set (POCO_ENABLE_DATA 0 CACHE BOOL "")
     set (POCO_ENABLE_SQL 0 CACHE BOOL "")
@@ -53,39 +49,52 @@ elseif (NOT MISSING_INTERNAL_POCO_LIBRARY)
     set (POCO_ENABLE_PAGECOMPILER 0 CACHE BOOL "")
     set (POCO_ENABLE_PAGECOMPILER_FILE2PAGE 0 CACHE BOOL "")
     set (POCO_ENABLE_REDIS 0 CACHE BOOL "")
-    if (NOT USE_SSL)
-        set (POCO_ENABLE_NETSSL 0 CACHE BOOL "")
-        set (POCO_ENABLE_CRYPTO 0 CACHE BOOL "")
-        set (POCO_ENABLE_UTIL 0 CACHE BOOL "")
-        set (ENABLE_NETSSL 0 CACHE BOOL "")
-        set (ENABLE_CRYPTO 0 CACHE BOOL "")
-        set (ENABLE_UTIL 0 CACHE BOOL "")
-    endif ()
-
+ 
+    set (Poco_Foundation_LIBRARY Foundation)
+    set (Poco_Util_LIBRARY Util)
+    set (Poco_Net_LIBRARY Net)
+    set (Poco_XML_LIBRARY XML)
+    set (Poco_JSON_LIBRARY JSON)
+    #set (Poco_Foundation_LIBRARY Poco::Foundation)
+    #set (Poco_Util_LIBRARY Poco::Util)
+    #set (Poco_Net_LIBRARY Poco::Net)
+    #set (Poco_XML_LIBRARY Poco::XML)
+    #set (Poco_JSON_LIBRARY Poco::JSON)
     list (APPEND Poco_INCLUDE_DIRS
         "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Foundation/include/"
         "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Util/include/"
         "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Net/include/"
+        "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/XML/include/"
+        "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/JSON/include/"
     )
 
     if (USE_SSL)
-        set(Poco_NetSSL_FOUND 1)
-        set(Poco_NetSSL_LIBRARY PocoNetSSL)
-        set(Poco_Crypto_LIBRARY PocoCrypto)
-        #set(Poco_NetSSL_LIBRARY Poco::NetSSL)
-        #set(Poco_Crypto_LIBRARY Poco::Crypto)
-        list (APPEND Poco_INCLUDE_DIRS
-            "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/NetSSL_OpenSSL/include"
-            "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Crypto/include"
-        )
+        if (ENABLE_NETSSL)
+            if (ENABLE_NETSSL_WIN)
+                set (Poco_NetSSL_LIBRARY NetSSLWin)
+                #set (Poco_NetSSL_LIBRARY Poco::NetSSLWin)
+                list (APPEND Poco_INCLUDE_DIRS
+                    "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/NetSSL_Win/include"
+                )
+            else ()
+                set (Poco_NetSSL_LIBRARY NetSSL)
+                set (Poco_Crypto_LIBRARY Crypto)
+                #set (Poco_NetSSL_LIBRARY Poco::NetSSL)
+                #set (Poco_Crypto_LIBRARY Poco::Crypto)
+                list (APPEND Poco_INCLUDE_DIRS
+                    "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Crypto/include"
+                    "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/NetSSL_OpenSSL/include"
+                )
+            endif ()
+        endif ()
+    else ()
+        set (POCO_ENABLE_NETSSL 0 CACHE BOOL "")
+        set (POCO_ENABLE_NETSSL_WIN 0 CACHE BOOL "")
+        set (POCO_ENABLE_CRYPTO 0 CACHE BOOL "")
+        set (ENABLE_NETSSL 0 CACHE BOOL "")
+        set (ENABLE_NETSSL_WIN 0 CACHE BOOL "")
+        set (ENABLE_CRYPTO 0 CACHE BOOL "")
     endif ()
-
-    set(Poco_Foundation_LIBRARY PocoFoundation)
-    set(Poco_Util_LIBRARY PocoUtil)
-    set(Poco_Net_LIBRARY PocoNet)
-    #set(Poco_Foundation_LIBRARY Poco::Foundation)
-    #set(Poco_Util_LIBRARY Poco::Util)
-    #set(Poco_Net_LIBRARY Poco::Net)
 endif ()
 
-message(STATUS "Using Poco: ${Poco_INCLUDE_DIRS} : ${Poco_Foundation_LIBRARY},${Poco_Util_LIBRARY},${Poco_Net_LIBRARY},${Poco_NetSSL_LIBRARY},${Poco_Crypto_LIBRARY},${Poco_XML_LIBRARY},${Poco_Data_LIBRARY},${Poco_DataODBC_LIBRARY},${Poco_SQL_LIBRARY},${Poco_SQLODBC_LIBRARY},${Poco_MongoDB_LIBRARY}; MongoDB=${USE_POCO_MONGODB}, DataODBC=${USE_POCO_DATAODBC}, NetSSL=${USE_POCO_NETSSL}")
+message(STATUS "Using Poco: ${Poco_INCLUDE_DIRS} : ${Poco_Foundation_LIBRARY},${Poco_Util_LIBRARY},${Poco_Net_LIBRARY},${Poco_NetSSL_LIBRARY},${Poco_Crypto_LIBRARY},${Poco_XML_LIBRARY},${Poco_JSON_LIBRARY},${Poco_Data_LIBRARY},${Poco_DataODBC_LIBRARY},${Poco_SQL_LIBRARY},${Poco_SQLODBC_LIBRARY},${Poco_MongoDB_LIBRARY}; MongoDB=${USE_POCO_MONGODB}, DataODBC=${USE_POCO_DATAODBC}, NetSSL=${USE_POCO_NETSSL}")
