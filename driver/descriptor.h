@@ -5,7 +5,6 @@
 #include "diagnostics.h"
 
 #include <unordered_map>
-#include <variant>
 
 class DescriptorRecord
     : public AttributeContainer
