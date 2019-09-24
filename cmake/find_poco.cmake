@@ -69,23 +69,21 @@ elseif (NOT MISSING_INTERNAL_POCO_LIBRARY)
     )
 
     if (USE_SSL)
-        if (ENABLE_NETSSL)
-            if (ENABLE_NETSSL_WIN)
-                set (Poco_NetSSL_LIBRARY NetSSLWin)
-                #set (Poco_NetSSL_LIBRARY Poco::NetSSLWin)
-                list (APPEND Poco_INCLUDE_DIRS
-                    "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/NetSSL_Win/include"
-                )
-            else ()
-                set (Poco_NetSSL_LIBRARY NetSSL)
-                set (Poco_Crypto_LIBRARY Crypto)
-                #set (Poco_NetSSL_LIBRARY Poco::NetSSL)
-                #set (Poco_Crypto_LIBRARY Poco::Crypto)
-                list (APPEND Poco_INCLUDE_DIRS
-                    "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Crypto/include"
-                    "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/NetSSL_OpenSSL/include"
-                )
-            endif ()
+        if (WIN32)
+            set (Poco_NetSSL_LIBRARY NetSSLWin)
+            #set (Poco_NetSSL_LIBRARY Poco::NetSSLWin)
+            list (APPEND Poco_INCLUDE_DIRS
+                "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/NetSSL_Win/include"
+            )
+        else ()
+            set (Poco_NetSSL_LIBRARY NetSSL)
+            set (Poco_Crypto_LIBRARY Crypto)
+            #set (Poco_NetSSL_LIBRARY Poco::NetSSL)
+            #set (Poco_Crypto_LIBRARY Poco::Crypto)
+            list (APPEND Poco_INCLUDE_DIRS
+                "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/Crypto/include"
+                "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/NetSSL_OpenSSL/include"
+            )
         endif ()
     else ()
         set (POCO_ENABLE_NETSSL 0 CACHE BOOL "")
