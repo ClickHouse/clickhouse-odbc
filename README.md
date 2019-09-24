@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/yandex/clickhouse-odbc.svg?branch=master)](https://travis-ci.org/yandex/clickhouse-odbc)
+[![Build Status](https://travis-ci.org/clickhouse/clickhouse-odbc.svg?branch=master)](https://travis-ci.org/clickhouse/clickhouse-odbc)
 
 If you are macos user see [MACOS.md](MACOS.md)
 
@@ -10,7 +10,7 @@ When you clone such a project, by default you get the directories that contain s
 So, in order to build the project, you need either:
   * clone repo with all submodules altogether (use `--recursive`)
 ```bash
-git clone --recursive https://github.com/yandex/clickhouse-odbc
+git clone --recursive https://github.com/clickhouse/clickhouse-odbc
 ```
   * or add submodules manually after main project cloned - in the root of source tree run:
 ```bash
@@ -94,6 +94,9 @@ ctest -V
 Edit ~/.odbc.ini :
 
 ```ini
+[ODBC Data Sources]
+Clickhouse = Clickhouse
+
 [ClickHouse]
 Driver = $(PATH_OF_CLICKHOUSE_ODBC_SO)
 # Optional settings:
@@ -125,6 +128,9 @@ url = https://localhost
 
 Sometimes you should change ~/.odbcinst.ini or /etc/odbcinst.ini or /Library/ODBC/odbcinst.ini :
 ```ini
+[ODBC Drivers]
+Clickhouse = Installed
+
 [Clickhouse]
 Driver=$(PATH_OF_CLICKHOUSE_ODBC_SO)
 ```
