@@ -7,19 +7,26 @@
 #include <cstring>
 
 void getDSNinfo(ConnInfo * ci, bool overwrite) {
+#define GET_CONFIG(NAME, INI_NAME, DEFAULT)               \
+    if (ci->NAME[0] == '\0' || overwrite) {               \
+        MYTCHAR odbc_ini[MEDIUM_REGISTRY_LEN] = { };      \
+        MYTCHAR ini_name[MEDIUM_REGISTRY_LEN] = { };      \
+        MYTCHAR default_value[MEDIUM_REGISTRY_LEN] = { }; \
+        stringToTCHAR(ODBC_INI, odbc_ini);                \
+        stringToTCHAR(INI_NAME, ini_name);                \
+        stringToTCHAR(DEFAULT, default_value);            \
+        const auto read = SQLGetPrivateProfileString(     \
+            ci->dsn,                                      \
+            ini_name,                                     \
+            default_value,                                \
+            ci->NAME,                                     \
+            lengthof(ci->NAME),                           \
+            odbc_ini                                      \
+        );                                                \
+        ci->NAME[read] = '\0';                            \
+    }
 
-#define GET_CONFIG(NAME, INI_NAME, DEFAULT)                             \
-    if (ci->NAME[0] == '\0' || overwrite)                               \
-        { auto bytes = FUNCTION_MAYBE_W(SQLGetPrivateProfileString)        \
-    (ci->dsn,                                                           \
-        static_cast<LPCTSTR>(static_cast<const void *>(INI_NAME)),      \
-        static_cast<LPCTSTR>(static_cast<const void *>(TEXT(DEFAULT))), \
-        ci->NAME,                                                       \
-        sizeof(ci->NAME),                                               \
-        static_cast<LPCTSTR>(static_cast<const void *>(ODBC_INI))); \
-        }
-
-        // LOG("config: " << INI_NAME << " : " << STRING(NAME)); hexPrint(log_stream, std::string(static_cast<const char*>(static_cast<const void *>(ci->NAME)), bytes));
+    SQLSetConfigMode(ODBC_BOTH_DSN);
 
     GET_CONFIG(desc, INI_KDESC, "");
     GET_CONFIG(url, INI_URL, "");
