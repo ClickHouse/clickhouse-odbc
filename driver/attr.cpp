@@ -105,10 +105,10 @@ SQLRETURN SetConnectAttr(
 
             case SQL_ATTR_TRACE: {
                 if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_ON)) {
-                    connection.getDriver().setAttr(SQL_ATTR_TRACE, true);
+                    connection.getDriver().setAttr(SQL_ATTR_TRACE, SQL_OPT_TRACE_ON);
                 }
                 else if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_OFF)) {
-                    connection.getDriver().setAttr(SQL_ATTR_TRACE, false);
+                    connection.getDriver().setAttr(SQL_ATTR_TRACE, SQL_OPT_TRACE_OFF);
                 }
                 else {
                     LOG("SetConnectAttr: SQL_ATTR_TRACE: Unknown value " << value);

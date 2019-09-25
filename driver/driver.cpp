@@ -3,13 +3,14 @@
 #include "connection.h"
 #include "descriptor.h"
 #include "statement.h"
+#include "ini_defines.h"
 #include "win/version.h"
 
 #include <chrono>
 
 Driver::Driver() noexcept {
-    setAttrSilent(SQL_ATTR_TRACE, DRIVER_TRACE_DEFAULT);
-    setAttr<std::string>(SQL_ATTR_TRACEFILE, DRIVER_TRACEFILE_DEFAULT);
+    setAttrSilent(SQL_ATTR_TRACE, (isYes(INI_TRACE_DEFAULT) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
+    setAttr<std::string>(SQL_ATTR_TRACEFILE, INI_TRACEFILE_DEFAULT);
 }
 
 Driver::~Driver() {

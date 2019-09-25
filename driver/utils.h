@@ -28,6 +28,9 @@
 #   include <unistd.h>
 #endif
 
+#include <Poco/NumberParser.h>
+#include <Poco/String.h>
+
 #if __cplusplus >= 201703L
 
 using std::is_invocable;
@@ -93,12 +96,6 @@ inline auto getTID() {
     return std::this_thread::get_id();
 }
 
-inline std::string toUpperCopy(const std::string & str) {
-    std::string ret{str};
-    std::transform(ret.begin(), ret.end(), ret.begin(), ::toupper);
-    return ret;
-}
-
 template<
     class CharT,
     class Traits = std::char_traits<CharT>,
@@ -110,6 +107,13 @@ inline void hexPrint(std::ostream &stream, const std::basic_string<CharT, Traits
     for(unsigned char c : s)
         stream << std::setw(2) << static_cast<int>(c) << ' ';
     stream << std::dec << '\n';
+}
+
+inline bool isYes(std::string str) {
+    Poco::trimInPlace(str);
+    Poco::toLowerInPlace(str);
+    bool flag = false;
+    return (Poco::NumberParser::tryParseBool(str, flag) ? flag : false);
 }
 
 /// Parse a string of the form `key1=value1;key2=value2` ... TODO Parsing values in curly brackets.

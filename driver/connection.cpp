@@ -206,9 +206,9 @@ void Connection::loadConfiguration() {
             getDriver().setAttr(SQL_ATTR_TRACEFILE, tracefile);
         }
 
-        const std::string trace = toUpperCopy(stringFromMYTCHAR(ci.trace));
+        const std::string trace = stringFromMYTCHAR(ci.trace);
         if (!trace.empty()) {
-            getDriver().setAttr(SQL_ATTR_TRACE, (trace == "0" || trace == "NO" ? SQL_OPT_TRACE_OFF : SQL_OPT_TRACE_ON));
+            getDriver().setAttr(SQL_ATTR_TRACE, (isYes(trace) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
         }
     }
 

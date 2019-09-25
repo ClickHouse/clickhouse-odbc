@@ -6,18 +6,6 @@
 #include <string>
 #include <unordered_map>
 
-#ifdef NDEBUG
-#   define DRIVER_TRACE_DEFAULT SQL_OPT_TRACE_OFF
-#else
-#   define DRIVER_TRACE_DEFAULT SQL_OPT_TRACE_ON
-#endif
-
-#ifdef _win_
-#   define DRIVER_TRACEFILE_DEFAULT "\\temp\\clickhouse-odbc.log"
-#else
-#   define DRIVER_TRACEFILE_DEFAULT "/tmp/clickhouse-odbc.log"
-#endif
-
 // TODO: consider upgrading to std::variant of C++17 (or Boost), when available.
 class AttributeContainer {
 public:
