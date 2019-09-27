@@ -23,7 +23,7 @@
 #define INI_TRACE           "Trace"
 #define INI_TRACEFILE       "TraceFile"
 
-#define INI_DSN_DEFAULT             "ClickHouse"
+#define INI_DSN_DEFAULT             "ClickHouseDSN_localhost"
 #define INI_DESC_DEFAULT            ""
 #define INI_URL_DEFAULT             ""
 #define INI_SERVER_DEFAULT          ""

@@ -194,7 +194,7 @@ void Connection::init(const std::string & connection_string) {
 
 void Connection::loadConfiguration() {
     if (data_source.empty())
-        data_source = "ClickHouse";
+        data_source = INI_DSN_DEFAULT;
 
     ConnInfo ci;
     stringToTCHAR(data_source, ci.dsn);
@@ -263,7 +263,7 @@ void Connection::loadConfiguration() {
 
 void Connection::setDefaults() {
     if (data_source.empty())
-        data_source = "ClickHouse";
+        data_source = INI_DSN_DEFAULT;
     if (!url.empty()) {
         Poco::URI uri(url);
         if (proto.empty())

@@ -145,10 +145,10 @@ endif()
 
 target_link_libraries(${libname} PRIVATE ${libname}_static)
 
-if(NOT WIN32)
-    install(TARGETS ${libname} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/odbc)
-endif()
-
+install(
+    TARGETS ${libname}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
 endfunction()
 
 declare_odbc_lib_targets(clickhouse-odbc 0)
@@ -157,9 +157,12 @@ declare_odbc_lib_targets(clickhouse-odbcw 1)
 set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
 set_target_properties(clickhouse-odbcw PROPERTIES OUTPUT_NAME "clickhouseodbcw")
 
-if (NOT WIN32)
-    install(FILES unixodbc.ini DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/clickhouse-odbc)
-    install(FILES odbc.ini DESTINATION ${CMAKE_INSTALL_DOCDIR}/examples)
+if(NOT WIN32)
+    install(
+        FILES unixodbc.ini odbc.ini
+        DESTINATION ${CMAKE_INSTALL_DOCDIR}/sample-config
+        COMPONENT Documentation
+    )
 endif()
 
 if(CLICKHOUSE_ODBC_TEST)
