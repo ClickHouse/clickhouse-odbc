@@ -145,10 +145,17 @@ endif()
 
 target_link_libraries(${libname} PRIVATE ${libname}_static)
 
-install(
-    TARGETS ${libname}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
+if (UNICODE)
+    set(DRIVER_PREFIX Unicode)
+else()
+    set(DRIVER_PREFIX ASCII)
+endif()
+
+install(TARGETS ${libname} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT "${DRIVER_PREFIX}Driver")
+if (MSVC)
+    install(FILES $<TARGET_PDB_FILE:${libname}> DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT "${DRIVER_PREFIX}DriverDebugSymbols" OPTIONAL)
+endif()
+
 endfunction()
 
 declare_odbc_lib_targets(clickhouse-odbc 0)
@@ -156,14 +163,6 @@ declare_odbc_lib_targets(clickhouse-odbcw 1)
 
 set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
 set_target_properties(clickhouse-odbcw PROPERTIES OUTPUT_NAME "clickhouseodbcw")
-
-if(NOT WIN32)
-    install(
-        FILES unixodbc.ini odbc.ini
-        DESTINATION ${CMAKE_INSTALL_DOCDIR}/sample-config
-        COMPONENT Documentation
-    )
-endif()
 
 if(CLICKHOUSE_ODBC_TEST)
     add_subdirectory(ut)

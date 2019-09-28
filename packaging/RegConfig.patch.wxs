@@ -1,0 +1,48 @@
+<CPackWiXPatch>
+    <CPackWiXFragment Id="CM_CP_ASCIIDriver.bin.clickhouseodbc.dll">
+        <RegistryKey ForceCreateOnInstall="yes" Id="AnsiOdbcDriverRegInfo" Key="SOFTWARE\ODBC\ODBCINST.INI\ClickHouseDriver" Root="HKLM">
+            <RegistryValue Name="Description" Type="string" Value="ClickHouse ANSI ODBC Driver"/>
+            <RegistryValue Name="Driver" Type="string" Value="[CM_DP_ASCIIDriver.bin]clickhouseodbc.dll"/>
+            <RegistryValue Name="Setup" Type="string" Value="[CM_DP_ASCIIDriver.bin]clickhouseodbc.dll"/>
+            <RegistryValue Name="DriverODBCVer" Type="string" Value="03.80"/>
+            <RegistryValue Name="ConnectFunctions" Type="string" Value="YYN"/>
+            <RegistryValue Name="APILevel" Type="string" Value="1"/>
+            <RegistryValue Name="SQLLevel" Type="string" Value="1"/>
+            <RegistryValue Name="FileUsage" Type="string" Value="0"/>
+        </RegistryKey>
+        <RegistryKey ForceCreateOnInstall="yes" Id="AnsiOdbcDriverRegInstalled" Key="SOFTWARE\ODBC\ODBCINST.INI\ODBC Drivers" Root="HKLM">
+            <RegistryValue Name="ClickHouseDriver" Type="string" Value="Installed"/>
+        </RegistryKey>
+        <RegistryKey ForceCreateOnInstall="yes" Id="AnsiOdbcDsnRegInfo" Key="SOFTWARE\ODBC\ODBC.INI\ClickHouseDSN_localhost" Root="HKLM">
+            <RegistryValue Name="Description" Type="string" Value="DSN for ClickHouse ANSI Driver (localhost)"/>
+            <RegistryValue Name="Driver" Type="string" Value="ClickHouseDriver"/>
+            <RegistryValue Name="Url" Type="string" Value="https://default:password@localhost:8443/query?database=default"/>
+        </RegistryKey>
+        <RegistryKey ForceCreateOnInstall="yes" Id="AnsiOdbcDsnRegInstalled" Key="SOFTWARE\ODBC\ODBC.INI\ODBC Data Sources" Root="HKLM">
+            <RegistryValue Name="ClickHouseDSN_localhost" Type="string" Value="ClickHouseDriver"/>
+        </RegistryKey>
+    </CPackWiXFragment>
+    <CPackWiXFragment Id="CM_CP_UnicodeDriver.bin.clickhouseodbcw.dll">
+        <RegistryKey ForceCreateOnInstall="yes" Id="UnicodeOdbcDriverRegInfo" Key="SOFTWARE\ODBC\ODBCINST.INI\ClickHouseDriverW" Root="HKLM">
+            <RegistryValue Name="Description" Type="string" Value="ClickHouse Unicode ODBC Driver"/>
+            <RegistryValue Name="Driver" Type="string" Value="[CM_DP_UnicodeDriver.bin]clickhouseodbcw.dll"/>
+            <RegistryValue Name="Setup" Type="string" Value="[CM_DP_UnicodeDriver.bin]clickhouseodbcw.dll"/>
+            <RegistryValue Name="DriverODBCVer" Type="string" Value="03.80"/>
+            <RegistryValue Name="ConnectFunctions" Type="string" Value="YYN"/>
+            <RegistryValue Name="APILevel" Type="string" Value="1"/>
+            <RegistryValue Name="SQLLevel" Type="string" Value="1"/>
+            <RegistryValue Name="FileUsage" Type="string" Value="0"/>
+        </RegistryKey>
+        <RegistryKey ForceCreateOnInstall="yes" Id="UnicodeOdbcDriverRegInstalled" Key="SOFTWARE\ODBC\ODBCINST.INI\ODBC Drivers" Root="HKLM">
+            <RegistryValue Name="ClickHouseDriverW" Type="string" Value="Installed"/>
+        </RegistryKey>
+        <RegistryKey ForceCreateOnInstall="yes" Id="UnicodeOdbcDsnRegInfo" Key="SOFTWARE\ODBC\ODBC.INI\ClickHouseDSNW_localhost" Root="HKLM">
+            <RegistryValue Name="Description" Type="string" Value="DSN for ClickHouse Unicode Driver (localhost)"/>
+            <RegistryValue Name="Driver" Type="string" Value="ClickHouseDriverW"/>
+            <RegistryValue Name="Url" Type="string" Value="https://default:password@localhost:8443/query?database=default"/>
+        </RegistryKey>
+        <RegistryKey ForceCreateOnInstall="yes" Id="UnicodeOdbcDsnRegInstalled" Key="SOFTWARE\ODBC\ODBC.INI\ODBC Data Sources" Root="HKLM">
+            <RegistryValue Name="ClickHouseDSNW_localhost" Type="string" Value="ClickHouseDriverW"/>
+        </RegistryKey>
+    </CPackWiXFragment>
+</CPackWiXPatch>
