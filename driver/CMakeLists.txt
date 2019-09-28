@@ -151,9 +151,26 @@ else()
     set(DRIVER_PREFIX ASCII)
 endif()
 
-install(TARGETS ${libname} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT "${DRIVER_PREFIX}Driver")
 if (MSVC)
-    install(FILES $<TARGET_PDB_FILE:${libname}> DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT "${DRIVER_PREFIX}DriverDebugSymbols" OPTIONAL)
+    install(
+        TARGETS ${libname}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        COMPONENT "${DRIVER_PREFIX}Driver"
+    )
+    install(
+        FILES $<TARGET_PDB_FILE:${libname}>
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+        COMPONENT "${DRIVER_PREFIX}DriverDebugSymbols"
+        OPTIONAL
+    )
+else()
+    install(
+        TARGETS ${libname}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT "${DRIVER_PREFIX}Driver"
+    )
 endif()
 
 endfunction()
