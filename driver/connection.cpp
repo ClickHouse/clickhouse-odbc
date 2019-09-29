@@ -4,7 +4,6 @@
 #include "config.h"
 #include "descriptor.h"
 #include "statement.h"
-#include "win/version.h"
 
 #include <Poco/Base64Encoder.h>
 #include <Poco/Net/HTTPClientSession.h>

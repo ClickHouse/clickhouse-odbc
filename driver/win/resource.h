@@ -25,3 +25,9 @@
 #        define _APS_NEXT_SYMED_VALUE 101
 #    endif
 #endif
+
+#if defined(UNICODE)
+#    include "config_cmakew.h"
+#else
+#    include "config_cmake.h"
+#endif

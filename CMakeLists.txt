@@ -1,6 +1,7 @@
-project (clickhouse-odbc)
-cmake_minimum_required (VERSION 2.6)
-cmake_policy(SET CMP0023 NEW)
+cmake_minimum_required (VERSION 3.2)
+
+project (clickhouse-odbc VERSION 1.1.0.20190929 LANGUAGES C CXX)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 set(CMAKE_LINK_DEPENDS_NO_SHARED 1) # Do not relink all depended targets on .so
 set(CMAKE_CXX_EXTENSIONS 0)
@@ -148,8 +149,9 @@ get_cmake_property(CPACK_COMPONENTS_ALL COMPONENTS)
 list(REMOVE_ITEM CPACK_COMPONENTS_ALL "Devel")
 
 cpack_add_component_group(ASCIIGroup
-    DISPLAY_NAME "ODBC Driver (ASCII)"
+    DISPLAY_NAME "ASCII ${ARCH_BITS}-bit Driver"
     DESCRIPTION "ClickHouse ODBC Driver (ASCII, ${ARCH_BITS}-bit)"
+    EXPANDED
 )
 cpack_add_component(ASCIIDriver
     DISPLAY_NAME "Driver"
@@ -159,13 +161,15 @@ cpack_add_component(ASCIIDriver
 )
 cpack_add_component(ASCIIDriverDebugSymbols
     DISPLAY_NAME "Debug symbols"
-    DESCRIPTION "Debug symbols (PDB) for the Driver"
+    DESCRIPTION "Debug symbols (PDB) for the Driver (ASCII, ${ARCH_BITS}-bit)"
+    DISABLED
     DEPENDS ASCIIDriver
     GROUP ASCIIGroup
 )
 cpack_add_component_group(UnicodeGroup
-    DISPLAY_NAME "ODBC Driver (Unicode)"
+    DISPLAY_NAME "Unicode ${ARCH_BITS}-bit Driver"
     DESCRIPTION "ClickHouse ODBC Driver (Unicode, ${ARCH_BITS}-bit)"
+    EXPANDED
 )
 cpack_add_component(UnicodeDriver
     DISPLAY_NAME "Driver"
@@ -175,7 +179,8 @@ cpack_add_component(UnicodeDriver
 )
 cpack_add_component(UnicodeDriverDebugSymbols
     DISPLAY_NAME "Debug symbols"
-    DESCRIPTION "Debug symbols (PDB) for Driver"
+    DESCRIPTION "Debug symbols (PDB) for Driver (Unicode, ${ARCH_BITS}-bit)"
+    DISABLED
     DEPENDS UnicodeDriver
     GROUP UnicodeGroup
 )
@@ -203,7 +208,6 @@ else()
     set(CPACK_PACKAGE_INSTALL_DIRECTORY "/usr/local")
 endif()
 
-#set(CPACK_PACKAGE_NAME "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
 set(CPACK_PACKAGE_VENDOR "Yandex LLC")
 set(CPACK_PACKAGE_DESCRIPTION "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
@@ -211,6 +215,9 @@ set(CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/packaging/Readme.rtf")
 set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/License.rtf")
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/ClickHouse/clickhouse-odbc")
 
+set(CPACK_WIX_ROOT_FEATURE_TITLE "ClickHouse ODBC Driver")
+set(CPACK_WIX_ROOT_FEATURE_DESCRIPTION "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
+set(CPACK_WIX_PATCH_FILE "${PROJECT_SOURCE_DIR}/packaging/RegConfig.patch.wxs")
 if ("${ARCH_BITS}" STREQUAL "32")
     set(CPACK_WIX_PRODUCT_GUID "9FCA44DB-6963-4EBF-87A6-279331C139EB")
     set(CPACK_WIX_UPGRADE_GUID "3C19591C-7FFC-461A-8828-611EDFBE0619")
@@ -218,7 +225,5 @@ elseif("${ARCH_BITS}" STREQUAL "64")
     set(CPACK_WIX_PRODUCT_GUID "D77FCBEA-C3A9-442C-8055-83CBDB57009B")
     set(CPACK_WIX_UPGRADE_GUID "B63A7326-E080-49E3-A963-8F5EFC2DDD65")
 endif()
-
-set(CPACK_WIX_PATCH_FILE "${PROJECT_SOURCE_DIR}/packaging/RegConfig.patch.wxs")
 
 include(CPack)

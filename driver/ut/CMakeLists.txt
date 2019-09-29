@@ -44,6 +44,8 @@ add_executable(load-ut load.cpp)
 
 target_link_libraries(load-ut PRIVATE ${Poco_Foundation_LIBRARY} ${CMAKE_DL_LIBS} Threads::Threads)
 
+target_include_directories(load-ut PRIVATE ${PROJECT_BINARY_DIR}/driver)
+target_include_directories(load-ut PRIVATE ${PROJECT_SOURCE_DIR}/driver)
 target_include_directories(load-ut PRIVATE ${Poco_INCLUDE_DIRS})
 target_include_directories(load-ut PRIVATE ${ODBC_INCLUDE_DIRECTORIES})
 

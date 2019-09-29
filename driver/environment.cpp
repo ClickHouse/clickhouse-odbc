@@ -5,7 +5,6 @@
 #include <ctime>
 #include <sstream>
 #include <string>
-#include "win/version.h"
 #include "unicode_t.h"
 
 #if defined(_unix_)

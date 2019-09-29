@@ -1,15 +1,13 @@
 #pragma once
 
 #if defined(UNICODE) && UNICODE == 0
-#   undef UNICODE
+#    undef UNICODE
 #endif
 
-#if CMAKE_BUILD
-#    if defined(UNICODE)
-#        include "config_cmakew.h"
-#    else
-#        include "config_cmake.h"
-#    endif
+#if defined(UNICODE)
+#    include "config_cmakew.h"
+#else
+#    include "config_cmake.h"
 #endif
 
 #if defined(__linux__)

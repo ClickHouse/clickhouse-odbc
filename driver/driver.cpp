@@ -4,7 +4,6 @@
 #include "descriptor.h"
 #include "statement.h"
 #include "ini_defines.h"
-#include "win/version.h"
 
 #include <chrono>
 

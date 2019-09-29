@@ -80,7 +80,6 @@ if (WIN32)
         "win/dllmain.cpp"
         "win/resource.h"
         "win/setup.cpp"
-        "win/version.h"
         "win/resource.rc"
         "win/${libname}.def"
     )
@@ -111,9 +110,8 @@ if (UNICODE)
     #endif()
 endif ()
 
-target_compile_definitions (${libname}_static PUBLIC CMAKE_BUILD=1)
-
 target_include_directories (${libname}_static PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories (${libname}_static PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories (${libname}_static PUBLIC ${Poco_INCLUDE_DIRS})
 target_include_directories (${libname}_static PUBLIC ${ODBC_INCLUDE_DIRECTORIES})
 
