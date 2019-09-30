@@ -8,34 +8,39 @@ set(CMAKE_CXX_EXTENSIONS 0)
 set(CMAKE_CXX_STANDARD_REQUIRED 1)
 set(CMAKE_POSITION_INDEPENDENT_CODE 1)
 set(CMAKE_BUILD_COLOR_MAKEFILE 1)
-set(CMAKE_DEBUG_POSTFIX "") # Dont add "d" to target lib name
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ASCIIDriver)
 
+if (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "None")
+    set (CMAKE_BUILD_TYPE "RelWithDebInfo")
+endif ()
+
 message (STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+
+string (TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UC)
+string (TOUPPER "${CMAKE_CONFIGURATION_TYPES}" CMAKE_CONFIGURATION_TYPES_UC)
 
 set (COMMON_WARNING_FLAGS "-Wall")	# -Werror is also added inside directories with our own code.
 set (CXX_WARNING_FLAGS "-Wnon-virtual-dtor")
 
 set (CMAKE_CXX_STANDARD 14)
 # For iostream_debug_helpers.h :
-if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND USE_DEBUG_17)
+if (CMAKE_BUILD_TYPE_UC STREQUAL "DEBUG" AND USE_DEBUG_17)
     set (CMAKE_CXX_STANDARD 17)
 endif ()
 
 include(GNUInstallDirs)
 
-if (NOT MSVC)
-	set (CMAKE_CXX_FLAGS                     "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
-endif ()
 if (MSVC)
-	set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT /Zc:__cplusplus")
-	set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MT /Zc:__cplusplus")
-	set (CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MT /Zc:__cplusplus")
-	set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd /Zc:__cplusplus")
-	set (CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-	set (CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MT")
-	set (CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MT")
-	set (CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+    foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
+        foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+            set (var "${lang}_${config}")
+            string (REPLACE "/MD" "/MT" ${var} "${${var}}")
+            string (REPLACE "-MD" "-MT" ${var} "${${var}}")
+        endforeach ()
+    endforeach ()
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
+else ()
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
 endif ()
 
 if (NOT BUILD_SHARED)
@@ -46,18 +51,13 @@ if (NOT BUILD_SHARED)
     endif ()
 endif ()
 
-message (STATUS "BUILD_SHARED=${BUILD_SHARED}")
+message (STATUS "BUILD_SHARED: ${BUILD_SHARED}")
 
 include (cmake/arch.cmake)
 
 if (ARCH_FREEBSD)
     set (CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
 endif ()
-
-if (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "None")
-    set (CMAKE_BUILD_TYPE "RELWITHDEBINFO")
-endif ()
-string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_UC)
 
 include (cmake/sanitize.cmake)
 
@@ -123,6 +123,11 @@ message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")
 message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE} ; CCACHE=${CCACHE_FOUND} ${CCACHE_VERSION}")
 
 add_subdirectory (contrib EXCLUDE_FROM_ALL)
+
+foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
+    set(CMAKE_${config}_POSTFIX "" CACHE STRING "" FORCE) # Don't append "d" or "md" to output lib name
+endforeach ()
+
 add_subdirectory (driver)
 
 if(CLICKHOUSE_ODBC_TEST)
