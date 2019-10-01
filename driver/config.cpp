@@ -7,8 +7,6 @@
 #include <cstring>
 
 void getDSNinfo(ConnInfo * ci, bool overwrite) {
-    SQLSetConfigMode(ODBC_BOTH_DSN);
-
     MYTCHAR odbc_ini[MEDIUM_REGISTRY_LEN] = {};
     MYTCHAR ini_name[MEDIUM_REGISTRY_LEN] = {};
     MYTCHAR default_value[LARGE_REGISTRY_LEN] = {};
@@ -47,8 +45,6 @@ void getDSNinfo(ConnInfo * ci, bool overwrite) {
 }
 
 void writeDSNinfo(const ConnInfo * ci) {
-    SQLSetConfigMode(ODBC_BOTH_DSN);
-
     MYTCHAR odbc_ini[MEDIUM_REGISTRY_LEN] = {};
     MYTCHAR ini_name[MEDIUM_REGISTRY_LEN] = {};
     stringToTCHAR(ODBC_INI, odbc_ini);
