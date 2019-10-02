@@ -29,6 +29,7 @@ SQLGetInfo              @45
 
 SQLDriverConnect
 SQLMoreResults
+SQLBindParameter
 SQLNativeSql            @62
 SQLConnect              @7
 SQLPrepare              @19
