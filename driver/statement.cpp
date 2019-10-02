@@ -348,6 +348,11 @@ void Statement::executeQuery(IResultMutatorPtr && mutator) {
 }
 
 void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
+    result_set.reset();
+
+    if (query.empty())
+        return;
+
     const auto param_set_array_size = getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
     if (next_param_set >= param_set_array_size)
         return;
@@ -541,7 +546,6 @@ bool Statement::advanceToNextResultSet() {
         mutator = result_set->releaseMutator();
 
     // TODO: add support of detecting next result set on the wire, when protocol allows it.
-    result_set.reset();
 
     requestNextPackOfResultSets(std::move(mutator));
     return hasResultSet();
