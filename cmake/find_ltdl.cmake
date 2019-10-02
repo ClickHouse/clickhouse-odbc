@@ -16,8 +16,8 @@ if (NOT BUILD_SHARED)
         )
         if (_distname)
             message (STATUS "Distro name from /etc/issue: ${_distname}")
-        endif
-    endif
+        endif ()
+    endif ()
 
     if (_distname STREQUAL "Ubuntu" OR _distname STREQUAL "Debian")
         list (REVERSE CMAKE_FIND_LIBRARY_SUFFIXES)
