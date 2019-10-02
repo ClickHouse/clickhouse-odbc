@@ -35,18 +35,18 @@ matrix:
         #  addons:
         #    apt:
         #      sources: [ ubuntu-toolchain-r-test ]
-        #      packages: [ ninja-build, libstdc++-8-dev, libiodbc2-dev, libiodbc2, libpoco-dev ]
+        #      packages: [ ninja-build, libstdc++-8-dev, libpoco-dev, iodbc, libiodbc2, libiodbc2-dev ]
         #  git:
         #    submodules: false
 
-        # osx libiodbc unbundled
+        # osx iodbc unbundled
         - os: osx
           env: MATRIX_EVAL="export CMAKE_FLAGS=-DUNBUNDLED=1 HOMEBREW_PACKAGES='libiodbc poco'" 
           git:
             submodules: false
           # addons:
           #   homebrew:
-          #     packages: [ ninja, libiodbc, poco ]
+          #     packages: [ ninja, poco, iodbc, libiodbc2, libiodbc2-dev ]
 
 
         # clang5 iodbc
@@ -56,7 +56,7 @@ matrix:
           addons:
             apt:
               sources: [ ubuntu-toolchain-r-test ]
-              packages: [ ninja-build, libstdc++-8-dev, libiodbc2-dev, libiodbc2 ]
+              packages: [ ninja-build, libstdc++-8-dev, iodbc, libiodbc2, libiodbc2-dev ]
 
         # gcc8 iodbc
         - os: linux
@@ -64,14 +64,14 @@ matrix:
           addons:
             apt:
               sources: [ ubuntu-toolchain-r-test ]
-              packages: [ ninja-build, gcc-8, g++-8, libiodbc2-dev, libiodbc2 ]
+              packages: [ ninja-build, gcc-8, g++-8, iodbc, libiodbc2, libiodbc2-dev ]
 
         # clang8 unixodbc
         #- os: linux
         #  addons:
         #    apt:
         #      sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
-        #      packages: [ ninja-build, libstdc++-8-dev, clang ]
+        #      packages: [ ninja-build, libstdc++-8-dev, clang, unixodbc, unixodbc-bin, unixodbc-dev, perl, libdbi-perl, libdbd-odbc-perl, python, python-pyodbc ]
         #  env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=unixodbc-dev"
 
         # clang5 unixodbc
@@ -80,7 +80,7 @@ matrix:
           addons:
             apt:
               sources: [ ubuntu-toolchain-r-test ]
-              packages: [ ninja-build, libstdc++-8-dev, clang]
+              packages: [ ninja-build, libstdc++-8-dev, clang, unixodbc, unixodbc-bin, unixodbc-dev, perl, libdbi-perl, libdbd-odbc-perl, python, python-pyodbc ]
           env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=unixodbc-dev"
 
         # gcc7 unixodbc
@@ -89,7 +89,7 @@ matrix:
           addons:
             apt:
               sources: [ ubuntu-toolchain-r-test ]
-              packages: [ ninja-build, gcc-7, g++-7]
+              packages: [ ninja-build, gcc-7, g++-7, unixodbc, unixodbc-bin, unixodbc-dev, perl, libdbi-perl, libdbd-odbc-perl, python, python-pyodbc ]
 
         - os: osx
           env: MATRIX_EVAL="export HOMEBREW_PACKAGES='libiodbc'" 
@@ -140,8 +140,6 @@ script:
   - ctest -R '.*-ut.*'
   # more complicated tests
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then echo "Unable to test on OSX since docker is not supported on Travis OSX agents."; exit ${TRAVIS_TEST_RESULT}; fi
-  # Setting up test prerequisites: docker, pyodbc, odbc module for perl, isql (or iusql or other)
-  - sudo apt install -y perl libdbi-perl libdbd-odbc-perl python-pyodbc unixodbc unixodbc-dev
   # Using absolute path to compiler to fix setup.py issue of pyodbc: unable to execute 'clang': No such file or directory
   #- sudo CC=`which $CC` CXX=`which $CXX` pip install pyodbc -V --disable-pip-version-check
   # To simplify things a bit, start ClickHouse server in docker
