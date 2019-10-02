@@ -128,7 +128,14 @@ before_script:
 script:
   - mkdir -p build
   - cd build
-  - cmake .. -G Ninja -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` $CMAKE_FLAGS -DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w && cmake --build . --target all
+  - CMAKE_FLAGS="$CMAKE_FLAGS -G Ninja -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` -DTEST_DSN=clickhouse_localhost"
+  # MS ODBC uses UCS2 for widechars (2 bytes per char)  
+  # unixODBC do the same by default (2 bytes per char), but can be switched to wchar_t (4 bytes) (SQL_WCHART_CONVERT)
+  # iODBC always use wchar_t (4 bytes)
+  # so driver compiled for iODBC will not work properly with unixODBC software
+  # our tests use unixODBC, so we enable unicode test only for uniexODBC driver build  
+  - if [ -n "$ODBC_LIB" ]; then CMAKE_FLAGS="$CMAKE_FLAGS -DTEST_DSN_W=clickhouse_localhost_w"; fi
+  - cmake .. $CMAKE_FLAGS && cmake --build . --target all
   # unit-tests
   - ctest -R '.*-ut.*'
   # more complicated tests
