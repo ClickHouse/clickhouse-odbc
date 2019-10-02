@@ -31,7 +31,7 @@ matrix:
         # clang5 iodbc unbundled  Too old poco 1.3
         #- os: linux
         #  compiler: clang
-        #  env: MATRIX_EVAL="export CC=clang CXX=clang++ CMAKE_FLAGS=-DUNBUNDLED=1"
+        #  env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=libiodbc2 CMAKE_FLAGS=-DUNBUNDLED=1"
         #  addons:
         #    apt:
         #      sources: [ ubuntu-toolchain-r-test ]
@@ -39,9 +39,9 @@ matrix:
         #  git:
         #    submodules: false
 
-        # osx iodbc unbundled
+        # apple-clang iodbc unbundled
         - os: osx
-          env: MATRIX_EVAL="export CMAKE_FLAGS=-DUNBUNDLED=1 HOMEBREW_PACKAGES='libiodbc poco'" 
+          env: MATRIX_EVAL="export ODBC_LIB=libiodbc2 CMAKE_FLAGS=-DUNBUNDLED=1 HOMEBREW_PACKAGES='libiodbc poco'" 
           git:
             submodules: false
           # addons:
@@ -52,7 +52,7 @@ matrix:
         # clang5 iodbc
         - os: linux
           compiler: clang
-          env: MATRIX_EVAL="export CC=clang CXX=clang++"
+          env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=libiodbc2"
           addons:
             apt:
               sources: [ ubuntu-toolchain-r-test ]
@@ -60,7 +60,7 @@ matrix:
 
         # gcc8 iodbc
         - os: linux
-          env: MATRIX_EVAL="export CC=gcc-8 CXX=g++-8"
+          env: MATRIX_EVAL="export CC=gcc-8 CXX=g++-8 ODBC_LIB=libiodbc2"
           addons:
             apt:
               sources: [ ubuntu-toolchain-r-test ]
@@ -68,20 +68,20 @@ matrix:
 
         # clang8 unixodbc
         #- os: linux
+        #  env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=unixodbc-dev"
         #  addons:
         #    apt:
         #      sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
         #      packages: [ ninja-build, libstdc++-8-dev, clang, unixodbc, unixodbc-bin, unixodbc-dev, perl, libdbi-perl, libdbd-odbc-perl, python, python-pyodbc ]
-        #  env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=unixodbc-dev"
 
         # clang5 unixodbc
         - os: linux
           compiler: clang
+          env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=unixodbc-dev"
           addons:
             apt:
               sources: [ ubuntu-toolchain-r-test ]
               packages: [ ninja-build, libstdc++-8-dev, clang, unixodbc, unixodbc-bin, unixodbc-dev, perl, libdbi-perl, libdbd-odbc-perl, python, python-pyodbc ]
-          env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=unixodbc-dev"
 
         # gcc7 unixodbc
         - os: linux
@@ -91,14 +91,16 @@ matrix:
               sources: [ ubuntu-toolchain-r-test ]
               packages: [ ninja-build, gcc-7, g++-7, unixodbc, unixodbc-bin, unixodbc-dev, perl, libdbi-perl, libdbd-odbc-perl, python, python-pyodbc ]
 
+        # apple-clang iodbc
         - os: osx
-          env: MATRIX_EVAL="export HOMEBREW_PACKAGES='libiodbc'" 
+          env: MATRIX_EVAL="export ODBC_LIB=libiodbc HOMEBREW_PACKAGES='libiodbc'" 
           # addons:
           #   homebrew:
           #     packages: [ ninja, libiodbc ]
 
+        # apple-clang unixodbc
         - os: osx
-          env: MATRIX_EVAL="export HOMEBREW_PACKAGES='unixodbc'" 
+          env: MATRIX_EVAL="export ODBC_LIB=unixodbc HOMEBREW_PACKAGES='unixodbc'" 
           # addons:
           #   homebrew:
           #     packages: [ ninja, unixodbc ]
@@ -128,14 +130,12 @@ before_script:
 script:
   - mkdir -p build
   - cd build
-  - CMAKE_FLAGS="$CMAKE_FLAGS -G Ninja -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` -DTEST_DSN=clickhouse_localhost"
   # MS ODBC uses UCS2 for widechars (2 bytes per char)  
   # unixODBC do the same by default (2 bytes per char), but can be switched to wchar_t (4 bytes) (SQL_WCHART_CONVERT)
   # iODBC always use wchar_t (4 bytes)
   # so driver compiled for iODBC will not work properly with unixODBC software
-  # our tests use unixODBC, so we enable unicode test only for uniexODBC driver build  
-  - if [ -n "$ODBC_LIB" ]; then CMAKE_FLAGS="$CMAKE_FLAGS -DTEST_DSN_W=clickhouse_localhost_w"; fi
-  - cmake .. $CMAKE_FLAGS && cmake --build . --target all
+  - cmake -G Ninja -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` -DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w $CMAKE_FLAGS ..
+  - cmake --build . --target all
   # unit-tests
   - ctest -R '.*-ut.*'
   # more complicated tests
@@ -163,4 +163,4 @@ script:
     url=http://${CLICKHOUSE_SERVER_IP}
     EOF
   - echo "Staring tests..."
-  - ctest -V
+  - ctest -VV
