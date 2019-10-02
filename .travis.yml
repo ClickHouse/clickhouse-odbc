@@ -121,7 +121,7 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-get install -y $ODBC_LIB binutils | tee build.log 2>&1 || (cat build.log && exit 1); fi
 
 before_script:
-  # anodbc for more tests
+  # nanodbc for more tests
   - cd ./contrib && git clone --recursive https://github.com/nanodbc/nanodbc.git && cd ..
   - ls -lah . ./contrib
 
