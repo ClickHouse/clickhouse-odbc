@@ -150,6 +150,8 @@ script:
       # https://github.com/mkleehammer/pyodbc/commit/aa178bfd25afd6fb90c77d054c1bcf0a6aa54411
       sudo pip install pyodbc==3.0.7 
       CLICKHOUSE_SERVER_IP='localhost'
+      ODBC_DRIVER_PATH=$(realpath driver/libclickhouseodbc.dylib)
+      ODBC_DRIVER_PATH=$(realpath driver/libclickhouseodbcw.dylib)
       # echo "Unable to test on OSX since docker is not supported on Travis OSX agents."; exit ${TRAVIS_TEST_RESULT};
     else 
       # Using absolute path to compiler to fix setup.py issue of pyodbc: unable to execute 'clang': No such file or directory
@@ -161,10 +163,10 @@ script:
       CLICKHOUSE_SERVER_IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' ${CLICKHOUSE_SERVER_CONTAINER})
       docker ps -a
       docker stats -a --no-stream
+      ODBC_DRIVER_PATH=$(realpath driver/libclickhouseodbc.so)
+      ODBC_DRIVERW_PATH=$(realpath driver/libclickhouseodbcw.so)
     fi
   # TODO: think about paths on windows
-  - ODBC_DRIVER_PATH=$(realpath driver/libclickhouseodbc.so)
-  - ODBC_DRIVERW_PATH=$(realpath driver/libclickhouseodbcw.so)
   - echo "Compose ODBC config"
   - |
     cat > ~/.odbc.ini <<-EOF
