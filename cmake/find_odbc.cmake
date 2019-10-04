@@ -27,6 +27,7 @@ find_path(ODBC_INCLUDE_DIRECTORIES
 	/usr/include
 	/usr/include/odbc
 	/usr/include/iodbc
+	/usr/include/libiodbc
 	"C:/Program Files/ODBC/include"
 	"C:/Program Files/Microsoft SDKs/Windows/v7.0/include"
 	"C:/Program Files/Microsoft SDKs/Windows/v6.0a/include"
