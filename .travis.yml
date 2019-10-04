@@ -143,6 +143,12 @@ script:
   # more complicated tests
   - |
     if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      # install more deps for python & perl to run more tests    
+      sudo PERL_MM_USE_DEFAULT=1 cpan -T DBD::ODBC
+      curl https://bootstrap.pypa.io/get-pip.py | sudo python
+      # it looks like that older version works with iodbc out of the box on Mac
+      # https://github.com/mkleehammer/pyodbc/commit/aa178bfd25afd6fb90c77d054c1bcf0a6aa54411
+      sudo pip install pyodbc==3.0.7 
       CLICKHOUSE_SERVER_IP='localhost'
       # echo "Unable to test on OSX since docker is not supported on Travis OSX agents."; exit ${TRAVIS_TEST_RESULT};
     else 
