@@ -211,4 +211,10 @@ script:
     TraceFile   = /tmp/clickhouse-odbc-driver-w-trace.log
     EOF
   - echo "Staring tests..."
+  - echo $ODBC_DRIVERW_PATH
+  - echo $CLICKHOUSE_SERVER_IP
+  - echo $ODBCINSTINI
+  - echo $ODBCINI
+  - cat $ODBCINSTINI
+  - cat $ODBCINI
   - ctest -VV
