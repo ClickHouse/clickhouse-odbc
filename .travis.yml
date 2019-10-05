@@ -169,13 +169,44 @@ script:
   # TODO: think about paths on windows
   - echo "Compose ODBC config"
   - |
+    cat > ~/.odbcinst.ini <<-EOF
+    [ODBC Drivers]
+    clickhouse_driver   = Installed
+    clickhouse_driver_w = Installed
+
+    [clickhouse_driver]
+    Driver = ${ODBC_DRIVER_PATH}
+    Setup  = ${ODBC_DRIVER_PATH}
+
+    [clickhouse_driver_w]
+    Driver = ${ODBC_DRIVERW_PATH}
+    Setup  = ${ODBC_DRIVERW_PATH}
+    EOF
+  - |
     cat > ~/.odbc.ini <<-EOF
+    [ODBC]
+    Trace         = yes
+    TraceFile     = /tmp/odbc-driver-manager-trace.log
+
+    [ODBC Data Sources]
+    clickhouse_localhost   = clickhouse_driver
+    clickhouse_localhost_w = clickhouse_driver_w
+
     [clickhouse_localhost]
-    Driver=${ODBC_DRIVER_PATH}
-    url=http://${CLICKHOUSE_SERVER_IP}
+    Driver      = clickhouse_driver
+    Description = ClickHouse DSN (ASCII, localhost)
+    Url         = http://${CLICKHOUSE_SERVER_IP}
+    Timeout     = 30
+    Trace       = yes
+    TraceFile   = /tmp/odbc-driver-trace.log
+
     [clickhouse_localhost_w]
-    Driver=${ODBC_DRIVERW_PATH}
-    url=http://${CLICKHOUSE_SERVER_IP}
+    Driver      = clickhouse_driver_w
+    Description = ClickHouse DSN (Unicode, localhost)
+    Url         = http://${CLICKHOUSE_SERVER_IP}
+    Timeout     = 30
+    Trace       = yes
+    TraceFile   = /tmp/odbc-driver-w-trace.log
     EOF
   - echo "Staring tests..."
   - ctest -VV
