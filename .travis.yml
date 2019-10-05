@@ -212,4 +212,5 @@ script:
     TraceFile   = /tmp/clickhouse-odbc-driver-w-trace.log
     EOF
   - echo "Staring tests..."
+  - odbcinst -j
   - ctest -VV
