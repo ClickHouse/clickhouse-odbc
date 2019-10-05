@@ -250,7 +250,11 @@ SQLRETURN NumParams(
     SQLSMALLINT *   out_parameter_count
 ) noexcept {
     auto func = [&] (Statement & statement) {
-        *out_parameter_count = statement.getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).getAttrAs<SQLSMALLINT>(SQL_DESC_COUNT);
+        auto & ipd_desc = statement.getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC);
+        const auto ipd_record_count = ipd_desc.getRecordCount();
+
+        *out_parameter_count = ipd_record_count; // TODO: ...or statement.parameters.size()?
+
         return SQL_SUCCESS;
     };
 

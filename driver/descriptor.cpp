@@ -1,5 +1,7 @@
 #include "descriptor.h"
 
+#include <algorithm>
+
 void DescriptorRecord::onAttrChange(int attr) {
     switch (attr) {
         case SQL_DESC_TYPE: {
@@ -150,18 +152,30 @@ std::size_t Descriptor::getRecordCount() const {
 }
 
 DescriptorRecord & Descriptor::getRecord(std::size_t num, SQLINTEGER current_role) {
-    const auto curr_rec_count = getAttrAs<SQLSMALLINT>(SQL_DESC_COUNT, 0) + 1; // +1 for 0th BOOKMARK record
+    if (records.empty()) {
+        // Initialize at least 0th BOOKMARK record
+        records.reserve(10);
+        records.emplace_back();
+        getParent().initAsDescRec(records[0], current_role);
+    }
 
-    for (std::size_t i = curr_rec_count; i <= num && i < records.size(); ++i) {
+    // Short-circuit on 0th BOOKMARK record.
+    if (num == 0) {
+        return records[0];
+    }
+
+    const auto curr_rec_count = getRecordCount();
+
+    for (std::size_t i = curr_rec_count + 1; i <= num && i < records.size(); ++i) {
         getParent().initAsDescRec(records[i], current_role);
     }
 
-    while (records.size() < curr_rec_count || records.size() <= num) {
+    while (records.size() <= std::max(curr_rec_count, num)) {
         records.emplace_back();
         getParent().initAsDescRec(records.back(), current_role);
     }
 
-    if (curr_rec_count <= num) {
+    if (curr_rec_count < num) {
         setAttr(SQL_DESC_COUNT, num);
     }
 

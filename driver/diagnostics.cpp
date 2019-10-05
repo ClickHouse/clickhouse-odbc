@@ -2,6 +2,8 @@
 
 #include <Poco/Exception.h>
 
+#include <algorithm>
+
 SqlException::SqlException(const std::string & message_, const std::string & sql_state_)
     : std::runtime_error(message_)
     , sql_state(sql_state_)
@@ -67,18 +69,18 @@ DiagnosticsRecord & DiagnosticsContainer::getDiagStatus(std::size_t num) {
         return records[0];
     }
 
-    const auto curr_rec_count = records[0].getAttrAs<SQLINTEGER>(SQL_DIAG_NUMBER, 0) + 1; // +1 for 0th HEADER record
+    const std::size_t curr_rec_count = records[0].getAttrAs<SQLINTEGER>(SQL_DIAG_NUMBER, 0);
 
-    for (std::size_t i = curr_rec_count; i <= num && i < records.size(); ++i) {
+    for (std::size_t i = curr_rec_count + 1; i <= num && i < records.size(); ++i) {
         records[i].resetAttrs();
     }
 
-    while (records.size() < curr_rec_count || records.size() <= num) {
+    while (records.size() <= std::max(curr_rec_count, num)) {
         records.emplace_back();
     }
 
-    if (curr_rec_count <= num) {
-        records[0].setAttr(SQL_DESC_COUNT, num);
+    if (curr_rec_count < num) {
+        records[0].setAttr(SQL_DIAG_NUMBER, num);
     }
 
     return records[num];
@@ -89,7 +91,6 @@ void DiagnosticsContainer::insertDiagStatus(DiagnosticsRecord && rec) {
     const auto new_rec_count = getDiagStatusCount() + 1; // +1 for this new record
     auto & new_rec = getDiagStatus(new_rec_count);
     new_rec = std::move(rec);
-    getDiagHeader().setAttr(SQL_DIAG_NUMBER, new_rec_count);
 }
 
 void DiagnosticsContainer::resetDiag() {

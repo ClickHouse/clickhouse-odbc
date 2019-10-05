@@ -439,11 +439,19 @@ void Statement::processEscapeSequences() {
 }
 
 void Statement::extractParametersinfo() {
-    getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).setAttr(SQL_DESC_COUNT, 0);
+    auto & apd_desc = getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC);
+    auto & ipd_desc = getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC);
 
-    // TODO: implement this all in an upgraded Lexer.
+    const auto apd_record_count = apd_desc.getRecordCount();
+    auto ipd_record_count = ipd_desc.getRecordCount();
+
+    // Reset IPD records but preserve possible info set by SQLBindParameter.
+    ipd_record_count = std::min(ipd_record_count, apd_record_count);
+    ipd_desc.setAttr(SQL_DESC_COUNT, ipd_record_count);
 
     parameters.clear();
+
+    // TODO: implement this all in an upgraded Lexer.
     std::string placeholder;
 
     // Craft a temporary unique placeholder for the parameters (same for all).
@@ -456,7 +464,6 @@ void Statement::extractParametersinfo() {
     }
 
     // Replace all unquoted ? characters with the placeholder and populate 'parameters' array.
-
     char quoted_by = '\0';
     for (std::size_t i = 0; i < query.size(); ++i) {
         const char curr = query[i];
@@ -501,7 +508,8 @@ void Statement::extractParametersinfo() {
         }
     }
 
-    getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).setAttr(SQL_DESC_COUNT, parameters.size());
+    ipd_record_count = std::max(ipd_record_count, parameters.size());
+    ipd_desc.setAttr(SQL_DESC_COUNT, ipd_record_count);
 }
 
 std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings) const {
@@ -601,12 +609,10 @@ void Statement::resetColBindings() {
     bindings.clear();
 
     getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC).setAttr(SQL_DESC_COUNT, 0);
-    getEffectiveDescriptor(SQL_ATTR_IMP_ROW_DESC).setAttr(SQL_DESC_COUNT, 0);
 }
 
 void Statement::resetParamBindings() {
     getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).setAttr(SQL_DESC_COUNT, 0);
-    getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).setAttr(SQL_DESC_COUNT, 0);
 }
 
 std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
@@ -617,18 +623,23 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
 
     const auto apd_record_count = apd_desc.getRecordCount();
     const auto ipd_record_count = ipd_desc.getRecordCount();
+    const auto actual_param_count = parameters.size();
 
-    if (apd_record_count < ipd_record_count)
+    if (
+        ipd_record_count < actual_param_count || // must not happen
+        apd_record_count < ipd_record_count
+    ) {
         throw SqlException("COUNT field incorrect", "07002");
+    }
 
-    if (ipd_record_count > 0)
-        param_bindings.reserve(ipd_record_count);
+    if (actual_param_count > 0)
+        param_bindings.reserve(actual_param_count);
 
     const auto single_set_struct_size = apd_desc.getAttrAs<SQLULEN>(SQL_DESC_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN);
     const auto * bind_offset_ptr = apd_desc.getAttrAs<SQLULEN *>(SQL_DESC_BIND_OFFSET_PTR, 0);
     const auto bind_offset = (bind_offset_ptr ? *bind_offset_ptr : 0);
 
-    for (std::size_t i = 1; i <= ipd_record_count; ++i) {
+    for (std::size_t i = 1; i <= actual_param_count; ++i) {
         ParamBindingInfo binding_info;
 
         auto & apd_record = apd_desc.getRecord(i, SQL_ATTR_APP_PARAM_DESC);
