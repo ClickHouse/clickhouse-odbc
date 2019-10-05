@@ -168,8 +168,10 @@ script:
     fi
   # TODO: think about paths on windows
   - echo "Compose ODBC config"
+  - export ODBCINSTINI=$HOME/.odbcinst.ini
+  - export ODBCINI=$HOME/.odbc.ini
   - |
-    cat > ~/.odbcinst.ini <<-EOF
+    cat > $ODBCINSTINI <<-EOF
     [ODBC Drivers]
     clickhouse_driver   = Installed
     clickhouse_driver_w = Installed
@@ -183,7 +185,7 @@ script:
     Setup  = ${ODBC_DRIVERW_PATH}
     EOF
   - |
-    cat > ~/.odbc.ini <<-EOF
+    cat > $ODBCINI <<-EOF
     [ODBC]
     Trace         = yes
     TraceFile     = /tmp/odbc-driver-manager-trace.log
