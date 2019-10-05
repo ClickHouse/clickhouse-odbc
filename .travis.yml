@@ -168,11 +168,15 @@ script:
     fi
   # TODO: think about paths on windows
   - echo "Compose ODBC config"
-  - export ODBCINSTINI=$HOME/.odbcinst.ini
-  - export ODBCINI=$HOME/.odbc.ini
-  - export ODBCSYSINI=$ODBCINSTINI
   - |
-    cat > $ODBCINSTINI <<-EOF
+    export ODBCSYSINI=$HOME
+    export ODBCINSTINI=.odbcinst.ini
+    export ODBCINI=$ODBCSYSINI/.odbc.ini
+    if [ "$ODBC_LIB" == "libiodbc2" ]; then
+      # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
+      export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
+    fi
+    cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
     [ODBC Drivers]
     clickhouse_driver   = Installed
     clickhouse_driver_w = Installed
@@ -186,7 +190,7 @@ script:
     Setup  = ${ODBC_DRIVERW_PATH}
     EOF
   - |
-    cat > $ODBCINI <<-EOF
+    cat > $ODBCSYSINI/.odbc.ini <<-EOF
     [ODBC]
     Trace         = yes
     TraceFile     = /tmp/odbc-driver-manager-trace.log
@@ -212,5 +216,4 @@ script:
     TraceFile   = /tmp/clickhouse-odbc-driver-w-trace.log
     EOF
   - echo "Staring tests..."
-  - odbcinst -j
   - ctest -VV
