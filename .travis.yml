@@ -81,7 +81,7 @@ matrix:
 
         # apple-clang iodbc unbundled
         - os: osx
-          env: MATRIX_EVAL="export ODBC_LIB=libiodbc2 CMAKE_FLAGS=-DUNBUNDLED=1 HOMEBREW_PACKAGES='libiodbc poco'" 
+          env: MATRIX_EVAL="export ODBC_LIB=libiodbc CMAKE_FLAGS=-DUNBUNDLED=1 HOMEBREW_PACKAGES='libiodbc poco'" 
           git:
             submodules: false
           # addons:
@@ -134,7 +134,7 @@ script:
   # iODBC always use wchar_t (4 bytes)
   # so driver compiled for iODBC will not work properly with unixODBC software
   - |
-    if [[ $ODBC_LIB =~ "iodbc" ]]; then
+    if [[ "$ODBC_LIB" =~ "iodbc" ]]; then
       CMAKE_FLAGS=-DFIND_IODBC_FIRST=1 $CMAKE_FLAGS
     else
       CMAKE_FLAGS=-DFIND_UNIXODBC_FIRST=1 $CMAKE_FLAGS
@@ -175,7 +175,7 @@ script:
     export ODBCSYSINI=$HOME
     export ODBCINSTINI=.odbcinst.ini
     export ODBCINI=$ODBCSYSINI/.odbc.ini
-    if [[ $ODBC_LIB =~ "iodbc" ]]; then
+    if [[ "$ODBC_LIB" =~ "iodbc" ]]; then
       # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
       export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
     fi
