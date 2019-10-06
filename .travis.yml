@@ -200,7 +200,7 @@ script:
     clickhouse_localhost_w = clickhouse_driver_w
 
     [clickhouse_localhost]
-    Driver      = clickhouse_driver
+    Driver      = ${ODBC_DRIVER_PATH}
     Description = ClickHouse DSN (ASCII, localhost)
     Url         = http://${CLICKHOUSE_SERVER_IP}
     Timeout     = 30
@@ -208,7 +208,7 @@ script:
     TraceFile   = /tmp/clickhouse-odbc-driver-trace.log
 
     [clickhouse_localhost_w]
-    Driver      = clickhouse_driver_w
+    Driver      = ${ODBC_DRIVERW_PATH}
     Description = ClickHouse DSN (Unicode, localhost)
     Url         = http://${CLICKHOUSE_SERVER_IP}
     Timeout     = 30
