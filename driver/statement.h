@@ -101,8 +101,9 @@ private:
 
     void processEscapeSequences();
     void extractParametersinfo();
-    std::string buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings) const;
-    std::vector<ParamBindingInfo> getParamsBindingInfo();
+    std::string buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings);
+    std::string getParamFinalName(std::size_t param_idx);
+    std::vector<ParamBindingInfo> getParamsBindingInfo(std::size_t param_set_idx);
 
     Descriptor & choose(std::shared_ptr<Descriptor> & implicit_desc, std::weak_ptr<Descriptor> & explicit_desc);
 

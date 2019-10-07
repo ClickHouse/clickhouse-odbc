@@ -369,19 +369,19 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
     uri.addQueryParameter("database", connection.getDatabase());
     uri.addQueryParameter("default_format", "ODBCDriver2");
 
-    const auto param_bindings = getParamsBindingInfo();
+    const auto param_bindings = getParamsBindingInfo(next_param_set);
 
     if (param_bindings.size() < parameters.size())
         throw SqlException("COUNT field incorrect", "07002");
 
     for (std::size_t i = 0; i < parameters.size(); ++i) {
-        const auto & param_info = parameters[i];
+        const auto param_name = getParamFinalName(i);
         const auto & binding_info = param_bindings[i];
 
         if (!isInputParam(binding_info.io_type) || isStreamParam(binding_info.io_type))
             throw std::runtime_error("Unable to extract data from bound param buffer: param IO type is not supported");
 
-        uri.addQueryParameter("param_" + param_info.name, readReadyDataTo<std::string>(binding_info));
+        uri.addQueryParameter("param_" + param_name, readReadyDataTo<std::string>(binding_info));
     }
 
     const auto prepared_query = buildFinalQuery(param_bindings);
@@ -452,18 +452,18 @@ void Statement::extractParametersinfo() {
     parameters.clear();
 
     // TODO: implement this all in an upgraded Lexer.
-    std::string placeholder;
 
-    // Craft a temporary unique placeholder for the parameters (same for all).
-    {
-        Poco::UUIDGenerator uuid_gen;
+    Poco::UUIDGenerator uuid_gen;
+    auto generate_placeholder = [&] () {
+        std::string placeholder;
         do {
             const auto uuid = uuid_gen.createOne();
             placeholder = '@' + uuid.toString();
         } while (query.find(placeholder) != std::string::npos);
-    }
+        return placeholder;
+    };
 
-    // Replace all unquoted ? characters with the placeholder and populate 'parameters' array.
+    // Replace all unquoted ? characters with a placeholder and populate 'parameters' array.
     char quoted_by = '\0';
     for (std::size_t i = 0; i < query.size(); ++i) {
         const char curr = query[i];
@@ -494,13 +494,40 @@ void Statement::extractParametersinfo() {
 
             case '?': {
                 if (quoted_by == '\0') {
-                    query.replace(i, 1, placeholder);
-                    i += placeholder.size();
-                    i -= 1;
-
                     ParamInfo param_info;
-                    param_info.name = "odbc_" + std::to_string(parameters.size() + 1);
-                    param_info.tmp_placeholder = placeholder;
+                    param_info.tmp_placeholder = generate_placeholder();
+                    query.replace(i, 1, param_info.tmp_placeholder);
+                    i += param_info.tmp_placeholder.size() - 1; // - 1 to compensate for's next ++i
+                    parameters.emplace_back(param_info);
+                }
+                break;
+            }
+
+            case '@': {
+                if (quoted_by == '\0') {
+                    ParamInfo param_info;
+
+                    param_info.name = '@';
+                    for (std::size_t j = i + 1; j < query.size(); ++j) {
+                        const char jcurr = query[j];
+                        if (
+                            jcurr == '_' ||
+                            std::isalpha(jcurr) ||
+                            (std::isdigit(jcurr) && j > i + 1)
+                        ) {
+                            param_info.name += jcurr;
+                        }
+                        else {
+                            break;
+                        }
+                    }
+
+                    if (param_info.name.size() == 1)
+                        throw SqlException("Syntax error or access violation", "42000");
+
+                    param_info.tmp_placeholder = generate_placeholder();
+                    query.replace(i, param_info.name.size(), param_info.tmp_placeholder);
+                    i += param_info.tmp_placeholder.size() - 1; // - 1 to compensate for's next ++i
                     parameters.emplace_back(param_info);
                 }
                 break;
@@ -512,7 +539,7 @@ void Statement::extractParametersinfo() {
     ipd_desc.setAttr(SQL_DESC_COUNT, ipd_record_count);
 }
 
-std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings) const {
+std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings) {
     auto prepared_query = query;
 
     if (param_bindings.size() < parameters.size())
@@ -527,7 +554,8 @@ std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& para
         if (pos == std::string::npos)
             throw SqlException("COUNT field incorrect", "07002");
 
-        const std::string param_placeholder = "{" + param_info.name + ":" +
+        const auto param_name = getParamFinalName(i);
+        const std::string param_placeholder = "{" + param_name + ":" +
             convertCOrSQLTypeToDataSourceType(binding_info.sql_type, binding_info.value_max_size) + "}";
 
         prepared_query.replace(pos, param_info.tmp_placeholder.size(), param_placeholder);
@@ -615,7 +643,21 @@ void Statement::resetParamBindings() {
     getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).setAttr(SQL_DESC_COUNT, 0);
 }
 
-std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
+std::string Statement::getParamFinalName(std::size_t param_idx) {
+    auto & ipd_desc = getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC);
+    if (param_idx < ipd_desc.getRecordCount()) {
+        auto & ipd_record = ipd_desc.getRecord(param_idx + 1, SQL_ATTR_IMP_PARAM_DESC);
+        if (ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_UNNAMED, SQL_UNNAMED) != SQL_UNNAMED)
+            return tryStripParamPrefix(ipd_record.getAttrAs<std::string>(SQL_DESC_NAME));
+    }
+
+    if (param_idx < parameters.size() && !parameters[param_idx].name.empty())
+        return tryStripParamPrefix(parameters[param_idx].name);
+
+    return "odbc_positional_" + std::to_string(param_idx + 1);
+}
+
+std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_set_idx) {
     std::vector<ParamBindingInfo> param_bindings;
 
     auto & apd_desc = getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC);
@@ -653,9 +695,9 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo() {
         binding_info.type = apd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
         binding_info.sql_type = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_UNKNOWN_TYPE);
         binding_info.value_max_size = ipd_record.getAttrAs<SQLULEN>(SQL_DESC_LENGTH, 0); // TODO: or SQL_DESC_OCTET_LENGTH ?
-        binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + (i - 1) * single_set_struct_size + bind_offset) : 0);
-        binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + (i - 1) * sizeof(SQLLEN) + bind_offset) : 0);
-        binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + (i - 1) * sizeof(SQLLEN) + bind_offset) : 0);
+        binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + param_set_idx * single_set_struct_size + bind_offset) : 0);
+        binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
+        binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
 
         param_bindings.emplace_back(binding_info);
     }

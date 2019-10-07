@@ -103,6 +103,18 @@ void DescriptorRecord::onAttrChange(int attr) {
         case SQL_DESC_DATA_PTR: {
             if (getAttrAs<SQLPOINTER>(SQL_DESC_DATA_PTR, nullptr))
                 consistencyCheck();
+            break;
+        }
+        case SQL_DESC_NAME: {
+            const auto name = getAttrAs<std::string>(SQL_DESC_NAME);
+            setAttrSilent(SQL_DESC_UNNAMED, (name.empty() ? SQL_UNNAMED : SQL_NAMED));
+            break;
+        }
+        case SQL_DESC_UNNAMED: {
+            const auto unnamed = getAttrAs<SQLSMALLINT>(SQL_DESC_UNNAMED, SQL_UNNAMED);
+            if (unnamed == SQL_UNNAMED)
+                setAttrSilent(SQL_DESC_NAME, std::string{});
+            break;
         }
     }
 }

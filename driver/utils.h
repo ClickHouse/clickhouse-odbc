@@ -116,6 +116,12 @@ inline bool isYes(std::string str) {
     return (Poco::NumberParser::tryParseBool(str, flag) ? flag : false);
 }
 
+inline auto tryStripParamPrefix(std::string param_name) {
+    if (!param_name.empty() && param_name[0] == '@')
+        param_name.erase(0, 1);
+    return param_name;
+}
+
 /// Parse a string of the form `key1=value1;key2=value2` ... TODO Parsing values in curly brackets.
 static const char * nextKeyValuePair(const char * data, const char * end, StringRef & out_key, StringRef & out_value) {
     if (data >= end)
