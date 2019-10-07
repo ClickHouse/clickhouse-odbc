@@ -135,9 +135,9 @@ script:
   # so driver compiled for iODBC will not work properly with unixODBC software
   - |
     if [[ "$ODBC_LIB" =~ "iodbc" ]]; then
-      CMAKE_FLAGS=-DFIND_IODBC_FIRST=1 $CMAKE_FLAGS
+      CMAKE_FLAGS="-DFIND_IODBC_FIRST=1 $CMAKE_FLAGS"
     else
-      CMAKE_FLAGS=-DFIND_UNIXODBC_FIRST=1 $CMAKE_FLAGS
+      CMAKE_FLAGS="-DFIND_UNIXODBC_FIRST=1 $CMAKE_FLAGS"
     fi
   - cmake -G Ninja -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` -DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w $CMAKE_FLAGS ..
   - cmake --build . --target all
