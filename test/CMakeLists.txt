@@ -8,15 +8,14 @@ find_program(SQLCMD sqlcmd)
 
 set(PERL_USES_UNIXODBC 0)
 set(PERL_USES_IODBC 0)
-set(PYTHON_USES_UNIXODBC 0)
-set(PYTHON_USES_IODBC 0)
+set(_perl_output)
 
 if(PERL)
     execute_process(
         COMMAND ${PERL} ${CMAKE_CURRENT_SOURCE_DIR}/detect_driver_manager.pl
         OUTPUT_VARIABLE _perl_output
         OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
+#       ERROR_QUIET
     )
     if(_perl_output MATCHES "unixODBC")
         set(PERL_USES_UNIXODBC 1)
@@ -26,12 +25,16 @@ if(PERL)
     endif()
 endif()
 
+set(PYTHON_USES_UNIXODBC 0)
+set(PYTHON_USES_IODBC 0)
+set(_python_output)
+
 if(PYTHON)
     execute_process(
         COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/detect_driver_manager.py
         OUTPUT_VARIABLE _python_output
         OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
+#       ERROR_QUIET
     )
     if(_python_output MATCHES "unixODBC")
         set(PYTHON_USES_UNIXODBC 1)
@@ -45,9 +48,11 @@ message(STATUS "Testing with:\n\t"
     "TEST_DSN=${TEST_DSN}\n\t"
     "TEST_DSN_W=${TEST_DSN_W}\n\t"
     "PERL=${PERL}\n\t"
+    "ODBC Driver Manager used by Perl DBD::ODBC: ${_perl_output}\n\t"
     "PERL_USES_UNIXODBC=${PERL_USES_UNIXODBC}\n\t"
     "PERL_USES_IODBC=${PERL_USES_IODBC}\n\t"
     "PYTHON=${PYTHON}\n\t"
+    "ODBC Driver Manager used by pyodbc: ${_python_output}\n\t"
     "PYTHON_USES_UNIXODBC=${PYTHON_USES_UNIXODBC}\n\t"
     "PYTHON_USES_IODBC=${PYTHON_USES_IODBC}\n\t"
     "ISQL=${ISQL}\n\t"
