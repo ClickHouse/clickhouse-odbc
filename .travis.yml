@@ -97,10 +97,10 @@ matrix:
 
         # apple-clang unixodbc
         - os: osx
-          env: MATRIX_EVAL="export ODBC_LIB=unixodbc HOMEBREW_PACKAGES='unixodbc perl python2'" 
+          env: MATRIX_EVAL="export ODBC_LIB=unixodbc HOMEBREW_PACKAGES='unixodbc perl'" 
           # addons:
           #   homebrew:
-          #     packages: [ ninja, unixodbc, perl, python2 ]
+          #     packages: [ ninja, unixodbc, perl ]
 
 
     exclude:
