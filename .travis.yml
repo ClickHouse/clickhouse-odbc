@@ -81,26 +81,26 @@ matrix:
 
         # apple-clang iodbc unbundled
         - os: osx
-          env: MATRIX_EVAL="export ODBC_LIB=libiodbc CMAKE_FLAGS=-DUNBUNDLED=1 HOMEBREW_PACKAGES='libiodbc poco'" 
+          env: MATRIX_EVAL="export ODBC_LIB=libiodbc CMAKE_FLAGS=-DUNBUNDLED=1 HOMEBREW_PACKAGES='libiodbc poco openssl'" 
           git:
             submodules: false
           # addons:
           #   homebrew:
-          #     packages: [ ninja, poco, libiodbc ]
+          #     packages: [ ninja, libiodbc, poco, openssl ]
 
         # apple-clang iodbc
         - os: osx
           env: MATRIX_EVAL="export ODBC_LIB=libiodbc HOMEBREW_PACKAGES='libiodbc'" 
           # addons:
           #   homebrew:
-          #     packages: [ ninja, poco, libiodbc ]
+          #     packages: [ ninja, libiodbc ]
 
         # apple-clang unixodbc
         - os: osx
-          env: MATRIX_EVAL="export ODBC_LIB=unixodbc HOMEBREW_PACKAGES='unixodbc'" 
+          env: MATRIX_EVAL="export ODBC_LIB=unixodbc HOMEBREW_PACKAGES='unixodbc perl python2'" 
           # addons:
           #   homebrew:
-          #     packages: [ ninja, poco, libiodbc ]
+          #     packages: [ ninja, unixodbc, perl, python2 ]
 
 
     exclude:
