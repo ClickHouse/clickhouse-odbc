@@ -98,5 +98,4 @@ public:
 
 private:
     Parent & parent;
-    std::ofstream log_file_stream;
 };
