@@ -25,6 +25,9 @@
   * which can work incorrectly, being called from within another function.
   * Wrong - because driver manager wraps all handle in its own,
   * which already have other addresses.
+  * The actual implementation bodies are also moved out of from the ODBC interface calls,
+  * to be out of extern "C" section, so that C++ features like generic lambdas, templates, are allowed,
+  * for example, by MSVC.
   */
 
 namespace { namespace impl {
