@@ -3,6 +3,8 @@
 use 5.16.0;
 use utf8;
 use open ':encoding(utf8)', ':std';
+use strict;
+use warnings;
 use DBI;
 
 eval {
@@ -11,4 +13,7 @@ eval {
 
 if ($@ =~ /\[([^\[\]]+)\]\[Driver Manager\]/) {
     print "$1\n";
+}
+elsif ($@) {
+    die $@;
 }
