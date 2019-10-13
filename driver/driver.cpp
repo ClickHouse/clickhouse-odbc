@@ -13,6 +13,8 @@ Driver::Driver() noexcept {
 }
 
 Driver::~Driver() {
+    // Make sure these are destroyed before anything else.
+    environments.clear();
 }
 
 Driver & Driver::getInstance() noexcept {
