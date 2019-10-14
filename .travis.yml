@@ -14,7 +14,91 @@ env:
 
 matrix:
   include:
-    - name: "Ubuntu 18.04 clang iODBC"
+
+    - name: "Ubuntu 18.04 - GCC - UnixODBC"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env: 
+        - CC=gcc
+        - CXX=g++
+        - ODBC_DRIVER_MANAGER=unixodbc
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - UNIT_TESTING=yes
+        - E2E_TESTING=yes
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          sources:
+            #- ubuntu-toolchain-r-test
+            - sourceline: 'ppa:ubuntu-toolchain-r/test'
+          packages:
+            - gcc
+            - g++
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
+
+    - name: "Ubuntu 18.04 - Clang - UnixODBC"
+      os: linux
+      dist: bionic
+      compiler: clang
+      env: 
+        - CC=clang
+        - CXX=clang++
+        - ODBC_DRIVER_MANAGER=unixodbc
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - UNIT_TESTING=yes
+        - E2E_TESTING=yes
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          sources:
+            #- ubuntu-toolchain-r-test
+            - sourceline: 'ppa:ubuntu-toolchain-r/test'
+          packages:
+            - clang
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
+
+    - name: "Ubuntu 18.04 - GCC - iODBC"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env: 
+        - CC=gcc
+        - CXX=g++
+        - ODBC_DRIVER_MANAGER=iodbc
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - UNIT_TESTING=yes
+        - E2E_TESTING=yes
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          sources:
+            #- ubuntu-toolchain-r-test
+            - sourceline: 'ppa:ubuntu-toolchain-r/test'
+          packages:
+            - gcc
+            - g++
+            - iodbc
+            - libiodbc2
+            - libiodbc2-dev
+
+    - name: "Ubuntu 18.04 - Clang - iODBC"
       os: linux
       dist: bionic
       compiler: clang
