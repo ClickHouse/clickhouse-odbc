@@ -49,8 +49,7 @@ struct ConnInfo {
     signed char accessible_only = -1;
     signed char ignore_round_trip_time = -1;
     signed char disable_keepalive = -1;
-
-    //ConnInfo();
 };
 
 void getDSNinfo(ConnInfo * ci, bool overwrite);
+void writeDSNinfo(const ConnInfo * ci);

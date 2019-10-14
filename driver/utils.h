@@ -1,18 +1,107 @@
 #pragma once
 
-#include <string.h>
-#include "log/log.h"
 #include "platform.h"
+#include "type_info.h"
 #include "string_ref.h"
 #include "unicode_t.h"
+
+#ifndef NDEBUG
+#    if USE_DEBUG_17
+#        include "iostream_debug_helpers.h"
+#    endif
+#endif
+
+#include <algorithm>
+#include <functional>
+#include <chrono>
 #include <iomanip>
+#include <sstream>
+#include <thread>
+#include <type_traits>
+
+#include <cstring>
+
+#ifdef _win_
+#   include <processthreadsapi.h>
+#else
+#   include <sys/types.h>
+#   include <unistd.h>
+#endif
+
+#include <Poco/NumberParser.h>
+#include <Poco/String.h>
+
+#if __cplusplus >= 201703L
+
+using std::is_invocable;
+using std::is_invocable_r;
+
+#else
+
+template <typename F, typename... Args>
+struct is_invocable :
+    std::is_constructible<
+        std::function<void(Args...)>,
+        std::reference_wrapper<typename std::remove_reference<F>::type>
+    >
+{
+};
+
+template <typename R, typename F, typename... Args>
+struct is_invocable_r
+    : public std::is_constructible<
+        std::function<R(Args...)>,
+        std::reference_wrapper<typename std::remove_reference<F>::type>
+    >
+{
+};
+
+#endif
+
+class Environment;
+class Connection;
+class Descriptor;
+class Statement;
+
+template <typename T> constexpr auto & getObjectTypeName() { return "HANDLE"; }
+template <> constexpr auto & getObjectTypeName<Environment>() { return "ENV"; }
+template <> constexpr auto & getObjectTypeName<Connection>() { return "DBC"; }
+template <> constexpr auto & getObjectTypeName<Descriptor>() { return "DESC"; }
+template <> constexpr auto & getObjectTypeName<Statement>() { return "STMT"; }
+
+template <typename T> constexpr int getObjectHandleType() { return 0; }
+template <> constexpr int getObjectHandleType<Environment>() { return SQL_HANDLE_ENV; }
+template <> constexpr int getObjectHandleType<Connection>() { return SQL_HANDLE_DBC; }
+template <> constexpr int getObjectHandleType<Descriptor>() { return SQL_HANDLE_DESC; }
+template <> constexpr int getObjectHandleType<Statement>() { return SQL_HANDLE_STMT; }
+
+#define lengthof(a) (sizeof(a) / sizeof(a[0]))
+
+template <typename T>
+inline std::string toHexString(T n) {
+    std::stringstream stream;
+    stream << "0x" << std::setfill('0') << std::setw(sizeof(T) * 2) << std::hex << n;
+    return stream.str();
+}
+
+inline auto getPID() {
+#ifdef _win_
+    return GetCurrentProcessId();
+#else
+    return getpid();
+#endif
+}
+
+inline auto getTID() {
+    return std::this_thread::get_id();
+}
 
 template<
     class CharT,
     class Traits = std::char_traits<CharT>,
     class Allocator = std::allocator<CharT>
 >
-inline void hex_print(std::ostream &stream, const std::basic_string<CharT, Traits, Allocator>& s)
+inline void hexPrint(std::ostream &stream, const std::basic_string<CharT, Traits, Allocator>& s)
 {
     stream << "[" << s.size() << "] " << std::hex << std::setfill('0');
     for(unsigned char c : s)
@@ -20,25 +109,18 @@ inline void hex_print(std::ostream &stream, const std::basic_string<CharT, Trait
     stream << std::dec << '\n';
 }
 
-/** Checks `handle`. Catches exceptions and puts them into the DiagnosticRecord.
-  */
-template <typename Handle, typename F>
-RETCODE doWith(SQLHANDLE handle_opaque, F && f) {
-    if (nullptr == handle_opaque)
-        return SQL_INVALID_HANDLE;
-
-    Handle & handle = *reinterpret_cast<Handle *>(handle_opaque);
-
-    try {
-        handle.diagnostic_record.reset();
-        return f(handle);
-    } catch (...) {
-        handle.diagnostic_record.fromException();
-        LOG("Exception: " << handle.diagnostic_record.message);
-        return SQL_ERROR;
-    }
+inline bool isYes(std::string str) {
+    Poco::trimInPlace(str);
+    Poco::toLowerInPlace(str);
+    bool flag = false;
+    return (Poco::NumberParser::tryParseBool(str, flag) ? flag : false);
 }
 
+inline auto tryStripParamPrefix(std::string param_name) {
+    if (!param_name.empty() && param_name[0] == '@')
+        param_name.erase(0, 1);
+    return param_name;
+}
 
 /// Parse a string of the form `key1=value1;key2=value2` ... TODO Parsing values in curly brackets.
 static const char * nextKeyValuePair(const char * data, const char * end, StringRef & out_key, StringRef & out_value) {
@@ -281,7 +363,8 @@ inline RETCODE fillOutputNULL(PTR out_value, SQLLEN out_value_max_length, SQLLEN
         if (!name)                                                                                   \
             name = #NAME;                                                                            \
         LOG("GetInfo " << name << ", type: " << #TYPE << ", value: " << #VALUE << " = " << (VALUE)); \
-        return fillOutputNumber<TYPE>(VALUE, out_value, out_value_max_length, out_value_length);
+        return fillOutputNumber<TYPE>(VALUE, out_value,                                              \
+            std::decay<decltype(*out_value_length)>::type{0}/* out_value_max_length */, out_value_length);
 
 #if defined(UNICODE)
 #    define FUNCTION_MAYBE_W(NAME) NAME##W

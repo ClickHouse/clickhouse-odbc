@@ -1,4 +1,8 @@
+#define POCO_NO_UNWINDOWS
+
 #include "../platform.h"
+#include "../utils.h"
+#include "../config.h"
 #include "resource.h"
 
 #if defined(_win_)
@@ -25,55 +29,8 @@ namespace {
 /// Max data source name length
 #    define MAXDSNAME (32 + 1)
 
-#    include "../ini_defines.h"
-
-#    define ABBR_PROTOCOL TEXT("A1")
-#    define ABBR_READONLY TEXT("A0")
-
-/*	Structure to hold all the connection attributes for a specific
-connection (used for both registry and file, DSN and DRIVER)
-*/
-struct ConnInfo {
-    TCHAR dsn[MEDIUM_REGISTRY_LEN];
-    TCHAR desc[MEDIUM_REGISTRY_LEN];
-    TCHAR drivername[MEDIUM_REGISTRY_LEN];
-    TCHAR url[LARGE_REGISTRY_LEN];
-    TCHAR server[MEDIUM_REGISTRY_LEN];
-    TCHAR database[MEDIUM_REGISTRY_LEN];
-    TCHAR username[MEDIUM_REGISTRY_LEN];
-    TCHAR password[MEDIUM_REGISTRY_LEN];
-    TCHAR port[SMALL_REGISTRY_LEN];
-    TCHAR sslmode[16];
-    TCHAR onlyread[SMALL_REGISTRY_LEN];
-    TCHAR timeout[SMALL_REGISTRY_LEN];
-    TCHAR fake_oid_index[SMALL_REGISTRY_LEN];
-    TCHAR show_oid_column[SMALL_REGISTRY_LEN];
-    TCHAR row_versioning[SMALL_REGISTRY_LEN];
-    TCHAR show_system_tables[SMALL_REGISTRY_LEN];
-    TCHAR translation_dll[MEDIUM_REGISTRY_LEN];
-    TCHAR translation_option[SMALL_REGISTRY_LEN];
-    TCHAR focus_password;
-    TCHAR conn_settings[MEDIUM_REGISTRY_LEN];
-    signed char disallow_premature = -1;
-    signed char allow_keyset = -1;
-    signed char updatable_cursors = 0;
-    signed char lf_conversion = -1;
-    signed char true_is_minus1 = -1;
-    signed char int8_as = -101;
-    signed char bytea_as_longvarbinary = -1;
-    signed char use_server_side_prepare = -1;
-    signed char lower_case_identifier = -1;
-    signed char rollback_on_error = -1;
-    signed char force_abbrev_connstr = -1;
-    signed char bde_environment = -1;
-    signed char fake_mss = -1;
-    signed char cvt_null_date_string = -1;
-    signed char autocommit_public = SQL_AUTOCOMMIT_ON;
-    signed char accessible_only = -1;
-    signed char ignore_round_trip_time = -1;
-    signed char disable_keepalive = -1;
-    signed char gssauth_use_gssapi = -1;
-};
+#    define ABBR_PROTOCOL "A1"
+#    define ABBR_READONLY "A0"
 
 /* NOTE:  All these are used by the dialog procedures */
 struct SetupDialogData {
@@ -86,48 +43,36 @@ struct SetupDialogData {
 };
 
 BOOL copyAttributes(ConnInfo * ci, LPCTSTR attribute, LPCTSTR value) {
-    BOOL found = TRUE;
+    MYTCHAR ini_name[MEDIUM_REGISTRY_LEN] = {};
 
-    if (stricmp(attribute, TEXT("DSN")) == 0)
-        strcpy(ci->dsn, value);
+#define COPY_ATTR_IF(NAME, INI_NAME)             \
+	{                                            \
+		stringToTCHAR(INI_NAME, ini_name);       \
+	    if (stricmp(attribute, ini_name) == 0) { \
+			strcpy(ci->NAME, value);             \
+		    return TRUE;                         \
+		}                                        \
+	}
 
-    else if (stricmp(attribute, TEXT("driver")) == 0)
-        strcpy(ci->drivername, value);
+	COPY_ATTR_IF(drivername, INI_DRIVER);
+    COPY_ATTR_IF(dsn,        INI_DSN);
+    COPY_ATTR_IF(desc,       INI_DESC);
+    COPY_ATTR_IF(url,        INI_URL);
+    COPY_ATTR_IF(server,     INI_SERVER);
+    COPY_ATTR_IF(port,       INI_PORT);
+    COPY_ATTR_IF(username,   INI_USERNAME);
+    COPY_ATTR_IF(username,   INI_UID);
+    COPY_ATTR_IF(password,   INI_PASSWORD);
+    COPY_ATTR_IF(password,   INI_PWD);
+    COPY_ATTR_IF(timeout,    INI_TIMEOUT);
+    COPY_ATTR_IF(sslmode,    INI_SSLMODE);
+    COPY_ATTR_IF(database,   INI_DATABASE);
+    COPY_ATTR_IF(onlyread,   INI_READONLY);
+    COPY_ATTR_IF(onlyread,   ABBR_READONLY);
 
-    else if (stricmp(attribute, INI_KDESC) == 0)
-        strcpy(ci->desc, value);
+#undef COPY_ATTR_IF
 
-    else if (stricmp(attribute, INI_DATABASE) == 0)
-        strcpy(ci->database, value);
-
-    else if (stricmp(attribute, INI_URL) == 0 || stricmp(attribute, TEXT("url")) == 0)
-        strcpy(ci->url, value);
-
-    else if (stricmp(attribute, INI_SERVER) == 0 || stricmp(attribute, TEXT("server")) == 0)
-        strcpy(ci->server, value);
-
-    else if (stricmp(attribute, INI_USERNAME) == 0 || stricmp(attribute, INI_UID) == 0)
-        strcpy(ci->username, value);
-
-    else if (stricmp(attribute, INI_PASSWORD) == 0 || stricmp(attribute, TEXT("pwd")) == 0)
-        strcpy(ci->password, value);
-
-    else if (stricmp(attribute, INI_PORT) == 0)
-        strcpy(ci->port, value);
-
-    else if (stricmp(attribute, INI_READONLY) == 0 || stricmp(attribute, ABBR_READONLY) == 0)
-        strcpy(ci->onlyread, value);
-
-    else if (stricmp(attribute, INI_TIMEOUT) == 0)
-        strcpy(ci->timeout, value);
-
-    else if (stricmp(attribute, INI_SSLMODE) == 0)
-        strcpy(ci->sslmode, value);
-
-    else
-        found = FALSE;
-
-    return found;
+	return FALSE;
 }
 
 static void parseAttributes(LPCTSTR lpszAttributes, SetupDialogData * lpsetupdlg) {
@@ -170,69 +115,6 @@ static void parseAttributes(LPCTSTR lpszAttributes, SetupDialogData * lpsetupdlg
         //if (!copyAttributes(&lpsetupdlg->ci, aszKey, value))
         //    copyCommonAttributes(&lpsetupdlg->ci, aszKey, value);
     }
-}
-
-void getDSNinfo(ConnInfo * ci, bool overwrite) {
-    LPCTSTR DSN = ci->dsn;
-
-    if (ci->desc[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(DSN, INI_KDESC, TEXT(""), ci->desc, sizeof(ci->desc), ODBC_INI);
-
-    if (ci->url[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(DSN, INI_URL, TEXT(""), ci->url, sizeof(ci->url), ODBC_INI);
-
-    if (ci->server[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(DSN, INI_SERVER, TEXT(""), ci->server, sizeof(ci->server), ODBC_INI);
-
-    if (ci->database[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(DSN, INI_DATABASE, TEXT(""), ci->database, sizeof(ci->database), ODBC_INI);
-
-    if (ci->username[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(DSN, INI_USERNAME, TEXT(""), ci->username, sizeof(ci->username), ODBC_INI);
-
-    if (ci->port[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(DSN, INI_PORT, TEXT(""), ci->port, sizeof(ci->port), ODBC_INI);
-
-    if (ci->onlyread[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(DSN, INI_READONLY, TEXT(""), ci->onlyread, sizeof(ci->onlyread), ODBC_INI);
-
-    if (ci->password[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(DSN, INI_PASSWORD, TEXT(""), ci->password, sizeof(ci->password), ODBC_INI);
-
-    if (ci->timeout[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(DSN, INI_TIMEOUT, TEXT("30"), ci->timeout, sizeof(ci->timeout), ODBC_INI);
-
-    if (ci->sslmode[0] == '\0' || overwrite)
-        SQLGetPrivateProfileString(DSN, INI_SSLMODE, TEXT(""), ci->sslmode, sizeof(ci->sslmode), ODBC_INI);
-}
-
-/*	This is for datasource based options only */
-void writeDSNinfo(const ConnInfo * ci) {
-    const LPCTSTR DSN = ci->dsn;
-    //char encoded_item[LARGE_REGISTRY_LEN];
-    //char temp[SMALL_REGISTRY_LEN];
-
-    SQLWritePrivateProfileString(DSN, INI_KDESC, ci->desc, ODBC_INI);
-
-    SQLWritePrivateProfileString(DSN, INI_DATABASE, ci->database, ODBC_INI);
-
-    SQLWritePrivateProfileString(DSN, INI_URL, ci->url, ODBC_INI);
-
-    SQLWritePrivateProfileString(DSN, INI_SERVER, ci->server, ODBC_INI);
-
-
-    SQLWritePrivateProfileString(DSN, INI_PORT, ci->port, ODBC_INI);
-
-    SQLWritePrivateProfileString(DSN, INI_USERNAME, ci->username, ODBC_INI);
-    SQLWritePrivateProfileString(DSN, INI_UID, ci->username, ODBC_INI);
-
-    SQLWritePrivateProfileString(DSN, INI_READONLY, ci->onlyread, ODBC_INI);
-
-    SQLWritePrivateProfileString(DSN, INI_PASSWORD, ci->password, ODBC_INI);
-
-    SQLWritePrivateProfileString(DSN, INI_TIMEOUT, ci->timeout, ODBC_INI);
-
-    SQLWritePrivateProfileString(DSN, INI_SSLMODE, ci->sslmode, ODBC_INI);
 }
 
 static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWORD * errcode) {
@@ -378,13 +260,7 @@ INT_PTR CALLBACK ConfigDlgProc(HWND hdlg, UINT wMsg, WPARAM wParam, LPARAM lPara
     return FALSE;
 }
 
-BOOL CALLBACK
-#    if defined(UNICODE)
-ConfigDSNW(
-#    else
-ConfigDSN(
-#    endif
-    HWND hwnd, WORD fRequest, LPCTSTR lpszDriver, LPCTSTR lpszAttributes) {
+BOOL CALLBACK FUNCTION_MAYBE_W(ConfigDSN)(HWND hwnd, WORD fRequest, LPCTSTR lpszDriver, LPCTSTR lpszAttributes) {
     BOOL fSuccess = FALSE;
     GLOBALHANDLE hglbAttr;
     SetupDialogData * lpsetupdlg;
@@ -420,9 +296,13 @@ ConfigDSN(
         lpsetupdlg->hwnd_parent = hwnd;
         lpsetupdlg->driver_name = lpszDriver;
         lpsetupdlg->is_new_dsn = (ODBC_ADD_DSN == fRequest);
-        lpsetupdlg->is_default = !lstrcmpi(lpsetupdlg->ci.dsn, INI_DSN);
+        {
+            MYTCHAR def_dsn[MEDIUM_REGISTRY_LEN] = {};
+            stringToTCHAR(INI_DSN_DEFAULT, def_dsn);
+            lpsetupdlg->is_default = !lstrcmpi(lpsetupdlg->ci.dsn, def_dsn);
+        }
 
-        /*
+		/*
         * Display the appropriate dialog (if parent window handle
         * supplied)
         */
@@ -464,13 +344,15 @@ ConfigDSN(
     return fSuccess;
 }
 
-BOOL CALLBACK
-#    if defined(UNICODE)
-ConfigDriverW(
-#    else
-ConfigDriver(
-#    endif
-    HWND hwnd, WORD fRequest, LPCTSTR lpszDriver, LPCTSTR lpszArgs, LPTSTR lpszMsg, WORD cbMsgMax, WORD * pcbMsgOut) {
+BOOL CALLBACK FUNCTION_MAYBE_W(ConfigDriver)(
+	HWND hwnd,
+	WORD fRequest,
+	LPCTSTR lpszDriver,
+	LPCTSTR lpszArgs,
+	LPTSTR lpszMsg,
+	WORD cbMsgMax,
+	WORD * pcbMsgOut
+) {
     MessageBox(hwnd, TEXT("ConfigDriver"), TEXT("Debug"), MB_OK);
     return TRUE;
 }

@@ -27,6 +27,7 @@ find_path(ODBC_INCLUDE_DIRECTORIES
 	/usr/include
 	/usr/include/odbc
 	/usr/include/iodbc
+	/usr/include/libiodbc
 	"C:/Program Files/ODBC/include"
 	"C:/Program Files/Microsoft SDKs/Windows/v7.0/include"
 	"C:/Program Files/Microsoft SDKs/Windows/v6.0a/include"
@@ -72,6 +73,9 @@ if(NOT WIN32)
     endif()
 endif()
 
+if(APPLE AND ODBC_UNIXODBC)
+	list(APPEND ODBC_LIBRARIES -liconv)
+endif()
 
 if(NOT WIN32)
     if (ODBC_UNIXODBC)

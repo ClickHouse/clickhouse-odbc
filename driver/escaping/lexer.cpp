@@ -51,7 +51,7 @@ std::string to_upper(const StringView & str) {
     return ret;
 }
 
-Lexer::Lexer(const StringView text) : text_(text), emit_space_(false), cur_(text.data()), end_(text.data() + text.size()) {}
+Lexer::Lexer(const StringView text) : text_(text), cur_(text.data()), end_(text.data() + text.size()), emit_space_(false) {}
 
 Token Lexer::Consume() {
     if (!readed_.empty()) {

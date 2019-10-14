@@ -1,16 +1,14 @@
 #include "connection.h"
+#include "utils.h"
+#include "string_ref.h"
+#include "config.h"
+#include "descriptor.h"
+#include "statement.h"
+
+#include <Poco/Base64Encoder.h>
 #include <Poco/Net/HTTPClientSession.h>
 #include <Poco/NumberParser.h> // TODO: switch to std
 #include <Poco/URI.h>
-#include "config.h"
-#include "string_ref.h"
-#include "utils.h"
-
-//#if __has_include("config_cmake.h") // requre c++17
-
-#if CMAKE_BUILD
-#    include "config_cmake.h"
-#endif
 
 #if USE_SSL
 #    include <Poco/Net/AcceptCertificateHandler.h>
@@ -52,7 +50,10 @@ void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::str
 }
 
 
-Connection::Connection(Environment & env_) : environment(env_) {}
+Connection::Connection(Environment & environment)
+    : ChildType(environment)
+{
+}
 
 std::string Connection::connectionString() const {
     std::string ret;
@@ -192,26 +193,24 @@ void Connection::init(const std::string & connection_string) {
 
 void Connection::loadConfiguration() {
     if (data_source.empty())
-        data_source = "ClickHouse";
+        data_source = INI_DSN_DEFAULT;
 
     ConnInfo ci;
     stringToTCHAR(data_source, ci.dsn);
     getDSNinfo(&ci, true);
 
-    auto tracefile = stringFromMYTCHAR(ci.tracefile);
     {
-        auto str = stringFromMYTCHAR(ci.trace);
-        if (!str.empty())
-            log_enabled = !(str == "0" || str == "No" || str == "no");
-        if (log_enabled && !tracefile.empty() && (tracefile != log_file || !log_stream.is_open())) {
-            log_file = tracefile;
-            log_stream = std::ofstream(log_file, std::ios::out | std::ios::app);
-            if (!log_header.empty()) {
-                LOG(log_header);
-                log_header.clear();
-            }
+        const std::string tracefile = stringFromMYTCHAR(ci.tracefile);
+        if (!tracefile.empty()) {
+            getDriver().setAttr(SQL_ATTR_TRACEFILE, tracefile);
+        }
+
+        const std::string trace = stringFromMYTCHAR(ci.trace);
+        if (!trace.empty()) {
+            getDriver().setAttr(SQL_ATTR_TRACE, (isYes(trace) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
         }
     }
+
     if (url.empty())
         url = stringFromMYTCHAR(ci.url);
     if (!port && ci.port[0] != 0) {
@@ -263,7 +262,7 @@ void Connection::loadConfiguration() {
 
 void Connection::setDefaults() {
     if (data_source.empty())
-        data_source = "ClickHouse";
+        data_source = INI_DSN_DEFAULT;
     if (!url.empty()) {
         Poco::URI uri(url);
         if (proto.empty())
@@ -308,4 +307,122 @@ void Connection::setDefaults() {
         timeout = 30;
     if (connection_timeout == 0)
         connection_timeout = timeout;
+}
+
+std::string Connection::buildCredentialsString() const {
+    std::ostringstream user_password_base64;
+    Poco::Base64Encoder base64_encoder(user_password_base64, Poco::BASE64_URL_ENCODING);
+    base64_encoder << user << ":" << password;
+    base64_encoder.close();
+    return user_password_base64.str();
+}
+
+std::string Connection::buildUserAgentString() const {
+    std::ostringstream user_agent;
+    user_agent << "clickhouse-odbc/" << VERSION_STRING << " (" << CMAKE_SYSTEM << ")";
+#if defined(UNICODE)
+    user_agent << " UNICODE";
+#endif
+    if (!useragent.empty())
+        user_agent << " " << useragent;
+    return user_agent.str();
+}
+
+void Connection::initAsAD(Descriptor & desc, bool user) {
+    desc.resetAttrs();
+    desc.setAttr(SQL_DESC_ALLOC_TYPE, (user ? SQL_DESC_ALLOC_USER : SQL_DESC_ALLOC_AUTO));
+    desc.setAttr(SQL_DESC_ARRAY_SIZE, 1);
+    desc.setAttr(SQL_DESC_ARRAY_STATUS_PTR, 0);
+    desc.setAttr(SQL_DESC_BIND_OFFSET_PTR, 0);
+    desc.setAttr(SQL_DESC_BIND_TYPE, SQL_BIND_TYPE_DEFAULT);
+}
+
+void Connection::initAsID(Descriptor & desc) {
+    desc.resetAttrs();
+    desc.setAttr(SQL_DESC_ALLOC_TYPE, SQL_DESC_ALLOC_AUTO);
+    desc.setAttr(SQL_DESC_ARRAY_STATUS_PTR, 0);
+    desc.setAttr(SQL_DESC_ROWS_PROCESSED_PTR, 0);
+}
+
+void Connection::initAsDesc(Descriptor & desc, SQLINTEGER role, bool user) {
+    switch (role) {
+        case SQL_ATTR_APP_ROW_DESC: {
+            initAsAD(desc, user);
+            break;
+        }
+        case SQL_ATTR_APP_PARAM_DESC: {
+            initAsAD(desc, user);
+            break;
+        }
+        case SQL_ATTR_IMP_ROW_DESC: {
+            initAsID(desc);
+            break;
+        }
+        case SQL_ATTR_IMP_PARAM_DESC: {
+            initAsID(desc);
+            break;
+        }
+    }
+}
+
+void Connection::initAsADRec(DescriptorRecord & rec) {
+    rec.resetAttrs();
+    rec.setAttr(SQL_DESC_TYPE, SQL_C_DEFAULT); // Also sets SQL_DESC_CONCISE_TYPE (to SQL_C_DEFAULT) and SQL_DESC_DATETIME_INTERVAL_CODE (to 0).
+    rec.setAttr(SQL_DESC_OCTET_LENGTH_PTR, 0);
+    rec.setAttr(SQL_DESC_INDICATOR_PTR, 0);
+    rec.setAttr(SQL_DESC_DATA_PTR, 0);
+}
+
+void Connection::initAsIDRec(DescriptorRecord & rec) {
+    rec.resetAttrs();
+}
+
+void Connection::initAsDescRec(DescriptorRecord & rec, SQLINTEGER desc_role) {
+    switch (desc_role) {
+        case SQL_ATTR_APP_ROW_DESC: {
+            initAsADRec(rec);
+            break;
+        }
+        case SQL_ATTR_APP_PARAM_DESC: {
+            initAsADRec(rec);
+            break;
+        }
+        case SQL_ATTR_IMP_ROW_DESC: {
+            initAsIDRec(rec);
+            break;
+        }
+        case SQL_ATTR_IMP_PARAM_DESC: {
+            initAsIDRec(rec);
+            rec.setAttr(SQL_DESC_PARAMETER_TYPE, SQL_PARAM_INPUT);
+            break;
+        }
+    }
+}
+
+template <>
+Descriptor& Connection::allocateChild<Descriptor>() {
+    auto child_sptr = std::make_shared<Descriptor>(*this);
+    auto& child = *child_sptr;
+    auto handle = child.getHandle();
+    descriptors.emplace(handle, std::move(child_sptr));
+    return child;
+}
+
+template <>
+void Connection::deallocateChild<Descriptor>(SQLHANDLE handle) noexcept {
+    descriptors.erase(handle);
+}
+
+template <>
+Statement& Connection::allocateChild<Statement>() {
+    auto child_sptr = std::make_shared<Statement>(*this);
+    auto& child = *child_sptr;
+    auto handle = child.getHandle();
+    statements.emplace(handle, std::move(child_sptr));
+    return child;
+}
+
+template <>
+void Connection::deallocateChild<Statement>(SQLHANDLE handle) noexcept {
+    statements.erase(handle);
 }

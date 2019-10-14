@@ -1,28 +1,55 @@
 #pragma once
 
-#include <stdexcept>
-#include "log/log.h"
 #include "platform.h"
+#include "utils.h"
+#include "attributes.h"
 
-class SqlException : public std::runtime_error {
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+class SqlException
+    : public std::runtime_error
+{
 public:
-    SqlException(const std::string & message_, const std::string & state_ = "HY000") : std::runtime_error(message_), state(state_) {}
-
-    std::string sqlState() const {
-        return state;
-    }
+    explicit SqlException(const std::string & message_, const std::string & sql_state_ = "HY000");
+    const std::string& getSQLState() const noexcept;
 
 private:
-    const std::string state;
+    const std::string sql_state;
 };
 
-struct DiagnosticRecord {
-    SQLINTEGER native_error_code;
-    std::string sql_state;
-    std::string message;
+class DiagnosticsRecord
+    : public AttributeContainer
+{
+public:
+};
 
-    DiagnosticRecord();
+// A class that enables other classes derived from it
+// to hold diagnostics information in a common form:
+//   a diagnostics header (record with index 0), and
+//   diagnostics records (records starting from index 1).
+// Each record is basically an AttributeContainer instance,
+// i.e., it is able to hold an integer or string values
+// under arbitrary integer keys.
+class DiagnosticsContainer {
+public:
+    void fillDiag(SQLRETURN rc, const std::string& sql_status, const std::string& message, SQLINTEGER native_error_code);
+    void fillDiag(const std::string& sql_status, const std::string& message, SQLINTEGER native_error_code);
+    void fillDiag(SQLRETURN rc, const std::string& sql_status, const std::string& message);
+    void fillDiag(const std::string& sql_status, const std::string& message);
 
-    void fromException();
-    void reset();
+    DiagnosticsRecord & getDiagHeader();
+
+    void setReturnCode(SQLRETURN rc);
+    SQLRETURN getReturnCode();
+
+    std::size_t getDiagStatusCount();
+    DiagnosticsRecord & getDiagStatus(std::size_t num);
+    void insertDiagStatus(DiagnosticsRecord && rec);
+
+    void resetDiag();
+
+private:
+    std::vector<DiagnosticsRecord> records;
 };

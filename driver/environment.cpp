@@ -1,15 +1,10 @@
 #include "environment.h"
-
-//#if __has_include("config_cmake.h") // requre c++17
-#if CMAKE_BUILD
-#    include "config_cmake.h"
-#endif
+#include "connection.h"
 
 #include <cstdio>
 #include <ctime>
 #include <sstream>
 #include <string>
-#include "win/version.h"
 #include "unicode_t.h"
 
 #if defined(_unix_)
@@ -48,87 +43,10 @@ const std::map<std::string, TypeInfo> Environment::types_info = {
         TypeInfo {"TEXT", true, SQL_VARCHAR, Environment::string_max_size, Environment::string_max_size}}, // todo: remove
 };
 
-Environment::Environment() {
-#if OUTPUT_REDIRECT
-    std::string stderr_path = "/tmp/clickhouse-odbc-stderr";
-#    if _unix_
-    struct passwd * pw;
-    uid_t uid;
-    uid = geteuid();
-    pw = getpwuid(uid);
-    if (pw)
-        stderr_path += "." + std::string(pw->pw_name);
-#    endif
-
-#    if _win_
-        // unsigned int pid = GetCurrentProcessId();
-        // stderr_path += "." + std::to_string(pid);
-#    endif
-
-    if (!freopen(stderr_path.c_str(), "a", stderr))
-        throw std::logic_error("Cannot freopen stderr.");
-
-#endif
-    {
-        auto t = std::time(nullptr);
-        char mbstr[100];
-        if (std::strftime(mbstr, sizeof(mbstr), "%Y.%m.%d %T", std::localtime(&t))) {
-#if OUTPUT_REDIRECT
-            std::cerr << mbstr << " === Driver started =====================" << std::endl;
-#endif
-            LOG(std::endl << mbstr);
-        }
-
-        log_header = " === Driver started ===";
-        log_header += " VERSION=" + std::string {VERSION_STRING};
-#if defined(_win64_)
-        log_header += " WIN64";
-#elif defined(_win32_)
-        log_header += " WIN32";
-#endif
-#if ODBC_IODBC
-        log_header += " ODBC_IODBC";
-#endif
-#if ODBC_CHAR16
-        log_header += " ODBC_CHAR16";
-#endif
-#if ODBC_UNIXODBC
-        log_header += " ODBC_UNIXODBC";
-#endif
-
-#if defined(UNICODE)
-        log_header += " UNICODE=" + std::to_string(UNICODE);
-#    if defined(ODBC_WCHAR)
-        log_header += " ODBC_WCHAR=" + std::to_string(ODBC_WCHAR);
-#    endif
-        log_header += " sizeof(SQLTCHAR)=" + std::to_string(sizeof(SQLTCHAR)) + " sizeof(wchar_t)=" + std::to_string(sizeof(wchar_t));
-#endif
-#if defined(SQL_WCHART_CONVERT)
-        log_header += " SQL_WCHART_CONVERT";
-#endif
-#if ODBCVER
-        std::stringstream strm;
-        strm << " ODBCVER=" << std::hex << ODBCVER << std::dec;
-        log_header += strm.str();
-#endif
-#if defined(ODBC_LIBRARIES)
-        log_header += " ODBC_LIBRARIES=" + std::string {ODBC_LIBRARIES};
-#endif
-#if defined(ODBC_INCLUDE_DIRECTORIES)
-        log_header += " ODBC_INCLUDE_DIRECTORIES=" + std::string {ODBC_INCLUDE_DIRECTORIES};
-#endif
-
-        if (log_stream.is_open()) {
-            LOG(log_header);
-            log_header.clear();
-        }
-    }
+Environment::Environment(Driver & driver)
+    : ChildType(driver)
+{
 }
-
-Environment::~Environment() {
-    LOG("========== ======== Driver stopped =====================");
-}
-
 
 const TypeInfo & Environment::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs) const {
     if (types_info.find(type_name) != types_info.end())
@@ -137,4 +55,18 @@ const TypeInfo & Environment::getTypeInfo(const std::string & type_name, const s
         return types_info.at(type_name_without_parametrs);
     LOG("Unsupported type " << type_name << " : " << type_name_without_parametrs);
     throw SqlException("Unsupported type = " + type_name, "HY004");
+}
+
+template <>
+Connection& Environment::allocateChild<Connection>() {
+    auto child_sptr = std::make_shared<Connection>(*this);
+    auto& child = *child_sptr;
+    auto handle = child.getHandle();
+    connections.emplace(handle, std::move(child_sptr));
+    return child;
+}
+
+template <>
+void Environment::deallocateChild<Connection>(SQLHANDLE handle) noexcept {
+    connections.erase(handle);
 }

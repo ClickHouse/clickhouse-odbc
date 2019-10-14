@@ -6,6 +6,8 @@
 # env CMAKE_FLAGS="-DODBC_LIBRARIES=$HOME/unixODBC-2.3.7/odbcinst/.libs/libodbcinst.so;$HOME/unixODBC-2.3.7/DriverManager/.libs/libodbc.so" USE_LIBS="unixodbc" sh -x ./test_unicode.sh
 
 set -x
+set -e
+set -o pipefail
 
 cd ..
  for lib in ${USE_LIBS=libiodbc unixodbc}; do

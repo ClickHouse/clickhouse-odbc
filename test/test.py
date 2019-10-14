@@ -9,10 +9,14 @@
 import pyodbc
 import sys
 
+dsn = 'clickhouse_localhost'
+is_wide = False
+
 if len(sys.argv) >= 2:
     dsn = sys.argv[1]
-else:
-    dsn = 'clickhouse_localhost'
+    if len(sys.argv) >= 3:
+        is_wide = sys.argv[2] == 'w'
+
 print("Using DSN=" + dsn)
 
 connection = pyodbc.connect('DSN=' + dsn + ';')

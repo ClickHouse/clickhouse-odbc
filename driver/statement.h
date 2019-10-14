@@ -1,90 +1,138 @@
 #pragma once
 
-#include <memory>
-#include <sstream>
-#include <Poco/Net/HTTPResponse.h>
+#include "driver.h"
 #include "connection.h"
+#include "descriptor.h"
 #include "result_set.h"
 
-/// Information where and how to add values when reading.
-struct Binding {
-    SQLSMALLINT target_type;
-    PTR out_value;
-    SQLLEN out_value_max_size;
-    SQLLEN * out_value_size_or_indicator;
+#include <Poco/Net/HTTPResponse.h>
+
+#include <memory>
+#include <sstream>
+#include <string>
+#include <vector>
+
+/// Helper structure that represents information about where and
+/// how to get or put values when reading or writing bound buffers.
+struct BindingInfo {
+    SQLSMALLINT type = SQL_C_DEFAULT;
+    PTR value = nullptr;
+    SQLLEN value_max_size = 0;
+    SQLLEN * value_size = nullptr;
+    SQLLEN * indicator = nullptr;
 };
 
-struct DescriptorClass {};
+/// Helper structure that represents information about where and
+/// how to get or put values when reading or writing bound parameter buffers.
+struct ParamBindingInfo
+    : public BindingInfo
+{
+    SQLSMALLINT io_type = SQL_PARAM_INPUT;
+    SQLSMALLINT sql_type = SQL_UNKNOWN_TYPE;
+};
 
-class Statement {
+/// Helper structure that represents different aspects of parameter info in a prepared query.
+struct ParamInfo {
+    std::string name;
+    std::string tmp_placeholder;
+};
+
+class Statement
+    : public Child<Connection, Statement>
+{
+private:
+    using ChildType = Child<Connection, Statement>;
+
 public:
-    Statement(Connection & conn_);
-
-    /// Whether the driver should scan the SQL string for escape sequences or not.
-    bool getScanEscapeSequences() const;
-
-    /// Enable or disable scannign the SQL string for escape sequences.
-    void setScanEscapeSequences(bool value);
-
-    /// Returns current value of SQL_ATTR_METADATA_ID.
-    SQLUINTEGER getMetadataId() const;
-
-    /// Sets value of SQL_ATTR_METADATA_ID.
-    void setMetadataId(SQLUINTEGER id);
-
-    /// Returns original query.
-    const std::string getQuery() const;
+    explicit Statement(Connection & connection);
+    virtual ~Statement();
 
     /// Lookup TypeInfo for given name of type.
     const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs = "") const;
 
-    bool isEmpty() const;
-
-    bool isPrepared() const;
-
-    /// Fetch next row.
-    bool fetchRow();
-
-    /// Do all the necessary work for preparing the query.
+    /// Prepare query for execution.
     void prepareQuery(const std::string & q);
 
-    /// Set query without preparation.
-    void setQuery(const std::string & q);
+    /// Execute previously prepared query.
+    void executeQuery(IResultMutatorPtr && mutator = IResultMutatorPtr{});
+
+    /// Prepare and execute query.
+    void executeQuery(const std::string & q, IResultMutatorPtr && mutator = IResultMutatorPtr {});
+
+    /// Indicates whether there is an result set available for reading.
+    bool hasResultSet() const;
+
+    /// Make the next result set current, if any.
+    bool advanceToNextResultSet();
+
+    const ColumnInfo & getColumnInfo(size_t i) const;
+
+    size_t getNumColumns() const;
+
+    bool hasCurrentRow() const;
+
+    const Row & getCurrentRow() const;
+
+    /// Checked way of retrieving the number of the current row in the current result set.
+    std::size_t getCurrentRowNum() const;
+
+    bool advanceToNextRow();
 
     /// Reset statement to initial state.
-    void reset();
+    void closeCursor();
 
-    /// Send request to a server.
-    void sendRequest(IResultMutatorPtr mutator = nullptr);
+    /// Reset/release row/column buffer bindings.
+    void resetColBindings();
 
-public:
-    Connection & connection;
+    /// Reset/release parameter buffer bindings.
+    void resetParamBindings();
 
-    ResultSet result;
-    Row current_row;
+    /// Access the effective descriptor by its role (type).
+    Descriptor & getEffectiveDescriptor(SQLINTEGER type);
 
-    std::istream * in = nullptr;
-    DiagnosticRecord diagnostic_record;
+    /// Set an explicit descriptor for a role (type).
+    void setExplicitDescriptor(SQLINTEGER type, std::shared_ptr<Descriptor> desc);
 
-    std::unique_ptr<DescriptorClass> ard;
-    std::unique_ptr<DescriptorClass> apd;
-    std::unique_ptr<DescriptorClass> ird;
-    std::unique_ptr<DescriptorClass> ipd;
-
-    std::map<SQLUSMALLINT, Binding> bindings;
-
-    SQLULEN * rows_fetched_ptr = nullptr;
-    SQLULEN row_array_size = 1;
+    /// Make an implicit descriptor active again.
+    void setImplicitDescriptor(SQLINTEGER type);
 
 private:
-    std::unique_ptr<Poco::Net::HTTPResponse> response;
+    void requestNextPackOfResultSets(IResultMutatorPtr && mutator);
 
-    /// An SQLUINTEGER value that determines
-    /// how the string arguments of catalog functions are treated.
-    SQLUINTEGER metadata_id;
+    void processEscapeSequences();
+    void extractParametersinfo();
+    std::string buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings);
+    std::string getParamFinalName(std::size_t param_idx);
+    std::vector<ParamBindingInfo> getParamsBindingInfo(std::size_t param_set_idx);
+
+    Descriptor & choose(std::shared_ptr<Descriptor> & implicit_desc, std::weak_ptr<Descriptor> & explicit_desc);
+
+    void allocateImplicitDescriptors();
+    void deallocateImplicitDescriptors();
+
+    std::shared_ptr<Descriptor> allocateDescriptor();
+    void deallocateDescriptor(std::shared_ptr<Descriptor> & desc);
+
+private:
+    std::shared_ptr<Descriptor> implicit_ard;
+    std::shared_ptr<Descriptor> implicit_apd;
+    std::shared_ptr<Descriptor> implicit_ird;
+    std::shared_ptr<Descriptor> implicit_ipd;
+
+    std::weak_ptr<Descriptor> explicit_ard;
+    std::weak_ptr<Descriptor> explicit_apd;
+    std::weak_ptr<Descriptor> explicit_ird;
+    std::weak_ptr<Descriptor> explicit_ipd;
 
     std::string query;
-    std::string prepared_query;
-    bool prepared = false;
-    bool scan_escape_sequences = true;
+    std::vector<ParamInfo> parameters;
+
+    std::unique_ptr<Poco::Net::HTTPResponse> response;
+    std::istream* in = nullptr;
+    std::unique_ptr<ResultSet> result_set;
+    std::size_t next_param_set = 0;
+
+public:
+    // TODO: switch to using the corresponding descriptor attributes.
+    std::map<SQLUSMALLINT, BindingInfo> bindings;
 };

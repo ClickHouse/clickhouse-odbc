@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+set -e
+set -o pipefail
+
 # this test requires running clickhouse server and configured ~/.odbc.ini
 # cp -n /usr/share/doc/clickhouse-odbc/examples/odbc.ini ~/.odbc.ini
 # apt install unixodbc
@@ -10,27 +13,24 @@
 # test https:
 # cd .. && debuild -eDH_VERBOSE=1 -eCMAKE_FLAGS="-DFORCE_STATIC_LINK=" -us -uc -i --source-option=--format="3.0 (native)" && sudo dpkg -i `ls ../clickhouse-odbc_*_amd64.deb | tail -n1`
 
+# Usage: ./test.sh CMD ARGS
+# where test queries will be fed to the stdin of the `CMD ARGS` run.
+
 # Should not have any errors:
 # ./test.sh | grep -i error
 
 #using trap to preserve error exit code
 #trap "printf '\n\n\nLast log:\n'; tail -n200 /tmp/clickhouse-odbc.log" EXIT
 
-DSN="${DSN=clickhouse_localhost}"
-[ -z $RUNNER ] && RUNNER=`which isql` && [ -n $RUNNER ] && RUNNER_PARAMS0="-v -b"
-[ -z $RUNNER ] && RUNNER=`which iusql` && [ -n $RUNNER ] && RUNNER_PARAMS0="-v -b"
-[ -z $RUNNER ] && RUNNER=`which iodbctestw` && DSN="DSN=${DSN}"
-[ -z $RUNNER ] && RUNNER=`which iodbctest` && DSN="DSN=${DSN}"
+RUNNER=$@
+echo "Using: $RUNNER"
 
 function q {
     echo "Asking [$*]"
     # DYLD_INSERT_LIBRARIES=/usr/local/opt/gcc/lib/gcc/8/libasan.5.dylib
     # export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libasan.so.5
-    echo "$*" | $RUNNER $DSN $RUNNER_PARAMS0 $RUNNER_PARAMS
+    echo "$*" | $RUNNER
 }
-
-echo "Using: $RUNNER $DSN $RUNNER_PARAMS0 $RUNNER_PARAMS"
-[ -z $RUNNER ] && echo "ERROR: unable to find neither of isql, iusql, iodbctestw, nor iodbctest. Please install missing packages" && exit -1
 
 q "SELECT * FROM system.build_options;"
 q "CREATE DATABASE IF NOT EXISTS test;"

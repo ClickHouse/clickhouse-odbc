@@ -1,60 +1,78 @@
-#include <Poco/Net/HTTPClientSession.h>
-#include "connection.h"
+#include "driver.h"
 #include "environment.h"
-#include "log/log.h"
+#include "connection.h"
+#include "descriptor.h"
 #include "statement.h"
 #include "utils.h"
 
-static RETCODE allocEnv(SQLHENV * out_environment) {
-    if (nullptr == out_environment)
-        return SQL_INVALID_HANDLE;
-    try {
-        *out_environment = new Environment;
+#include <Poco/Net/HTTPClientSession.h>
+
+#include <type_traits>
+
+namespace {
+
+SQLRETURN allocEnv(SQLHENV * out_environment_handle) noexcept {
+    return CALL([&] () {
+        if (nullptr == out_environment_handle)
+            return SQL_INVALID_HANDLE;
+
+        *out_environment_handle = Driver::getInstance().allocateChild<Environment>().getHandle();
         return SQL_SUCCESS;
-    } catch (...) {
-        LOG(__FUNCTION__ << " Exception");
-        return SQL_ERROR;
-    }
+    });
 }
 
-static RETCODE allocConnect(SQLHENV environment, SQLHDBC * out_connection) {
-    LOG(__FUNCTION__ << " environment=" << environment << " out_connection=" << out_connection);
-    if (nullptr == out_connection)
-        return SQL_INVALID_HANDLE;
+SQLRETURN allocConnect(SQLHENV environment_handle, SQLHDBC * out_connection_handle) noexcept {
+    return CALL_WITH_HANDLE(environment_handle, [&] (Environment & environment) {
+        if (nullptr == out_connection_handle)
+            return SQL_INVALID_HANDLE;
 
-    try {
-        *out_connection = new Connection(*reinterpret_cast<Environment *>(environment));
+        *out_connection_handle = environment.allocateChild<Connection>().getHandle();
         return SQL_SUCCESS;
-    } catch (...) {
-        LOG(__FUNCTION__ << " Exception");
-        return SQL_ERROR;
-    }
+    });
 }
 
-static RETCODE allocStmt(SQLHDBC connection, SQLHSTMT * out_statement) {
-    if (nullptr == out_statement || nullptr == connection)
-        return SQL_INVALID_HANDLE;
+SQLRETURN allocStmt(SQLHDBC connection_handle, SQLHSTMT * out_statement_handle) noexcept {
+    return CALL_WITH_HANDLE(connection_handle, [&] (Connection & connection) {
+        if (nullptr == out_statement_handle)
+            return SQL_INVALID_HANDLE;
 
-    try {
-        *out_statement = new Statement(*reinterpret_cast<Connection *>(connection));
+        *out_statement_handle = connection.allocateChild<Statement>().getHandle();
         return SQL_SUCCESS;
-    } catch (...) {
-        LOG(__FUNCTION__ << " Exception");
-        return SQL_ERROR;
-    }
+    });
 }
 
-template <typename Handle>
-static RETCODE freeHandle(SQLHANDLE handle_opaque) {
-    delete reinterpret_cast<Handle *>(handle_opaque);
-    handle_opaque = nullptr;
-    return SQL_SUCCESS;
+SQLRETURN allocDesc(SQLHDBC connection_handle, SQLHDESC * out_descriptor_handle) noexcept {
+    return CALL_WITH_HANDLE(connection_handle, [&] (Connection & connection) {
+        if (nullptr == out_descriptor_handle)
+            return SQL_INVALID_HANDLE;
+
+        auto & descriptor = connection.allocateChild<Descriptor>();
+        connection.initAsAD(descriptor, true);
+        *out_descriptor_handle = descriptor.getHandle();
+        return SQL_SUCCESS;
+    });
 }
+
+SQLRETURN freeHandle(SQLHANDLE handle) noexcept {
+    return CALL_WITH_HANDLE_SKIP_DIAG(handle, [&] (auto & object) {
+        if ( // Refuse to manually deallocate an automatically allocated descriptor.
+            std::is_convertible<std::decay<decltype(object)> *, Descriptor *>::value &&
+            object.template getAttrAs<SQLSMALLINT>(SQL_DESC_ALLOC_TYPE) != SQL_DESC_ALLOC_USER
+        ) {
+            return SQL_ERROR;
+        }
+
+        object.deallocateSelf();
+        return SQL_SUCCESS;
+    });
+}
+
+} // namespace
 
 
 extern "C" {
 
-RETCODE SQL_API SQLAllocHandle(SQLSMALLINT handle_type, SQLHANDLE input_handle, SQLHANDLE * output_handle) {
+SQLRETURN SQL_API SQLAllocHandle(SQLSMALLINT handle_type, SQLHANDLE input_handle, SQLHANDLE * output_handle) {
     LOG(__FUNCTION__ << " handle_type=" << handle_type << " input_handle=" << input_handle);
 
     switch (handle_type) {
@@ -64,77 +82,77 @@ RETCODE SQL_API SQLAllocHandle(SQLSMALLINT handle_type, SQLHANDLE input_handle, 
             return allocConnect((SQLHENV)input_handle, (SQLHDBC *)output_handle);
         case SQL_HANDLE_STMT:
             return allocStmt((SQLHDBC)input_handle, (SQLHSTMT *)output_handle);
+        case SQL_HANDLE_DESC:
+            return allocDesc((SQLHDBC)input_handle, (SQLHDESC *)output_handle);
         default:
+            LOG("AllocHandle: Unknown handleType=" << handle_type);
             return SQL_ERROR;
     }
 }
 
-RETCODE SQL_API SQLAllocEnv(SQLHDBC * output_handle) {
+SQLRETURN SQL_API SQLAllocEnv(SQLHDBC * output_handle) {
     LOG(__FUNCTION__);
     return allocEnv(output_handle);
 }
 
-RETCODE SQL_API SQLAllocConnect(SQLHENV input_handle, SQLHDBC * output_handle) {
+SQLRETURN SQL_API SQLAllocConnect(SQLHENV input_handle, SQLHDBC * output_handle) {
     LOG(__FUNCTION__ << " input_handle=" << input_handle);
     return allocConnect(input_handle, output_handle);
 }
 
-RETCODE SQL_API SQLAllocStmt(SQLHDBC input_handle, SQLHSTMT * output_handle) {
+SQLRETURN SQL_API SQLAllocStmt(SQLHDBC input_handle, SQLHSTMT * output_handle) {
     LOG(__FUNCTION__ << " input_handle=" << input_handle);
     return allocStmt(input_handle, output_handle);
 }
 
-
-RETCODE SQL_API SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE handle) {
+SQLRETURN SQL_API SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE handle) {
     LOG(__FUNCTION__ << " handleType=" << handleType << " handle=" << handle);
 
     switch (handleType) {
         case SQL_HANDLE_ENV:
-            return freeHandle<Environment>(handle);
         case SQL_HANDLE_DBC:
-            return freeHandle<Connection>(handle);
         case SQL_HANDLE_STMT:
-            return freeHandle<Statement>(handle);
+        case SQL_HANDLE_DESC:
+            return freeHandle(handle);
         default:
             LOG("FreeHandle: Unknown handleType=" << handleType);
             return SQL_ERROR;
     }
 }
 
-
-RETCODE SQL_API SQLFreeEnv(HENV handle) {
+SQLRETURN SQL_API SQLFreeEnv(HENV handle) {
     LOG(__FUNCTION__);
-    return freeHandle<Environment>(handle);
+    return freeHandle(handle);
 }
 
-RETCODE SQL_API SQLFreeConnect(HDBC handle) {
+SQLRETURN SQL_API SQLFreeConnect(HDBC handle) {
     LOG(__FUNCTION__);
-    return freeHandle<Connection>(handle);
+    return freeHandle(handle);
 }
 
-RETCODE SQL_API SQLFreeStmt(HSTMT statement_handle, SQLUSMALLINT option) {
-    LOG(__FUNCTION__);
+SQLRETURN SQL_API SQLFreeStmt(HSTMT statement_handle, SQLUSMALLINT option) {
+    LOG(__FUNCTION__ << " option=" << option);
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
-        LOG("option: " + std::to_string(option));
-
+    return CALL_WITH_HANDLE(statement_handle, [&] (Statement & statement) -> SQLRETURN {
         switch (option) {
-            case SQL_DROP:
-                return freeHandle<Statement>(statement_handle);
-
             case SQL_CLOSE: /// Close the cursor, ignore the remaining results. If there is no cursor, then noop.
-                statement.reset();
+                statement.closeCursor();
+                return SQL_SUCCESS;
+
+            case SQL_DROP:
+                return freeHandle(statement_handle);
 
             case SQL_UNBIND:
-                statement.bindings.clear();
+                statement.resetColBindings();
                 return SQL_SUCCESS;
 
             case SQL_RESET_PARAMS:
+                statement.resetParamBindings();
                 return SQL_SUCCESS;
-
-            default:
-                return SQL_ERROR;
         }
+
+        return SQL_ERROR;
     });
 }
-}
+
+} // extern "C"

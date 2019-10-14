@@ -1,40 +1,50 @@
-project (clickhouse-odbc)
-cmake_minimum_required (VERSION 2.6)
-cmake_policy(SET CMP0023 NEW)
+cmake_minimum_required (VERSION 3.2)
+
+project (clickhouse-odbc VERSION 1.1.0.20191007 LANGUAGES C CXX)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 set(CMAKE_LINK_DEPENDS_NO_SHARED 1) # Do not relink all depended targets on .so
 set(CMAKE_CXX_EXTENSIONS 0)
 set(CMAKE_CXX_STANDARD_REQUIRED 1)
 set(CMAKE_POSITION_INDEPENDENT_CODE 1)
 set(CMAKE_BUILD_COLOR_MAKEFILE 1)
-set(CMAKE_DEBUG_POSTFIX "") # Dont add "d" to target lib name
+set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ASCIIDriver)
 
+if (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "None")
+    set (CMAKE_BUILD_TYPE "RelWithDebInfo")
+endif ()
+
+if (NOT CMAKE_CONFIGURATION_TYPES)
+    set (CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}")
+endif()
 
 message (STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+
+string (TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UC)
+string (TOUPPER "${CMAKE_CONFIGURATION_TYPES}" CMAKE_CONFIGURATION_TYPES_UC)
 
 set (COMMON_WARNING_FLAGS "-Wall")	# -Werror is also added inside directories with our own code.
 set (CXX_WARNING_FLAGS "-Wnon-virtual-dtor")
 
 set (CMAKE_CXX_STANDARD 14)
 # For iostream_debug_helpers.h :
-if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND USE_DEBUG_17)
+if (CMAKE_BUILD_TYPE_UC STREQUAL "DEBUG" AND USE_DEBUG_17)
     set (CMAKE_CXX_STANDARD 17)
 endif ()
 
 include(GNUInstallDirs)
 
-if (NOT MSVC)
-	set (CMAKE_CXX_FLAGS                     "${CMAKE_CXX_FLAGS} -O2 -g -fvisibility-inlines-hidden")
-endif ()
 if (MSVC)
-	set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-	set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MT")
-	set (CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MT")
-	set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-	set (CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-	set (CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MT")
-	set (CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MT")
-	set (CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+    foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
+        foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+            set (var "${lang}_${config}")
+            string (REPLACE "/MD" "/MT" ${var} "${${var}}")
+            string (REPLACE "-MD" "-MT" ${var} "${${var}}")
+        endforeach ()
+    endforeach ()
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
+else ()
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
 endif ()
 
 if (NOT BUILD_SHARED)
@@ -45,18 +55,13 @@ if (NOT BUILD_SHARED)
     endif ()
 endif ()
 
-message (STATUS "BUILD_SHARED=${BUILD_SHARED}")
+message (STATUS "BUILD_SHARED: ${BUILD_SHARED}")
 
 include (cmake/arch.cmake)
 
 if (ARCH_FREEBSD)
     set (CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
 endif ()
-
-if (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "None")
-    set (CMAKE_BUILD_TYPE "RELWITHDEBINFO")
-endif ()
-string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_UC)
 
 include (cmake/sanitize.cmake)
 
@@ -121,7 +126,12 @@ message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")
 
 message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE} ; CCACHE=${CCACHE_FOUND} ${CCACHE_VERSION}")
 
-add_subdirectory (contrib)
+add_subdirectory (contrib EXCLUDE_FROM_ALL)
+
+foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
+    set(CMAKE_${config}_POSTFIX "" CACHE STRING "" FORCE) # Don't append "d" or "md" to output lib name
+endforeach ()
+
 add_subdirectory (driver)
 
 if(CLICKHOUSE_ODBC_TEST)
@@ -129,3 +139,100 @@ if(CLICKHOUSE_ODBC_TEST)
 endif()
 
 include (cmake/print_flags.cmake)
+
+if(NOT WIN32)
+    install(
+        FILES packaging/unixodbc.ini packaging/odbc.ini
+        DESTINATION ${CMAKE_INSTALL_DOCDIR}/sample-config
+        COMPONENT Documentation
+    )
+endif()
+
+set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT RuntimeLibraries)
+include(InstallRequiredSystemLibraries)
+
+include(CPackComponent)
+
+# Remove empty/irrelevant components, mostly brought by third-party projects.
+get_cmake_property(CPACK_COMPONENTS_ALL COMPONENTS)
+list(REMOVE_ITEM CPACK_COMPONENTS_ALL "Devel")
+
+cpack_add_component_group(ASCIIGroup
+    DISPLAY_NAME "ASCII ${ARCH_BITS}-bit Driver"
+    DESCRIPTION "ClickHouse ODBC Driver (ASCII, ${ARCH_BITS}-bit)"
+    EXPANDED
+)
+cpack_add_component(ASCIIDriver
+    DISPLAY_NAME "Driver"
+    DESCRIPTION "ClickHouse ODBC Driver (ASCII, ${ARCH_BITS}-bit)"
+    REQUIRED
+    GROUP ASCIIGroup
+)
+cpack_add_component(ASCIIDriverDebugSymbols
+    DISPLAY_NAME "Debug symbols"
+    DESCRIPTION "Debug symbols (PDB) for the Driver (ASCII, ${ARCH_BITS}-bit)"
+    DISABLED
+    DEPENDS ASCIIDriver
+    GROUP ASCIIGroup
+)
+cpack_add_component_group(UnicodeGroup
+    DISPLAY_NAME "Unicode ${ARCH_BITS}-bit Driver"
+    DESCRIPTION "ClickHouse ODBC Driver (Unicode, ${ARCH_BITS}-bit)"
+    EXPANDED
+)
+cpack_add_component(UnicodeDriver
+    DISPLAY_NAME "Driver"
+    DESCRIPTION "ClickHouse ODBC Driver (Unicode, ${ARCH_BITS}-bit)"
+    DEPENDS ASCIIDriver
+    GROUP UnicodeGroup
+)
+cpack_add_component(UnicodeDriverDebugSymbols
+    DISPLAY_NAME "Debug symbols"
+    DESCRIPTION "Debug symbols (PDB) for Driver (Unicode, ${ARCH_BITS}-bit)"
+    DISABLED
+    DEPENDS UnicodeDriver
+    GROUP UnicodeGroup
+)
+cpack_add_component(RuntimeLibraries
+    DISPLAY_NAME "Runtime Libraries"
+    DESCRIPTION "System/language redistributable runtime libraries"
+    DEPENDS ASCIIDriver
+)
+
+if(WIN32 AND NOT UNIX)
+    set(CPACK_GENERATOR "ZIP;WIX")
+elseif(APPLE)
+    set(CPACK_GENERATOR "TXZ")
+elseif(UNIX_RHEL OR UNIX_FEDORA)
+    set(CPACK_GENERATOR "TXZ;RPM")
+elseif(UNIX_DEBIAN OR UNIX_UBUNTU)
+    set(CPACK_GENERATOR "TXZ;DEB")
+else()
+    set(CPACK_GENERATOR "TGZ")
+endif()
+
+if(WIN32 AND NOT UNIX)
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "${PROJECT_NAME}")
+else()
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "/usr/local")
+endif()
+
+set(CPACK_PACKAGE_VENDOR "Yandex LLC")
+set(CPACK_PACKAGE_DESCRIPTION "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/packaging/Readme.rtf")
+set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/License.rtf")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/ClickHouse/clickhouse-odbc")
+
+set(CPACK_WIX_ROOT_FEATURE_TITLE "ClickHouse ODBC Driver")
+set(CPACK_WIX_ROOT_FEATURE_DESCRIPTION "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
+set(CPACK_WIX_PATCH_FILE "${PROJECT_SOURCE_DIR}/packaging/RegConfig.patch.wxs")
+if ("${ARCH_BITS}" STREQUAL "32")
+    set(CPACK_WIX_PRODUCT_GUID "9FCA44DB-6963-4EBF-87A6-279331C139EB")
+    set(CPACK_WIX_UPGRADE_GUID "3C19591C-7FFC-461A-8828-611EDFBE0619")
+elseif("${ARCH_BITS}" STREQUAL "64")
+    set(CPACK_WIX_PRODUCT_GUID "D77FCBEA-C3A9-442C-8055-83CBDB57009B")
+    set(CPACK_WIX_UPGRADE_GUID "B63A7326-E080-49E3-A963-8F5EFC2DDD65")
+endif()
+
+include(CPack)

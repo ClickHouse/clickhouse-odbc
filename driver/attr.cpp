@@ -1,18 +1,19 @@
 #include <Poco/Net/HTTPClientSession.h>
 #include "connection.h"
 #include "environment.h"
-#include "log/log.h"
 #include "scope_guard.h"
 #include "statement.h"
 #include "utils.h"
 
-extern "C" {
+namespace { namespace impl {
 
-RETCODE
-impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
-    LOG(__FUNCTION__);
-
-    return doWith<Environment>(environment_handle, [&](Environment & environment) {
+SQLRETURN SetEnvAttr(
+    SQLHENV environment_handle,
+    SQLINTEGER attribute,
+    SQLPOINTER value,
+    SQLINTEGER value_length
+) noexcept {
+    auto func = [&](Environment & environment) {
         LOG("SetEnvAttr: " << attribute);
 
         switch (attribute) {
@@ -36,37 +37,30 @@ impl_SQLSetEnvAttr(SQLHENV environment_handle, SQLINTEGER attribute, SQLPOINTER 
                 return SQL_SUCCESS;
             }
 
-            case SQL_ATTR_METADATA_ID:
-                environment.metadata_id = reinterpret_cast<intptr_t>(value);
-                return SQL_SUCCESS;
-
             default:
                 LOG("SetEnvAttr: Unsupported attribute " << attribute);
                 //throw std::runtime_error("Unsupported environment attribute.");
                 return SQL_ERROR;
         }
-    });
+    };
+
+    return CALL_WITH_HANDLE(environment_handle, func);
 }
 
-
-RETCODE
-impl_SQLGetEnvAttr(SQLHENV environment_handle,
+SQLRETURN GetEnvAttr(
+    SQLHENV environment_handle,
     SQLINTEGER attribute,
     SQLPOINTER out_value,
     SQLINTEGER out_value_max_length,
-    SQLINTEGER * out_value_length) {
-    LOG(__FUNCTION__);
-
-    return doWith<Environment>(environment_handle, [&](Environment & environment) -> RETCODE {
+    SQLINTEGER * out_value_length
+) noexcept {
+    auto func = [&](Environment & environment) -> SQLRETURN {
         LOG("GetEnvAttr: " << attribute);
-        const char * name = nullptr;
 
         switch (attribute) {
             case SQL_ATTR_ODBC_VERSION:
-                fillOutputNumber<SQLUINTEGER>(environment.odbc_version, out_value, out_value_max_length, out_value_length);
+                fillOutputNumber<SQLUINTEGER>(environment.odbc_version, out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length);
                 return SQL_SUCCESS;
-
-                CASE_NUM(SQL_ATTR_METADATA_ID, SQLUINTEGER, environment.metadata_id);
 
             case SQL_ATTR_CONNECTION_POOLING:
             case SQL_ATTR_CP_MATCH:
@@ -76,16 +70,18 @@ impl_SQLGetEnvAttr(SQLHENV environment_handle,
                 //throw std::runtime_error("Unsupported environment attribute.");
                 return SQL_ERROR;
         }
-    });
+    };
+
+    return CALL_WITH_HANDLE(environment_handle, func);
 }
 
-
-/// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlsetconnectattr-function
-RETCODE
-impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
-    LOG(__FUNCTION__);
-
-    return doWith<Connection>(connection_handle, [&](Connection & connection) {
+SQLRETURN SetConnectAttr(
+    SQLHDBC connection_handle,
+    SQLINTEGER attribute,
+    SQLPOINTER value,
+    SQLINTEGER value_length
+) noexcept {
+    auto func = [&](Connection & connection) {
         LOG("SetConnectAttr: " << attribute << " = " << value << " (" << value_length << ")");
 
         switch (attribute) {
@@ -109,10 +105,12 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINT
 
             case SQL_ATTR_TRACE: {
                 if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_ON)) {
-                    log_enabled = true;
-                } else if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_OFF)) {
-                    log_enabled = false;
-                } else {
+                    connection.getDriver().setAttr(SQL_ATTR_TRACE, SQL_OPT_TRACE_ON);
+                }
+                else if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_OFF)) {
+                    connection.getDriver().setAttr(SQL_ATTR_TRACE, SQL_OPT_TRACE_OFF);
+                }
+                else {
                     LOG("SetConnectAttr: SQL_ATTR_TRACE: Unknown value " << value);
                     return SQL_ERROR;
                 }
@@ -120,14 +118,9 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINT
             }
 
             case SQL_ATTR_TRACEFILE: {
-                auto tracefile = stringFromSQLBytes((SQLTCHAR *)value, value_length);
-                if (!tracefile.empty()) {
-                    log_file = tracefile;
-                    log_stream = std::ofstream(log_file, std::ios::out | std::ios::app);
-                    return SQL_SUCCESS;
-                }
-                LOG("SetConnectAttr: SQL_ATTR_TRACEFILE: Empty file " << tracefile);
-                return SQL_ERROR;
+                const std::string tracefile = stringFromSQLBytes((SQLTCHAR *)value, value_length);
+                connection.getDriver().setAttr(SQL_ATTR_TRACEFILE, tracefile);
+                return SQL_SUCCESS;
             }
 
 #if defined(SQL_APPLICATION_NAME)
@@ -139,13 +132,16 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINT
             }
 #endif
 
+            case SQL_ATTR_METADATA_ID:
+                connection.setAttr(SQL_ATTR_METADATA_ID, value);
+                return SQL_SUCCESS;
+
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:
             case SQL_ATTR_AUTO_IPD:
             case SQL_ATTR_AUTOCOMMIT:
             case SQL_ATTR_CONNECTION_DEAD:
             case SQL_ATTR_LOGIN_TIMEOUT: // We have no special login procedure - cant set login timeout separately
-            case SQL_ATTR_METADATA_ID:
             case SQL_ATTR_ODBC_CURSORS:
             case SQL_ATTR_PACKET_SIZE:
             case SQL_ATTR_QUIET_MODE:
@@ -159,16 +155,19 @@ impl_SQLSetConnectAttr(SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINT
                 //throw SqlException("Unsupported connection attribute.", "HY092");
                 return SQL_ERROR;
         }
-    });
+    };
+
+    return CALL_WITH_HANDLE(connection_handle, func);
 }
 
-
-RETCODE
-impl_SQLGetConnectAttr(
-    SQLHDBC connection_handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
-    LOG(__FUNCTION__);
-
-    return doWith<Connection>(connection_handle, [&](Connection & connection) -> RETCODE {
+SQLRETURN GetConnectAttr(
+    SQLHDBC connection_handle,
+    SQLINTEGER attribute,
+    SQLPOINTER out_value,
+    SQLINTEGER out_value_max_length,
+    SQLINTEGER * out_value_length
+) noexcept {
+    auto func = [&](Connection & connection) -> SQLRETURN {
         LOG("GetConnectAttr: " << attribute);
 
         const char * name = nullptr;
@@ -180,7 +179,7 @@ impl_SQLGetConnectAttr(
                 SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout);
             CASE_NUM(SQL_ATTR_TXN_ISOLATION, SQLINTEGER, SQL_TXN_SERIALIZABLE); // mssql linked server
             CASE_NUM(SQL_ATTR_AUTOCOMMIT, SQLINTEGER, SQL_AUTOCOMMIT_ON);
-            CASE_NUM(SQL_ATTR_TRACE, SQLINTEGER, log_enabled ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF);
+            CASE_NUM(SQL_ATTR_TRACE, SQLINTEGER, (connection.getDriver().isLoggingEnabled() ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
 
             case SQL_ATTR_CURRENT_CATALOG:
                 fillOutputPlatformString(connection.getDatabase(), out_value, out_value_max_length, out_value_length);
@@ -189,14 +188,21 @@ impl_SQLGetConnectAttr(
             case SQL_ATTR_ANSI_APP:
                 return SQL_ERROR;
 
-            case SQL_ATTR_TRACEFILE:
-                fillOutputPlatformString(log_file, out_value, out_value_max_length, out_value_length);
+            case SQL_ATTR_TRACEFILE: {
+                const auto tracefile = connection.getDriver().getAttrAs<std::string>(SQL_ATTR_TRACEFILE);
+                fillOutputPlatformString(tracefile, out_value, out_value_max_length, out_value_length);
                 return SQL_SUCCESS;
+            }
+
+            case SQL_ATTR_METADATA_ID:
+                return fillOutputNumber<SQLUINTEGER>(
+                    connection.getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE),
+                    out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length
+                );
 
             case SQL_ATTR_ACCESS_MODE:
             case SQL_ATTR_ASYNC_ENABLE:
             case SQL_ATTR_AUTO_IPD:
-            case SQL_ATTR_METADATA_ID:
             case SQL_ATTR_ODBC_CURSORS:
             case SQL_ATTR_PACKET_SIZE:
             case SQL_ATTR_QUIET_MODE:
@@ -209,36 +215,108 @@ impl_SQLGetConnectAttr(
         }
 
         return SQL_SUCCESS;
-    });
+    };
+
+    return CALL_WITH_HANDLE(connection_handle, func);
 }
 
+SQLRETURN setDescriptorHandle(Statement & statement, SQLINTEGER descriptor_type, SQLHANDLE descriptor_handle) {
+    switch (descriptor_type) {
+        case SQL_ATTR_APP_ROW_DESC:
+        case SQL_ATTR_APP_PARAM_DESC:
+            if (descriptor_handle == 0) {
+                statement.setImplicitDescriptor(descriptor_type);
+                return SQL_SUCCESS;
+            }
+            break;
+        case SQL_ATTR_IMP_ROW_DESC:   /* 10012 (read-only) */
+        case SQL_ATTR_IMP_PARAM_DESC: /* 10013 (read-only) */
+            return SQL_ERROR;
+    }
 
-RETCODE
-impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
-    LOG(__FUNCTION__);
+    // We don't want to modify the diagnostics info of the descriptor instance itself,
+    // but want to forward it to (current) statement context unchanged, so we are going to
+    // intercept exceptions and process them outside the descriptor dispatch closure.
+    std::exception_ptr ex;
 
-    return doWith<Statement>(statement_handle, [&](Statement & statement) {
+    auto func = [&] (Descriptor & descriptor) {
+        try {
+            if (descriptor.getParent().getHandle() != statement.getParent().getHandle())
+                throw SqlException("Invalid attribute value", "HY024");
+
+            if (descriptor.getAttrAs<SQLSMALLINT>(SQL_DESC_ALLOC_TYPE) == SQL_DESC_ALLOC_AUTO)
+                throw SqlException("Invalid use of an automatically allocated descriptor handle", "HY017");
+
+            switch (descriptor_type) {
+                case SQL_ATTR_APP_ROW_DESC:
+                case SQL_ATTR_APP_PARAM_DESC:
+                    statement.setExplicitDescriptor(descriptor_type, descriptor.shared_from_this());
+                    return SQL_SUCCESS;
+            }
+        }
+        catch (...) {
+            ex = std::current_exception();
+        }
+
+        return SQL_ERROR;
+    };
+
+    auto rc = CALL_WITH_HANDLE_SKIP_DIAG(descriptor_handle, func);
+
+    if (ex)
+        std::rethrow_exception(ex);
+
+    if (rc == SQL_INVALID_HANDLE)
+        throw SqlException("Invalid attribute value", "HY024");
+
+    return rc;
+}
+
+SQLRETURN SetStmtAttr(
+    SQLHSTMT statement_handle,
+    SQLINTEGER attribute,
+    SQLPOINTER value,
+    SQLINTEGER value_length
+) noexcept {
+    auto func = [&](Statement & statement) -> SQLRETURN {
         LOG("SetStmtAttr: " << attribute << " value=" << value << " value_length=" << value_length);
 
         switch (attribute) {
+
+#define CASE_SET_IN_DESC(STMT_ATTR, DESC_TYPE, DESC_ATTR, VALUE_TYPE) \
+            case STMT_ATTR: \
+                statement.getEffectiveDescriptor(DESC_TYPE).setAttr(DESC_ATTR, reinterpret_cast<VALUE_TYPE>(value)); \
+                return SQL_SUCCESS;
+
+            CASE_SET_IN_DESC(SQL_ATTR_PARAM_BIND_OFFSET_PTR, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
+            CASE_SET_IN_DESC(SQL_ATTR_PARAM_BIND_TYPE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
+            CASE_SET_IN_DESC(SQL_ATTR_PARAM_OPERATION_PTR, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_SET_IN_DESC(SQL_ATTR_PARAM_STATUS_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_SET_IN_DESC(SQL_ATTR_PARAMS_PROCESSED_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
+            CASE_SET_IN_DESC(SQL_ATTR_PARAMSET_SIZE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
+            CASE_SET_IN_DESC(SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
+            CASE_SET_IN_DESC(SQL_ATTR_ROW_BIND_OFFSET_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
+            CASE_SET_IN_DESC(SQL_ATTR_ROW_BIND_TYPE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
+            CASE_SET_IN_DESC(SQL_ATTR_ROW_OPERATION_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_SET_IN_DESC(SQL_ATTR_ROW_STATUS_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_SET_IN_DESC(SQL_ATTR_ROWS_FETCHED_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
+
+#undef CASE_SET_IN_DESC
+
             case SQL_ATTR_NOSCAN:
-                statement.setScanEscapeSequences((SQLULEN)value != SQL_NOSCAN_ON);
+                statement.setAttr(SQL_ATTR_NOSCAN, value);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_METADATA_ID:
-                statement.setMetadataId(reinterpret_cast<intptr_t>(value));
-                return SQL_SUCCESS;
-
-            case SQL_ATTR_ROWS_FETCHED_PTR:
-                statement.rows_fetched_ptr = static_cast<SQLULEN *>(value);
-                return SQL_SUCCESS;
-
-            case SQL_ATTR_ROW_ARRAY_SIZE:
-                statement.row_array_size = reinterpret_cast<decltype(statement.row_array_size)>(value);
+                statement.setAttr(SQL_ATTR_METADATA_ID, value);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_APP_ROW_DESC:
             case SQL_ATTR_APP_PARAM_DESC:
+            case SQL_ATTR_IMP_ROW_DESC:
+            case SQL_ATTR_IMP_PARAM_DESC:
+                return setDescriptorHandle(statement, attribute, reinterpret_cast<SQLHANDLE>(value));
+
             case SQL_ATTR_CURSOR_SCROLLABLE:
             case SQL_ATTR_CURSOR_SENSITIVITY:
             case SQL_ATTR_ASYNC_ENABLE:
@@ -249,80 +327,62 @@ impl_SQLSetStmtAttr(SQLHSTMT statement_handle, SQLINTEGER attribute, SQLPOINTER 
             case SQL_ATTR_KEYSET_SIZE:
             case SQL_ATTR_MAX_LENGTH:
             case SQL_ATTR_MAX_ROWS:
-            case SQL_ATTR_PARAM_BIND_OFFSET_PTR:
-            case SQL_ATTR_PARAM_BIND_TYPE:
-            case SQL_ATTR_PARAM_OPERATION_PTR:
-            case SQL_ATTR_PARAM_STATUS_PTR:
-            case SQL_ATTR_PARAMS_PROCESSED_PTR:
-            case SQL_ATTR_PARAMSET_SIZE:
             case SQL_ATTR_QUERY_TIMEOUT:
             case SQL_ATTR_RETRIEVE_DATA:
             case SQL_ATTR_ROW_NUMBER:
-            case SQL_ATTR_ROW_OPERATION_PTR:
-            case SQL_ATTR_ROW_STATUS_PTR: /// Libreoffice Base
             case SQL_ATTR_SIMULATE_CURSOR:
             case SQL_ATTR_USE_BOOKMARKS:
                 return SQL_SUCCESS;
 
-            case SQL_ATTR_IMP_ROW_DESC:   /* 10012 (read-only) */
-            case SQL_ATTR_IMP_PARAM_DESC: /* 10013 (read-only) */
-                return SQL_ERROR;
-
-            case SQL_ATTR_ROW_BIND_OFFSET_PTR:
-            case SQL_ATTR_ROW_BIND_TYPE:
             default:
                 LOG("SetStmtAttr: Unsupported attribute " << attribute);
                 //throw std::runtime_error("Unsupported statement attribute.");
                 return SQL_ERROR;
         }
-    });
+    };
+
+    return CALL_WITH_HANDLE(statement_handle, func);
 }
 
-
-static SQLHDESC descHandleFromStatementHandle(Statement & statement, SQLINTEGER descType) {
-    switch (descType) {
-        case SQL_ATTR_APP_ROW_DESC: /* 10010 */
-            return (HSTMT)statement.ard.get();
-        case SQL_ATTR_APP_PARAM_DESC: /* 10011 */
-            return (HSTMT)statement.apd.get();
-        case SQL_ATTR_IMP_ROW_DESC: /* 10012 */
-            return (HSTMT)statement.ird.get();
-        case SQL_ATTR_IMP_PARAM_DESC: /* 10013 */
-            return (HSTMT)statement.ipd.get();
-    }
-    return (HSTMT)0;
-}
-
-RETCODE
-impl_SQLGetStmtAttr(
-    SQLHSTMT statement_handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
-    LOG(__FUNCTION__);
-#ifndef NDEBUG
-    SCOPE_EXIT({ LOG("impl_SQLGetStmtAttr finish."); }); // for timing only
-#endif
-
-    return doWith<Statement>(statement_handle, [&](Statement & statement) -> RETCODE {
+SQLRETURN GetStmtAttr(
+    SQLHSTMT statement_handle,
+    SQLINTEGER attribute,
+    SQLPOINTER out_value,
+    SQLINTEGER out_value_max_length,
+    SQLINTEGER * out_value_length
+) {
+    auto func = [&](Statement & statement) -> SQLRETURN {
         LOG("GetStmtAttr: " << attribute << " out_value=" << out_value << " out_value_max_length=" << out_value_max_length);
 
         const char * name = nullptr;
 
         switch (attribute) {
+
+#define CASE_GET_FROM_DESC(STMT_ATTR, DESC_TYPE, DESC_ATTR, VALUE_TYPE) \
+            case STMT_ATTR: \
+                return fillOutputNumber<VALUE_TYPE>(statement.getEffectiveDescriptor(DESC_TYPE).getAttrAs<VALUE_TYPE>(DESC_ATTR), out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length);
+
+            CASE_GET_FROM_DESC(SQL_ATTR_PARAM_BIND_OFFSET_PTR, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
+            CASE_GET_FROM_DESC(SQL_ATTR_PARAM_BIND_TYPE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
+            CASE_GET_FROM_DESC(SQL_ATTR_PARAM_OPERATION_PTR, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_GET_FROM_DESC(SQL_ATTR_PARAM_STATUS_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_GET_FROM_DESC(SQL_ATTR_PARAMS_PROCESSED_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
+            CASE_GET_FROM_DESC(SQL_ATTR_PARAMSET_SIZE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
+            CASE_GET_FROM_DESC(SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
+            CASE_GET_FROM_DESC(SQL_ATTR_ROW_BIND_OFFSET_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
+            CASE_GET_FROM_DESC(SQL_ATTR_ROW_BIND_TYPE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
+            CASE_GET_FROM_DESC(SQL_ATTR_ROW_OPERATION_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_GET_FROM_DESC(SQL_ATTR_ROW_STATUS_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
+            CASE_GET_FROM_DESC(SQL_ATTR_ROWS_FETCHED_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
+
+#undef CASE_GET_FROM_DESC
+
             CASE_FALLTHROUGH(SQL_ATTR_APP_ROW_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_APP_PARAM_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_IMP_ROW_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_IMP_PARAM_DESC)
-            if (out_value_length)
-                *out_value_length = sizeof(HSTMT *);
-            *((HSTMT *)out_value) = (HSTMT *)descHandleFromStatementHandle(statement, attribute);
-            break;
-
-            CASE_FALLTHROUGH(SQL_ATTR_ROWS_FETCHED_PTR)
-            if (out_value)
-                out_value = static_cast<SQLPOINTER>(statement.rows_fetched_ptr);
-            else
-                LOG("GetStmtAttr: " << name << " no pointer passed.");
-            return SQL_ERROR;
-            break;
+				return fillOutputNumber<SQLHANDLE>(statement.getEffectiveDescriptor(attribute).getHandle(),
+                    out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length);
 
             CASE_NUM(SQL_ATTR_CURSOR_SCROLLABLE, SQLULEN, SQL_NONSCROLLABLE);
             CASE_NUM(SQL_ATTR_CURSOR_SENSITIVITY, SQLULEN, SQL_INSENSITIVE);
@@ -332,26 +392,29 @@ impl_SQLGetStmtAttr(
             CASE_NUM(SQL_ATTR_ENABLE_AUTO_IPD, SQLULEN, SQL_FALSE);
             CASE_NUM(SQL_ATTR_MAX_LENGTH, SQLULEN, 0);
             CASE_NUM(SQL_ATTR_MAX_ROWS, SQLULEN, 0);
-            CASE_NUM(SQL_ATTR_METADATA_ID, SQLUINTEGER, statement.getMetadataId());
-            CASE_NUM(SQL_ATTR_NOSCAN, SQLULEN, (statement.getScanEscapeSequences() ? SQL_NOSCAN_OFF : SQL_NOSCAN_ON));
+
+            CASE_FALLTHROUGH(SQL_ATTR_METADATA_ID)
+                return fillOutputNumber<SQLULEN>(
+                    statement.getAttrAs<SQLULEN>(
+                        SQL_ATTR_METADATA_ID,
+                        statement.getParent().getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE)
+                    ),
+                    out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length
+                );
+
+            CASE_FALLTHROUGH(SQL_ATTR_NOSCAN)
+                return fillOutputNumber<SQLULEN>(
+                    statement.getAttrAs<SQLULEN>(SQL_ATTR_NOSCAN, SQL_NOSCAN_OFF),
+                    out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length
+                );
+
             CASE_NUM(SQL_ATTR_QUERY_TIMEOUT, SQLULEN, 0);
             CASE_NUM(SQL_ATTR_RETRIEVE_DATA, SQLULEN, SQL_RD_ON);
-            CASE_NUM(SQL_ATTR_ROW_NUMBER, SQLULEN, statement.result.getNumRows());
+            CASE_NUM(SQL_ATTR_ROW_NUMBER, SQLULEN, statement.getCurrentRowNum());
             CASE_NUM(SQL_ATTR_USE_BOOKMARKS, SQLULEN, SQL_UB_OFF);
-            CASE_NUM(SQL_ATTR_ROW_BIND_TYPE, SQLULEN, SQL_BIND_TYPE_DEFAULT);
-            CASE_NUM(SQL_ATTR_ROW_ARRAY_SIZE, SQLULEN, statement.row_array_size);
 
             case SQL_ATTR_FETCH_BOOKMARK_PTR:
             case SQL_ATTR_KEYSET_SIZE:
-            case SQL_ATTR_PARAM_BIND_OFFSET_PTR:
-            case SQL_ATTR_PARAM_BIND_TYPE:
-            case SQL_ATTR_PARAM_OPERATION_PTR:
-            case SQL_ATTR_PARAM_STATUS_PTR:
-            case SQL_ATTR_PARAMS_PROCESSED_PTR:
-            case SQL_ATTR_PARAMSET_SIZE:
-            case SQL_ATTR_ROW_BIND_OFFSET_PTR:
-            case SQL_ATTR_ROW_OPERATION_PTR:
-            case SQL_ATTR_ROW_STATUS_PTR:
             case SQL_ATTR_SIMULATE_CURSOR:
             default:
                 LOG("GetStmtAttr: Unsupported attribute " << attribute);
@@ -360,60 +423,63 @@ impl_SQLGetStmtAttr(
         }
 
         return SQL_SUCCESS;
-    });
+    };
+
+    return CALL_WITH_HANDLE(statement_handle, func);
 }
 
+} } // namespace impl
 
-RETCODE SQL_API SQLSetEnvAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
-    return impl_SQLSetEnvAttr(handle, attribute, value, value_length);
+
+extern "C" {
+
+SQLRETURN SQL_API SQLSetEnvAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+    return impl::SetEnvAttr(handle, attribute, value, value_length);
 }
 
-RETCODE SQL_API SQLSetConnectAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
-    return impl_SQLSetConnectAttr(handle, attribute, value, value_length);
+SQLRETURN SQL_API SQLSetConnectAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+    return impl::SetConnectAttr(handle, attribute, value, value_length);
 }
 
-RETCODE SQL_API SQLSetStmtAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
-    return impl_SQLSetStmtAttr(handle, attribute, value, value_length);
+SQLRETURN SQL_API SQLSetStmtAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+    return impl::SetStmtAttr(handle, attribute, value, value_length);
 }
 
-RETCODE SQL_API SQLGetEnvAttr(
+SQLRETURN SQL_API SQLGetEnvAttr(
     SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
-    return impl_SQLGetEnvAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
+    return impl::GetEnvAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
-RETCODE SQL_API SQLGetConnectAttr(
+SQLRETURN SQL_API SQLGetConnectAttr(
     SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
-    return impl_SQLGetConnectAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
+    return impl::GetConnectAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
-RETCODE SQL_API SQLGetStmtAttr(
+SQLRETURN SQL_API SQLGetStmtAttr(
     SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
-    return impl_SQLGetStmtAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
+    return impl::GetStmtAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
-RETCODE SQL_API SQLGetConnectOption(SQLHDBC connection_handle, UWORD attribute, PTR out_value) {
-    LOG(__FUNCTION__);
+SQLRETURN SQL_API SQLGetConnectOption(SQLHDBC connection_handle, UWORD attribute, PTR out_value) {
     SQLINTEGER value_max_length = 64;
     SQLINTEGER value_length_unused = 0;
-    return impl_SQLGetConnectAttr(connection_handle, attribute, out_value, value_max_length, &value_length_unused);
+    return impl::GetConnectAttr(connection_handle, attribute, out_value, value_max_length, &value_length_unused);
 }
 
-RETCODE SQL_API SQLGetStmtOption(SQLHSTMT statement_handle, UWORD attribute, PTR out_value) {
-    LOG(__FUNCTION__);
+SQLRETURN SQL_API SQLGetStmtOption(SQLHSTMT statement_handle, UWORD attribute, PTR out_value) {
     SQLINTEGER value_max_length = 64;
     SQLINTEGER value_length_unused = 0;
-    return impl_SQLGetStmtAttr(statement_handle, attribute, out_value, value_max_length, &value_length_unused);
+    return impl::GetStmtAttr(statement_handle, attribute, out_value, value_max_length, &value_length_unused);
 }
 
-RETCODE SQL_API SQLSetConnectOption(SQLHDBC connection_handle, UWORD attribute, SQLULEN value) {
-    LOG(__FUNCTION__);
-    return impl_SQLSetConnectAttr(connection_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
+SQLRETURN SQL_API SQLSetConnectOption(SQLHDBC connection_handle, UWORD attribute, SQLULEN value) {
+    return impl::SetConnectAttr(connection_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
 }
 
-RETCODE SQL_API SQLSetStmtOption(SQLHSTMT statement_handle, UWORD attribute, SQLULEN value) {
-    LOG(__FUNCTION__);
+SQLRETURN SQL_API SQLSetStmtOption(SQLHSTMT statement_handle, UWORD attribute, SQLULEN value) {
     /// TODO (artpaul)
     /// See https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/sqlsetstmtoption-mapping for correct implementation.
-    return impl_SQLSetStmtAttr(statement_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
+    return impl::SetStmtAttr(statement_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
 }
-}
+
+} // extern "C"

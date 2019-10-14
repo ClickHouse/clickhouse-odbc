@@ -1,19 +1,24 @@
 #pragma once
 
-#include <memory>
-#include <mutex>
-#include "diagnostics.h"
+#include "driver.h"
 #include "environment.h"
 
-namespace Poco {
-namespace Net {
-    class HTTPClientSession;
-}
-}
+#include <memory>
+#include <mutex>
 
-struct Connection {
-    Environment & environment;
+#include <Poco/Net/HTTPClientSession.h>
 
+class DescriptorRecord;
+class Descriptor;
+class Statement;
+
+class Connection
+    : public Child<Environment, Connection>
+{
+private:
+    using ChildType = Child<Environment, Connection>;
+
+public:
     std::string data_source;
     std::string url;
     std::string proto;
@@ -34,10 +39,10 @@ struct Connection {
     std::string useragent;
 
     std::unique_ptr<Poco::Net::HTTPClientSession> session;
-    DiagnosticRecord diagnostic_record;
     int retry_count = 3;
 
-    Connection(Environment & env_);
+public:
+    explicit Connection(Environment & environment);
 
     /// Returns the completed connection string.
     std::string connectionString() const;
@@ -58,6 +63,30 @@ struct Connection {
 
     void init(const std::string & connection_string);
 
+    // Return a Base64 encoded string of "user:password".
+    std::string buildCredentialsString() const;
+
+    // Return a crafted User-Agent string.
+    std::string buildUserAgentString() const;
+
+    // Reset the descriptor and initialize it with default attributes.
+    void initAsAD(Descriptor & desc, bool user = false); // as Application Descriptor
+    void initAsID(Descriptor & desc); // as Implementation Descriptor
+
+    // Reset the descriptor and initialize it with default attributes.
+    void initAsDesc(Descriptor & desc, SQLINTEGER role, bool user = false); // ARD, APD, IRD, IPD
+
+    // Reset the descriptor record and initialize it with default attributes.
+    void initAsADRec(DescriptorRecord & rec); // as a record of Application Descriptor
+    void initAsIDRec(DescriptorRecord & rec); // as a record of Implementation Descriptor
+
+    // Reset the descriptor record and initialize it with default attributes.
+    void initAsDescRec(DescriptorRecord & rec, SQLINTEGER desc_role); // ARD, APD, IRD, IPD
+
+    // Leave unimplemented for general case.
+    template <typename T> T& allocateChild();
+    template <typename T> void deallocateChild(SQLHANDLE) noexcept;
+
 private:
     /// Load uninitialized fields from odbc.ini
     void loadConfiguration();
@@ -67,4 +96,12 @@ private:
 
 private:
     std::string database;
+    std::unordered_map<SQLHANDLE, std::shared_ptr<Descriptor>> descriptors;
+    std::unordered_map<SQLHANDLE, std::shared_ptr<Statement>> statements;
 };
+
+template <> Descriptor& Connection::allocateChild<Descriptor>();
+template <> void Connection::deallocateChild<Descriptor>(SQLHANDLE handle) noexcept;
+
+template <> Statement& Connection::allocateChild<Statement>();
+template <> void Connection::deallocateChild<Statement>(SQLHANDLE handle) noexcept;
