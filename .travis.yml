@@ -339,7 +339,6 @@ install: |-
   fi
 
 .configure: &configure |-
-  mkdir -p $BUILD_DIR
   CMAKE_FLAGS="-DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w"
   if [ "$EXTERNAL_THIRD_PARTY" == "yes" ]; then
     CMAKE_FLAGS="-DUNBUNDLED=1 $CMAKE_FLAGS"
@@ -375,12 +374,8 @@ install: |-
   fi
 
 before_script: |-
-  # Clone nanodbc for more tests.
-  cd $SOURCE_DIR/contrib
-  git clone --recursive https://github.com/nanodbc/nanodbc.git
-  cd $SOURCE_DIR
-  ls -lah $SOURCE_DIR
-  ls -lah $SOURCE_DIR/contrib
+  mkdir -p $BUILD_DIR
+  mkdir -p $RUN_DIR
 
 script:
   - *clickhouse_start
