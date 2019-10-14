@@ -9,7 +9,7 @@ CLICKHOUSE_ORIGINAL_CONFDIR=${CLICKHOUSE_ORIGINAL_CONFDIR:=$(pwd)/etc/clickhouse
 CLICKHOUSE_CONFDIR=${CLICKHOUSE_CONFDIR:=$(pwd)/etc/clickhouse-server-run-here}
 CLICKHOUSE_BINDIR=${CLICKHOUSE_BINDIR:=$(pwd)/usr/bin}
 
-echo This script will copy (overwrite) clickhouse-server configs to $CLICKHOUSE_CONFDIR
+echo This script will copy and overwrite clickhouse-server configs to $CLICKHOUSE_CONFDIR
 echo $CLICKHOUSE_DATADIR will be used to store ClickHouse data
 echo $CLICKHOUSE_LOGDIR will be used to store ClickHouse logs
 
