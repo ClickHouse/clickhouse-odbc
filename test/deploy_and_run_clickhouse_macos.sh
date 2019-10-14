@@ -1,18 +1,24 @@
-# later better native wrappers should appear
+#!/usr/bin/env sh
 
-mkdir clickhouse
+# Later better native wrappers should appear...
 
+echo macOS ClickHouse binary installation
+
+rm -rf clickhouse
+mkdir -p clickhouse
 pushd clickhouse
-echo MacOS ClickHouse binary installation 
 
-echo 1. Prepare folders.
+echo 1. Prepare folders
 mkdir -p usr/bin etc/clickhouse-server var/lib/clickhouse
+
 echo 2. Download binaries
 curl https://clickhouse-builds.s3.yandex.net/0/381947509a4f66236f943beaefb0b1f5c2fd979d/1570028580_binary/clickhouse -o usr/bin/clickhouse
 curl https://clickhouse-builds.s3.yandex.net/0/381947509a4f66236f943beaefb0b1f5c2fd979d/1570028580_binary/clickhouse-odbc-bridge -o usr/bin/clickhouse-odbc-bridge
+
 echo 3. Download configs
 curl https://raw.githubusercontent.com/ClickHouse/ClickHouse/master/dbms/programs/server/config.xml -o etc/clickhouse-server/config.xml
 curl https://raw.githubusercontent.com/ClickHouse/ClickHouse/master/dbms/programs/server/users.xml -o etc/clickhouse-server/users.xml
+
 echo 4. Setup executables
 pushd usr/bin/
 ln -s clickhouse clickhouse-client
@@ -26,16 +32,9 @@ ln -s clickhouse clickhouse-obfuscator
 ln -s clickhouse clickhouse-format
 chmod +x clickhouse*
 popd
-echo 4. Download script 
-curl https://gist.githubusercontent.com/filimonov/2536ecd82baf184534f7f1d8e76a5f1e/raw/run_here.sh -o run_here.sh
-chmod +x run_here.sh
 
-echo starting server...
+echo 4. Start the server in background
+../run_clickhouse_macos.sh # will run in background
+# ../run_clickhouse_macos.sh foreground # to run in foreground
 
-./run_here.sh # will run in background
 popd
-
-# ./run_here.sh foreground # to run in foreground 
-
-# usr/bin/clickhouse-client
-# kill $(pgrep clickhouse-server)
