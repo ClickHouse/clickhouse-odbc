@@ -38,21 +38,21 @@ matrix:
         #    submodules: false
 
         # clang5 iodbc
-        - os: linux
-          compiler: clang
-          env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=libiodbc2"
-          addons:
-            apt:
-              sources: [ ubuntu-toolchain-r-test ]
-              packages: [ ninja-build, libstdc++-8-dev, iodbc, libiodbc2, libiodbc2-dev ]
+        # - os: linux
+        #   compiler: clang
+        #   env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=libiodbc2"
+        #   addons:
+        #     apt:
+        #       sources: [ ubuntu-toolchain-r-test ]
+        #       packages: [ ninja-build, libstdc++-8-dev, iodbc, libiodbc2, libiodbc2-dev ]
 
         # gcc8 iodbc
-        - os: linux
-          env: MATRIX_EVAL="export CC=gcc-8 CXX=g++-8 ODBC_LIB=libiodbc2"
-          addons:
-            apt:
-              sources: [ ubuntu-toolchain-r-test ]
-              packages: [ ninja-build, gcc-8, g++-8, iodbc, libiodbc2, libiodbc2-dev ]
+        # - os: linux
+        #   env: MATRIX_EVAL="export CC=gcc-8 CXX=g++-8 ODBC_LIB=libiodbc2"
+        #   addons:
+        #     apt:
+        #       sources: [ ubuntu-toolchain-r-test ]
+        #       packages: [ ninja-build, gcc-8, g++-8, iodbc, libiodbc2, libiodbc2-dev ]
 
         # clang8 unixodbc
         #- os: linux
