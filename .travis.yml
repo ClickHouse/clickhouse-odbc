@@ -19,7 +19,7 @@ matrix:
       os: linux
       dist: bionic
       compiler: gcc
-      env: 
+      env:
         - CC=gcc
         - CXX=g++
         - ODBC_DRIVER_MANAGER=unixodbc
@@ -44,7 +44,7 @@ matrix:
       os: linux
       dist: bionic
       compiler: gcc
-      env: 
+      env:
         - CC=gcc
         - CXX=g++
         - ODBC_DRIVER_MANAGER=unixodbc
@@ -69,7 +69,7 @@ matrix:
       os: linux
       dist: bionic
       compiler: gcc
-      env: 
+      env:
         - CC=gcc
         - CXX=g++
         - ODBC_DRIVER_MANAGER=unixodbc
@@ -94,7 +94,7 @@ matrix:
       os: linux
       dist: bionic
       compiler: gcc
-      env: 
+      env:
         - CC=gcc
         - CXX=g++
         - ODBC_DRIVER_MANAGER=iodbc
@@ -119,7 +119,7 @@ matrix:
       os: linux
       dist: bionic
       compiler: clang
-      env: 
+      env:
         - CC=clang
         - CXX=clang++
         - ODBC_DRIVER_MANAGER=unixodbc
@@ -143,7 +143,7 @@ matrix:
       os: linux
       dist: bionic
       compiler: clang
-      env: 
+      env:
         - CC=clang
         - CXX=clang++
         - ODBC_DRIVER_MANAGER=iodbc
@@ -167,7 +167,7 @@ matrix:
       os: linux
       dist: bionic
       compiler: gcc
-      env: 
+      env:
         - CC=gcc-8
         - CXX=g++-8
         - ODBC_DRIVER_MANAGER=unixodbc
@@ -192,7 +192,7 @@ matrix:
       os: linux
       dist: bionic
       compiler: gcc
-      env: 
+      env:
         - CC=gcc-8
         - CXX=g++-8
         - ODBC_DRIVER_MANAGER=iodbc
@@ -217,7 +217,7 @@ matrix:
       os: linux
       dist: bionic
       compiler: gcc
-      env: 
+      env:
         - CC=gcc
         - CXX=g++
         - ODBC_DRIVER_MANAGER=unixodbc
@@ -237,9 +237,61 @@ matrix:
             - openssl
             - libssl-dev
             - libpoco-dev
+            - googletest
             - unixodbc
             - unixodbc-bin
             - unixodbc-dev
+
+    - name: "macOS 10.14 - Xcode 11.2 (AppleClang) - iODBC - RelWithDebInfo"
+      os: osx
+      osx_image: xcode11.2
+      compiler: clang
+      env:
+        - ODBC_DRIVER_MANAGER=iodbc
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - UNIT_TESTING=yes
+        - E2E_TESTING=yes
+      addons:
+        homebrew:
+          packages:
+            - libiodbc
+
+    - name: "macOS 10.14 - Xcode 11.2 (AppleClang) - UnixODBC - RelWithDebInfo"
+      os: osx
+      osx_image: xcode11.2
+      compiler: clang
+      env:
+        - ODBC_DRIVER_MANAGER=unixodbc
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - UNIT_TESTING=yes
+        - E2E_TESTING=yes
+      addons:
+        homebrew:
+          packages:
+            - unixodbc
+
+    - name: "macOS 10.14 - Xcode 11.2 (AppleClang) - iODBC - RelWithDebInfo - System third-party libs"
+      os: osx
+      osx_image: xcode11.2
+      compiler: clang
+      env:
+        - ODBC_DRIVER_MANAGER=iodbc
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=yes
+        - PACKAGING=yes
+        - UNIT_TESTING=yes
+        - E2E_TESTING=yes
+      addons:
+        homebrew:
+          packages:
+            - openssl
+            - poco
+            - gtest
+            - libiodbc
 
 before_install: |-
   if [ "$TRAVIS_OS_NAME" == "linux" ]; then
@@ -279,8 +331,6 @@ install: |-
 
 .odbc_configure: &odbc_configure |-
   if [ "$E2E_TESTING" == "yes" ]; then
-    mkdir -p $RUN_DIR
-
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       ODBC_DRIVER_PATH=$BUILD_DIR/driver/libclickhouseodbc.so
       ODBC_DRIVERW_PATH=$BUILD_DIR/driver/libclickhouseodbcw.so
@@ -313,8 +363,8 @@ install: |-
 
     cat > $ODBCSYSINI/.odbc.ini <<-EOF
   [ODBC]
-  Trace         = yes
-  TraceFile     = ${RUN_DIR}/odbc-driver-manager-trace.log
+  Trace     = yes
+  TraceFile = ${RUN_DIR}/odbc-driver-manager-trace.log
 
   [ODBC Data Sources]
   clickhouse_localhost   = clickhouse_driver
