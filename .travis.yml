@@ -324,7 +324,7 @@ install: |-
     elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
       # In macOS, ClickHouse is installed and running as a separate process on this same system.
       # TODO: use native package manager when available.
-      $SOURCE_DIR/test/chmac.sh
+      $SOURCE_DIR/test/deploy_and_run_clickhouse_macos.sh
       CLICKHOUSE_SERVER_IP=localhost
     fi
   fi
