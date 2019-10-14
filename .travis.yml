@@ -166,11 +166,11 @@ install: |-
     mkdir -p $RUN_DIR
 
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      ODBC_DRIVER_PATH=$(realpath $BUILD_DIR/driver/libclickhouseodbc.so)
-      ODBC_DRIVERW_PATH=$(realpath $BUILD_DIR/driver/libclickhouseodbcw.so)
+      ODBC_DRIVER_PATH=$BUILD_DIR/driver/libclickhouseodbc.so
+      ODBC_DRIVERW_PATH=$BUILD_DIR/driver/libclickhouseodbcw.so
     elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      ODBC_DRIVER_PATH=$(realpath $BUILD_DIR/driver/libclickhouseodbc.dylib)
-      ODBC_DRIVERW_PATH=$(realpath $BUILD_DIR/driver/libclickhouseodbcw.dylib)
+      ODBC_DRIVER_PATH=$BUILD_DIR/driver/libclickhouseodbc.dylib
+      ODBC_DRIVERW_PATH=$BUILD_DIR/driver/libclickhouseodbcw.dylib
     fi
 
     export ODBCSYSINI=$RUN_DIR
