@@ -1,4 +1,7 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
+
+set -e
+set -o pipefail
 
 CLICKHOUSE_DATADIR=${CLICKHOUSE_DATADIR:=$(pwd)/var/lib/clickhouse}
 CLICKHOUSE_LOGDIR=${CLICKHOUSE_LOGDIR:=$(pwd)/var/log/clickhouse-server}

@@ -1,8 +1,14 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # Later better native wrappers should appear...
 
+set -e
+set -o pipefail
+
 echo macOS ClickHouse binary installation
+
+MY_PATH=`dirname "$0"`
+MY_PATH=`( cd "$MY_PATH" && pwd )`
 
 rm -rf clickhouse
 mkdir -p clickhouse
@@ -34,7 +40,7 @@ chmod +x clickhouse*
 popd
 
 echo 4. Start the server in background
-../run_clickhouse_macos.sh # will run in background
-# ../run_clickhouse_macos.sh foreground # to run in foreground
+$MY_PATH/run_clickhouse_macos.sh # will run in background
+# $MY_PATH/run_clickhouse_macos.sh foreground # to run in foreground
 
 popd
