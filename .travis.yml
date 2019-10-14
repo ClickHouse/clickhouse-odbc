@@ -90,30 +90,30 @@ matrix:
             - unixodbc-bin
             - unixodbc-dev
 
-    - name: "Ubuntu 18.04 - GCC - iODBC - RelWithDebInfo"
-      os: linux
-      dist: bionic
-      compiler: gcc
-      env:
-        - CC=gcc
-        - CXX=g++
-        - ODBC_DRIVER_MANAGER=iodbc
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - UNIT_TESTING=yes
-        - E2E_TESTING=yes
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - gcc
-            - g++
-            - iodbc
-            - libiodbc2
-            - libiodbc2-dev
+    # - name: "Ubuntu 18.04 - GCC - iODBC - RelWithDebInfo"
+    #   os: linux
+    #   dist: bionic
+    #   compiler: gcc
+    #   env:
+    #     - CC=gcc
+    #     - CXX=g++
+    #     - ODBC_DRIVER_MANAGER=iodbc
+    #     - BUILD_TYPE=RelWithDebInfo
+    #     - EXTERNAL_THIRD_PARTY=no
+    #     - PACKAGING=yes
+    #     - UNIT_TESTING=yes
+    #     - E2E_TESTING=yes
+    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+    #   services:
+    #     - docker
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - gcc
+    #         - g++
+    #         - iodbc
+    #         - libiodbc2
+    #         - libiodbc2-dev
 
     - name: "Ubuntu 18.04 - Clang - UnixODBC - RelWithDebInfo"
       os: linux
@@ -139,29 +139,29 @@ matrix:
             - unixodbc-bin
             - unixodbc-dev
 
-    - name: "Ubuntu 18.04 - Clang - iODBC - RelWithDebInfo"
-      os: linux
-      dist: bionic
-      compiler: clang
-      env:
-        - CC=clang
-        - CXX=clang++
-        - ODBC_DRIVER_MANAGER=iodbc
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - UNIT_TESTING=yes
-        - E2E_TESTING=yes
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - clang
-            - iodbc
-            - libiodbc2
-            - libiodbc2-dev
+    # - name: "Ubuntu 18.04 - Clang - iODBC - RelWithDebInfo"
+    #   os: linux
+    #   dist: bionic
+    #   compiler: clang
+    #   env:
+    #     - CC=clang
+    #     - CXX=clang++
+    #     - ODBC_DRIVER_MANAGER=iodbc
+    #     - BUILD_TYPE=RelWithDebInfo
+    #     - EXTERNAL_THIRD_PARTY=no
+    #     - PACKAGING=yes
+    #     - UNIT_TESTING=yes
+    #     - E2E_TESTING=yes
+    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+    #   services:
+    #     - docker
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - clang
+    #         - iodbc
+    #         - libiodbc2
+    #         - libiodbc2-dev
 
     - name: "Ubuntu 18.04 - GCC 8 - UnixODBC - RelWithDebInfo"
       os: linux
@@ -188,30 +188,30 @@ matrix:
             - unixodbc-bin
             - unixodbc-dev
 
-    - name: "Ubuntu 18.04 - GCC 8 - iODBC - RelWithDebInfo"
-      os: linux
-      dist: bionic
-      compiler: gcc
-      env:
-        - CC=gcc-8
-        - CXX=g++-8
-        - ODBC_DRIVER_MANAGER=iodbc
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - UNIT_TESTING=yes
-        - E2E_TESTING=yes
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - gcc-8
-            - g++-8
-            - iodbc
-            - libiodbc2
-            - libiodbc2-dev
+    # - name: "Ubuntu 18.04 - GCC 8 - iODBC - RelWithDebInfo"
+    #   os: linux
+    #   dist: bionic
+    #   compiler: gcc
+    #   env:
+    #     - CC=gcc-8
+    #     - CXX=g++-8
+    #     - ODBC_DRIVER_MANAGER=iodbc
+    #     - BUILD_TYPE=RelWithDebInfo
+    #     - EXTERNAL_THIRD_PARTY=no
+    #     - PACKAGING=yes
+    #     - UNIT_TESTING=yes
+    #     - E2E_TESTING=yes
+    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+    #   services:
+    #     - docker
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - gcc-8
+    #         - g++-8
+    #         - iodbc
+    #         - libiodbc2
+    #         - libiodbc2-dev
 
     - name: "Ubuntu 18.04 - GCC - UnixODBC - RelWithDebInfo - System third-party libs"
       os: linux
