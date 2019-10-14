@@ -302,13 +302,17 @@ before_install: |-
 
 install: |-
   if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-    # Need binulils because of:
-    #   /usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/libodbc.a(logOpen.o): unrecognized relocation (0x2a) in section `.text'
-    sudo apt-get install -y build-essential binutils cmake perl libdbi-perl libdbd-odbc-perl python python-pyodbc
+    sudo apt-get install -y build-essential cmake perl libdbi-perl libdbd-odbc-perl python python-pyodbc
   elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
     brew install cmake perl python@2
     PERL_MM_USE_DEFAULT=1 cpan -T DBD::ODBC
-    pip install --user pyodbc
+    if [ "$ODBC_DRIVER_MANAGER" == "iodbc" ]; then
+      # It looks like older version of pyodbc works with iodbc out of the box on macOS:
+      # https://github.com/mkleehammer/pyodbc/commit/aa178bfd25afd6fb90c77d054c1bcf0a6aa54411
+      pip install --user pyodbc==3.0.7
+    else
+      pip install --user pyodbc
+    fi
   fi
 
 .clickhouse_start: &clickhouse_start |-
