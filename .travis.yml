@@ -33,7 +33,8 @@ matrix:
       addons:
         apt:
           sources:
-            - ubuntu-toolchain-r-test
+            #- ubuntu-toolchain-r-test
+            - sourceline: 'ppa:ubuntu-toolchain-r/test'
           packages:
             - clang
             - iodbc
@@ -97,44 +98,44 @@ install: |-
     fi
     
     cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
-    [ODBC Drivers]
-    clickhouse_driver   = Installed
-    clickhouse_driver_w = Installed
+  [ODBC Drivers]
+  clickhouse_driver   = Installed
+  clickhouse_driver_w = Installed
 
-    [clickhouse_driver]
-    Driver = ${ODBC_DRIVER_PATH}
-    Setup  = ${ODBC_DRIVER_PATH}
+  [clickhouse_driver]
+  Driver = ${ODBC_DRIVER_PATH}
+  Setup  = ${ODBC_DRIVER_PATH}
 
-    [clickhouse_driver_w]
-    Driver = ${ODBC_DRIVERW_PATH}
-    Setup  = ${ODBC_DRIVERW_PATH}
-    EOF
-    
+  [clickhouse_driver_w]
+  Driver = ${ODBC_DRIVERW_PATH}
+  Setup  = ${ODBC_DRIVERW_PATH}
+  EOF
+
     cat > $ODBCSYSINI/.odbc.ini <<-EOF
-    [ODBC]
-    Trace         = yes
-    TraceFile     = ${RUN_DIR}/odbc-driver-manager-trace.log
+  [ODBC]
+  Trace         = yes
+  TraceFile     = ${RUN_DIR}/odbc-driver-manager-trace.log
 
-    [ODBC Data Sources]
-    clickhouse_localhost   = clickhouse_driver
-    clickhouse_localhost_w = clickhouse_driver_w
+  [ODBC Data Sources]
+  clickhouse_localhost   = clickhouse_driver
+  clickhouse_localhost_w = clickhouse_driver_w
 
-    [clickhouse_localhost]
-    Driver      = clickhouse_driver
-    Description = ClickHouse DSN (ASCII, localhost)
-    Url         = http://${CLICKHOUSE_SERVER_IP}
-    Timeout     = 30
-    Trace       = yes
-    TraceFile   = ${RUN_DIR}/clickhouse-odbc-driver-trace.log
+  [clickhouse_localhost]
+  Driver      = clickhouse_driver
+  Description = ClickHouse DSN (ASCII, localhost)
+  Url         = http://${CLICKHOUSE_SERVER_IP}
+  Timeout     = 30
+  Trace       = yes
+  TraceFile   = ${RUN_DIR}/clickhouse-odbc-driver-trace.log
 
-    [clickhouse_localhost_w]
-    Driver      = clickhouse_driver_w
-    Description = ClickHouse DSN (Unicode, localhost)
-    Url         = http://${CLICKHOUSE_SERVER_IP}
-    Timeout     = 30
-    Trace       = yes
-    TraceFile   = ${RUN_DIR}/clickhouse-odbc-driver-w-trace.log
-    EOF
+  [clickhouse_localhost_w]
+  Driver      = clickhouse_driver_w
+  Description = ClickHouse DSN (Unicode, localhost)
+  Url         = http://${CLICKHOUSE_SERVER_IP}
+  Timeout     = 30
+  Trace       = yes
+  TraceFile   = ${RUN_DIR}/clickhouse-odbc-driver-w-trace.log
+  EOF
   fi
 
 .configure: &configure |-
