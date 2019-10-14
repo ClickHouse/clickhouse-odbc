@@ -308,9 +308,7 @@ install: |-
   elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
     brew install cmake perl python@2
     PERL_MM_USE_DEFAULT=1 cpan -T DBD::ODBC
-    # It looks like that older version works with iodbc out of the box on macOS:
-    # https://github.com/mkleehammer/pyodbc/commit/aa178bfd25afd6fb90c77d054c1bcf0a6aa54411
-    pip install --user pyodbc==3.0.7
+    pip install --user pyodbc
   fi
 
 .clickhouse_start: &clickhouse_start |-
