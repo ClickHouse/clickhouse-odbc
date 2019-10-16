@@ -213,34 +213,34 @@ matrix:
     #         - libiodbc2
     #         - libiodbc2-dev
 
-    - name: "Ubuntu 18.04 - GCC - UnixODBC - RelWithDebInfo - System third-party libs"
-      os: linux
-      dist: bionic
-      compiler: gcc
-      env:
-        - CC=gcc
-        - CXX=g++
-        - ODBC_DRIVER_MANAGER=unixodbc
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=yes
-        - PACKAGING=yes
-        - UNIT_TESTING=yes
-        - E2E_TESTING=yes
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - gcc
-            - g++
-            - openssl
-            - libssl-dev
-            - libpoco-dev
-            - googletest
-            - unixodbc
-            - unixodbc-bin
-            - unixodbc-dev
+    # - name: "Ubuntu 18.04 - GCC - UnixODBC - RelWithDebInfo - System third-party libs"
+    #   os: linux
+    #   dist: bionic
+    #   compiler: gcc
+    #   env:
+    #     - CC=gcc
+    #     - CXX=g++
+    #     - ODBC_DRIVER_MANAGER=unixodbc
+    #     - BUILD_TYPE=RelWithDebInfo
+    #     - EXTERNAL_THIRD_PARTY=yes
+    #     - PACKAGING=yes
+    #     - UNIT_TESTING=yes
+    #     - E2E_TESTING=yes
+    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+    #   services:
+    #     - docker
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - gcc
+    #         - g++
+    #         - openssl
+    #         - libssl-dev
+    #         - libpoco-dev
+    #         - googletest
+    #         - unixodbc
+    #         - unixodbc-bin
+    #         - unixodbc-dev
 
     - name: "macOS 10.14 - Xcode 11.2 (AppleClang) - iODBC - RelWithDebInfo"
       os: osx
