@@ -229,11 +229,11 @@ bool isStreamParam(SQLSMALLINT param_io_type) noexcept {
     return false;
 }
 
-std::string convertCTypeToDataSourceType(SQLSMALLINT C_type, std::size_t length) {
-    switch (C_type) {
+std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info) {
+    switch (type_info.c_type) {
         case SQL_C_WCHAR:
         case SQL_C_CHAR:
-            return (length > 0 ? ("FixedString(" + std::to_string(length) + ")") : "String");
+            return (type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
 
         case SQL_C_BIT:
             return "UInt8";
@@ -272,10 +272,10 @@ std::string convertCTypeToDataSourceType(SQLSMALLINT C_type, std::size_t length)
             return "Float64";
 
         case SQL_C_NUMERIC:
-            return "Decimal";
+            return "Decimal(" + std::to_string(type_info.precision) + ", " + std::to_string(type_info.scale) + ")";
 
         case SQL_C_BINARY:
-            return (length > 0 ? ("FixedString(" + std::to_string(length) + ")") : "String");
+            return (type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
 
         case SQL_C_GUID:
             return "UUID";
@@ -314,17 +314,11 @@ std::string convertCTypeToDataSourceType(SQLSMALLINT C_type, std::size_t length)
     throw std::runtime_error("Unable to deduce data source type from C type");
 }
 
-std::string convertCOrSQLTypeToDataSourceType(SQLSMALLINT sql_type, std::size_t length) {
-    try {
-        return convertCTypeToDataSourceType(sql_type, length);
-    }
-    catch (...) {
-    }
-
-    switch (sql_type) {
+std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info) {
+    switch (type_info.sql_type) {
         case SQL_WCHAR:
         case SQL_CHAR:
-            return (length > 0 ? ("FixedString(" + std::to_string(length) + ")") : "String");
+            return (type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
 
         case SQL_WVARCHAR:
         case SQL_VARCHAR:
@@ -358,10 +352,10 @@ std::string convertCOrSQLTypeToDataSourceType(SQLSMALLINT sql_type, std::size_t 
 
         case SQL_DECIMAL:
         case SQL_NUMERIC:
-            return "Decimal";
+            return "Decimal(" + std::to_string(type_info.precision) + ", " + std::to_string(type_info.scale) + ")";
 
         case SQL_BINARY:
-            return (length > 0 ? ("FixedString(" + std::to_string(length) + ")") : "String");
+            return (type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
 
         case SQL_VARBINARY:
             return "LowCardinality(String)";
@@ -398,4 +392,13 @@ std::string convertCOrSQLTypeToDataSourceType(SQLSMALLINT sql_type, std::size_t 
     }
 
     throw std::runtime_error("Unable to deduce data source type from SQL type");
+}
+
+std::string convertCOrSQLTypeToDataSourceType(const BoundTypeInfo & type_info) {
+    try {
+        return convertCTypeToDataSourceType(type_info);
+    }
+    catch (...) {
+        return convertSQLTypeToDataSourceType(type_info);
+    }
 }

@@ -15,7 +15,7 @@
 /// Helper structure that represents information about where and
 /// how to get or put values when reading or writing bound buffers.
 struct BindingInfo {
-    SQLSMALLINT type = SQL_C_DEFAULT;
+    SQLSMALLINT c_type = SQL_C_DEFAULT;
     PTR value = nullptr;
     SQLLEN value_max_size = 0;
     SQLLEN * value_size = nullptr;

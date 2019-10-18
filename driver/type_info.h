@@ -28,5 +28,14 @@ bool isInputParam(SQLSMALLINT param_io_type) noexcept;
 bool isOutputParam(SQLSMALLINT param_io_type) noexcept;
 bool isStreamParam(SQLSMALLINT param_io_type) noexcept;
 
-std::string convertCTypeToDataSourceType(SQLSMALLINT C_type, std::size_t length);
-std::string convertCOrSQLTypeToDataSourceType(SQLSMALLINT sql_type, std::size_t length);
+struct BoundTypeInfo {
+    SQLSMALLINT c_type = SQL_C_DEFAULT;
+    SQLSMALLINT sql_type = SQL_UNKNOWN_TYPE;
+    SQLLEN value_max_size = 0;
+    std::int16_t precision = 0;
+    std::int16_t scale = 0;
+};
+
+std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info);
+std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info);
+std::string convertCOrSQLTypeToDataSourceType(const BoundTypeInfo & type_info);

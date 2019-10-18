@@ -709,7 +709,7 @@ impl_SQLFetch(HSTMT statement_handle) {
         for (auto & col_num_binding : statement.bindings) {
             auto code = impl_SQLGetData(statement_handle,
                 col_num_binding.first,
-                col_num_binding.second.type,
+                col_num_binding.second.c_type,
                 col_num_binding.second.value,
                 col_num_binding.second.value_max_size,
                 col_num_binding.second.value_size/* or .indicator */);
@@ -785,7 +785,7 @@ RETCODE SQL_API SQLBindCol(HSTMT statement_handle,
         }
 
         BindingInfo binding;
-        binding.type = target_type;
+        binding.c_type = target_type;
         binding.value = out_value;
         binding.value_max_size = out_value_max_size;
         binding.value_size = out_value_size_or_indicator;

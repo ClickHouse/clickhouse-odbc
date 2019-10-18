@@ -355,7 +355,7 @@ namespace {
 
     template <typename T>
     T readReadyDataTo(const BindingInfo& binding_info) {
-        switch (binding_info.type) {
+        switch (binding_info.c_type) {
             case SQL_C_CHAR:           return to<T>::template from< SQLCHAR *            >(binding_info);
             case SQL_C_WCHAR:          return to<T>::template from< SQLWCHAR *           >(binding_info);
             case SQL_C_BIT:            return to<T>::template from< SQLCHAR              >(binding_info);
@@ -633,8 +633,15 @@ std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& para
             throw SqlException("COUNT field incorrect", "07002");
 
         const auto param_name = getParamFinalName(i);
-        const std::string param_placeholder = "{" + param_name + ":" +
-            convertCOrSQLTypeToDataSourceType(binding_info.sql_type, binding_info.value_max_size) + "}";
+        BoundTypeInfo type_info;
+
+        type_info.c_type = binding_info.c_type;
+        type_info.sql_type = binding_info.sql_type;
+        type_info.value_max_size = binding_info.value_max_size;
+        type_info.precision = binding_info.precision;
+        type_info.scale = binding_info.scale;
+
+        const std::string param_placeholder = "{" + param_name + ":" + convertCOrSQLTypeToDataSourceType(type_info) + "}";
 
         prepared_query.replace(pos, param_info.tmp_placeholder.size(), param_placeholder);
     }
@@ -770,7 +777,7 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
         const auto * ind_ptr = apd_record.getAttrAs<SQLLEN *>(SQL_DESC_INDICATOR_PTR, 0);
 
         binding_info.io_type = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_PARAMETER_TYPE, SQL_PARAM_INPUT);
-        binding_info.type = apd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
+        binding_info.c_type = apd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
         binding_info.sql_type = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_UNKNOWN_TYPE);
         binding_info.value_max_size = ipd_record.getAttrAs<SQLULEN>(SQL_DESC_LENGTH, 0); // TODO: or SQL_DESC_OCTET_LENGTH ?
         binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + param_set_idx * single_set_struct_size + bind_offset) : 0);
