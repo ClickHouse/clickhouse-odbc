@@ -19,6 +19,8 @@ public:
     float getFloat() const;
     double getDouble() const;
 
+    SQLGUID getGUID() const;
+
     SQL_DATE_STRUCT getDate() const;
     SQL_TIMESTAMP_STRUCT getDateTime() const;
 

@@ -9,6 +9,7 @@ uint64_t Field::getUInt() const {
         throw std::runtime_error("Cannot interpret '" + data + "' as uint64: " + e.what());
     }
 }
+
 int64_t Field::getInt() const {
     try {
         return std::stoll(data);
@@ -16,6 +17,7 @@ int64_t Field::getInt() const {
         throw std::runtime_error("Cannot interpret '" + data + "' as int64: " + e.what());
     }
 }
+
 float Field::getFloat() const {
     try {
         return std::stof(data);
@@ -23,12 +25,40 @@ float Field::getFloat() const {
         throw std::runtime_error("Cannot interpret '" + data + "' as float: " + e.what());
     }
 }
+
 double Field::getDouble() const {
     try {
         return std::stod(data);
     } catch (std::exception & e) {
         throw std::runtime_error("Cannot interpret '" + data + "' as double: " + e.what());
     }
+}
+
+SQLGUID Field::getGUID() const {
+    unsigned int Data1 = 0;
+    unsigned int Data2 = 0;
+    unsigned int Data3 = 0;
+    unsigned int Data4[8] = { 0 };
+    char guard = '\0';
+
+    const auto read = std::sscanf(data.c_str(), "%8x-%4x-%4x-%2x%2x-%2x%2x%2x%2x%2x%2x%c",
+        &Data1, &Data2, &Data3,
+        &Data4[0], &Data4[1], &Data4[2], &Data4[3],
+        &Data4[4], &Data4[5], &Data4[6], &Data4[7],
+        &guard
+    );
+
+    if (read != 11) // All 'DataN' must be successfully read, but not the 'guard'.
+        throw std::runtime_error("Cannot interpret '" + data + "' as GUID");
+
+    SQLGUID res;
+
+    res.Data1 = Data1;
+    res.Data2 = Data2;
+    res.Data3 = Data3;
+    std::copy(std::begin(Data4), std::end(Data4), std::begin(res.Data4));
+
+    return res;
 }
 
 SQL_DATE_STRUCT Field::getDate() const {

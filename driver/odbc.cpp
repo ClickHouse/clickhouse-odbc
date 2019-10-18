@@ -610,48 +610,54 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
 
             case SQL_C_TINYINT:
             case SQL_C_STINYINT:
-                return fillOutputNumber<int8_t>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputNumber<SQLSCHAR>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_UTINYINT:
             case SQL_C_BIT:
-                return fillOutputNumber<uint8_t>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputNumber<SQLCHAR>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_SHORT:
             case SQL_C_SSHORT:
-                return fillOutputNumber<int16_t>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputNumber<SQLSMALLINT>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_USHORT:
-                return fillOutputNumber<uint16_t>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputNumber<SQLUSMALLINT>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_LONG:
             case SQL_C_SLONG:
-                return fillOutputNumber<int32_t>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputNumber<SQLINTEGER>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_ULONG:
-                return fillOutputNumber<uint32_t>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputNumber<SQLUINTEGER>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_SBIGINT:
-                return fillOutputNumber<int64_t>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputNumber<SQLBIGINT>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_UBIGINT:
-                return fillOutputNumber<uint64_t>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputNumber<SQLUBIGINT>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_FLOAT:
-                return fillOutputNumber<float>(field.getFloat(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputNumber<SQLREAL>(field.getFloat(), out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_DOUBLE:
-                return fillOutputNumber<double>(field.getDouble(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputNumber<SQLDOUBLE>(field.getDouble(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_GUID:
+                return fillOutputNumber<SQLGUID>(field.getGUID(), out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_DATE:
             case SQL_C_TYPE_DATE:
                 return fillOutputNumber<SQL_DATE_STRUCT>(field.getDate(), out_value, out_value_max_size, out_value_size_or_indicator);
 
+//          case SQL_C_TIME:
+//          case SQL_C_TYPE_TIME:
+//              return fillOutputNumber<SQL_TIME_STRUCT>(field.getTime(), out_value, out_value_max_size, out_value_size_or_indicator);
+
             case SQL_C_TIMESTAMP:
             case SQL_C_TYPE_TIMESTAMP:
-                return fillOutputNumber<SQL_TIMESTAMP_STRUCT>(
-                    field.getDateTime(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputNumber<SQL_TIMESTAMP_STRUCT>(field.getDateTime(), out_value, out_value_max_size, out_value_size_or_indicator);
 
-            case SQL_ARD_TYPE:
+            case SQL_ARD_TYPE: // TODO: process the type from ARD when implemented.
             case SQL_C_DEFAULT:
                 LOG(__FUNCTION__ << ": Unsupported type requested (throw)." << target_type);
                 throw std::runtime_error("Unsupported type requested.");
