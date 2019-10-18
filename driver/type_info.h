@@ -4,6 +4,13 @@
 
 #include <string>
 
+// An integer type big enough to hold the integer value that is built from all
+// decimal digits of Decimal/Numeric values, as if there is no decimal point.
+// Size of this integer defines the upper bound of the "info" the internal
+// representation can carry.
+// TODO: switch to 128-bit or even arbitrary-precision unsigned integer type.
+using numeric_uint_container_t = std::uint64_t;
+
 SQLSMALLINT convertSQLTypeToCType(SQLSMALLINT sql_type) noexcept;
 
 bool isVerboseType(SQLSMALLINT type) noexcept;

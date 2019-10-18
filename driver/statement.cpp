@@ -122,6 +122,84 @@ namespace {
     }
 
     template <>
+    std::string to<std::string>::from<SQL_NUMERIC_STRUCT>(const BindingInfo& binding_info) {
+        if (!binding_info.value)
+            return std::string{};
+
+        if (binding_info.precision < 1 || binding_info.precision < binding_info.scale)
+            throw std::runtime_error("Bad Numeric specification in binding info");
+
+        const auto * ind_ptr = binding_info.indicator;
+
+        if (ind_ptr) {
+            switch (*ind_ptr) {
+                case 0:
+                case SQL_NTS:
+                    break;
+
+                case SQL_NULL_DATA:
+                    return std::string{};
+
+                case SQL_DEFAULT_PARAM:
+                    return std::string{"0"};
+
+                default:
+                    if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
+                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
+            }
+        }
+
+        const auto & numeric = *reinterpret_cast<SQL_NUMERIC_STRUCT *>(binding_info.value);
+
+        numeric_uint_container_t bigint = 0;
+
+        constexpr auto bigint_max = std::numeric_limits<decltype(bigint)>::max();
+        constexpr std::uint32_t dec_mult = 10;
+        constexpr std::uint32_t byte_mult = 1 << 8;
+
+        for (std::size_t i = 0; i < lengthof(numeric.val); ++i) {
+            if (bigint != 0) {
+                if ((bigint_max / byte_mult) < bigint)
+                    throw std::runtime_error("Unable to extract data from bound buffer: Numeric value is too big for internal representation");
+                bigint *= byte_mult;
+            }
+
+            const std::uint32_t next_byte_dig = static_cast<unsigned char>(numeric.val[i]);
+            if ((bigint_max - next_byte_dig) < bigint)
+                throw std::runtime_error("Unable to extract data from bound buffer: Numeric value is too big for internal representation");
+            bigint += next_byte_dig;
+        }
+
+        std::string result;
+
+        for (auto i = binding_info.scale; i < 0; ++i) {
+            result.push_back('0');
+        }
+
+        while (result.size() < binding_info.scale || bigint != 0) {
+            char next_dig = '0';
+
+            if (bigint != 0) {
+                next_dig += bigint % dec_mult;
+                bigint /= dec_mult;
+            }
+
+            result.push_back(next_dig);
+
+            if (result.size() == binding_info.scale)
+                result.push_back('.');
+        }
+
+        if (result.empty())
+            result.push_back('0');
+        else if (numeric.sign == 0)
+            result.push_back('-');
+
+        std::reverse(result.begin(), result.end());
+        return result;
+    }
+
+    template <>
     std::string to<std::string>::from<SQLGUID>(const BindingInfo& binding_info) {
         if (!binding_info.value)
             return std::string{};
@@ -299,7 +377,7 @@ namespace {
 //          case SQL_C_BOOKMARK:       return to<T>::template from< BOOKMARK             >(binding_info);
 //          case SQL_C_VARBOOKMARK:    return to<T>::template from< SQLCHAR *            >(binding_info);
 
-//          case SQL_C_NUMERIC:        return to<T>::template from< SQL_NUMERIC_STRUCT   >(binding_info);
+            case SQL_C_NUMERIC:        return to<T>::template from< SQL_NUMERIC_STRUCT   >(binding_info);
 
             case SQL_C_DATE:
             case SQL_C_TYPE_DATE:      return to<T>::template from< SQL_DATE_STRUCT      >(binding_info);
@@ -698,6 +776,11 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
         binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + param_set_idx * single_set_struct_size + bind_offset) : 0);
         binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
         binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
+
+        binding_info.scale = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
+        binding_info.precision = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION,
+            (binding_info.sql_type == SQL_DECIMAL || binding_info.sql_type == SQL_NUMERIC ? 38 : 0)
+        );
 
         param_bindings.emplace_back(binding_info);
     }

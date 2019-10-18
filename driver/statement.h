@@ -20,6 +20,10 @@ struct BindingInfo {
     SQLLEN value_max_size = 0;
     SQLLEN * value_size = nullptr;
     SQLLEN * indicator = nullptr;
+
+    // These are relevant only for bound SQL_NUMERIC/SQL_C_NUMERIC or SQL_DECIMAL.
+    std::int16_t precision = 0;
+    std::int16_t scale = 0;
 };
 
 /// Helper structure that represents information about where and

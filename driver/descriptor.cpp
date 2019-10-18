@@ -38,7 +38,7 @@ void DescriptorRecord::onAttrChange(int attr) {
                 case SQL_DECIMAL:
                 case SQL_NUMERIC:
                     setAttrSilent(SQL_DESC_SCALE, 0);
-                    setAttrSilent(SQL_DESC_PRECISION, 6); // TODO: fix this.
+                    setAttrSilent(SQL_DESC_PRECISION, 38);
                     break;
 
                 case SQL_FLOAT:

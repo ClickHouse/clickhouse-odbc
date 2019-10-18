@@ -645,6 +645,16 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
             case SQL_C_GUID:
                 return fillOutputNumber<SQLGUID>(field.getGUID(), out_value, out_value_max_size, out_value_size_or_indicator);
 
+            case SQL_C_NUMERIC: {
+                auto & ard_desc = statement.getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC);
+                auto & ard_record = ard_desc.getRecord(column_or_param_number, SQL_ATTR_APP_ROW_DESC);
+
+                const std::int16_t precision = ard_record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION, 38);
+                const std::int16_t scale = ard_record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
+
+                return fillOutputNumber<SQL_NUMERIC_STRUCT>(field.getNumeric(precision, scale), out_value, out_value_max_size, out_value_size_or_indicator);
+            }
+
             case SQL_C_DATE:
             case SQL_C_TYPE_DATE:
                 return fillOutputNumber<SQL_DATE_STRUCT>(field.getDate(), out_value, out_value_max_size, out_value_size_or_indicator);
