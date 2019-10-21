@@ -5,7 +5,7 @@
 TestEnvironment * TestEnvironment::environment_ = nullptr;
 
 TestEnvironment::TestEnvironment::TestEnvironment(int argc, char * argv[]) {
-    for (std::size_t i = 0; i < argc; ++i) {
+    for (std::size_t i = 1; i < argc; ++i) {
         command_line_params_.emplace_back(argv[i]);
     }
 
