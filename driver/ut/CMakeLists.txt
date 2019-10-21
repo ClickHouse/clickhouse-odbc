@@ -1,6 +1,8 @@
 function(declare_odbc_test_targets libname UNICODE)
     add_executable(${libname}-ut
         gtest_main.cpp
+        gtest_env.h
+        gtest_env.cpp
         escape_sequences_ut.cpp
         lexer_ut.cpp
         AttributeContainer_ut.cpp
@@ -8,7 +10,7 @@ function(declare_odbc_test_targets libname UNICODE)
 
     target_link_libraries(${libname}-ut
         PRIVATE clickhouse-odbc-escaping
-        PRIVATE ${libname}_static
+        PRIVATE ${libname}-impl
         PRIVATE gtest-lib
         PRIVATE Threads::Threads
     )
@@ -16,7 +18,7 @@ function(declare_odbc_test_targets libname UNICODE)
     add_test(NAME ${libname}-ut COMMAND ${libname}-ut)
 
     add_executable(${libname}-load-ut
-        load.cpp
+        load_ut.cpp
     )
 
     target_link_libraries(${libname}-load-ut
@@ -42,12 +44,15 @@ function(declare_odbc_test_targets libname UNICODE)
     add_test(NAME "${libname}-load-ut" COMMAND ${libname}-load-ut $<TARGET_FILE:clickhouse-odbc>)
     add_test(NAME "${libname}-load-ut-w" COMMAND ${libname}-load-ut $<TARGET_FILE:clickhouse-odbcw>)
 
-    add_executable(${libname}-client-test
+    add_executable(${libname}-client-it
         gtest_main.cpp
-        statement_parameters_guid.cpp
+        gtest_env.h
+        gtest_env.cpp
+        client_utils.h
+        statement_parameters_guid_it.cpp
     )
 
-    target_link_libraries(${libname}-client-test
+    target_link_libraries(${libname}-client-it
         PRIVATE ${ODBC_LIBRARIES}
         PRIVATE ${Poco_Foundation_LIBRARY}
         PRIVATE gtest-lib
@@ -55,7 +60,7 @@ function(declare_odbc_test_targets libname UNICODE)
         PRIVATE Threads::Threads
     )
 
-    target_include_directories(${libname}-client-test
+    target_include_directories(${libname}-client-it
         PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
         PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
@@ -64,7 +69,7 @@ function(declare_odbc_test_targets libname UNICODE)
         PRIVATE ${ODBC_INCLUDE_DIRECTORIES}
     )
 
-    add_test(NAME ${libname}-client-test COMMAND ${libname}-client-test)
+    add_test(NAME ${libname}-client-it COMMAND ${libname}-client-it)
 
     if (NANOODBC_LIBRARY
 #        AND (
@@ -73,30 +78,30 @@ function(declare_odbc_test_targets libname UNICODE)
 #        )
     )
         if (NANODBC_ENABLE_UNICODE)
-            set(nanoname nano)
-        else ()
             set(nanoname nanow)
+        else ()
+            set(nanoname nano)
         endif()
 
-        add_executable(${libname}-${nanoname}
-            nano.cpp
+        add_executable(${libname}-${nanoname}-it
+            nano_it.cpp
         )
 
-        target_link_libraries(${libname}-${nanoname}
+        target_link_libraries(${libname}-${nanoname}-it
             PRIVATE ${NANOODBC_LIBRARY}
         )
 
         if (TEST_DSN)
-            add_test(NAME "${libname}-${nanoname}" COMMAND ${libname}-${nanoname} DSN=${TEST_DSN})
+            add_test(NAME "${libname}-${nanoname}-it" COMMAND ${libname}-${nanoname}-it DSN=${TEST_DSN})
             if (NOT (CMAKE_BUILD_TYPE_UC STREQUAL "TSAN" OR CMAKE_BUILD_TYPE_UC STREQUAL "ASAN" OR CMAKE_BUILD_TYPE_UC STREQUAL "MSAN"))
-                #TODO: add_test(NAME "${libname}-${nanoname}-valgrind" COMMAND valgrind -v --leak-check=full --show-leak-kinds=all $<TARGET_FILE:${libname}-${nanoname}> DSN=${TEST_DSN})
+                #TODO: add_test(NAME "${libname}-${nanoname}-valgrind-it" COMMAND valgrind -v --leak-check=full --show-leak-kinds=all $<TARGET_FILE:${libname}-${nanoname}-it> DSN=${TEST_DSN})
             endif ()
         endif ()
 
         if (TEST_DSN_W)
-            add_test(NAME "${libname}-${nanoname}-w" COMMAND ${libname}-${nanoname} DSN=${TEST_DSN_W})
+            add_test(NAME "${libname}-${nanoname}-it-w" COMMAND ${libname}-${nanoname}-it DSN=${TEST_DSN_W})
             if (NOT (CMAKE_BUILD_TYPE_UC STREQUAL "TSAN" OR CMAKE_BUILD_TYPE_UC STREQUAL "ASAN" OR CMAKE_BUILD_TYPE_UC STREQUAL "MSAN"))
-                #TODO: add_test(NAME "${libname}-${nanoname}-valgrind-w" COMMAND valgrind -v --leak-check=full --show-leak-kinds=all $<TARGET_FILE:${libname}-${nanoname}> DSN=${TEST_DSN_W})
+                #TODO: add_test(NAME "${libname}-${nanoname}-valgrind-it-w" COMMAND valgrind -v --leak-check=full --show-leak-kinds=all $<TARGET_FILE:${libname}-${nanoname}-it> DSN=${TEST_DSN_W})
             endif ()
         endif ()
         # gdb -ex "catch throw" -ex run --args ./clickhouse-odbc-nano DSN=clickhouse_localhost_system
