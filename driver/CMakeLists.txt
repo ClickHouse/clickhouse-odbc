@@ -146,7 +146,7 @@ target_link_libraries(${libname} PRIVATE ${libname}_static)
 if (UNICODE)
     set(DRIVER_PREFIX Unicode)
 else()
-    set(DRIVER_PREFIX ASCII)
+    set(DRIVER_PREFIX ANSI)
 endif()
 
 if (MSVC)

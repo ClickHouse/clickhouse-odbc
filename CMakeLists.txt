@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS 0)
 set(CMAKE_CXX_STANDARD_REQUIRED 1)
 set(CMAKE_POSITION_INDEPENDENT_CODE 1)
 set(CMAKE_BUILD_COLOR_MAKEFILE 1)
-set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ASCIIDriver)
+set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ANSIDriver)
 
 if (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "None")
     set (CMAKE_BUILD_TYPE "RelWithDebInfo")
@@ -157,23 +157,23 @@ include(CPackComponent)
 get_cmake_property(CPACK_COMPONENTS_ALL COMPONENTS)
 list(REMOVE_ITEM CPACK_COMPONENTS_ALL "Devel")
 
-cpack_add_component_group(ASCIIGroup
-    DISPLAY_NAME "ASCII ${ARCH_BITS}-bit Driver"
-    DESCRIPTION "ClickHouse ODBC Driver (ASCII, ${ARCH_BITS}-bit)"
+cpack_add_component_group(ANSIGroup
+    DISPLAY_NAME "ANSI ${ARCH_BITS}-bit Driver"
+    DESCRIPTION "ClickHouse ODBC Driver (ANSI, ${ARCH_BITS}-bit)"
     EXPANDED
 )
-cpack_add_component(ASCIIDriver
+cpack_add_component(ANSIDriver
     DISPLAY_NAME "Driver"
-    DESCRIPTION "ClickHouse ODBC Driver (ASCII, ${ARCH_BITS}-bit)"
+    DESCRIPTION "ClickHouse ODBC Driver (ANSI, ${ARCH_BITS}-bit)"
     REQUIRED
-    GROUP ASCIIGroup
+    GROUP ANSIGroup
 )
-cpack_add_component(ASCIIDriverDebugSymbols
+cpack_add_component(ANSIDriverDebugSymbols
     DISPLAY_NAME "Debug symbols"
-    DESCRIPTION "Debug symbols (PDB) for the Driver (ASCII, ${ARCH_BITS}-bit)"
+    DESCRIPTION "Debug symbols (PDB) for the Driver (ANSI, ${ARCH_BITS}-bit)"
     DISABLED
-    DEPENDS ASCIIDriver
-    GROUP ASCIIGroup
+    DEPENDS ANSIDriver
+    GROUP ANSIGroup
 )
 cpack_add_component_group(UnicodeGroup
     DISPLAY_NAME "Unicode ${ARCH_BITS}-bit Driver"
@@ -183,7 +183,7 @@ cpack_add_component_group(UnicodeGroup
 cpack_add_component(UnicodeDriver
     DISPLAY_NAME "Driver"
     DESCRIPTION "ClickHouse ODBC Driver (Unicode, ${ARCH_BITS}-bit)"
-    DEPENDS ASCIIDriver
+    DEPENDS ANSIDriver
     GROUP UnicodeGroup
 )
 cpack_add_component(UnicodeDriverDebugSymbols
@@ -196,7 +196,7 @@ cpack_add_component(UnicodeDriverDebugSymbols
 cpack_add_component(RuntimeLibraries
     DISPLAY_NAME "Runtime Libraries"
     DESCRIPTION "System/language redistributable runtime libraries"
-    DEPENDS ASCIIDriver
+    DEPENDS ANSIDriver
 )
 
 if(WIN32 AND NOT UNIX)

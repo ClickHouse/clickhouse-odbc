@@ -203,7 +203,7 @@ script:
 
     [clickhouse_localhost]
     Driver      = clickhouse_driver
-    Description = ClickHouse DSN (ASCII, localhost)
+    Description = ClickHouse DSN (ANSI, localhost)
     Url         = http://${CLICKHOUSE_SERVER_IP}
     Timeout     = 30
     Trace       = yes
