@@ -366,8 +366,22 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
             connection.session->reset();
 
     Poco::URI uri(connection.url);
-    uri.addQueryParameter("database", connection.getDatabase());
-    uri.addQueryParameter("default_format", "ODBCDriver2");
+
+    bool setDatabase = false;
+    bool setDefaultFormat = false;
+    for (const auto& parameter : uri.getQueryParameters()) {
+        if (parameter.first == "database") {
+            setDatabase = true;
+        } else if (parameter.first == "default_format") {
+            setDefaultFormat = true;
+        }
+    }
+    if (!setDatabase) {
+        uri.addQueryParameter("database", connection.getDatabase());
+    }
+    if (!setDefaultFormat) {
+        uri.addQueryParameter("default_format", "ODBCDriver2");
+    }
 
     const auto param_bindings = getParamsBindingInfo(next_param_set);
 
@@ -397,7 +411,7 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
     request.setKeepAlive(true);
     request.setChunkedTransferEncoding(true);
     request.setCredentials("Basic", connection.buildCredentialsString());
-    request.setURI(uri.toString());
+    request.setURI(uri.getPathEtc());
     request.set("User-Agent", connection.buildUserAgentString());
 
     LOG(request.getMethod() << " " << connection.session->getHost() << request.getURI() << " body=" << prepared_query
