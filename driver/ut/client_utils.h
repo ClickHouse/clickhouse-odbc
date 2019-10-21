@@ -30,13 +30,13 @@ namespace {
 
     inline auto ODBC_CALL_THROW(SQLHANDLE handle, SQLSMALLINT type, const SQLRETURN rc) {
         if (!SQL_SUCCEEDED(rc))
-            std::clog << extract_diagnostics(handle, type) << std::endl;
+            throw std::runtime_error(extract_diagnostics(handle, type));
         return rc;
     }
 
     inline auto ODBC_CALL_LOG(SQLHANDLE handle, SQLSMALLINT type, const SQLRETURN rc) {
         if (!SQL_SUCCEEDED(rc))
-            throw std::runtime_error(extract_diagnostics(handle, type));
+            std::clog << extract_diagnostics(handle, type) << std::endl;
         return rc;
     }
 
