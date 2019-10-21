@@ -40,6 +40,7 @@ public:
 
     std::unique_ptr<Poco::Net::HTTPClientSession> session;
     int retry_count = 3;
+    int redirect_limit = 10;
 
 public:
     explicit Connection(Environment & environment);
