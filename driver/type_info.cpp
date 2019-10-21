@@ -233,7 +233,7 @@ std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info) {
     switch (type_info.c_type) {
         case SQL_C_WCHAR:
         case SQL_C_CHAR:
-            return (type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
+            return "String";
 
         case SQL_C_BIT:
             return "UInt8";
@@ -318,7 +318,7 @@ std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info) {
     switch (type_info.sql_type) {
         case SQL_WCHAR:
         case SQL_CHAR:
-            return (type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
+            return "String";
 
         case SQL_WVARCHAR:
         case SQL_VARCHAR:
