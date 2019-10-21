@@ -123,7 +123,7 @@ url = https://localhost
 #timeout=60
 
 #trace=1
-#tracefile=/tmp/chlickhouse-odbc.log
+#tracefile=/tmp/clickhouse-odbc.log
 ```
 
 Sometimes you should change ~/.odbcinst.ini or /etc/odbcinst.ini or /Library/ODBC/odbcinst.ini :
