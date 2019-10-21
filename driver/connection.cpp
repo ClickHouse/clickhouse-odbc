@@ -270,7 +270,7 @@ void Connection::setDefaults() {
         if (server.empty())
             server = uri.getHost();
         if (port == 0) {
-            // TODO(dakovalkov): This doesn't work when you explicitly set 80 for http and 433 for https.
+            // TODO(dakovalkov): This doesn't work when you explicitly set 80 for http and 443 for https.
             const auto tmp_port = uri.getPort();
             if ((proto == "https" && tmp_port != 443) || (proto == "http" && tmp_port != 80))
                 port = tmp_port;
