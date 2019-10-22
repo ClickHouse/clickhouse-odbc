@@ -366,8 +366,22 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
             connection.session->reset();
 
     Poco::URI uri(connection.url);
-    uri.addQueryParameter("database", connection.getDatabase());
-    uri.addQueryParameter("default_format", "ODBCDriver2");
+
+    bool setDatabase = false;
+    bool setDefaultFormat = false;
+    for (const auto& parameter : uri.getQueryParameters()) {
+        if (parameter.first == "database") {
+            setDatabase = true;
+        } else if (parameter.first == "default_format") {
+            setDefaultFormat = true;
+        }
+    }
+    if (!setDatabase) {
+        uri.addQueryParameter("database", connection.getDatabase());
+    }
+    if (!setDefaultFormat) {
+        uri.addQueryParameter("default_format", "ODBCDriver2");
+    }
 
     const auto param_bindings = getParamsBindingInfo(next_param_set);
 
@@ -397,7 +411,7 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
     request.setKeepAlive(true);
     request.setChunkedTransferEncoding(true);
     request.setCredentials("Basic", connection.buildCredentialsString());
-    request.setURI(uri.toString());
+    request.setURI(uri.getPathEtc());
     request.set("User-Agent", connection.buildUserAgentString());
 
     LOG(request.getMethod() << " " << connection.session->getHost() << request.getURI() << " body=" << prepared_query
@@ -405,12 +419,26 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
 
     // LOG("curl 'http://" << connection.session->getHost() << ":" << connection.session->getPort() << request.getURI() << "' -d '" << prepared_query << "'");
 
+    int redirect_count = 0;
     // Send request to server with finite count of retries.
     for (int i = 1;; ++i) {
         try {
-            connection.session->sendRequest(request) << prepared_query;
-            response = std::make_unique<Poco::Net::HTTPResponse>();
-            in = &connection.session->receiveResponse(*response);
+            for (; redirect_count < connection.redirect_limit; ++redirect_count) {
+                connection.session->sendRequest(request) << prepared_query;
+                response = std::make_unique<Poco::Net::HTTPResponse>();
+                in = &connection.session->receiveResponse(*response);
+                auto status = response->getStatus();
+                if (status != Poco::Net::HTTPResponse::HTTP_PERMANENT_REDIRECT && status != Poco::Net::HTTPResponse::HTTP_TEMPORARY_REDIRECT) {
+                    break;
+                }
+                connection.session->reset(); // reset keepalived connection
+                auto newLocation = response->get("Location");
+                LOG("Redirected to " << newLocation << ", redirect index=" << redirect_count + 1 << "/" << connection.redirect_limit);
+                uri = newLocation; 
+                connection.session->setHost(uri.getHost());
+                connection.session->setPort(uri.getPort());
+                request.setURI(uri.getPathEtc());
+            }
             break;
         } catch (const Poco::IOException & e) {
             connection.session->reset(); // reset keepalived connection
@@ -423,7 +451,11 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
     Poco::Net::HTTPResponse::HTTPStatus status = response->getStatus();
     if (status != Poco::Net::HTTPResponse::HTTP_OK) {
         std::stringstream error_message;
-        error_message << "HTTP status code: " << status << std::endl << "Received error:" << std::endl << in->rdbuf() << std::endl;
+        if (status == Poco::Net::HTTPResponse::HTTP_TEMPORARY_REDIRECT || status == Poco::Net::HTTPResponse::HTTP_PERMANENT_REDIRECT) {
+            error_message << "Redirect count exceeded" << std::endl << "Redirect limit: " << connection.redirect_limit << std::endl;
+        } else {
+            error_message << "HTTP status code: " << status << std::endl << "Received error:" << std::endl << in->rdbuf() << std::endl;
+        }
         LOG(error_message.str());
         throw std::runtime_error(error_message.str());
     }
