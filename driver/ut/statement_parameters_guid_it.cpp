@@ -72,7 +72,7 @@ TEST_F(StatementParameterBinding, String) {
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT name FROM system.contributors WHERE name LIKE ? ORDER BY name LIMIT 10", SQL_NTS));
     
     SQLCHAR param[256] = {};
-    SQLLEN param_ind = 0;
+    SQLLEN param_ind = SQL_NTS;
     
     char * param_ptr = reinterpret_cast<char *>(param);
     std::strncpy(param_ptr, "%q%", lengthof(param));
@@ -118,7 +118,7 @@ TEST_F(StatementParameterBinding, GUID) {
  
 // TODO: populate 'param' with some GUID (binary; see the SQLGUID structure)
  
-    SQLLEN param_ind = 0;
+    SQLLEN param_ind = sizeof(param); // ignored for this buffer type
 
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT, SQL_C_GUID, SQL_GUID, 0, 0, &param, sizeof(param), &param_ind));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
