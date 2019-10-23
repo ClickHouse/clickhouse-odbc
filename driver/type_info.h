@@ -42,12 +42,8 @@ inline const TypeInfo & type_info_for(const std::string & type) {
 // decimal digits of Decimal/Numeric values, as if there is no decimal point.
 // Size of this integer defines the upper bound of the "info" the internal
 // representation can carry.
-#if defined(__GNUC__) || defined(__clang__)
-using numeric_uint_container_t = __uint128_t;
-#else
 // TODO: switch to some 128-bit or even arbitrary-precision unsigned integer type.
 using numeric_uint_container_t = std::uint64_t;
-#endif
 
 SQLSMALLINT convertSQLTypeToCType(SQLSMALLINT sql_type) noexcept;
 
