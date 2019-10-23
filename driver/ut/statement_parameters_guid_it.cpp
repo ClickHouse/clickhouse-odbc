@@ -132,6 +132,9 @@ private:
                 ASSERT_STREQ(resulting_str.c_str(), expected_str.c_str());
             else
                 ASSERT_STRCASEEQ(resulting_str.c_str(), expected_str.c_str());
+
+            // Success.
+            return;
         }
 
         throw std::runtime_error("Did not receive the parameter value back in a form of a column value.");
