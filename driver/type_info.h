@@ -3,8 +3,11 @@
 #include "platform.h"
 #include "unicode_t.h"
 
+#include <algorithm>
 #include <string>
 #include <map>
+
+#include <cstring>
 
 #define lengthof(a) (sizeof(a) / sizeof(a[0]))
 
