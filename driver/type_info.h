@@ -43,7 +43,7 @@ inline const TypeInfo & type_info_for(const std::string & type) {
 // Size of this integer defines the upper bound of the "info" the internal
 // representation can carry.
 // TODO: switch to some 128-bit or even arbitrary-precision unsigned integer type.
-using numeric_uint_container_t = std::uint64_t;
+using numeric_uint_container_t = std::uint_fast64_t;
 
 SQLSMALLINT convertSQLTypeToCType(SQLSMALLINT sql_type) noexcept;
 
