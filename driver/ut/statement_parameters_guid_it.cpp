@@ -164,15 +164,16 @@ protected:
     using DataType = T;
 };
 
-using ParameterColumnRoundTripGUIDSymmetric     = ParameterColumnRoundTripSymmetric<SQLGUID>;
+using DISABLED_ParameterColumnRoundTripGUIDSymmetric     = ParameterColumnRoundTripSymmetric<SQLGUID>;
 using ParameterColumnRoundTripNumericSymmetric  = ParameterColumnRoundTripSymmetric<SQL_NUMERIC_STRUCT>;
 using ParameterColumnRoundTripNumericAsymmetric = ParameterColumnRoundTripAsymmetric<SQL_NUMERIC_STRUCT>;
 
-TEST_P(ParameterColumnRoundTripGUIDSymmetric,     Execute) { execute<DataType>(GetParam(), GetParam(), type_info_for("UUID"), false/* case_sensitive */); }
+TEST_P(DISABLED_ParameterColumnRoundTripGUIDSymmetric,     Execute) { execute<DataType>(GetParam(), GetParam(), type_info_for("UUID"), false/* case_sensitive */); }
 TEST_P(ParameterColumnRoundTripNumericSymmetric,  Execute) { execute<DataType>(GetParam(), GetParam(), type_info_for("Decimal")); }
 TEST_P(ParameterColumnRoundTripNumericAsymmetric, Execute) { execute<DataType>(std::get<0>(GetParam()), std::get<1>(GetParam()), type_info_for("Decimal")); }
 
-INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripGUIDSymmetric,
+// TODO: GIUD/UUID tests are temporarily disabled until this worked around/fixed: https://github.com/ClickHouse/ClickHouse/issues/7463
+INSTANTIATE_TEST_CASE_P(TypeConversion, DISABLED_ParameterColumnRoundTripGUIDSymmetric,
     ::testing::Values(
         "00000000-0000-0000-0000-000000000000",
         "01020304-0506-0708-090A-0B0C0D0E0F00",
