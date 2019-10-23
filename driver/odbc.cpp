@@ -1114,7 +1114,7 @@ RETCODE SQL_API SQLGetTypeInfo(HSTMT statement_handle, SQLSMALLINT type) {
                      ", toInt16(0) AS INTERVAL_PRECISION";
         };
 
-        for (const auto & name_info : statement.getParent().getParent().types_info) {
+        for (const auto & name_info : types_g) {
             add_query_for_type(name_info.first, name_info.second);
         }
 

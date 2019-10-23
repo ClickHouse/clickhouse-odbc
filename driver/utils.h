@@ -75,8 +75,6 @@ template <> constexpr int getObjectHandleType<Connection>() { return SQL_HANDLE_
 template <> constexpr int getObjectHandleType<Descriptor>() { return SQL_HANDLE_DESC; }
 template <> constexpr int getObjectHandleType<Statement>() { return SQL_HANDLE_STMT; }
 
-#define lengthof(a) (sizeof(a) / sizeof(a[0]))
-
 template <typename T>
 inline std::string toHexString(T n) {
     std::stringstream stream;

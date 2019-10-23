@@ -1,6 +1,5 @@
 #include "platform.h"
-
-#define lengthof(a) (sizeof(a) / sizeof(a[0]))
+#include "type_info.h"
 
 namespace {
 

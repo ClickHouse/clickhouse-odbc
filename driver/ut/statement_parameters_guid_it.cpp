@@ -9,9 +9,28 @@
 
 #include <cstring>
 
-class StatementParameterBinding
+class ParameterColumnRoundTrip
     : public ::testing::Test
 {
+public:
+    virtual ~ParameterColumnRoundTrip() {
+        if (hstmt) {
+            SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
+            hstmt = nullptr;
+        }
+
+        if (hdbc) {
+            SQLDisconnect(hdbc);
+            SQLFreeHandle(SQL_HANDLE_DBC, hdbc);
+            hdbc = nullptr;
+        }
+
+        if (henv) {
+            SQLFreeHandle(SQL_HANDLE_ENV, henv);
+            henv = nullptr;
+        }
+    }
+
 protected:
     virtual void SetUp() override {
         ODBC_CALL_ON_ENV_THROW(henv, SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &henv));
@@ -43,23 +62,79 @@ protected:
             henv = nullptr;
         }
     }
-    
-    virtual ~StatementParameterBinding() {
-        if (hstmt) {
-            SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
-            hstmt = nullptr;
+
+protected:
+    template <typename T>
+    inline auto execute(const std::string & initial_str, const std::string & expected_str, const TypeInfo& type_info, bool case_sensitive = true) {
+        return do_execute<T>(initial_str, expected_str, type_info, case_sensitive);
+    }
+
+private:
+    template <typename T>
+    inline void do_execute(const std::string & initial_str, const std::string & expected_str, const TypeInfo& type_info, bool case_sensitive,
+        typename std::enable_if<std::is_pointer<T>::value>::type * = nullptr // T is a string type
+    ) {
+        throw std::runtime_error("not implemented");
+    }
+
+    template <typename T>
+    inline void do_execute(const std::string & initial_str, const std::string & expected_str, const TypeInfo& type_info, bool case_sensitive,
+        typename std::enable_if<!std::is_pointer<T>::value>::type * = nullptr // T is a struct or scalar type
+    ) {
+        auto param = value_manip::to<T>::template from<std::string>(initial_str);
+        SQLLEN param_ind = 0;
+
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT ?", SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt,
+            SQLBindParameter(
+                hstmt,
+                1,
+                SQL_PARAM_INPUT,
+                getCTypeFor<decltype(param)>(),
+                type_info.sql_type,
+                value_manip::getColumnSize(param, type_info),
+                value_manip::getDecimalDigits(param, type_info),
+                &param,
+                sizeof(param),
+                &param_ind
+            )
+        );
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+        SQLRETURN rc = SQLFetch(hstmt);
+
+        if (rc == SQL_ERROR)
+            throw std::runtime_error(extract_diagnostics(hstmt, SQL_HANDLE_STMT));
+
+        if (rc == SQL_SUCCESS_WITH_INFO)
+            std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+
+        if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
+            T col;
+            value_manip::reset(col);
+            SQLLEN col_ind = 0;
+
+            ODBC_CALL_ON_STMT_THROW(hstmt,
+                SQLGetData(
+                    hstmt,
+                    1,
+                    getCTypeFor<decltype(col)>(),
+                    &col,
+                    sizeof(col),
+                    &col_ind
+                )
+            );
+
+            ASSERT_TRUE(col_ind >= 0 || col_ind == SQL_NTS);
+
+            const auto resulting_str = value_manip::to<std::string>::template from<T>(col);
+
+            if (case_sensitive)
+                ASSERT_STREQ(resulting_str.c_str(), expected_str.c_str());
+            else
+                ASSERT_STRCASEEQ(resulting_str.c_str(), expected_str.c_str());
         }
 
-        if (hdbc) {
-            SQLDisconnect(hdbc);
-            SQLFreeHandle(SQL_HANDLE_DBC, hdbc);
-            hdbc = nullptr;
-        }
-
-        if (henv) {
-            SQLFreeHandle(SQL_HANDLE_ENV, henv);
-            henv = nullptr;
-        }
+        throw std::runtime_error("Did not receive the parameter value back in a form of a column value.");
     }
 
 protected:
@@ -68,89 +143,73 @@ protected:
     SQLHSTMT hstmt = nullptr;
 };
 
-TEST_F(StatementParameterBinding, String) {
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT name FROM system.contributors WHERE name LIKE ? ORDER BY name LIMIT 10", SQL_NTS));
-    
-    SQLCHAR param[256] = {};
-    SQLLEN param_ind = SQL_NTS;
-    
-    char * param_ptr = reinterpret_cast<char *>(param);
-    std::strncpy(param_ptr, "%q%", lengthof(param));
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, std::strlen(param_ptr), 0, param_ptr, lengthof(param), &param_ind));
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
-    
-    bool no_results = true;
+template <typename T>
+class ParameterColumnRoundTripSymmetric
+    : public ParameterColumnRoundTrip
+    , public ::testing::WithParamInterface<std::string>
+{
+protected:
+    using DataType = T;
+};
 
-    while (true) {
-        SQLRETURN rc = SQLFetch(hstmt);
+template <typename T>
+class ParameterColumnRoundTripAsymmetric
+    : public ParameterColumnRoundTrip
+    , public ::testing::WithParamInterface<std::tuple<std::string, std::string>>
+{
+protected:
+    using DataType = T;
+};
 
-        if (rc == SQL_ERROR || rc == SQL_SUCCESS_WITH_INFO)
-            std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+using ParameterColumnRoundTripGUIDSymmetric     = ParameterColumnRoundTripSymmetric<SQLGUID>;
+using ParameterColumnRoundTripNumericSymmetric  = ParameterColumnRoundTripSymmetric<SQL_NUMERIC_STRUCT>;
+using ParameterColumnRoundTripNumericAsymmetric = ParameterColumnRoundTripAsymmetric<SQL_NUMERIC_STRUCT>;
 
-        if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
-            SQLCHAR value[256] = {};
-            SQLLEN value_ind = 0;
+TEST_P(ParameterColumnRoundTripGUIDSymmetric,     Execute) { execute<DataType>(GetParam(), GetParam(), type_info_for("UUID"), false/* case_sensitive */); }
+TEST_P(ParameterColumnRoundTripNumericSymmetric,  Execute) { execute<DataType>(GetParam(), GetParam(), type_info_for("Decimal")); }
+TEST_P(ParameterColumnRoundTripNumericAsymmetric, Execute) { execute<DataType>(std::get<0>(GetParam()), std::get<1>(GetParam()), type_info_for("Decimal")); }
 
-            ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(hstmt, 1, SQL_C_CHAR, &value, lengthof(value), &value_ind));
+INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripGUIDSymmetric,
+    ::testing::Values(
+        "00000000-0000-0000-0000-000000000000",
+        "01020304-0506-0708-090A-0B0C0D0E0F00",
+        "10203040-5060-7080-90A0-B0C0D0E0F000",
+        "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"
+    )
+);
 
-            ASSERT_TRUE(value_ind >= 0 || value_ind == SQL_NTS);
+INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripNumericSymmetric,
+    ::testing::Values(
+        "0",
+        "12345",
+        "-12345",
+        "12345.6789",
+        "-12345.6789",
+        "12345.000000000000",
+        "12345.001002003000",
+        "1000000000000000000000000",
+        "-1000000000000000000000000",
+        ".0000000000000000000000001",
+        "-.0000000000000000000000001",
+        "9876543210987654321098765",
+        ".9876543210987654321098765",
+        "-9876543210987654321098765",
+        "-.9876543210987654321098765",
+        "9999999999999999999999999",
+        "-9999999999999999999999999",
+        ".9999999999999999999999999",
+        "-.9999999999999999999999999"
+    )
+);
 
-            const char * value_ptr = reinterpret_cast<const char *>(value);
-            const auto value_str = (value_ind == SQL_NTS ? std::string(value_ptr) : std::string(value_ptr, value_ind));
-
-            std::cout << value_str << std::endl;
-            no_results = false;
-        }
-        else {
-            break;
-        }
-    }
-
-    ASSERT_FALSE(no_results);
-}
-
-TEST_F(StatementParameterBinding, GUID) {
-/*
-// TODO: create the table (using SQLExecDirect() ?), and modify this query.
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT name FROM system.contributors WHERE name LIKE ? ORDER BY name", SQL_NTS));
-    
-    SQLGUID param;
- 
-// TODO: populate 'param' with some GUID (binary; see the SQLGUID structure)
- 
-    SQLLEN param_ind = sizeof(param); // ignored for this buffer type
-
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT, SQL_C_GUID, SQL_GUID, 0, 0, &param, sizeof(param), &param_ind));
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
-
-    bool no_results = true;
-
-    while (true) {
-        SQLRETURN rc = SQLFetch(hstmt);
-
-        if (rc == SQL_ERROR || rc == SQL_SUCCESS_WITH_INFO)
-            std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
-
-        if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
-            SQLCHAR value[256] = {};
-            SQLLEN value_ind = 0;
-
-            ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(hstmt, 1, SQL_C_CHAR, &value, lengthof(value), &value_ind));
-
-            ASSERT_TRUE(value_ind >= 0 || value_ind == SQL_NTS);
- 
-            const char * value_ptr = reinterpret_cast<const char *>(value);
-            const auto value_str = (value_ind == SQL_NTS ? std::string(value_ptr) : std::string(value_ptr, value_ind));
-
-// TODO: assuming only there is a single string column in the results - we read it here. Check that the value is the expected one.
-            std::cout << value_str << std::endl;
-            no_results = false;
-        }
-        else {
-            break;
-        }
-    }
-
-    ASSERT_FALSE(no_results);
-*/
-}
+INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripNumericAsymmetric,
+    ::testing::Values(
+        std::make_tuple("0.", "0"),
+        std::make_tuple("-0.", "0"),
+        std::make_tuple("0.000", ".000"),
+        std::make_tuple("-0.000", ".000"),
+        std::make_tuple("0001.00001", "1.00001"),
+        std::make_tuple("-0001.00001", "-1.00001"),
+        std::make_tuple("000000.123", ".123")
+    )
+);

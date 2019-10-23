@@ -12,35 +12,6 @@
 #include <string>
 #include <vector>
 
-/// Helper structure that represents information about where and
-/// how to get or put values when reading or writing bound buffers.
-struct BindingInfo {
-    SQLSMALLINT c_type = SQL_C_DEFAULT;
-    PTR value = nullptr;
-    SQLLEN value_max_size = 0;
-    SQLLEN * value_size = nullptr;
-    SQLLEN * indicator = nullptr;
-
-    // These are relevant only for bound SQL_NUMERIC/SQL_C_NUMERIC or SQL_DECIMAL.
-    std::int16_t precision = 0;
-    std::int16_t scale = 0;
-};
-
-/// Helper structure that represents information about where and
-/// how to get or put values when reading or writing bound parameter buffers.
-struct ParamBindingInfo
-    : public BindingInfo
-{
-    SQLSMALLINT io_type = SQL_PARAM_INPUT;
-    SQLSMALLINT sql_type = SQL_UNKNOWN_TYPE;
-};
-
-/// Helper structure that represents different aspects of parameter info in a prepared query.
-struct ParamInfo {
-    std::string name;
-    std::string tmp_placeholder;
-};
-
 class Statement
     : public Child<Connection, Statement>
 {

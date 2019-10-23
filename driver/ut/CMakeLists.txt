@@ -6,6 +6,7 @@ function(declare_odbc_test_targets libname UNICODE)
         escape_sequences_ut.cpp
         lexer_ut.cpp
         AttributeContainer_ut.cpp
+        type_conversion_ut.cpp
     )
 
     target_link_libraries(${libname}-ut
@@ -49,6 +50,7 @@ function(declare_odbc_test_targets libname UNICODE)
         gtest_env.h
         gtest_env.cpp
         client_utils.h
+        ../type_info.cpp
         statement_parameters_guid_it.cpp
     )
 
