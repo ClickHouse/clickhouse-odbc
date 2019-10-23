@@ -375,7 +375,7 @@ namespace value_manip {
 
         // TODO: avoid copy.
         SQL_NUMERIC_STRUCT numeric_copy;
-        std::memcpy(&numeric, &numeric_copy, sizeof(numeric));
+        std::memcpy(&numeric_copy, &numeric, sizeof(numeric_copy));
         numeric_copy.precision = binding_info.precision;
         numeric_copy.scale = binding_info.scale;
 
