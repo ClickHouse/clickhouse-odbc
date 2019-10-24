@@ -171,7 +171,7 @@ Descriptor & Descriptor::operator= (Descriptor & other) {
         records = other.records;
 
         if (alloc_type_set)
-            setAttr<SQLSMALLINT>(SQL_DESC_ALLOC_TYPE, alloc_type);
+            setAttr(SQL_DESC_ALLOC_TYPE, alloc_type);
         else
             resetAttr(SQL_DESC_ALLOC_TYPE);
 

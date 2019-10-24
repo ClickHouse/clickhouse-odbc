@@ -230,10 +230,10 @@ SQLRETURN BindParameter(
                     break;
             }
 
-            apd_record.setAttr(SQL_DESC_DATA_PTR, parameter_value_ptr);
             apd_record.setAttr(SQL_DESC_OCTET_LENGTH, buffer_length);
             apd_record.setAttr(SQL_DESC_OCTET_LENGTH_PTR, StrLen_or_IndPtr);
             apd_record.setAttr(SQL_DESC_INDICATOR_PTR, StrLen_or_IndPtr);
+            apd_record.setAttr(SQL_DESC_DATA_PTR, parameter_value_ptr);
         }
         catch (...) {
             apd_desc.setAttr(SQL_DESC_COUNT, apd_record_count);
@@ -321,10 +321,40 @@ SQLRETURN GetDescRec(
     SQLSMALLINT *   ScalePtr,
     SQLSMALLINT *   NullablePtr
 ) noexcept {
+    auto func = [&] (Descriptor & descriptor) -> SQLRETURN {
+        if (RecNumber < 0)
+            throw SqlException("Invalid descriptor index", "07009");
+        
+        if (RecNumber > descriptor.getRecordCount())
+            return SQL_NO_DATA;
 
+        auto & record = descriptor.getRecord(RecNumber, SQL_ATTR_APP_ROW_DESC);
 
+        auto has_type = record.hasAttrInteger(SQL_DESC_TYPE);
+        auto type = record.getAttrAs<SQLSMALLINT>(SQL_DESC_TYPE);
 
-    return SQL_ERROR;
+        if (TypePtr && has_type)
+            *TypePtr = type;
+
+        if (SubTypePtr && has_type && isVerboseType(type) && record.hasAttrInteger(SQL_DESC_DATETIME_INTERVAL_CODE))
+            *SubTypePtr = record.getAttrAs<SQLSMALLINT>(SQL_DESC_DATETIME_INTERVAL_CODE);
+
+        if (LengthPtr && record.hasAttrInteger(SQL_DESC_OCTET_LENGTH))
+            *LengthPtr = record.getAttrAs<SQLLEN>(SQL_DESC_OCTET_LENGTH);
+
+        if (PrecisionPtr && record.hasAttrInteger(SQL_DESC_PRECISION))
+            *PrecisionPtr = record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION);
+
+        if (ScalePtr && record.hasAttrInteger(SQL_DESC_SCALE))
+            *ScalePtr = record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE);
+
+        if (NullablePtr && record.hasAttrInteger(SQL_DESC_NULLABLE))
+            *NullablePtr = record.getAttrAs<SQLSMALLINT>(SQL_DESC_NULLABLE);
+
+        return fillOutputPlatformString(record.getAttrAs<std::string>(SQL_DESC_NAME), Name, BufferLength, StringLengthPtr);
+    };
+
+    return CALL_WITH_HANDLE(DescriptorHandle, func);
 }
 
 SQLRETURN SetDescField(
@@ -353,11 +383,25 @@ SQLRETURN SetDescRec(
     SQLLEN *      StringLengthPtr,
     SQLLEN *      IndicatorPtr
 ) noexcept {
+    auto func = [&] (Descriptor & descriptor) {
+        auto & record = descriptor.getRecord(RecNumber, SQL_ATTR_APP_ROW_DESC);
 
+        record.setAttr(SQL_DESC_TYPE, Type);
 
+        if (isVerboseType(Type))
+            record.setAttr(SQL_DESC_DATETIME_INTERVAL_CODE, SubType);
 
+        record.setAttr(SQL_DESC_OCTET_LENGTH, Length);
+        record.setAttr(SQL_DESC_PRECISION, Precision);
+        record.setAttr(SQL_DESC_SCALE, Scale);
+        record.setAttr(SQL_DESC_OCTET_LENGTH_PTR, StringLengthPtr);
+        record.setAttr(SQL_DESC_INDICATOR_PTR, IndicatorPtr);
+        record.setAttr(SQL_DESC_DATA_PTR, DataPtr);
 
-    return SQL_ERROR;
+        return SQL_SUCCESS;
+    };
+
+    return CALL_WITH_HANDLE(DescriptorHandle, func);
 }
 
 SQLRETURN CopyDesc(
