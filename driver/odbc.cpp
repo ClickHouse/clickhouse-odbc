@@ -295,6 +295,81 @@ SQLRETURN DescribeParam(
     return CALL_WITH_HANDLE(handle, func);
 }
 
+SQLRETURN GetDescField(
+    SQLHDESC        DescriptorHandle,
+    SQLSMALLINT     RecNumber,
+    SQLSMALLINT     FieldIdentifier,
+    SQLPOINTER      ValuePtr,
+    SQLINTEGER      BufferLength,
+    SQLINTEGER *    StringLengthPtr
+) noexcept {
+
+
+    return SQL_ERROR;
+}
+
+SQLRETURN GetDescRec(
+    SQLHDESC        DescriptorHandle,
+    SQLSMALLINT     RecNumber,
+    SQLTCHAR *      Name,
+    SQLSMALLINT     BufferLength,
+    SQLSMALLINT *   StringLengthPtr,
+    SQLSMALLINT *   TypePtr,
+    SQLSMALLINT *   SubTypePtr,
+    SQLLEN *        LengthPtr,
+    SQLSMALLINT *   PrecisionPtr,
+    SQLSMALLINT *   ScalePtr,
+    SQLSMALLINT *   NullablePtr
+) noexcept {
+
+
+
+    return SQL_ERROR;
+}
+
+SQLRETURN SetDescField(
+    SQLHDESC      DescriptorHandle,
+    SQLSMALLINT   RecNumber,
+    SQLSMALLINT   FieldIdentifier,
+    SQLPOINTER    ValuePtr,
+    SQLINTEGER    BufferLength
+) noexcept {
+
+
+
+
+    return SQL_ERROR;
+}
+
+SQLRETURN SetDescRec(
+    SQLHDESC      DescriptorHandle,
+    SQLSMALLINT   RecNumber,
+    SQLSMALLINT   Type,
+    SQLSMALLINT   SubType,
+    SQLLEN        Length,
+    SQLSMALLINT   Precision,
+    SQLSMALLINT   Scale,
+    SQLPOINTER    DataPtr,
+    SQLLEN *      StringLengthPtr,
+    SQLLEN *      IndicatorPtr
+) noexcept {
+
+
+
+
+    return SQL_ERROR;
+}
+
+SQLRETURN SetDescRec(
+    SQLHDESC     SourceDescHandle,
+    SQLHDESC     TargetDescHandle
+) noexcept {
+
+
+
+    return SQL_ERROR;
+}
+
 } } // namespace impl
 
 
@@ -1554,12 +1629,6 @@ RETCODE SQL_API SQLCompleteAsync(SQLSMALLINT HandleType, SQLHANDLE Handle, RETCO
 }
 
 
-RETCODE SQL_API SQLCopyDesc(SQLHDESC SourceDescHandle, SQLHDESC TargetDescHandle) {
-    LOG(__FUNCTION__);
-    return SQL_ERROR;
-}
-
-
 RETCODE SQL_API SQLEndTran(SQLSMALLINT HandleType, SQLHANDLE Handle, SQLSMALLINT CompletionType) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
@@ -1579,61 +1648,120 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLError)(SQLHENV hDrvEnv,
 }
 
 
-RETCODE SQL_API SQLGetDescField(SQLHDESC DescriptorHandle,
-    SQLSMALLINT RecordNumber,
-    SQLSMALLINT FieldIdentifier,
-    SQLPOINTER Value,
-    SQLINTEGER BufferLength,
-    SQLINTEGER * StringLength) {
-    LOG(__FUNCTION__);
-    return SQL_ERROR;
-}
-
-
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLGetDescRec)(SQLHDESC DescriptorHandle,
-    SQLSMALLINT RecordNumber,
-    SQLTCHAR * Name,
-    SQLSMALLINT BufferLength,
-    SQLSMALLINT * StringLength,
-    SQLSMALLINT * Type,
-    SQLSMALLINT * SubType,
-    SQLLEN * Length,
-    SQLSMALLINT * Precision,
-    SQLSMALLINT * Scale,
-    SQLSMALLINT * Nullable) {
-    LOG(__FUNCTION__);
-    return SQL_ERROR;
-}
-
-
 RETCODE SQL_API SQLParamOptions(SQLHSTMT hDrvStmt, SQLULEN nRow, SQLULEN * pnRow) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
 
-RETCODE SQL_API SQLSetDescField(
-    SQLHDESC DescriptorHandle, SQLSMALLINT RecordNumber, SQLSMALLINT FieldIdentifier, SQLPOINTER Value, SQLINTEGER BufferLength) {
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDescField)(
+    SQLHDESC        DescriptorHandle,
+    SQLSMALLINT     RecNumber,
+    SQLSMALLINT     FieldIdentifier,
+    SQLPOINTER      ValuePtr,
+    SQLINTEGER      BufferLength,
+    SQLINTEGER *    StringLengthPtr
+) {
     LOG(__FUNCTION__);
-    return SQL_ERROR;
+    return impl::GetDescField(
+        DescriptorHandle,
+        RecNumber,
+        FieldIdentifier,
+        ValuePtr,
+        BufferLength,
+        StringLengthPtr
+    );
 }
 
 
-RETCODE SQL_API SQLSetDescRec(SQLHDESC hDescriptorHandle,
-    SQLSMALLINT nRecordNumber,
-    SQLSMALLINT nType,
-    SQLSMALLINT nSubType,
-    SQLLEN nLength,
-    SQLSMALLINT nPrecision,
-    SQLSMALLINT nScale,
-    SQLPOINTER pData,
-    SQLLEN * pnStringLength,
-    SQLLEN * pnIndicator) {
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDescRec)(
+    SQLHDESC        DescriptorHandle,
+    SQLSMALLINT     RecNumber,
+    SQLTCHAR *      Name,
+    SQLSMALLINT     BufferLength,
+    SQLSMALLINT *   StringLengthPtr,
+    SQLSMALLINT *   TypePtr,
+    SQLSMALLINT *   SubTypePtr,
+    SQLLEN *        LengthPtr,
+    SQLSMALLINT *   PrecisionPtr,
+    SQLSMALLINT *   ScalePtr,
+    SQLSMALLINT *   NullablePtr
+) {
     LOG(__FUNCTION__);
-    return SQL_ERROR;
+    return impl::GetDescRec(
+        DescriptorHandle,
+        RecNumber,
+        Name,
+        BufferLength,
+        StringLengthPtr,
+        TypePtr,
+        SubTypePtr,
+        LengthPtr,
+        PrecisionPtr,
+        ScalePtr,
+        NullablePtr
+    );
 }
 
 
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLSetDescField)(
+    SQLHDESC      DescriptorHandle,
+    SQLSMALLINT   RecNumber,
+    SQLSMALLINT   FieldIdentifier,
+    SQLPOINTER    ValuePtr,
+    SQLINTEGER    BufferLength
+) {
+    LOG(__FUNCTION__);
+    return impl::SetDescField(
+        DescriptorHandle,
+        RecNumber,
+        FieldIdentifier,
+        ValuePtr,
+        BufferLength
+    );
+}
+
+
+SQLRETURN SQL_API SQLSetDescRec(
+    SQLHDESC      DescriptorHandle,
+    SQLSMALLINT   RecNumber,
+    SQLSMALLINT   Type,
+    SQLSMALLINT   SubType,
+    SQLLEN        Length,
+    SQLSMALLINT   Precision,
+    SQLSMALLINT   Scale,
+    SQLPOINTER    DataPtr,
+    SQLLEN *      StringLengthPtr,
+    SQLLEN *      IndicatorPtr
+) {
+    LOG(__FUNCTION__);
+    return impl::SetDescRec(
+        DescriptorHandle,
+        RecNumber,
+        Type,
+        SubType,
+        Length,
+        Precision,
+        Scale,
+        DataPtr,
+        StringLengthPtr,
+        IndicatorPtr
+    );
+}
+
+
+SQLRETURN SQL_API SQLCopyDesc(
+    SQLHDESC     SourceDescHandle,
+    SQLHDESC     TargetDescHandle
+) {
+    LOG(__FUNCTION__);
+    return impl::SetDescRec(
+        SourceDescHandle,
+        TargetDescHandle
+    );
+}
+        
+        
 RETCODE SQL_API SQLSetScrollOptions(SQLHSTMT hDrvStmt, SQLUSMALLINT fConcurrency, SQLLEN crowKeyset, SQLUSMALLINT crowRowset) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
