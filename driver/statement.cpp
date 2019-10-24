@@ -263,7 +263,7 @@ std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& para
             type_info.value_max_size = binding_info.value_max_size;
             type_info.precision = binding_info.precision;
             type_info.scale = binding_info.scale;
-            type_info.nullable = (binding_info.nullable || binding_info.value == nullptr);
+            type_info.is_nullable = (binding_info.is_nullable || binding_info.value == nullptr);
 
             param_type = convertSQLOrCTypeToDataSourceType(type_info);
         }
@@ -411,7 +411,7 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
         binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + param_set_idx * single_set_struct_size + bind_offset) : 0);
         binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
         binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
-        binding_info.nullable = (ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_NULLABLE, SQL_NULLABLE_UNKNOWN) == SQL_NULLABLE);
+        binding_info.is_nullable = (ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_NULLABLE, SQL_NULLABLE) == SQL_NULLABLE);
 
         binding_info.scale = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
         binding_info.precision = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION,

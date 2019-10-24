@@ -366,7 +366,7 @@ std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info) {
     if (type_name.empty())
         throw std::runtime_error("Unable to deduce data source type from C type");
 
-    if (type_info.nullable)
+    if (type_info.is_nullable)
         type_name = "Nullable(" + type_name + ")";
 
     return type_name;
@@ -473,7 +473,7 @@ std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info) {
     if (type_name.empty())
         throw std::runtime_error("Unable to deduce data source type from SQL type");
 
-    if (type_info.nullable)
+    if (type_info.is_nullable)
         type_name = "Nullable(" + type_name + ")";
 
     return type_name;

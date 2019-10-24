@@ -281,7 +281,7 @@ SQLRETURN DescribeParam(
         auto & ipd_record = ipd_desc.getRecord(parameter_number, SQL_ATTR_IMP_PARAM_DESC);
 
         *out_data_type_ptr = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE);
-        *out_nullable_ptr = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_NULLABLE);
+        *out_nullable_ptr = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_NULLABLE, SQL_NULLABLE_UNKNOWN);
 
         if (ipd_record.hasColumnSize())
             *out_parameter_size_ptr = ipd_record.getColumnSize();
