@@ -313,7 +313,7 @@ protected:
             SQLGetData(
                 hstmt,
                 1,
-                SQL_ARD_TYPE,
+                convertSQLTypeToCType(SQL_DECIMAL), // TODO: should be SQL_ARD_TYPE but iODBC doesn't support it
                 &col,
                 sizeof(col),
                 &col_ind
@@ -445,7 +445,7 @@ private:
 
         SQLHDESC hdesc = 0;
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_APP_ROW_DESC, &hdesc, 0, NULL));
-        ODBC_CALL_ON_DESC_THROW(hdesc, SQLSetDescField(hdesc, 1, SQL_DESC_TYPE, reinterpret_cast<SQLPOINTER>(SQL_C_NUMERIC), 0));
+        ODBC_CALL_ON_DESC_THROW(hdesc, SQLSetDescField(hdesc, 1, SQL_DESC_TYPE, reinterpret_cast<SQLPOINTER>(getCTypeFor<decltype(col)>()), 0));
         ODBC_CALL_ON_DESC_THROW(hdesc, SQLSetDescField(hdesc, 1, SQL_DESC_PRECISION, reinterpret_cast<SQLPOINTER>(param.precision), 0));
         ODBC_CALL_ON_DESC_THROW(hdesc, SQLSetDescField(hdesc, 1, SQL_DESC_SCALE, reinterpret_cast<SQLPOINTER>(param.scale), 0));
 
@@ -453,7 +453,7 @@ private:
             SQLGetData(
                 hstmt,
                 1,
-                SQL_ARD_TYPE,
+                getCTypeFor<decltype(col)>(), // TODO: should be SQL_ARD_TYPE but iODBC doesn't support it
                 &col,
                 sizeof(col),
                 &col_ind
