@@ -360,14 +360,42 @@ SQLRETURN SetDescRec(
     return SQL_ERROR;
 }
 
-SQLRETURN SetDescRec(
+SQLRETURN CopyDesc(
     SQLHDESC     SourceDescHandle,
     SQLHDESC     TargetDescHandle
 ) noexcept {
+    auto func = [&] (Descriptor & target) {
+        // We don't want to modify the diagnostics info of the source descriptor,
+        // but we want to forward it to the target descriptor context unchanged,
+        // so we are going to intercept exceptions and process them outside
+        // the target descriptor dispatch closure.
+        std::exception_ptr ex;
 
+        auto func = [&] (Descriptor & source) {
+            try {
+                target = source;
 
+                return SQL_SUCCESS;
+            }
+            catch (...) {
+                ex = std::current_exception();
+            }
 
-    return SQL_ERROR;
+            return SQL_ERROR;
+        };
+
+        auto rc = CALL_WITH_HANDLE_SKIP_DIAG(SourceDescHandle, func);
+
+        if (ex)
+            std::rethrow_exception(ex);
+
+        if (rc == SQL_INVALID_HANDLE)
+            throw SqlException("Invalid attribute value", "HY024");
+
+        return rc;
+    };
+
+    return CALL_WITH_HANDLE(TargetDescHandle, func);
 }
 
 } } // namespace impl
@@ -1776,7 +1804,7 @@ SQLRETURN SQL_API SQLCopyDesc(
     SQLHDESC     TargetDescHandle
 ) {
     LOG(__FUNCTION__);
-    return impl::SetDescRec(
+    return impl::CopyDesc(
         SourceDescHandle,
         TargetDescHandle
     );

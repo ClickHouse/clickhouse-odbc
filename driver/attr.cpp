@@ -235,7 +235,7 @@ SQLRETURN setDescriptorHandle(Statement & statement, SQLINTEGER descriptor_type,
     }
 
     // We don't want to modify the diagnostics info of the descriptor instance itself,
-    // but want to forward it to (current) statement context unchanged, so we are going to
+    // but we want to forward it to the current statement context unchanged, so we are going to
     // intercept exceptions and process them outside the descriptor dispatch closure.
     std::exception_ptr ex;
 

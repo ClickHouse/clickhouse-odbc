@@ -22,6 +22,7 @@ public:
     template <typename T> inline T setAttrSilent(int attr, const T& value);
     template <typename T> inline T setAttr(int attr, const T& value);
 
+    void resetAttr(int attr);
     void resetAttrs();
 
 protected:

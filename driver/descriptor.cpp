@@ -159,6 +159,31 @@ Descriptor::Descriptor(Connection & connection)
     setAttr(SQL_DESC_COUNT, 0);
 }
 
+Descriptor & Descriptor::operator= (Descriptor & other) {
+    if (this != &other) {
+        const bool alloc_type_set = hasAttr(SQL_DESC_ALLOC_TYPE);
+        const auto alloc_type = getAttrAs<SQLSMALLINT>(SQL_DESC_ALLOC_TYPE);
+
+        AttributeContainer & attrs = *this;
+        AttributeContainer & other_attrs = other;
+
+        attrs = other_attrs;
+        records = other.records;
+
+        if (alloc_type_set)
+            setAttr<SQLSMALLINT>(SQL_DESC_ALLOC_TYPE, alloc_type);
+        else
+            resetAttr(SQL_DESC_ALLOC_TYPE);
+
+        for (auto & record : records) {
+            if (record.hasAttr(SQL_DESC_DATA_PTR))
+                record.consistencyCheck();
+        }
+    }
+
+    return *this;
+}
+
 std::size_t Descriptor::getRecordCount() const {
     return getAttrAs<SQLSMALLINT>(SQL_DESC_COUNT, 0);
 }
