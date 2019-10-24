@@ -63,4 +63,12 @@ namespace {
         return ODBC_CALL_LOG(hstmt, SQL_HANDLE_STMT, rc);
     }
 
+    inline auto ODBC_CALL_ON_DESC_THROW(SQLHDESC hdesc, const SQLRETURN rc) {
+        return ODBC_CALL_THROW(hdesc, SQL_HANDLE_DESC, rc);
+    }
+
+    inline auto ODBC_CALL_ON_DESC_LOG(SQLHDESC hdesc, const SQLRETURN rc) {
+        return ODBC_CALL_LOG(hdesc, SQL_HANDLE_DESC, rc);
+    }
+
 } // namespace
