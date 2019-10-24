@@ -68,19 +68,25 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
     const auto param_bindings = getParamsBindingInfo(next_param_set);
 
     for (std::size_t i = 0; i < parameters.size(); ++i) {
-        if (param_bindings.size() <= i)
-            break; // skip parameters without binding info - they will be marked as Nullables in the query
+        std::string value;
 
-        const auto & binding_info = param_bindings[i];
+        if (param_bindings.size() <= i) {
+            value = "Null";
+        }
+        else {
+            const auto & binding_info = param_bindings[i];
 
-        if (!isInputParam(binding_info.io_type) || isStreamParam(binding_info.io_type))
-            throw std::runtime_error("Unable to extract data from bound param buffer: param IO type is not supported");
+            if (!isInputParam(binding_info.io_type) || isStreamParam(binding_info.io_type))
+                throw std::runtime_error("Unable to extract data from bound param buffer: param IO type is not supported");
 
-        if (binding_info.value == nullptr)
-            continue; // skip no-data parameters - they will be marked as Nullables in the query
+            if (binding_info.value == nullptr)
+                value = "Null";
+            else
+                value = readReadyDataTo<std::string>(binding_info);
+        }
 
         const auto param_name = getParamFinalName(i);
-        uri.addQueryParameter("param_" + param_name, readReadyDataTo<std::string>(binding_info));
+        uri.addQueryParameter("param_" + param_name, value);
     }
 
     const auto prepared_query = buildFinalQuery(param_bindings);
