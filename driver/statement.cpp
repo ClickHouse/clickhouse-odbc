@@ -263,11 +263,9 @@ std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& para
             type_info.value_max_size = binding_info.value_max_size;
             type_info.precision = binding_info.precision;
             type_info.scale = binding_info.scale;
+            type_info.nullable = (binding_info.nullable || binding_info.value == nullptr);
 
-            param_type = convertCOrSQLTypeToDataSourceType(type_info);
-
-            if (binding_info.value == nullptr)
-                param_type = "Nullable(" + param_type + ")";
+            param_type = convertSQLOrCTypeToDataSourceType(type_info);
         }
 
         const auto pos = prepared_query.find(param_info.tmp_placeholder);
@@ -383,23 +381,20 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
 
     const auto apd_record_count = apd_desc.getRecordCount();
     const auto ipd_record_count = ipd_desc.getRecordCount();
-    const auto actual_param_count = parameters.size();
 
-    if (
-        ipd_record_count < actual_param_count || // must not happen
-        apd_record_count < ipd_record_count
-    ) {
-        throw SqlException("COUNT field incorrect", "07002");
-    }
+    const auto fully_bound_param_count = std::min(apd_record_count, ipd_record_count);
 
-    if (actual_param_count > 0)
-        param_bindings.reserve(actual_param_count);
+    // We allow (apd_record_count < ipd_record_count) here, since we will set
+    // all unbound parameters to 'Null' and their types to 'Nullable(Nothing)'.
+
+    if (fully_bound_param_count > 0)
+        param_bindings.reserve(fully_bound_param_count);
 
     const auto single_set_struct_size = apd_desc.getAttrAs<SQLULEN>(SQL_DESC_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN);
     const auto * bind_offset_ptr = apd_desc.getAttrAs<SQLULEN *>(SQL_DESC_BIND_OFFSET_PTR, 0);
     const auto bind_offset = (bind_offset_ptr ? *bind_offset_ptr : 0);
 
-    for (std::size_t i = 1; i <= actual_param_count; ++i) {
+    for (std::size_t i = 1; i <= fully_bound_param_count; ++i) {
         ParamBindingInfo binding_info;
 
         auto & apd_record = apd_desc.getRecord(i, SQL_ATTR_APP_PARAM_DESC);
@@ -416,6 +411,7 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
         binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + param_set_idx * single_set_struct_size + bind_offset) : 0);
         binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
         binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
+        binding_info.nullable = (ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_NULLABLE, SQL_NULLABLE_UNKNOWN) == SQL_NULLABLE);
 
         binding_info.scale = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
         binding_info.precision = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION,

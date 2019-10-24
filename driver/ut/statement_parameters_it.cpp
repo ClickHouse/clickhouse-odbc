@@ -9,11 +9,11 @@
 
 #include <cstring>
 
-class ParameterColumnRoundTrip
+class StatementParametersTest
     : public ::testing::Test
 {
 public:
-    virtual ~ParameterColumnRoundTrip() {
+    virtual ~StatementParametersTest() {
         if (hstmt) {
             SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
             hstmt = nullptr;
@@ -63,6 +63,218 @@ protected:
         }
     }
 
+protected:
+    SQLHENV henv = nullptr;
+    SQLHDBC hdbc = nullptr;
+    SQLHSTMT hstmt = nullptr;
+};
+
+TEST_F(StatementParametersTest, NoBinding) {
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT isNull(?)", SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+    SQLRETURN rc = SQLFetch(hstmt);
+
+    if (rc == SQL_ERROR)
+        throw std::runtime_error(extract_diagnostics(hstmt, SQL_HANDLE_STMT));
+
+    if (rc == SQL_SUCCESS_WITH_INFO)
+        std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+
+    if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
+        SQLINTEGER col = 0;
+        SQLLEN col_ind = 0;
+
+        ODBC_CALL_ON_STMT_THROW(hstmt,
+            SQLGetData(
+                hstmt,
+                1,
+                getCTypeFor<decltype(col)>(),
+                &col,
+                sizeof(col),
+                &col_ind
+            )
+        );
+
+        ASSERT_TRUE(col_ind >= 0 || col_ind == SQL_NTS);
+        ASSERT_EQ(col, 1);
+
+        // Success.
+        return;
+    }
+
+    throw std::runtime_error("Did not receive the parameter value back in a form of a column value.");
+}
+
+TEST_F(StatementParametersTest, BindingNoBuffer) {
+    SQLINTEGER param = 0;
+    SQLLEN param_ind = 0;
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT isNull(?)", SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindParameter(
+            hstmt,
+            1,
+            SQL_PARAM_INPUT,
+            getCTypeFor<decltype(param)>(),
+            SQL_INTEGER,
+            0,
+            0,
+            nullptr, // N.B.: not &param here!
+            sizeof(param),
+            &param_ind
+        )
+    );
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+    SQLRETURN rc = SQLFetch(hstmt);
+
+    if (rc == SQL_ERROR)
+        throw std::runtime_error(extract_diagnostics(hstmt, SQL_HANDLE_STMT));
+
+    if (rc == SQL_SUCCESS_WITH_INFO)
+        std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+
+    if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
+        SQLINTEGER col = 0;
+        SQLLEN col_ind = 0;
+
+        ODBC_CALL_ON_STMT_THROW(hstmt,
+            SQLGetData(
+                hstmt,
+                1,
+                getCTypeFor<decltype(col)>(),
+                &col,
+                sizeof(col),
+                &col_ind
+            )
+        );
+
+        ASSERT_TRUE(col_ind >= 0 || col_ind == SQL_NTS);
+        ASSERT_EQ(col, 1);
+
+        // Success.
+        return;
+    }
+
+    throw std::runtime_error("Did not receive the parameter value back in a form of a column value.");
+}
+
+// TODO: set NULLABLE property and enable.
+TEST_F(StatementParametersTest, DISABLED_BindingNullStringValueForInteger) {
+    SQLCHAR param[16] = {};
+    SQLLEN param_ind = 0;
+
+    char * param_ptr = reinterpret_cast<char *>(param);
+    std::strncpy(param_ptr, "Null", lengthof(param));
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT isNull(?)", SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindParameter(
+            hstmt,
+            1,
+            SQL_PARAM_INPUT,
+            SQL_C_CHAR,
+            SQL_INTEGER,
+            std::strlen(param_ptr),
+            0,
+            param_ptr,
+            lengthof(param),
+            &param_ind
+        )
+    );
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+    SQLRETURN rc = SQLFetch(hstmt);
+
+    if (rc == SQL_ERROR)
+        throw std::runtime_error(extract_diagnostics(hstmt, SQL_HANDLE_STMT));
+
+    if (rc == SQL_SUCCESS_WITH_INFO)
+        std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+
+    if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
+        SQLINTEGER col = 0;
+        SQLLEN col_ind = 0;
+
+        ODBC_CALL_ON_STMT_THROW(hstmt,
+            SQLGetData(
+                hstmt,
+                1,
+                getCTypeFor<decltype(col)>(),
+                &col,
+                sizeof(col),
+                &col_ind
+            )
+        );
+
+        ASSERT_TRUE(col_ind >= 0 || col_ind == SQL_NTS);
+        ASSERT_EQ(col, 1);
+
+        // Success.
+        return;
+    }
+
+    throw std::runtime_error("Did not receive the parameter value back in a form of a column value.");
+}
+
+// TODO: set NULLABLE property and enable.
+TEST_F(StatementParametersTest, DISABLED_BindingNullStringValueForString) {
+    SQLCHAR param[16] = {};
+    SQLLEN param_ind = 0;
+
+    char * param_ptr = reinterpret_cast<char *>(param);
+    std::strncpy(param_ptr, "Null", lengthof(param));
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT isNull(?)", SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindParameter(
+            hstmt,
+            1,
+            SQL_PARAM_INPUT,
+            SQL_C_CHAR,
+            SQL_CHAR,
+            std::strlen(param_ptr),
+            0,
+            param_ptr,
+            lengthof(param),
+            &param_ind
+        )
+    );
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+    SQLRETURN rc = SQLFetch(hstmt);
+
+    if (rc == SQL_ERROR)
+        throw std::runtime_error(extract_diagnostics(hstmt, SQL_HANDLE_STMT));
+
+    if (rc == SQL_SUCCESS_WITH_INFO)
+        std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+
+    if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
+        SQLINTEGER col = 0;
+        SQLLEN col_ind = 0;
+
+        ODBC_CALL_ON_STMT_THROW(hstmt,
+            SQLGetData(
+                hstmt,
+                1,
+                getCTypeFor<decltype(col)>(),
+                &col,
+                sizeof(col),
+                &col_ind
+            )
+        );
+
+        ASSERT_TRUE(col_ind >= 0 || col_ind == SQL_NTS);
+        ASSERT_EQ(col, 1);
+
+        // Success.
+        return;
+    }
+
+    throw std::runtime_error("Did not receive the parameter value back in a form of a column value.");
+}
+
+class ParameterColumnRoundTrip
+    : public StatementParametersTest
+{
 protected:
     template <typename T>
     inline auto execute(const std::string & initial_str, const std::string & expected_str, const TypeInfo& type_info, bool case_sensitive = true) {
@@ -139,11 +351,6 @@ private:
 
         throw std::runtime_error("Did not receive the parameter value back in a form of a column value.");
     }
-
-protected:
-    SQLHENV henv = nullptr;
-    SQLHDBC hdbc = nullptr;
-    SQLHSTMT hstmt = nullptr;
 };
 
 template <typename T>

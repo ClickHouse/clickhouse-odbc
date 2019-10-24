@@ -83,6 +83,7 @@ struct ParamBindingInfo
 {
     SQLSMALLINT io_type = SQL_PARAM_INPUT;
     SQLSMALLINT sql_type = SQL_UNKNOWN_TYPE;
+    bool nullable = false;
 };
 
 /// Helper structure that represents different aspects of parameter info in a prepared query.
@@ -97,11 +98,12 @@ struct BoundTypeInfo {
     SQLLEN value_max_size = 0;
     std::int16_t precision = 0;
     std::int16_t scale = 0;
+    bool nullable = false;
 };
 
 std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info);
 std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info);
-std::string convertCOrSQLTypeToDataSourceType(const BoundTypeInfo & type_info);
+std::string convertSQLOrCTypeToDataSourceType(const BoundTypeInfo & type_info);
 
 namespace value_manip {
 

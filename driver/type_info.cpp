@@ -261,70 +261,90 @@ bool isStreamParam(SQLSMALLINT param_io_type) noexcept {
 }
 
 std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info) {
+    std::string type_name;
+
     switch (type_info.c_type) {
         case SQL_C_WCHAR:
         case SQL_C_CHAR:
-            return "String";
+            type_name = "String";
+            break;
 
         case SQL_C_BIT:
-            return "UInt8";
+            type_name = "UInt8";
+            break;
 
         case SQL_C_TINYINT:
         case SQL_C_STINYINT:
-            return "Int8";
+            type_name = "Int8";
+            break;
 
         case SQL_C_UTINYINT:
-            return "UInt8";
+            type_name = "UInt8";
+            break;
 
         case SQL_C_SHORT:
         case SQL_C_SSHORT:
-            return "Int16";
+            type_name = "Int16";
+            break;
 
         case SQL_C_USHORT:
-            return "UInt16";
+            type_name = "UInt16";
+            break;
 
         case SQL_C_LONG:
         case SQL_C_SLONG:
-            return "Int32";
+            type_name = "Int32";
+            break;
 
         case SQL_C_ULONG:
-            return "UInt32";
+            type_name = "UInt32";
+            break;
 
         case SQL_C_SBIGINT:
-            return "Int64";
+            type_name = "Int64";
+            break;
 
         case SQL_C_UBIGINT:
-            return "UInt64";
+            type_name = "UInt64";
+            break;
 
         case SQL_C_FLOAT:
-            return "Float32";
+            type_name = "Float32";
+            break;
 
         case SQL_C_DOUBLE:
-            return "Float64";
+            type_name = "Float64";
+            break;
 
         case SQL_C_NUMERIC:
-            return "Decimal(" + std::to_string(type_info.precision) + ", " + std::to_string(type_info.scale) + ")";
+            type_name = "Decimal(" + std::to_string(type_info.precision) + ", " + std::to_string(type_info.scale) + ")";
+            break;
 
         case SQL_C_BINARY:
-            return (type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
+            type_name = (type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
+            break;
 
         case SQL_C_GUID:
-            return "UUID";
+            type_name = "UUID";
+            break;
 
 //      case SQL_C_BOOKMARK:
 //      case SQL_C_VARBOOKMARK:
 
         case SQL_C_DATE:
         case SQL_C_TYPE_DATE:
-            return "Date";
+            type_name = "Date";
+            break;
 
         case SQL_C_TIME:
         case SQL_C_TYPE_TIME:
-            return "LowCardinality(String)";
+            type_name = "LowCardinality(String)";
+            break;
 
         case SQL_C_TIMESTAMP:
         case SQL_C_TYPE_TIMESTAMP:
-            return "DateTime";
+            type_name = "DateTime";
+            break;
 
         case SQL_C_INTERVAL_YEAR:
         case SQL_C_INTERVAL_MONTH:
@@ -339,72 +359,99 @@ std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info) {
         case SQL_C_INTERVAL_HOUR_TO_MINUTE:
         case SQL_C_INTERVAL_HOUR_TO_SECOND:
         case SQL_C_INTERVAL_MINUTE_TO_SECOND:
-            return "LowCardinality(String)";
+            type_name = "LowCardinality(String)";
+            break;
     }
 
-    throw std::runtime_error("Unable to deduce data source type from C type");
+    if (type_name.empty())
+        throw std::runtime_error("Unable to deduce data source type from C type");
+
+    if (type_info.nullable)
+        type_name = "Nullable(" + type_name + ")";
+
+    return type_name;
 }
 
 std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info) {
+    std::string type_name;
+
     switch (type_info.sql_type) {
         case SQL_WCHAR:
         case SQL_CHAR:
-            return "String";
+            type_name = "String";
+            break;
 
         case SQL_WVARCHAR:
         case SQL_VARCHAR:
-            return "LowCardinality(String)";
+            type_name = "LowCardinality(String)";
+            break;
 
         case SQL_WLONGVARCHAR:
         case SQL_LONGVARCHAR:
-            return "String";
+            type_name = "String";
+            break;
 
         case SQL_BIT:
-            return "UInt8";
+            type_name = "UInt8";
+            break;
 
         case SQL_TINYINT:
-            return "Int8";
+            type_name = "Int8";
+            break;
 
         case SQL_SMALLINT:
-            return "Int16";
+            type_name = "Int16";
+            break;
 
         case SQL_INTEGER:
-            return "Int32";
+            type_name = "Int32";
+            break;
 
         case SQL_BIGINT:
-            return "Int64";
+            type_name = "Int64";
+            break;
 
         case SQL_REAL:
-            return "Float32";
+            type_name = "Float32";
+            break;
 
         case SQL_FLOAT:
         case SQL_DOUBLE:
-            return "Float64";
+            type_name = "Float64";
+            break;
 
         case SQL_DECIMAL:
         case SQL_NUMERIC:
-            return "Decimal(" + std::to_string(type_info.precision) + ", " + std::to_string(type_info.scale) + ")";
+            type_name = "Decimal(" + std::to_string(type_info.precision) + ", " + std::to_string(type_info.scale) + ")";
+            break;
 
         case SQL_BINARY:
-            return (type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
+            type_name = (type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
+            break;
 
         case SQL_VARBINARY:
-            return "LowCardinality(String)";
+            type_name = "LowCardinality(String)";
+            break;
 
         case SQL_LONGVARBINARY:
-            return "String";
+            type_name = "String";
+            break;
 
         case SQL_GUID:
-            return "UUID";
+            type_name = "UUID";
+            break;
 
         case SQL_TYPE_DATE:
-            return "Date";
+            type_name = "Date";
+            break;
 
         case SQL_TYPE_TIME:
-            return "LowCardinality(String)";
+            type_name = "LowCardinality(String)";
+            break;
 
         case SQL_TYPE_TIMESTAMP:
-            return "DateTime";
+            type_name = "DateTime";
+            break;
 
         case SQL_INTERVAL_MONTH:
         case SQL_INTERVAL_YEAR:
@@ -419,17 +466,24 @@ std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info) {
         case SQL_INTERVAL_HOUR_TO_MINUTE:
         case SQL_INTERVAL_HOUR_TO_SECOND:
         case SQL_INTERVAL_MINUTE_TO_SECOND:
-            return "LowCardinality(String)";
+            type_name = "LowCardinality(String)";
+            break;
     }
 
-    throw std::runtime_error("Unable to deduce data source type from SQL type");
+    if (type_name.empty())
+        throw std::runtime_error("Unable to deduce data source type from SQL type");
+
+    if (type_info.nullable)
+        type_name = "Nullable(" + type_name + ")";
+
+    return type_name;
 }
 
-std::string convertCOrSQLTypeToDataSourceType(const BoundTypeInfo & type_info) {
+std::string convertSQLOrCTypeToDataSourceType(const BoundTypeInfo & type_info) {
     try {
-        return convertCTypeToDataSourceType(type_info);
+        return convertSQLTypeToDataSourceType(type_info);
     }
     catch (...) {
-        return convertSQLTypeToDataSourceType(type_info);
+        return convertCTypeToDataSourceType(type_info);
     }
 }
