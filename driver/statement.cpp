@@ -67,16 +67,19 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
 
     const auto param_bindings = getParamsBindingInfo(next_param_set);
 
-    if (param_bindings.size() < parameters.size())
-        throw SqlException("COUNT field incorrect", "07002");
-
     for (std::size_t i = 0; i < parameters.size(); ++i) {
-        const auto param_name = getParamFinalName(i);
+        if (param_bindings.size() <= i)
+            break; // skip parameters without binding info - they will be marked as Nullables in the query
+
         const auto & binding_info = param_bindings[i];
 
         if (!isInputParam(binding_info.io_type) || isStreamParam(binding_info.io_type))
             throw std::runtime_error("Unable to extract data from bound param buffer: param IO type is not supported");
 
+        if (binding_info.value == nullptr)
+            continue; // skip no-data parameters - they will be marked as Nullables in the query
+
+        const auto param_name = getParamFinalName(i);
         uri.addQueryParameter("param_" + param_name, readReadyDataTo<std::string>(binding_info));
     }
 
@@ -238,29 +241,35 @@ void Statement::extractParametersinfo() {
 std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings) {
     auto prepared_query = query;
 
-    if (param_bindings.size() < parameters.size())
-        throw SqlException("COUNT field incorrect", "07002");
-
     for (std::size_t i = 0; i < parameters.size(); ++i) {
         const auto & param_info = parameters[i];
-        const auto & binding_info = param_bindings[i];
+        std::string param_type;
+
+        if (param_bindings.size() <= i) {
+            param_type = "Nullable(Nothing)";
+        }
+        else {
+            const auto & binding_info = param_bindings[i];
+
+            BoundTypeInfo type_info;
+            type_info.c_type = binding_info.c_type;
+            type_info.sql_type = binding_info.sql_type;
+            type_info.value_max_size = binding_info.value_max_size;
+            type_info.precision = binding_info.precision;
+            type_info.scale = binding_info.scale;
+
+            param_type = convertCOrSQLTypeToDataSourceType(type_info);
+
+            if (binding_info.value == nullptr)
+                param_type = "Nullable(" + param_type + ")";
+        }
 
         const auto pos = prepared_query.find(param_info.tmp_placeholder);
-
         if (pos == std::string::npos)
             throw SqlException("COUNT field incorrect", "07002");
 
         const auto param_name = getParamFinalName(i);
-        BoundTypeInfo type_info;
-
-        type_info.c_type = binding_info.c_type;
-        type_info.sql_type = binding_info.sql_type;
-        type_info.value_max_size = binding_info.value_max_size;
-        type_info.precision = binding_info.precision;
-        type_info.scale = binding_info.scale;
-
-        const std::string param_placeholder = "{" + param_name + ":" + convertCOrSQLTypeToDataSourceType(type_info) + "}";
-
+        const std::string param_placeholder = "{" + param_name + ":" + param_type + "}";
         prepared_query.replace(pos, param_info.tmp_placeholder.size(), param_placeholder);
     }
 
