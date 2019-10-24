@@ -81,7 +81,7 @@ TEST_F(StatementParametersTest, BindingMissing) {
         std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
 
     if (!SQL_SUCCEEDED(rc))
-        throw std::runtime_error("SQLFetch returned code: " + std::to_string(rc));
+        throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
     SQLINTEGER col = 0;
     SQLLEN col_ind = 0;
@@ -130,7 +130,7 @@ TEST_F(StatementParametersTest, BindingNoBuffer) {
         std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
 
     if (!SQL_SUCCEEDED(rc))
-        throw std::runtime_error("SQLFetch returned code: " + std::to_string(rc));
+        throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
     SQLINTEGER col = 0;
     SQLLEN col_ind = 0;
@@ -182,7 +182,7 @@ TEST_F(StatementParametersTest, BindingNullStringValueForInteger) {
         std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
 
     if (!SQL_SUCCEEDED(rc))
-        throw std::runtime_error("SQLFetch returned code: " + std::to_string(rc));
+        throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
     SQLINTEGER col = 0;
     SQLLEN col_ind = 0;
@@ -239,7 +239,7 @@ TEST_F(StatementParametersTest, BindingNullStringValueForString) {
         std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
 
     if (!SQL_SUCCEEDED(rc))
-        throw std::runtime_error("SQLFetch returned code: " + std::to_string(rc));
+        throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
     SQLINTEGER col = 0;
     SQLLEN col_ind = 0;
@@ -308,7 +308,7 @@ protected:
             std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
 
         if (!SQL_SUCCEEDED(rc))
-            throw std::runtime_error("SQLFetch returned code: " + std::to_string(rc));
+            throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
         SQLCHAR col[256] = {};
         SQLLEN col_ind = 0;
@@ -386,7 +386,7 @@ private:
             std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
 
         if (!SQL_SUCCEEDED(rc))
-            throw std::runtime_error("SQLFetch returned code: " + std::to_string(rc));
+            throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
         T col;
         value_manip::reset(col);
@@ -447,7 +447,7 @@ private:
             std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
 
         if (!SQL_SUCCEEDED(rc))
-            throw std::runtime_error("SQLFetch returned code: " + std::to_string(rc));
+            throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
         T col;
         value_manip::reset(col);
@@ -500,19 +500,11 @@ protected:
     using DataType = T;
 };
 
+
+// TODO: GIUD/UUID tests are temporarily disabled until this worked around/fixed: https://github.com/ClickHouse/ClickHouse/issues/7463
 using DISABLED_ParameterColumnRoundTripGUIDSymmetric = ParameterColumnRoundTripSymmetric<SQLGUID>;
 TEST_P(DISABLED_ParameterColumnRoundTripGUIDSymmetric, Execute) { execute<DataType>(GetParam(), GetParam(), type_info_for("UUID"), false/* case_sensitive */); }
 
-using ParameterColumnRoundTripNumericSymmetric  = ParameterColumnRoundTripSymmetric<SQL_NUMERIC_STRUCT>;
-TEST_P(ParameterColumnRoundTripNumericSymmetric,  Execute) { execute<DataType>(GetParam(), GetParam(), type_info_for("Decimal")); }
-
-using ParameterColumnRoundTripNumericAsymmetric = ParameterColumnRoundTripAsymmetric<SQL_NUMERIC_STRUCT>;
-TEST_P(ParameterColumnRoundTripNumericAsymmetric, Execute) { execute<DataType>(std::get<0>(GetParam()), std::get<1>(GetParam()), type_info_for("Decimal")); }
-
-using ParameterColumnRoundTripDecimalAsStringSymmetric  = ParameterColumnRoundTripSymmetric<SQLCHAR>;
-TEST_P(ParameterColumnRoundTripDecimalAsStringSymmetric, Execute) { execute_with_decimal_as_string(GetParam(), GetParam()); }
-
-// TODO: GIUD/UUID tests are temporarily disabled until this worked around/fixed: https://github.com/ClickHouse/ClickHouse/issues/7463
 INSTANTIATE_TEST_CASE_P(TypeConversion, DISABLED_ParameterColumnRoundTripGUIDSymmetric,
     ::testing::Values(
         "00000000-0000-0000-0000-000000000000",
@@ -521,6 +513,10 @@ INSTANTIATE_TEST_CASE_P(TypeConversion, DISABLED_ParameterColumnRoundTripGUIDSym
         "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"
     )
 );
+
+
+using ParameterColumnRoundTripNumericSymmetric  = ParameterColumnRoundTripSymmetric<SQL_NUMERIC_STRUCT>;
+TEST_P(ParameterColumnRoundTripNumericSymmetric,  Execute) { execute<DataType>(GetParam(), GetParam(), type_info_for("Decimal")); }
 
 INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripNumericSymmetric,
     ::testing::Values(
@@ -550,6 +546,10 @@ INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripNumericSymmetric
     )
 );
 
+
+using ParameterColumnRoundTripNumericAsymmetric = ParameterColumnRoundTripAsymmetric<SQL_NUMERIC_STRUCT>;
+TEST_P(ParameterColumnRoundTripNumericAsymmetric, Execute) { execute<DataType>(std::get<0>(GetParam()), std::get<1>(GetParam()), type_info_for("Decimal")); }
+
 INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripNumericAsymmetric,
     ::testing::Values(
         std::make_tuple("0.", "0"),
@@ -561,6 +561,10 @@ INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripNumericAsymmetri
         std::make_tuple("000000.123", ".123")
     )
 );
+
+
+using ParameterColumnRoundTripDecimalAsStringSymmetric  = ParameterColumnRoundTripSymmetric<SQLCHAR>;
+TEST_P(ParameterColumnRoundTripDecimalAsStringSymmetric, Execute) { execute_with_decimal_as_string(GetParam(), GetParam()); }
 
 INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripDecimalAsStringSymmetric,
     ::testing::Values(
