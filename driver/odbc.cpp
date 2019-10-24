@@ -303,9 +303,94 @@ SQLRETURN GetDescField(
     SQLINTEGER      BufferLength,
     SQLINTEGER *    StringLengthPtr
 ) noexcept {
+    auto func = [&] (Descriptor & descriptor) -> SQLRETURN {
 
+        // Process header fields first, withour running cheecks on record number.
+        switch (FieldIdentifier) {
 
-    return SQL_ERROR;
+#define CASE_FIELD_NUM(NAME, TYPE) \
+            case NAME: return fillOutputNumber<TYPE>(descriptor.getAttrAs<TYPE>(NAME), ValuePtr, 0, StringLengthPtr);
+
+#define CASE_FIELD_NUM_DEF(NAME, TYPE, DEFAULT) \
+            case NAME: return fillOutputNumber<TYPE>(descriptor.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, 0, StringLengthPtr);
+
+            CASE_FIELD_NUM     ( SQL_DESC_ALLOC_TYPE,         SQLSMALLINT                       );
+            CASE_FIELD_NUM_DEF ( SQL_DESC_ARRAY_SIZE,         SQLULEN,       1                  );
+            CASE_FIELD_NUM     ( SQL_DESC_ARRAY_STATUS_PTR,   SQLUSMALLINT *                    );
+            CASE_FIELD_NUM     ( SQL_DESC_BIND_OFFSET_PTR,    SQLLEN *                          );
+            CASE_FIELD_NUM_DEF ( SQL_DESC_BIND_TYPE,          SQLUINTEGER,   SQL_BIND_BY_COLUMN );
+            CASE_FIELD_NUM     ( SQL_DESC_COUNT,              SQLSMALLINT                       );
+            CASE_FIELD_NUM     ( SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *                         );
+                
+#undef CASE_FIELD_NUM_DEF
+#undef CASE_FIELD_NUM
+
+        }
+
+        if (RecNumber < 0)
+            throw SqlException("Invalid descriptor index", "07009");
+
+        if (RecNumber > descriptor.getRecordCount())
+            return SQL_NO_DATA;
+
+        auto & record = descriptor.getRecord(RecNumber, SQL_ATTR_APP_ROW_DESC); // TODO: descriptor type?
+
+        switch (FieldIdentifier) {
+
+#define CASE_FIELD_NUM(NAME, TYPE) \
+            case NAME: return fillOutputNumber<TYPE>(record.getAttrAs<TYPE>(NAME), ValuePtr, 0, StringLengthPtr);
+
+#define CASE_FIELD_NUM_DEF(NAME, TYPE, DEFAULT) \
+            case NAME: return fillOutputNumber<TYPE>(record.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, 0, StringLengthPtr);
+
+#define CASE_FIELD_STR(NAME) \
+            case NAME: return fillOutputPlatformString(record.getAttrAs<std::string>(NAME), ValuePtr, BufferLength, StringLengthPtr);
+
+            CASE_FIELD_NUM     ( SQL_DESC_AUTO_UNIQUE_VALUE,           SQLINTEGER                              );
+            CASE_FIELD_STR     ( SQL_DESC_BASE_COLUMN_NAME                                                     );
+            CASE_FIELD_STR     ( SQL_DESC_BASE_TABLE_NAME                                                      );
+            CASE_FIELD_NUM     ( SQL_DESC_CASE_SENSITIVE,              SQLINTEGER                              );
+            CASE_FIELD_STR     ( SQL_DESC_CATALOG_NAME                                                         );
+            CASE_FIELD_NUM     ( SQL_DESC_CONCISE_TYPE,                SQLSMALLINT                             );
+            CASE_FIELD_NUM     ( SQL_DESC_DATA_PTR,                    SQLPOINTER                              );
+            CASE_FIELD_NUM     ( SQL_DESC_DATETIME_INTERVAL_CODE,      SQLSMALLINT                             );
+            CASE_FIELD_NUM     ( SQL_DESC_DATETIME_INTERVAL_PRECISION, SQLINTEGER                              );
+            CASE_FIELD_NUM     ( SQL_DESC_DISPLAY_SIZE,                SQLINTEGER                              );
+            CASE_FIELD_NUM     ( SQL_DESC_FIXED_PREC_SCALE,            SQLSMALLINT                             );
+            CASE_FIELD_NUM     ( SQL_DESC_INDICATOR_PTR,               SQLLEN *                                );
+            CASE_FIELD_STR     ( SQL_DESC_LABEL                                                                );
+            CASE_FIELD_NUM     ( SQL_DESC_LENGTH,                      SQLULEN                                 );
+            CASE_FIELD_STR     ( SQL_DESC_LITERAL_PREFIX                                                       );
+            CASE_FIELD_STR     ( SQL_DESC_LITERAL_SUFFIX                                                       );
+            CASE_FIELD_STR     ( SQL_DESC_LOCAL_TYPE_NAME                                                      );
+            CASE_FIELD_STR     ( SQL_DESC_NAME                                                                 );
+            CASE_FIELD_NUM     ( SQL_DESC_NULLABLE,                    SQLSMALLINT                             );
+            CASE_FIELD_NUM     ( SQL_DESC_NUM_PREC_RADIX,              SQLINTEGER                              );
+            CASE_FIELD_NUM     ( SQL_DESC_OCTET_LENGTH,                SQLLEN                                  );
+            CASE_FIELD_NUM     ( SQL_DESC_OCTET_LENGTH_PTR,            SQLLEN *                                );
+            CASE_FIELD_NUM     ( SQL_DESC_PARAMETER_TYPE,              SQLSMALLINT                             );
+            CASE_FIELD_NUM     ( SQL_DESC_PRECISION,                   SQLSMALLINT                             );
+            CASE_FIELD_NUM     ( SQL_DESC_ROWVER,                      SQLSMALLINT                             );
+            CASE_FIELD_NUM     ( SQL_DESC_SCALE,                       SQLSMALLINT                             );
+            CASE_FIELD_STR     ( SQL_DESC_SCHEMA_NAME                                                          );
+            CASE_FIELD_NUM_DEF ( SQL_DESC_SEARCHABLE,                  SQLSMALLINT, SQL_PRED_SEARCHABLE        );
+            CASE_FIELD_STR     ( SQL_DESC_TABLE_NAME                                                           );
+            CASE_FIELD_NUM     ( SQL_DESC_TYPE,                        SQLSMALLINT                             );
+            CASE_FIELD_STR     ( SQL_DESC_TYPE_NAME                                                            );
+            CASE_FIELD_NUM     ( SQL_DESC_UNNAMED,                     SQLSMALLINT                             );
+            CASE_FIELD_NUM     ( SQL_DESC_UNSIGNED,                    SQLSMALLINT                             );
+            CASE_FIELD_NUM_DEF ( SQL_DESC_UPDATABLE,                   SQLSMALLINT, SQL_ATTR_READWRITE_UNKNOWN );
+
+#undef CASE_FIELD_STR
+#undef CASE_FIELD_NUM_DEF
+#undef CASE_FIELD_NUM
+
+        }
+
+        return SQL_SUCCESS;
+    };
+
+    return CALL_WITH_HANDLE(DescriptorHandle, func);
 }
 
 SQLRETURN GetDescRec(
@@ -328,7 +413,7 @@ SQLRETURN GetDescRec(
         if (RecNumber > descriptor.getRecordCount())
             return SQL_NO_DATA;
 
-        auto & record = descriptor.getRecord(RecNumber, SQL_ATTR_APP_ROW_DESC);
+        auto & record = descriptor.getRecord(RecNumber, SQL_ATTR_APP_ROW_DESC); // TODO: descriptor type?
 
         auto has_type = record.hasAttrInteger(SQL_DESC_TYPE);
         auto type = record.getAttrAs<SQLSMALLINT>(SQL_DESC_TYPE);
@@ -364,11 +449,93 @@ SQLRETURN SetDescField(
     SQLPOINTER    ValuePtr,
     SQLINTEGER    BufferLength
 ) noexcept {
+    auto func = [&] (Descriptor & descriptor) -> SQLRETURN {
 
+        // Process header fields first, withour running cheecks on record number.
+        switch (FieldIdentifier) {
 
+#define CASE_FIELD_NUM(NAME, TYPE) \
+            case NAME: { descriptor.setAttr(NAME, (TYPE)(reinterpret_cast<std::uintptr_t>(ValuePtr))); return SQL_SUCCESS; }
 
+            CASE_FIELD_NUM ( SQL_DESC_ALLOC_TYPE,         SQLSMALLINT    );
+            CASE_FIELD_NUM ( SQL_DESC_ARRAY_SIZE,         SQLULEN        );
+            CASE_FIELD_NUM ( SQL_DESC_ARRAY_STATUS_PTR,   SQLUSMALLINT * );
+            CASE_FIELD_NUM ( SQL_DESC_BIND_OFFSET_PTR,    SQLLEN *       );
+            CASE_FIELD_NUM ( SQL_DESC_BIND_TYPE,          SQLUINTEGER    );
+            CASE_FIELD_NUM ( SQL_DESC_COUNT,              SQLSMALLINT    );
+            CASE_FIELD_NUM ( SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *      );
 
-    return SQL_ERROR;
+#undef CASE_FIELD_NUM
+
+        }
+
+        if (RecNumber < 0)
+            throw SqlException("Invalid descriptor index", "07009");
+
+        auto & record = descriptor.getRecord(RecNumber, SQL_ATTR_APP_ROW_DESC); // TODO: descriptor type?
+
+        switch (FieldIdentifier) {
+
+#define CASE_FIELD_NUM(NAME, TYPE) \
+            case NAME: { record.setAttr(NAME, (TYPE)(reinterpret_cast<std::uintptr_t>(ValuePtr))); return SQL_SUCCESS; }
+
+#define CASE_FIELD_STR(NAME) \
+            case NAME: { \
+                std::string value; \
+                if (ValuePtr) { \
+                    if (BufferLength > 0) \
+                        value = std::string{static_cast<char *>(ValuePtr), static_cast<std::string::size_type>(BufferLength)}; \
+                    else if (BufferLength == SQL_NTS) \
+                        value = std::string{static_cast<char *>(ValuePtr)}; \
+                } \
+                record.setAttr(NAME, value); \
+                return SQL_SUCCESS; \
+            }
+
+            CASE_FIELD_NUM ( SQL_DESC_AUTO_UNIQUE_VALUE,           SQLINTEGER  );
+            CASE_FIELD_STR ( SQL_DESC_BASE_COLUMN_NAME                         );
+            CASE_FIELD_STR ( SQL_DESC_BASE_TABLE_NAME                          );
+            CASE_FIELD_NUM ( SQL_DESC_CASE_SENSITIVE,              SQLINTEGER  );
+            CASE_FIELD_STR ( SQL_DESC_CATALOG_NAME                             );
+            CASE_FIELD_NUM ( SQL_DESC_CONCISE_TYPE,                SQLSMALLINT );
+            CASE_FIELD_NUM ( SQL_DESC_DATA_PTR,                    SQLPOINTER  );
+            CASE_FIELD_NUM ( SQL_DESC_DATETIME_INTERVAL_CODE,      SQLSMALLINT );
+            CASE_FIELD_NUM ( SQL_DESC_DATETIME_INTERVAL_PRECISION, SQLINTEGER  );
+            CASE_FIELD_NUM ( SQL_DESC_DISPLAY_SIZE,                SQLINTEGER  );
+            CASE_FIELD_NUM ( SQL_DESC_FIXED_PREC_SCALE,            SQLSMALLINT );
+            CASE_FIELD_NUM ( SQL_DESC_INDICATOR_PTR,               SQLLEN *    );
+            CASE_FIELD_STR ( SQL_DESC_LABEL                                    );
+            CASE_FIELD_NUM ( SQL_DESC_LENGTH,                      SQLULEN     );
+            CASE_FIELD_STR ( SQL_DESC_LITERAL_PREFIX                           );
+            CASE_FIELD_STR ( SQL_DESC_LITERAL_SUFFIX                           );
+            CASE_FIELD_STR ( SQL_DESC_LOCAL_TYPE_NAME                          );
+            CASE_FIELD_STR ( SQL_DESC_NAME                                     );
+            CASE_FIELD_NUM ( SQL_DESC_NULLABLE,                    SQLSMALLINT );
+            CASE_FIELD_NUM ( SQL_DESC_NUM_PREC_RADIX,              SQLINTEGER  );
+            CASE_FIELD_NUM ( SQL_DESC_OCTET_LENGTH,                SQLLEN      );
+            CASE_FIELD_NUM ( SQL_DESC_OCTET_LENGTH_PTR,            SQLLEN *    );
+            CASE_FIELD_NUM ( SQL_DESC_PARAMETER_TYPE,              SQLSMALLINT );
+            CASE_FIELD_NUM ( SQL_DESC_PRECISION,                   SQLSMALLINT );
+            CASE_FIELD_NUM ( SQL_DESC_ROWVER,                      SQLSMALLINT );
+            CASE_FIELD_NUM ( SQL_DESC_SCALE,                       SQLSMALLINT );
+            CASE_FIELD_STR ( SQL_DESC_SCHEMA_NAME                              );
+            CASE_FIELD_NUM ( SQL_DESC_SEARCHABLE,                  SQLSMALLINT );
+            CASE_FIELD_STR ( SQL_DESC_TABLE_NAME                               );
+            CASE_FIELD_NUM ( SQL_DESC_TYPE,                        SQLSMALLINT );
+            CASE_FIELD_STR ( SQL_DESC_TYPE_NAME                                );
+            CASE_FIELD_NUM ( SQL_DESC_UNNAMED,                     SQLSMALLINT );
+            CASE_FIELD_NUM ( SQL_DESC_UNSIGNED,                    SQLSMALLINT );
+            CASE_FIELD_NUM ( SQL_DESC_UPDATABLE,                   SQLSMALLINT );
+
+#undef CASE_FIELD_STR
+#undef CASE_FIELD_NUM
+
+        }
+
+        return SQL_SUCCESS;
+    };
+
+    return CALL_WITH_HANDLE(DescriptorHandle, func);
 }
 
 SQLRETURN SetDescRec(
@@ -384,7 +551,7 @@ SQLRETURN SetDescRec(
     SQLLEN *      IndicatorPtr
 ) noexcept {
     auto func = [&] (Descriptor & descriptor) {
-        auto & record = descriptor.getRecord(RecNumber, SQL_ATTR_APP_ROW_DESC);
+        auto & record = descriptor.getRecord(RecNumber, SQL_ATTR_APP_ROW_DESC); // TODO: descriptor type?
 
         record.setAttr(SQL_DESC_TYPE, Type);
 
