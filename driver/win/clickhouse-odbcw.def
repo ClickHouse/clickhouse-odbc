@@ -27,6 +27,12 @@ SQLSetStmtOption        @51
 
 SQLGetInfoW             @45
 
+SQLGetDescFieldW
+SQLGetDescRecW
+SQLSetDescFieldW
+SQLSetDescRec
+SQLCopyDesc
+
 SQLDriverConnectW
 SQLMoreResults
 SQLBindParameter
