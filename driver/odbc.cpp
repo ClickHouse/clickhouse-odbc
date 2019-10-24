@@ -309,10 +309,10 @@ SQLRETURN GetDescField(
         switch (FieldIdentifier) {
 
 #define CASE_FIELD_NUM(NAME, TYPE) \
-            case NAME: return fillOutputNumber<TYPE>(descriptor.getAttrAs<TYPE>(NAME), ValuePtr, 0, StringLengthPtr);
+            case NAME: return fillOutputNumber<TYPE>(descriptor.getAttrAs<TYPE>(NAME), ValuePtr, SQLINTEGER{0}, StringLengthPtr);
 
 #define CASE_FIELD_NUM_DEF(NAME, TYPE, DEFAULT) \
-            case NAME: return fillOutputNumber<TYPE>(descriptor.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, 0, StringLengthPtr);
+            case NAME: return fillOutputNumber<TYPE>(descriptor.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, SQLINTEGER{0}, StringLengthPtr);
 
             CASE_FIELD_NUM     ( SQL_DESC_ALLOC_TYPE,         SQLSMALLINT                       );
             CASE_FIELD_NUM_DEF ( SQL_DESC_ARRAY_SIZE,         SQLULEN,       1                  );
@@ -338,10 +338,10 @@ SQLRETURN GetDescField(
         switch (FieldIdentifier) {
 
 #define CASE_FIELD_NUM(NAME, TYPE) \
-            case NAME: return fillOutputNumber<TYPE>(record.getAttrAs<TYPE>(NAME), ValuePtr, 0, StringLengthPtr);
+            case NAME: return fillOutputNumber<TYPE>(record.getAttrAs<TYPE>(NAME), ValuePtr, SQLINTEGER{0}, StringLengthPtr);
 
 #define CASE_FIELD_NUM_DEF(NAME, TYPE, DEFAULT) \
-            case NAME: return fillOutputNumber<TYPE>(record.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, 0, StringLengthPtr);
+            case NAME: return fillOutputNumber<TYPE>(record.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, SQLINTEGER{0}, StringLengthPtr);
 
 #define CASE_FIELD_STR(NAME) \
             case NAME: return fillOutputPlatformString(record.getAttrAs<std::string>(NAME), ValuePtr, BufferLength, StringLengthPtr);

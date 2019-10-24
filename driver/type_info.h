@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <string>
+#include <limits>
 #include <map>
 
 #include <cstring>
@@ -292,7 +293,7 @@ namespace value_manip {
     inline std::string to<std::string>::from<SQL_NUMERIC_STRUCT>(const SQL_NUMERIC_STRUCT & numeric) {
         numeric_uint_container_t bigint = 0;
 
-        constexpr auto bigint_max = std::numeric_limits<decltype(bigint)>::max();
+        constexpr auto bigint_max = (std::numeric_limits<decltype(bigint)>::max)();
         constexpr std::uint32_t dec_mult = 10;
         constexpr std::uint32_t byte_mult = 1 << 8;
 
@@ -462,7 +463,7 @@ namespace value_manip {
 
         numeric_uint_container_t bigint = 0;
 
-        constexpr auto bigint_max = std::numeric_limits<decltype(bigint)>::max();
+        constexpr auto bigint_max = (std::numeric_limits<decltype(bigint)>::max)();
         constexpr std::uint32_t dec_mult = 10;
         constexpr std::uint32_t byte_mult = 1 << 8;
 
