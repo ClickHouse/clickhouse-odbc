@@ -672,6 +672,28 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
         LOG("column: " << column_idx << ", target_type: " << target_type << ", out_value_max_size: " << out_value_max_size
                        << " null=" << field.is_null << " data=" << field.data);
 
+
+        // TODO: revisit the code, use descriptors for all cases.
+
+        
+        SQLINTEGER desc_type = SQL_ATTR_APP_ROW_DESC;
+
+//      if (target_type == SQL_APD_TYPE) {
+//          desc_type = SQL_ATTR_APP_PARAM_DESC;
+//          throw SqlException("Unable to read parameter data using SQLGetData");
+//      }
+
+        if (
+            target_type == SQL_ARD_TYPE ||
+//          target_type == SQL_APD_TYPE ||
+            target_type == SQL_C_DEFAULT
+        ) {
+            auto & desc = statement.getEffectiveDescriptor(desc_type);
+            auto & record = desc.getRecord(column_or_param_number, desc_type);
+
+            target_type = record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
+        }
+
         if (field.is_null)
             return fillOutputNULL(out_value, out_value_max_size, out_value_size_or_indicator);
 
@@ -721,11 +743,11 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
                 return fillOutputNumber<SQLGUID>(field.getGUID(), out_value, out_value_max_size, out_value_size_or_indicator);
 
             case SQL_C_NUMERIC: {
-                auto & ard_desc = statement.getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC);
-                auto & ard_record = ard_desc.getRecord(column_or_param_number, SQL_ATTR_APP_ROW_DESC);
+                auto & desc = statement.getEffectiveDescriptor(desc_type);
+                auto & record = desc.getRecord(column_or_param_number, desc_type);
 
-                const std::int16_t precision = ard_record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION, 38);
-                const std::int16_t scale = ard_record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
+                const std::int16_t precision = record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION, 38);
+                const std::int16_t scale = record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
 
                 return fillOutputNumber<SQL_NUMERIC_STRUCT>(field.getNumeric(precision, scale), out_value, out_value_max_size, out_value_size_or_indicator);
             }
@@ -742,14 +764,8 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
             case SQL_C_TYPE_TIMESTAMP:
                 return fillOutputNumber<SQL_TIMESTAMP_STRUCT>(field.getDateTime(), out_value, out_value_max_size, out_value_size_or_indicator);
 
-            case SQL_ARD_TYPE: // TODO: process the type from ARD when implemented.
-            case SQL_C_DEFAULT:
-                LOG(__FUNCTION__ << ": Unsupported type requested (throw)." << target_type);
-                throw std::runtime_error("Unsupported type requested.");
-
             default:
-                LOG(__FUNCTION__ << ": Unknown type requested (throw)." << target_type);
-                throw std::runtime_error("Unknown type requested.");
+                throw SqlException("Restricted data type attribute violation", "07006");
         }
     });
 }
