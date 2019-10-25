@@ -172,6 +172,13 @@ TEST_F(StatementParametersTest, BindingNullStringValueForInteger) {
             &param_ind
         )
     );
+
+    // TODO: Workaround for workaround for https://github.com/ClickHouse/ClickHouse/issues/7488 . Remove when sorted-out.
+    // Strictly speaking, this is not allowed, and parameters must always be nullable.
+    SQLHDESC hdesc = 0;
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_IMP_PARAM_DESC, &hdesc, 0, NULL));
+    ODBC_CALL_ON_DESC_THROW(hdesc, SQLSetDescField(hdesc, 1, SQL_DESC_NULLABLE, reinterpret_cast<SQLPOINTER>(SQL_NULLABLE), 0));
+
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
     SQLRETURN rc = SQLFetch(hstmt);
 
@@ -224,6 +231,13 @@ TEST_F(StatementParametersTest, BindingNullStringValueForString) {
             &param_ind
         )
     );
+
+    // TODO: Workaround for workaround for https://github.com/ClickHouse/ClickHouse/issues/7488 . Remove when sorted-out.
+    // Strictly speaking, this is not allowed, and parameters must always be nullable.
+    SQLHDESC hdesc = 0;
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_IMP_PARAM_DESC, &hdesc, 0, NULL));
+    ODBC_CALL_ON_DESC_THROW(hdesc, SQLSetDescField(hdesc, 1, SQL_DESC_NULLABLE, reinterpret_cast<SQLPOINTER>(SQL_NULLABLE), 0));
+
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
     SQLRETURN rc = SQLFetch(hstmt);
 
