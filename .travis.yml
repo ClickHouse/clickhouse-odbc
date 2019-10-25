@@ -179,24 +179,26 @@ script:
       export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
     fi
     cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
+    [ODBC]
+    Trace     = yes
+    TraceFile = /tmp/odbc-driver-manager-trace.log
+
     [ODBC Drivers]
     clickhouse_driver   = Installed
     clickhouse_driver_w = Installed
 
     [clickhouse_driver]
-    Driver = ${ODBC_DRIVER_PATH}
-    Setup  = ${ODBC_DRIVER_PATH}
+    Driver     = ${ODBC_DRIVER_PATH}
+    Setup      = ${ODBC_DRIVER_PATH}
+    UsageCount = 1
 
     [clickhouse_driver_w]
-    Driver = ${ODBC_DRIVERW_PATH}
-    Setup  = ${ODBC_DRIVERW_PATH}
+    Driver     = ${ODBC_DRIVERW_PATH}
+    Setup      = ${ODBC_DRIVERW_PATH}
+    UsageCount = 1
     EOF
   - |
     cat > $ODBCSYSINI/.odbc.ini <<-EOF
-    [ODBC]
-    Trace         = yes
-    TraceFile     = /tmp/odbc-driver-manager-trace.log
-
     [ODBC Data Sources]
     clickhouse_localhost   = clickhouse_driver
     clickhouse_localhost_w = clickhouse_driver_w
