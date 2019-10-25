@@ -411,7 +411,13 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
         binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + param_set_idx * single_set_struct_size + bind_offset) : 0);
         binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
         binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
-        binding_info.is_nullable = (ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_NULLABLE, SQL_NULLABLE) == SQL_NULLABLE);
+
+        // TODO: always use SQL_NULLABLE as a default when https://github.com/ClickHouse/ClickHouse/issues/7488 is fixed.
+        binding_info.is_nullable = (
+            ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_NULLABLE,
+                (isMappedToStringDataSourceType(binding_info.sql_type, binding_info.c_type) ? SQL_NO_NULLS : SQL_NULLABLE)
+            ) == SQL_NULLABLE
+        );
 
         binding_info.scale = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
         binding_info.precision = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION,

@@ -105,6 +105,7 @@ struct BoundTypeInfo {
 std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info);
 std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info);
 std::string convertSQLOrCTypeToDataSourceType(const BoundTypeInfo & type_info);
+bool isMappedToStringDataSourceType(SQLSMALLINT sql_type, SQLSMALLINT c_type) noexcept;
 
 namespace value_manip {
 

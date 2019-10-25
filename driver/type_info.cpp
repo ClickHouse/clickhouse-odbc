@@ -487,3 +487,56 @@ std::string convertSQLOrCTypeToDataSourceType(const BoundTypeInfo & type_info) {
         return convertCTypeToDataSourceType(type_info);
     }
 }
+
+bool isMappedToStringDataSourceType(SQLSMALLINT sql_type, SQLSMALLINT c_type) noexcept {
+    switch (sql_type) {
+        case SQL_WCHAR:
+        case SQL_CHAR:
+        case SQL_WVARCHAR:
+        case SQL_VARCHAR:
+        case SQL_WLONGVARCHAR:
+        case SQL_LONGVARCHAR:
+        case SQL_BINARY:
+        case SQL_VARBINARY:
+        case SQL_LONGVARBINARY:
+        case SQL_TYPE_TIME:
+        case SQL_INTERVAL_MONTH:
+        case SQL_INTERVAL_YEAR:
+        case SQL_INTERVAL_YEAR_TO_MONTH:
+        case SQL_INTERVAL_DAY:
+        case SQL_INTERVAL_HOUR:
+        case SQL_INTERVAL_MINUTE:
+        case SQL_INTERVAL_SECOND:
+        case SQL_INTERVAL_DAY_TO_HOUR:
+        case SQL_INTERVAL_DAY_TO_MINUTE:
+        case SQL_INTERVAL_DAY_TO_SECOND:
+        case SQL_INTERVAL_HOUR_TO_MINUTE:
+        case SQL_INTERVAL_HOUR_TO_SECOND:
+        case SQL_INTERVAL_MINUTE_TO_SECOND:
+            return true;
+    }
+    
+    switch (c_type) {
+        case SQL_C_WCHAR:
+        case SQL_C_CHAR:
+        case SQL_C_BINARY:
+        case SQL_C_TIME:
+        case SQL_C_TYPE_TIME:
+        case SQL_C_INTERVAL_YEAR:
+        case SQL_C_INTERVAL_MONTH:
+        case SQL_C_INTERVAL_DAY:
+        case SQL_C_INTERVAL_HOUR:
+        case SQL_C_INTERVAL_MINUTE:
+        case SQL_C_INTERVAL_SECOND:
+        case SQL_C_INTERVAL_YEAR_TO_MONTH:
+        case SQL_C_INTERVAL_DAY_TO_HOUR:
+        case SQL_C_INTERVAL_DAY_TO_MINUTE:
+        case SQL_C_INTERVAL_DAY_TO_SECOND:
+        case SQL_C_INTERVAL_HOUR_TO_MINUTE:
+        case SQL_C_INTERVAL_HOUR_TO_SECOND:
+        case SQL_C_INTERVAL_MINUTE_TO_SECOND:
+            return true;
+    }
+
+    return false;
+}
