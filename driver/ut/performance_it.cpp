@@ -43,7 +43,7 @@ private:
 #ifdef NDEBUG
 
 TEST_F(PerformanceTest, Basic) {
-    const std::size_t total_rows_expected = 5000000;
+    const std::size_t total_rows_expected = 1000000;
     const std::string query = "SELECT CAST('some not very long text', 'String') as col1, CAST('12345', 'Int') as col2, CAST('12.345', 'Float32') as col3, CAST('-123.456789012345678', 'Float64') as col4 FROM numbers(" + std::to_string(total_rows_expected) + ")";
     std::cout << "Executing query:\n\t" << query << std::endl;
     const auto start = std::chrono::system_clock::now();
