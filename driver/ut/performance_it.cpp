@@ -15,6 +15,29 @@
 class PerformanceTest
     : public ClientTestBase
 {
+protected:
+    virtual void SetUp() override {
+        ClientTestBase::SetUp();
+
+        ODBC_CALL_ON_DBC_THROW(hdbc, SQLGetConnectAttr(hdbc, SQL_ATTR_TRACE, &trace, 0, nullptr));
+
+        if (trace == SQL_OPT_TRACE_ON) {
+            std::cout << "Disabling driver tracing/extended logging..." << std::endl;
+            ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, SQL_ATTR_TRACE, (SQLPOINTER)SQL_OPT_TRACE_OFF, 0));
+        }
+    }
+
+    virtual void TearDown() override {
+        if (trace == SQL_OPT_TRACE_ON) {
+            std::cout << "Re-enabling driver tracing/extended logging..." << std::endl;
+            ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, SQL_ATTR_TRACE, (SQLPOINTER)SQL_OPT_TRACE_ON, 0));
+        }
+
+        ClientTestBase::TearDown();
+    }
+        
+private:
+    SQLUINTEGER trace = SQL_OPT_TRACE_ON;
 };
 
 #ifdef NDEBUG
