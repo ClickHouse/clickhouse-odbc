@@ -50,8 +50,10 @@ function(declare_odbc_test_targets libname UNICODE)
         gtest_env.h
         gtest_env.cpp
         client_utils.h
+        client_test_base.h
         ../type_info.cpp
         statement_parameters_it.cpp
+        performance_it.cpp
     )
 
     target_link_libraries(${libname}-client-it
