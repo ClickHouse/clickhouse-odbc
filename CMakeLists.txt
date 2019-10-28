@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.2)
 
-project (clickhouse-odbc VERSION 1.1.0.20191007 LANGUAGES C CXX)
+project (clickhouse-odbc VERSION 1.1.0.20191028 LANGUAGES C CXX)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 set(CMAKE_LINK_DEPENDS_NO_SHARED 1) # Do not relink all depended targets on .so
