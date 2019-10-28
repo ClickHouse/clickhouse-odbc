@@ -305,7 +305,7 @@ void Connection::setDefaults() {
     if (path[0] != '/')
         path = "/" + path;
     if (stringmaxlength == 0)
-        stringmaxlength = Environment::string_max_size;
+        stringmaxlength = TypeInfo::string_max_size;
     if (user.empty())
         user = "default";
     if (database.empty())

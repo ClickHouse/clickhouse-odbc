@@ -19,6 +19,10 @@ public:
     float getFloat() const;
     double getDouble() const;
 
+    SQLGUID getGUID() const;
+
+    SQL_NUMERIC_STRUCT getNumeric(const std::int16_t precision, const std::int16_t scale) const;
+
     SQL_DATE_STRUCT getDate() const;
     SQL_TIMESTAMP_STRUCT getDateTime() const;
 

@@ -1,9 +1,9 @@
 <CPackWiXPatch>
-    <CPackWiXFragment Id="CM_CP_ASCIIDriver.bin.clickhouseodbc.dll">
+    <CPackWiXFragment Id="CM_CP_ANSIDriver.bin.clickhouseodbc.dll">
         <RegistryKey ForceCreateOnInstall="yes" Id="AnsiOdbcDriverRegInfo" Key="SOFTWARE\ODBC\ODBCINST.INI\ClickHouseDriver" Root="HKLM">
             <RegistryValue Name="Description" Type="string" Value="ClickHouse ANSI ODBC Driver"/>
-            <RegistryValue Name="Driver" Type="string" Value="[CM_DP_ASCIIDriver.bin]clickhouseodbc.dll"/>
-            <RegistryValue Name="Setup" Type="string" Value="[CM_DP_ASCIIDriver.bin]clickhouseodbc.dll"/>
+            <RegistryValue Name="Driver" Type="string" Value="[CM_DP_ANSIDriver.bin]clickhouseodbc.dll"/>
+            <RegistryValue Name="Setup" Type="string" Value="[CM_DP_ANSIDriver.bin]clickhouseodbc.dll"/>
             <RegistryValue Name="DriverODBCVer" Type="string" Value="03.80"/>
             <RegistryValue Name="ConnectFunctions" Type="string" Value="YYN"/>
             <RegistryValue Name="APILevel" Type="string" Value="1"/>

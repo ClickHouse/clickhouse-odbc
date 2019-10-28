@@ -20,6 +20,11 @@ bool AttributeContainer::hasAttr(int attr) const {
     return (hasAttrInteger(attr) || hasAttrString(attr));
 }
 
+void AttributeContainer::resetAttr(int attr) {
+    integers.erase(attr);
+    strings.erase(attr);
+}
+
 void AttributeContainer::resetAttrs() {
     integers.clear();
     strings.clear();

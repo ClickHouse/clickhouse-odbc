@@ -37,7 +37,7 @@ message (STATUS "${libname}: UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/config_cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/config_cmake${_config_add}.h)
 
 # In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
-add_library(${libname}_static STATIC
+add_library(${libname}-impl STATIC
     attributes.cpp
     config.cpp
     connection.cpp
@@ -95,34 +95,34 @@ add_library(${libname} SHARED
 )
 
 if (UNICODE)
-    target_compile_definitions(${libname}_static
+    target_compile_definitions(${libname}-impl
         PUBLIC UNICODE=1
         PUBLIC _UNICODE=1
     )
 
     # Mode for unixodbc for working with wchar as in iodbc
     if (SQL_WCHART_CONVERT)
-        target_compile_definitions(${libname}_static PUBLIC SQL_WCHART_CONVERT=1)
+        target_compile_definitions(${libname}-impl PUBLIC SQL_WCHART_CONVERT=1)
     endif ()
 
     #if(ODBC_IODBC)
-    #    target_compile_definitions(${libname}_static PUBLIC SQL_NOUNICODEMAP=1)
+    #    target_compile_definitions(${libname}-impl PUBLIC SQL_NOUNICODEMAP=1)
     #endif()
 endif ()
 
-target_include_directories (${libname}_static PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_include_directories (${libname}_static PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories (${libname}_static PUBLIC ${Poco_INCLUDE_DIRS})
-target_include_directories (${libname}_static PUBLIC ${ODBC_INCLUDE_DIRECTORIES})
+target_include_directories (${libname}-impl PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories (${libname}-impl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories (${libname}-impl PUBLIC ${Poco_INCLUDE_DIRS})
+target_include_directories (${libname}-impl PUBLIC ${ODBC_INCLUDE_DIRECTORIES})
 
-target_link_libraries(${libname}_static PUBLIC clickhouse-odbc-escaping)
+target_link_libraries(${libname}-impl PUBLIC clickhouse-odbc-escaping)
 
 if(USE_SSL)
-    target_link_libraries(${libname}_static PUBLIC ${Poco_NetSSL_LIBRARY} ${Poco_Crypto_LIBRARY})
-    target_include_directories (${libname}_static PUBLIC ${OPENSSL_INCLUDE_DIR})
+    target_link_libraries(${libname}-impl PUBLIC ${Poco_NetSSL_LIBRARY} ${Poco_Crypto_LIBRARY})
+    target_include_directories (${libname}-impl PUBLIC ${OPENSSL_INCLUDE_DIR})
 endif()
 
-target_link_libraries(${libname}_static
+target_link_libraries(${libname}-impl
     PUBLIC ${Poco_Net_LIBRARY}
     PUBLIC ${Poco_Foundation_LIBRARY}
     PUBLIC ${Poco_Util_LIBRARY}
@@ -130,23 +130,23 @@ target_link_libraries(${libname}_static
 )
 
 if(NOT APPLE AND NOT WIN32)
-    target_link_libraries(${libname}_static PUBLIC "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script")
+    target_link_libraries(${libname}-impl PUBLIC "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script")
 endif()
 
 if(WIN32)
-    target_link_libraries(${libname}_static PUBLIC ws2_32 Iphlpapi legacy_stdio_definitions)
+    target_link_libraries(${libname}-impl PUBLIC ws2_32 Iphlpapi legacy_stdio_definitions)
 endif()
 
 if(ARCH_LINUX)
-    target_link_libraries(${libname}_static PUBLIC Threads::Threads)
+    target_link_libraries(${libname}-impl PUBLIC Threads::Threads)
 endif()
 
-target_link_libraries(${libname} PRIVATE ${libname}_static)
+target_link_libraries(${libname} PRIVATE ${libname}-impl)
 
 if (UNICODE)
     set(DRIVER_PREFIX Unicode)
 else()
-    set(DRIVER_PREFIX ASCII)
+    set(DRIVER_PREFIX ANSI)
 endif()
 
 if (MSVC)

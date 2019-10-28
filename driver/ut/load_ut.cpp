@@ -1,6 +1,8 @@
-#include <iostream>
+#include "platform.h"
+
 #include <Poco/SharedLibrary.h>
-#include "../platform.h"
+
+#include <iostream>
 
 int main(int argc, char * argv[]) {
     if (argc < 2)

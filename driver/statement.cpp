@@ -13,310 +13,6 @@
 
 #include <cstdio>
 
-namespace {
-
-    template <typename T>
-    struct to {
-        template <typename F>
-        static T from(const BindingInfo& binding_info) {
-            throw std::runtime_error("Unable to extract data from bound buffer: conversion from source type to target type not supported");
-        }
-    };
-
-    template <>
-    struct to<std::string> {
-        template <typename F>
-        static std::string from(const BindingInfo& binding_info) {
-            if (!binding_info.value)
-                return std::string{};
-
-            const auto * ind_ptr = binding_info.indicator;
-
-            if (ind_ptr) {
-                switch (*ind_ptr) {
-                    case 0:
-                    case SQL_NTS:
-                        break;
-
-                    case SQL_NULL_DATA:
-                        return std::string{};
-
-                    case SQL_DEFAULT_PARAM:
-                        return std::to_string(F{});
-
-                    default:
-                        if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
-                            throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
-                }
-            }
-
-            return std::to_string(*reinterpret_cast<F*>(binding_info.value));
-        }
-    };
-
-    template <>
-    std::string to<std::string>::from<SQLCHAR *>(const BindingInfo& binding_info) {
-        const auto * cstr = reinterpret_cast<const char *>(binding_info.value);
-
-        if (!cstr)
-            return std::string{};
-
-        const auto * sz_ptr = binding_info.value_size;
-        const auto * ind_ptr = binding_info.indicator;
-
-        if (ind_ptr) {
-            switch (*ind_ptr) {
-                case 0:
-                case SQL_NTS:
-                    return std::string{cstr};
-
-                case SQL_NULL_DATA:
-                case SQL_DEFAULT_PARAM:
-                    return std::string{};
-
-                default:
-                    if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
-                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
-            }
-        }
-
-        if (!sz_ptr || *sz_ptr < 0)
-            std::string{cstr};
-
-        return std::string{cstr, static_cast<std::size_t>(*sz_ptr)};
-    }
-
-    template <>
-    std::string to<std::string>::from<SQLWCHAR *>(const BindingInfo& binding_info) {
-        const auto * wcstr = reinterpret_cast<const wchar_t *>(binding_info.value);
-
-        if (!wcstr)
-            return std::string{};
-
-        const auto * sz_ptr = binding_info.value_size;
-        const auto * ind_ptr = binding_info.indicator;
-
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> convert;
-
-        if (ind_ptr) {
-            switch (*ind_ptr) {
-                case 0:
-                case SQL_NTS:
-                    return convert.to_bytes(wcstr);
-
-                case SQL_NULL_DATA:
-                case SQL_DEFAULT_PARAM:
-                    return std::string{};
-
-                default:
-                    if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
-                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
-            }
-        }
-
-        if (!sz_ptr || *sz_ptr < 0)
-            convert.to_bytes(wcstr);
-
-        const auto* wcstr_last = wcstr + static_cast<std::size_t>(*sz_ptr) / sizeof(decltype(*wcstr));
-        return convert.to_bytes(wcstr, wcstr_last);
-    }
-
-    template <>
-    std::string to<std::string>::from<SQLGUID>(const BindingInfo& binding_info) {
-        if (!binding_info.value)
-            return std::string{};
-
-        const auto * ind_ptr = binding_info.indicator;
-
-        if (ind_ptr) {
-            switch (*ind_ptr) {
-                case 0:
-                case SQL_NTS:
-                    break;
-
-                case SQL_NULL_DATA:
-                    return std::string{};
-
-                case SQL_DEFAULT_PARAM:
-                    return std::string{"00000000-0000-0000-0000-000000000000"};
-
-                default:
-                    if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
-                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
-            }
-        }
-
-        const auto & guid = *reinterpret_cast<SQLGUID*>(binding_info.value);
-
-        char buf[256];
-        const auto written = std::snprintf(buf, lengthof(buf), "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-            guid.Data1, guid.Data2, guid.Data3,
-            guid.Data4[0], guid.Data4[1], guid.Data4[2], guid.Data4[3],
-            guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]
-        );
-
-        if (written < 36 || written >= lengthof(buf))
-            buf[0] = '\0';
-
-        return std::string{buf};
-    }
-
-    template <>
-    std::string to<std::string>::from<SQL_DATE_STRUCT>(const BindingInfo& binding_info) {
-        if (!binding_info.value)
-            return std::string{};
-
-        const auto * ind_ptr = binding_info.indicator;
-
-        if (ind_ptr) {
-            switch (*ind_ptr) {
-                case 0:
-                case SQL_NTS:
-                    break;
-
-                case SQL_NULL_DATA:
-                    return std::string{};
-
-                case SQL_DEFAULT_PARAM:
-                    return std::string{"0000-00-00"};
-
-                default:
-                    if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
-                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
-            }
-        }
-
-        const auto & date = *reinterpret_cast<SQL_DATE_STRUCT*>(binding_info.value);
-
-        char buf[256];
-        const auto written = std::snprintf(buf, lengthof(buf), "%04d-%02d-%02d", (int)date.year, (int)date.month, (int)date.day);
-        if (written < 10 || written >= lengthof(buf))
-            buf[0] = '\0';
-
-        return std::string{buf};
-    }
-
-    template <>
-    std::string to<std::string>::from<SQL_TIME_STRUCT>(const BindingInfo& binding_info) {
-        if (!binding_info.value)
-            return std::string{};
-
-        const auto * ind_ptr = binding_info.indicator;
-
-        if (ind_ptr) {
-            switch (*ind_ptr) {
-                case 0:
-                case SQL_NTS:
-                    break;
-
-                case SQL_NULL_DATA:
-                    return std::string{};
-
-                case SQL_DEFAULT_PARAM:
-                    return std::string{"00:00:00"};
-
-                default:
-                    if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
-                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
-            }
-        }
-
-        const auto & time = *reinterpret_cast<SQL_TIME_STRUCT*>(binding_info.value);
-
-        char buf[256];
-        const auto written = std::snprintf(buf, lengthof(buf), "%02d:%02d:%02d", (int)time.hour, (int)time.minute, (int)time.second);
-        if (written < 8 || written >= lengthof(buf))
-            buf[0] = '\0';
-
-        return std::string{buf};
-    }
-
-    template <>
-    std::string to<std::string>::from<SQL_TIMESTAMP_STRUCT>(const BindingInfo& binding_info) {
-        if (!binding_info.value)
-            return std::string{};
-
-        const auto * ind_ptr = binding_info.indicator;
-
-        if (ind_ptr) {
-            switch (*ind_ptr) {
-                case 0:
-                case SQL_NTS:
-                    break;
-
-                case SQL_NULL_DATA:
-                    return std::string{};
-
-                case SQL_DEFAULT_PARAM:
-                    return std::string{"0000-00-00 00:00:00"};
-
-                default:
-                    if (*ind_ptr == SQL_DATA_AT_EXEC || *ind_ptr < 0)
-                        throw std::runtime_error("Unable to extract data from bound buffer: data-at-execution bindings not supported");
-            }
-        }
-
-        const auto & timestamp = *reinterpret_cast<SQL_TIMESTAMP_STRUCT*>(binding_info.value);
-
-        char buf[256];
-        const auto written = std::snprintf(buf, lengthof(buf), "%04d-%02d-%02d %02d:%02d:%02d",
-                (int)timestamp.year, (int)timestamp.month, (int)timestamp.day,
-                (int)timestamp.hour, (int)timestamp.minute, (int)timestamp.second
-        );
-        if (written < 8 || written >= lengthof(buf)) {
-            buf[0] = '\0';
-        }
-        else if (timestamp.fraction > 0 && timestamp.fraction < 1000000000) {
-            const auto written_more = std::snprintf(buf + written, lengthof(buf) - written, ".%09d", (int)timestamp.fraction);
-            if (written_more < 2 || written_more >= (lengthof(buf) - written))
-                buf[written] = '\0';
-        }
-
-        return std::string{buf};
-    }
-
-    template <typename T>
-    T readReadyDataTo(const BindingInfo& binding_info) {
-        switch (binding_info.type) {
-            case SQL_C_CHAR:           return to<T>::template from< SQLCHAR *            >(binding_info);
-            case SQL_C_WCHAR:          return to<T>::template from< SQLWCHAR *           >(binding_info);
-            case SQL_C_BIT:            return to<T>::template from< SQLCHAR              >(binding_info);
-            case SQL_C_TINYINT:        return to<T>::template from< SQLSCHAR             >(binding_info);
-            case SQL_C_STINYINT:       return to<T>::template from< SQLSCHAR             >(binding_info);
-            case SQL_C_UTINYINT:       return to<T>::template from< SQLCHAR              >(binding_info);
-            case SQL_C_SHORT:          return to<T>::template from< SQLSMALLINT          >(binding_info);
-            case SQL_C_SSHORT:         return to<T>::template from< SQLSMALLINT          >(binding_info);
-            case SQL_C_USHORT:         return to<T>::template from< SQLUSMALLINT         >(binding_info);
-            case SQL_C_LONG:           return to<T>::template from< SQLINTEGER           >(binding_info);
-            case SQL_C_SLONG:          return to<T>::template from< SQLINTEGER           >(binding_info);
-            case SQL_C_ULONG:          return to<T>::template from< SQLUINTEGER          >(binding_info);
-            case SQL_C_SBIGINT:        return to<T>::template from< SQLBIGINT            >(binding_info);
-            case SQL_C_UBIGINT:        return to<T>::template from< SQLUBIGINT           >(binding_info);
-            case SQL_C_FLOAT:          return to<T>::template from< SQLREAL              >(binding_info);
-            case SQL_C_DOUBLE:         return to<T>::template from< SQLDOUBLE            >(binding_info);
-            case SQL_C_BINARY:         return to<T>::template from< SQLCHAR *            >(binding_info);
-            case SQL_C_GUID:           return to<T>::template from< SQLGUID              >(binding_info);
-//          case SQL_C_BOOKMARK:       return to<T>::template from< BOOKMARK             >(binding_info);
-//          case SQL_C_VARBOOKMARK:    return to<T>::template from< SQLCHAR *            >(binding_info);
-
-//          case SQL_C_NUMERIC:        return to<T>::template from< SQL_NUMERIC_STRUCT   >(binding_info);
-
-            case SQL_C_DATE:
-            case SQL_C_TYPE_DATE:      return to<T>::template from< SQL_DATE_STRUCT      >(binding_info);
-
-            case SQL_C_TIME:
-            case SQL_C_TYPE_TIME:      return to<T>::template from< SQL_TIME_STRUCT      >(binding_info);
-
-            case SQL_C_TIMESTAMP:
-            case SQL_C_TYPE_TIMESTAMP: return to<T>::template from< SQL_TIMESTAMP_STRUCT >(binding_info);
-
-            default:
-                throw std::runtime_error("Unable to extract data from bound buffer: source type representation not supported");
-        }
-    }
-
-} // namespace
-
 Statement::Statement(Connection & connection)
     : ChildType(connection)
 {
@@ -385,17 +81,26 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
 
     const auto param_bindings = getParamsBindingInfo(next_param_set);
 
-    if (param_bindings.size() < parameters.size())
-        throw SqlException("COUNT field incorrect", "07002");
-
     for (std::size_t i = 0; i < parameters.size(); ++i) {
+        std::string value;
+
+        if (param_bindings.size() <= i) {
+            value = "Null";
+        }
+        else {
+            const auto & binding_info = param_bindings[i];
+
+            if (!isInputParam(binding_info.io_type) || isStreamParam(binding_info.io_type))
+                throw std::runtime_error("Unable to extract data from bound param buffer: param IO type is not supported");
+
+            if (binding_info.value == nullptr)
+                value = "Null";
+            else
+                value = readReadyDataTo<std::string>(binding_info);
+        }
+
         const auto param_name = getParamFinalName(i);
-        const auto & binding_info = param_bindings[i];
-
-        if (!isInputParam(binding_info.io_type) || isStreamParam(binding_info.io_type))
-            throw std::runtime_error("Unable to extract data from bound param buffer: param IO type is not supported");
-
-        uri.addQueryParameter("param_" + param_name, readReadyDataTo<std::string>(binding_info));
+        uri.addQueryParameter("param_" + param_name, value);
     }
 
     const auto prepared_query = buildFinalQuery(param_bindings);
@@ -574,22 +279,33 @@ void Statement::extractParametersinfo() {
 std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings) {
     auto prepared_query = query;
 
-    if (param_bindings.size() < parameters.size())
-        throw SqlException("COUNT field incorrect", "07002");
-
     for (std::size_t i = 0; i < parameters.size(); ++i) {
         const auto & param_info = parameters[i];
-        const auto & binding_info = param_bindings[i];
+        std::string param_type;
+
+        if (param_bindings.size() <= i) {
+            param_type = "Nullable(Nothing)";
+        }
+        else {
+            const auto & binding_info = param_bindings[i];
+
+            BoundTypeInfo type_info;
+            type_info.c_type = binding_info.c_type;
+            type_info.sql_type = binding_info.sql_type;
+            type_info.value_max_size = binding_info.value_max_size;
+            type_info.precision = binding_info.precision;
+            type_info.scale = binding_info.scale;
+            type_info.is_nullable = (binding_info.is_nullable || binding_info.value == nullptr);
+
+            param_type = convertSQLOrCTypeToDataSourceType(type_info);
+        }
 
         const auto pos = prepared_query.find(param_info.tmp_placeholder);
-
         if (pos == std::string::npos)
             throw SqlException("COUNT field incorrect", "07002");
 
         const auto param_name = getParamFinalName(i);
-        const std::string param_placeholder = "{" + param_name + ":" +
-            convertCOrSQLTypeToDataSourceType(binding_info.sql_type, binding_info.value_max_size) + "}";
-
+        const std::string param_placeholder = "{" + param_name + ":" + param_type + "}";
         prepared_query.replace(pos, param_info.tmp_placeholder.size(), param_placeholder);
     }
 
@@ -697,23 +413,20 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
 
     const auto apd_record_count = apd_desc.getRecordCount();
     const auto ipd_record_count = ipd_desc.getRecordCount();
-    const auto actual_param_count = parameters.size();
 
-    if (
-        ipd_record_count < actual_param_count || // must not happen
-        apd_record_count < ipd_record_count
-    ) {
-        throw SqlException("COUNT field incorrect", "07002");
-    }
+    const auto fully_bound_param_count = std::min(apd_record_count, ipd_record_count);
 
-    if (actual_param_count > 0)
-        param_bindings.reserve(actual_param_count);
+    // We allow (apd_record_count < ipd_record_count) here, since we will set
+    // all unbound parameters to 'Null' and their types to 'Nullable(Nothing)'.
+
+    if (fully_bound_param_count > 0)
+        param_bindings.reserve(fully_bound_param_count);
 
     const auto single_set_struct_size = apd_desc.getAttrAs<SQLULEN>(SQL_DESC_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN);
     const auto * bind_offset_ptr = apd_desc.getAttrAs<SQLULEN *>(SQL_DESC_BIND_OFFSET_PTR, 0);
     const auto bind_offset = (bind_offset_ptr ? *bind_offset_ptr : 0);
 
-    for (std::size_t i = 1; i <= actual_param_count; ++i) {
+    for (std::size_t i = 1; i <= fully_bound_param_count; ++i) {
         ParamBindingInfo binding_info;
 
         auto & apd_record = apd_desc.getRecord(i, SQL_ATTR_APP_PARAM_DESC);
@@ -724,12 +437,24 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
         const auto * ind_ptr = apd_record.getAttrAs<SQLLEN *>(SQL_DESC_INDICATOR_PTR, 0);
 
         binding_info.io_type = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_PARAMETER_TYPE, SQL_PARAM_INPUT);
-        binding_info.type = apd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
+        binding_info.c_type = apd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
         binding_info.sql_type = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_UNKNOWN_TYPE);
         binding_info.value_max_size = ipd_record.getAttrAs<SQLULEN>(SQL_DESC_LENGTH, 0); // TODO: or SQL_DESC_OCTET_LENGTH ?
         binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + param_set_idx * single_set_struct_size + bind_offset) : 0);
         binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
         binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
+
+        // TODO: always use SQL_NULLABLE as a default when https://github.com/ClickHouse/ClickHouse/issues/7488 is fixed.
+        binding_info.is_nullable = (
+            ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_NULLABLE,
+                (isMappedToStringDataSourceType(binding_info.sql_type, binding_info.c_type) ? SQL_NO_NULLS : SQL_NULLABLE)
+            ) == SQL_NULLABLE
+        );
+
+        binding_info.scale = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
+        binding_info.precision = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION,
+            (binding_info.sql_type == SQL_DECIMAL || binding_info.sql_type == SQL_NUMERIC ? 38 : 0)
+        );
 
         param_bindings.emplace_back(binding_info);
     }
