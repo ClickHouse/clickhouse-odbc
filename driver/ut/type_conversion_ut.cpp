@@ -85,13 +85,13 @@ INSTANTIATE_TEST_CASE_P(TypeConversion, StringPongNumericSymmetric,
 );
 
 INSTANTIATE_TEST_CASE_P(TypeConversion, StringPongNumericAsymmetric,
-    ::testing::Values(
-        std::make_tuple("0.", "0"),
-        std::make_tuple("-0.", "0"),
-        std::make_tuple("0.000", ".000"),
-        std::make_tuple("-0.000", ".000"),
-        std::make_tuple("0001.00001", "1.00001"),
-        std::make_tuple("-0001.00001", "-1.00001"),
-        std::make_tuple("000000.123", ".123")
-    )
+    ::testing::ValuesIn(std::initializer_list<std::tuple<std::string, std::string>>{
+        { "0.", "0" },
+        { "-0.", "0" },
+        { "0.000", ".000" },
+        { "-0.000", ".000" },
+        { "0001.00001", "1.00001" },
+        { "-0001.00001", "-1.00001" },
+        { "000000.123", ".123" }
+    })
 );

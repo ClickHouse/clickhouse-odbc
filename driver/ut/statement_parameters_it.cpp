@@ -45,6 +45,8 @@ TEST_F(StatementParametersTest, BindingMissing) {
 
     ASSERT_TRUE(col_ind >= 0 || col_ind == SQL_NTS);
     ASSERT_EQ(col, 1);
+
+    ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
 }
 
 TEST_F(StatementParametersTest, BindingNoBuffer) {
@@ -94,6 +96,8 @@ TEST_F(StatementParametersTest, BindingNoBuffer) {
 
     ASSERT_TRUE(col_ind >= 0 || col_ind == SQL_NTS);
     ASSERT_EQ(col, 1);
+
+    ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
 }
 
 TEST_F(StatementParametersTest, BindingNullStringValueForInteger) {
@@ -153,6 +157,8 @@ TEST_F(StatementParametersTest, BindingNullStringValueForInteger) {
 
     ASSERT_TRUE(col_ind >= 0 || col_ind == SQL_NTS);
     ASSERT_EQ(col, 1);
+
+    ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
 }
 
 TEST_F(StatementParametersTest, BindingNullStringValueForString) {
@@ -212,6 +218,8 @@ TEST_F(StatementParametersTest, BindingNullStringValueForString) {
 
     ASSERT_TRUE(col_ind >= 0 || col_ind == SQL_NTS);
     ASSERT_EQ(col, 1);
+
+    ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
 }
 
 class ParameterColumnRoundTrip
@@ -289,6 +297,8 @@ protected:
             ASSERT_STREQ(resulting_str.c_str(), expected_str.c_str());
         else
             ASSERT_STRCASEEQ(resulting_str.c_str(), expected_str.c_str());
+
+        ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
     }
 
 private:
@@ -361,6 +371,8 @@ private:
             ASSERT_STREQ(resulting_str.c_str(), expected_str.c_str());
         else
             ASSERT_STRCASEEQ(resulting_str.c_str(), expected_str.c_str());
+
+        ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
     }
 
     template <typename T>
@@ -428,6 +440,8 @@ private:
             ASSERT_STREQ(resulting_str.c_str(), expected_str.c_str());
         else
             ASSERT_STRCASEEQ(resulting_str.c_str(), expected_str.c_str());
+
+        ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
     }
 
 };
@@ -453,7 +467,10 @@ protected:
 
 // TODO: GIUD/UUID tests are temporarily disabled until this worked around/fixed: https://github.com/ClickHouse/ClickHouse/issues/7463
 using DISABLED_ParameterColumnRoundTripGUIDSymmetric = ParameterColumnRoundTripSymmetric<SQLGUID>;
-TEST_P(DISABLED_ParameterColumnRoundTripGUIDSymmetric, Execute) { execute<DataType>(GetParam(), GetParam(), type_info_for("UUID"), false/* case_sensitive */); }
+
+TEST_P(DISABLED_ParameterColumnRoundTripGUIDSymmetric, Execute) {
+    execute<DataType>(GetParam(), GetParam(), type_info_for("UUID"), false/* case_sensitive */);
+}
 
 INSTANTIATE_TEST_CASE_P(TypeConversion, DISABLED_ParameterColumnRoundTripGUIDSymmetric,
     ::testing::Values(
@@ -466,7 +483,10 @@ INSTANTIATE_TEST_CASE_P(TypeConversion, DISABLED_ParameterColumnRoundTripGUIDSym
 
 
 using ParameterColumnRoundTripNumericSymmetric  = ParameterColumnRoundTripSymmetric<SQL_NUMERIC_STRUCT>;
-TEST_P(ParameterColumnRoundTripNumericSymmetric,  Execute) { execute<DataType>(GetParam(), GetParam(), type_info_for("Decimal")); }
+
+TEST_P(ParameterColumnRoundTripNumericSymmetric,  Execute) {
+    execute<DataType>(GetParam(), GetParam(), type_info_for("Decimal"));
+}
 
 INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripNumericSymmetric,
     ::testing::Values(
@@ -498,23 +518,29 @@ INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripNumericSymmetric
 
 
 using ParameterColumnRoundTripNumericAsymmetric = ParameterColumnRoundTripAsymmetric<SQL_NUMERIC_STRUCT>;
-TEST_P(ParameterColumnRoundTripNumericAsymmetric, Execute) { execute<DataType>(std::get<0>(GetParam()), std::get<1>(GetParam()), type_info_for("Decimal")); }
+
+TEST_P(ParameterColumnRoundTripNumericAsymmetric, Execute) {
+    execute<DataType>(std::get<0>(GetParam()), std::get<1>(GetParam()), type_info_for("Decimal"));
+}
 
 INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripNumericAsymmetric,
-    ::testing::Values(
-        std::make_tuple("0.", "0"),
-        std::make_tuple("-0.", "0"),
-        std::make_tuple("0.000", ".000"),
-        std::make_tuple("-0.000", ".000"),
-        std::make_tuple("0001.00001", "1.00001"),
-        std::make_tuple("-0001.00001", "-1.00001"),
-        std::make_tuple("000000.123", ".123")
-    )
+    ::testing::ValuesIn(std::initializer_list<std::tuple<std::string, std::string>>{
+        { "0.", "0" },
+        { "-0.", "0" },
+        { "0.000", ".000" },
+        { "-0.000", ".000" },
+        { "0001.00001", "1.00001" },
+        { "-0001.00001", "-1.00001" },
+        { "000000.123", ".123" }
+    })
 );
 
 
 using ParameterColumnRoundTripDecimalAsStringSymmetric  = ParameterColumnRoundTripSymmetric<SQLCHAR>;
-TEST_P(ParameterColumnRoundTripDecimalAsStringSymmetric, Execute) { execute_with_decimal_as_string(GetParam(), GetParam()); }
+
+TEST_P(ParameterColumnRoundTripDecimalAsStringSymmetric, Execute) {
+    execute_with_decimal_as_string(GetParam(), GetParam());
+}
 
 INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripDecimalAsStringSymmetric,
     ::testing::Values(
