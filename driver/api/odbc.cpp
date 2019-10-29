@@ -616,7 +616,7 @@ SQLRETURN CopyDesc(
 extern "C" {
 
 /// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlconnect-function
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     SQLTCHAR * dsn,
     SQLSMALLINT dsn_size,
     SQLTCHAR * user,
@@ -639,7 +639,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
 
 
 /// Description: https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqldriverconnect
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
     HWND unused_window,
     SQLTCHAR FAR * connection_str_in,
     SQLSMALLINT connection_str_in_size,
@@ -663,7 +663,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size) {
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size) {
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -674,7 +674,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * 
 }
 
 
-RETCODE SQL_API SQLExecute(HSTMT statement_handle) {
+SQLRETURN SQL_API SQLExecute(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -684,7 +684,7 @@ RETCODE SQL_API SQLExecute(HSTMT statement_handle) {
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size) {
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size) {
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -695,7 +695,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR
 }
 
 
-RETCODE SQL_API SQLNumResultCols(HSTMT statement_handle, SQLSMALLINT * column_count) {
+SQLRETURN SQL_API SQLNumResultCols(HSTMT statement_handle, SQLSMALLINT * column_count) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -712,7 +712,7 @@ RETCODE SQL_API SQLNumResultCols(HSTMT statement_handle, SQLSMALLINT * column_co
 }
 
 
-RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLColAttribute)(HSTMT statement_handle,
     SQLUSMALLINT column_number,
     SQLUSMALLINT field_identifier,
     SQLPOINTER out_string_value,
@@ -726,7 +726,7 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
         out_num_value) {
     LOG(__FUNCTION__ << "(col=" << column_number << ", field=" << field_identifier << ")");
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
         if (!statement.hasResultSet())
             throw SqlException("Column info is not available", "07009");
 
@@ -843,7 +843,7 @@ RETCODE SQL_API SQLColAttribute(HSTMT statement_handle,
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
     SQLUSMALLINT column_number,
     SQLTCHAR * out_column_name,
     SQLSMALLINT out_column_name_max_size,
@@ -883,7 +883,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
 }
 
 
-RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
+SQLRETURN impl_SQLGetData(HSTMT statement_handle,
     SQLUSMALLINT column_or_param_number,
     SQLSMALLINT target_type,
     PTR out_value,
@@ -894,7 +894,7 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
     SCOPE_EXIT({ LOG("impl_SQLGetData finish."); }); // for timing only
 #endif
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
         if (!statement.hasResultSet())
             throw SqlException("Column info is not available", "07009");
 
@@ -1011,14 +1011,14 @@ RETCODE SQL_API impl_SQLGetData(HSTMT statement_handle,
 }
 
 
-RETCODE
+SQLRETURN
 impl_SQLFetch(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 #ifndef NDEBUG
     SCOPE_EXIT({ LOG("impl_SQLFetch finish."); }); // for timing only
 #endif
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
         auto * rows_fetched_ptr = statement.getEffectiveDescriptor(SQL_ATTR_IMP_ROW_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
 
         if (rows_fetched_ptr)
@@ -1056,15 +1056,15 @@ impl_SQLFetch(HSTMT statement_handle) {
 }
 
 
-RETCODE SQL_API SQLFetch(HSTMT statement_handle) {
+SQLRETURN SQL_API SQLFetch(HSTMT statement_handle) {
     return impl_SQLFetch(statement_handle);
 }
 
 
-RETCODE SQL_API SQLFetchScroll(HSTMT statement_handle, SQLSMALLINT orientation, SQLLEN offset) {
+SQLRETURN SQL_API SQLFetchScroll(HSTMT statement_handle, SQLSMALLINT orientation, SQLLEN offset) {
     LOG(__FUNCTION__);
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
         if (orientation != SQL_FETCH_NEXT)
             throw SqlException("Fetch type out of range", "HY106");
 
@@ -1073,7 +1073,7 @@ RETCODE SQL_API SQLFetchScroll(HSTMT statement_handle, SQLSMALLINT orientation, 
 }
 
 
-RETCODE SQL_API SQLGetData(HSTMT statement_handle,
+SQLRETURN SQL_API SQLGetData(HSTMT statement_handle,
     SQLUSMALLINT column_or_param_number,
     SQLSMALLINT target_type,
     PTR out_value,
@@ -1084,7 +1084,7 @@ RETCODE SQL_API SQLGetData(HSTMT statement_handle,
 }
 
 
-RETCODE SQL_API SQLBindCol(HSTMT statement_handle,
+SQLRETURN SQL_API SQLBindCol(HSTMT statement_handle,
     SQLUSMALLINT column_number,
     SQLSMALLINT target_type,
     PTR out_value,
@@ -1129,7 +1129,7 @@ RETCODE SQL_API SQLBindCol(HSTMT statement_handle,
 }
 
 
-RETCODE SQL_API SQLRowCount(HSTMT statement_handle, SQLLEN * out_row_count) {
+SQLRETURN SQL_API SQLRowCount(HSTMT statement_handle, SQLLEN * out_row_count) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -1142,7 +1142,7 @@ RETCODE SQL_API SQLRowCount(HSTMT statement_handle, SQLLEN * out_row_count) {
 }
 
 
-RETCODE SQL_API SQLMoreResults(HSTMT statement_handle) {
+SQLRETURN SQL_API SQLMoreResults(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -1151,7 +1151,7 @@ RETCODE SQL_API SQLMoreResults(HSTMT statement_handle) {
 }
 
 
-RETCODE SQL_API SQLDisconnect(HDBC connection_handle) {
+SQLRETURN SQL_API SQLDisconnect(HDBC connection_handle) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
@@ -1186,7 +1186,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDiagRec)(
 
 
 /// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlgetdiagfield-function
-SQLRETURN SQL_API SQLGetDiagField(
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDiagField)(
     SQLSMALLINT handle_type,
     SQLHANDLE handle,
     SQLSMALLINT record_number,
@@ -1208,7 +1208,7 @@ SQLRETURN SQL_API SQLGetDiagField(
 
 
 /// Description: https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqltables
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
     SQLTCHAR * catalog_name,
     SQLSMALLINT catalog_name_length,
     SQLTCHAR * schema_name,
@@ -1289,7 +1289,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
     SQLTCHAR * catalog_name,
     SQLSMALLINT catalog_name_length,
     SQLTCHAR * schema_name,
@@ -1388,7 +1388,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
 }
 
 
-RETCODE SQL_API SQLGetTypeInfo(HSTMT statement_handle, SQLSMALLINT type) {
+SQLRETURN SQL_API SQLGetTypeInfo(HSTMT statement_handle, SQLSMALLINT type) {
     LOG(__FUNCTION__ << "(type = " << type << ")");
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -1489,7 +1489,7 @@ SQLRETURN SQL_API SQLNumParams(
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle,
     SQLTCHAR * query,
     SQLINTEGER query_length,
     SQLTCHAR * out_query,
@@ -1504,17 +1504,17 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle,
 }
 
 
-RETCODE SQL_API SQLCloseCursor(HSTMT statement_handle) {
+SQLRETURN SQL_API SQLCloseCursor(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> RETCODE {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
         statement.closeCursor();
         return SQL_SUCCESS;
     });
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLBrowseConnect)(HDBC connection_handle,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLBrowseConnect)(HDBC connection_handle,
     SQLTCHAR * szConnStrIn,
     SQLSMALLINT cbConnStrIn,
     SQLTCHAR * szConnStrOut,
@@ -1525,27 +1525,14 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLBrowseConnect)(HDBC connection_handle,
 }
 
 
-RETCODE SQL_API SQLCancel(HSTMT StatementHandle) {
+SQLRETURN SQL_API SQLCancel(HSTMT StatementHandle) {
     LOG(__FUNCTION__ << "Ignoring SQLCancel " << StatementHandle);
     return SQL_SUCCESS;
     //return SQL_ERROR;
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLDataSources)(HENV EnvironmentHandle,
-    SQLUSMALLINT Direction,
-    SQLTCHAR * ServerName,
-    SQLSMALLINT BufferLength1,
-    SQLSMALLINT * NameLength1,
-    SQLTCHAR * Description,
-    SQLSMALLINT BufferLength2,
-    SQLSMALLINT * NameLength2) {
-    LOG(__FUNCTION__);
-    return SQL_ERROR;
-}
-
-
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLGetCursorName)(
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetCursorName)(
     HSTMT StatementHandle, SQLTCHAR * CursorName, SQLSMALLINT BufferLength, SQLSMALLINT * NameLength) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
@@ -1553,83 +1540,77 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLGetCursorName)(
 
 
 /// This function can be implemented in the driver manager.
-RETCODE SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionId, SQLUSMALLINT * Supported) {
+SQLRETURN SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionId, SQLUSMALLINT * Supported) {
     LOG(__FUNCTION__ << ":" << __LINE__ << " " << " id=" << FunctionId << " ptr=" << Supported);
 
 #define SET_EXISTS(x) Supported[(x) >> 4] |= (1 << ((x)&0xF))
 // #define CLR_EXISTS(x) Supported[(x) >> 4] &= ~(1 << ((x) & 0xF))
 
-    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) -> RETCODE {
+    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) -> SQLRETURN {
         if (FunctionId == SQL_API_ODBC3_ALL_FUNCTIONS) {
             memset(Supported, 0, sizeof(Supported[0]) * SQL_API_ODBC3_ALL_FUNCTIONS_SIZE);
 
-            // info.cpp:
-            SET_EXISTS(SQL_API_SQLGETINFO);
-
-            // handles.cpp:
             SET_EXISTS(SQL_API_SQLALLOCHANDLE);
-            SET_EXISTS(SQL_API_SQLALLOCENV);
-            SET_EXISTS(SQL_API_SQLALLOCCONNECT);
-            SET_EXISTS(SQL_API_SQLALLOCSTMT);
-            SET_EXISTS(SQL_API_SQLFREEHANDLE);
-            SET_EXISTS(SQL_API_SQLFREEENV);
-            SET_EXISTS(SQL_API_SQLFREECONNECT);
-            SET_EXISTS(SQL_API_SQLFREESTMT);
-
-            // attr.cpp
-            SET_EXISTS(SQL_API_SQLSETENVATTR);
-            SET_EXISTS(SQL_API_SQLGETENVATTR);
-            SET_EXISTS(SQL_API_SQLSETCONNECTATTR);
-            SET_EXISTS(SQL_API_SQLGETCONNECTATTR);
-            SET_EXISTS(SQL_API_SQLSETSTMTATTR);
-            SET_EXISTS(SQL_API_SQLGETSTMTATTR);
-
-            // odbc.cpp:
-            SET_EXISTS(SQL_API_SQLCONNECT);
-            SET_EXISTS(SQL_API_SQLDRIVERCONNECT);
-            SET_EXISTS(SQL_API_SQLPREPARE);
-            SET_EXISTS(SQL_API_SQLEXECUTE);
-            SET_EXISTS(SQL_API_SQLEXECDIRECT);
-            SET_EXISTS(SQL_API_SQLNUMRESULTCOLS);
+            SET_EXISTS(SQL_API_SQLBINDCOL);
+            SET_EXISTS(SQL_API_SQLBINDPARAMETER);
+            //SET_EXISTS(SQL_API_SQLBROWSECONNECT);
+            //SET_EXISTS(SQL_API_SQLBULKOPERATIONS);
+            //SET_EXISTS(SQL_API_SQLCANCEL);
+            //SET_EXISTS(SQL_API_SQLCANCELHANDLE);
+            SET_EXISTS(SQL_API_SQLCLOSECURSOR);
             SET_EXISTS(SQL_API_SQLCOLATTRIBUTE);
+            //SET_EXISTS(SQL_API_SQLCOLUMNPRIVILEGES);
+            SET_EXISTS(SQL_API_SQLCOLUMNS);
+            //SET_EXISTS(SQL_API_SQLCOMPLETEASYNC);
+            SET_EXISTS(SQL_API_SQLCONNECT);
+            SET_EXISTS(SQL_API_SQLCOPYDESC);
             SET_EXISTS(SQL_API_SQLDESCRIBECOL);
+            SET_EXISTS(SQL_API_SQLDESCRIBEPARAM);
+            SET_EXISTS(SQL_API_SQLDISCONNECT);
+            SET_EXISTS(SQL_API_SQLDRIVERCONNECT);
+            //SET_EXISTS(SQL_API_SQLENDTRAN);
+            SET_EXISTS(SQL_API_SQLEXECDIRECT);
+            SET_EXISTS(SQL_API_SQLEXECUTE);
+            //SET_EXISTS(SQL_API_SQLEXTENDEDFETCH);
             SET_EXISTS(SQL_API_SQLFETCH);
             SET_EXISTS(SQL_API_SQLFETCHSCROLL);
+            //SET_EXISTS(SQL_API_SQLFOREIGNKEYS);
+            SET_EXISTS(SQL_API_SQLFREEHANDLE);
+            SET_EXISTS(SQL_API_SQLFREESTMT);
+            SET_EXISTS(SQL_API_SQLGETCONNECTATTR);
+            //SET_EXISTS(SQL_API_SQLGETCURSORNAME);
             SET_EXISTS(SQL_API_SQLGETDATA);
-            SET_EXISTS(SQL_API_SQLBINDCOL);
-            SET_EXISTS(SQL_API_SQLROWCOUNT);
-            SET_EXISTS(SQL_API_SQLMORERESULTS);
-            SET_EXISTS(SQL_API_SQLDISCONNECT);
-            SET_EXISTS(SQL_API_SQLGETDIAGREC);
-            SET_EXISTS(SQL_API_SQLGETDIAGFIELD);
-            SET_EXISTS(SQL_API_SQLTABLES);
-            SET_EXISTS(SQL_API_SQLCOLUMNS);
-            SET_EXISTS(SQL_API_SQLGETTYPEINFO);
-            SET_EXISTS(SQL_API_SQLNUMPARAMS);
-            SET_EXISTS(SQL_API_SQLNATIVESQL);
-            SET_EXISTS(SQL_API_SQLCLOSECURSOR);
             SET_EXISTS(SQL_API_SQLGETDESCFIELD);
             SET_EXISTS(SQL_API_SQLGETDESCREC);
+            SET_EXISTS(SQL_API_SQLGETDIAGFIELD);
+            SET_EXISTS(SQL_API_SQLGETDIAGREC);
+            SET_EXISTS(SQL_API_SQLGETENVATTR);
+            SET_EXISTS(SQL_API_SQLGETFUNCTIONS);
+            SET_EXISTS(SQL_API_SQLGETINFO);
+            SET_EXISTS(SQL_API_SQLGETSTMTATTR);
+            SET_EXISTS(SQL_API_SQLGETTYPEINFO);
+            SET_EXISTS(SQL_API_SQLMORERESULTS);
+            SET_EXISTS(SQL_API_SQLNATIVESQL);
+            SET_EXISTS(SQL_API_SQLNUMPARAMS);
+            SET_EXISTS(SQL_API_SQLNUMRESULTCOLS);
+            //SET_EXISTS(SQL_API_SQLPARAMDATA);
+            SET_EXISTS(SQL_API_SQLPREPARE);
+            //SET_EXISTS(SQL_API_SQLPRIMARYKEYS);
+            //SET_EXISTS(SQL_API_SQLPROCEDURECOLUMNS);
+            //SET_EXISTS(SQL_API_SQLPROCEDURES);
+            //SET_EXISTS(SQL_API_SQLPUTDATA);
+            SET_EXISTS(SQL_API_SQLROWCOUNT);
+            SET_EXISTS(SQL_API_SQLSETCONNECTATTR);
+            //SET_EXISTS(SQL_API_SQLSETCURSORNAME);
             SET_EXISTS(SQL_API_SQLSETDESCFIELD);
             SET_EXISTS(SQL_API_SQLSETDESCREC);
-            SET_EXISTS(SQL_API_SQLCOPYDESC);
-            // CLR_EXISTS(SQL_API_SQLBROWSECONNECT);
-            SET_EXISTS(SQL_API_SQLCANCEL);
-            // SET_EXISTS(SQL_API_SQLCANCELHANDLE);
-            // CLR_EXISTS(SQL_API_SQLDATASOURCES);
-            // CLR_EXISTS(SQL_API_SQLGETCURSORNAME);
-            SET_EXISTS(SQL_API_SQLGETFUNCTIONS);
-            // CLR_EXISTS(SQL_API_SQLPARAMDATA);
-            // CLR_EXISTS(SQL_API_SQLPUTDATA);
-            // CLR_EXISTS(SQL_API_SQLSETCURSORNAME);
-            SET_EXISTS(SQL_API_SQLBINDPARAMETER);
-            SET_EXISTS(SQL_API_SQLDESCRIBEPARAM);
-            // CLR_EXISTS(SQL_API_SQLSETPARAM);
-            // CLR_EXISTS(SQL_API_SQLSPECIALCOLUMNS);
-            // CLR_EXISTS(SQL_API_SQLSTATISTICS);
-            // CLR_EXISTS(SQL_API_SQLCOLUMNPRIVILEGES);
-
-            /// TODO: more here, but all not implemented
+            SET_EXISTS(SQL_API_SQLSETENVATTR);
+            //SET_EXISTS(SQL_API_SQLSETPOS);
+            SET_EXISTS(SQL_API_SQLSETSTMTATTR);
+            //SET_EXISTS(SQL_API_SQLSPECIALCOLUMNS);
+            //SET_EXISTS(SQL_API_SQLSTATISTICS);
+            //SET_EXISTS(SQL_API_SQLTABLEPRIVILEGES);
+            SET_EXISTS(SQL_API_SQLTABLES);
 
             return SQL_SUCCESS;
         } else if (FunctionId == SQL_API_ALL_FUNCTIONS) {
@@ -1657,38 +1638,25 @@ RETCODE SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionId,
 }
 
 
-RETCODE SQL_API SQLParamData(HSTMT StatementHandle, PTR * Value) {
+SQLRETURN SQL_API SQLParamData(HSTMT StatementHandle, PTR * Value) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
 
-RETCODE SQL_API SQLPutData(HSTMT StatementHandle, PTR Data, SQLLEN StrLen_or_Ind) {
+SQLRETURN SQL_API SQLPutData(HSTMT StatementHandle, PTR Data, SQLLEN StrLen_or_Ind) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLSetCursorName)(HSTMT StatementHandle, SQLTCHAR * CursorName, SQLSMALLINT NameLength) {
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLSetCursorName)(HSTMT StatementHandle, SQLTCHAR * CursorName, SQLSMALLINT NameLength) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
 
-RETCODE SQL_API SQLSetParam(HSTMT StatementHandle,
-    SQLUSMALLINT ParameterNumber,
-    SQLSMALLINT ValueType,
-    SQLSMALLINT ParameterType,
-    SQLULEN LengthPrecision,
-    SQLSMALLINT ParameterScale,
-    PTR ParameterValue,
-    SQLLEN * StrLen_or_Ind) {
-    LOG(__FUNCTION__);
-    return SQL_ERROR;
-}
-
-
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLSpecialColumns)(HSTMT StatementHandle,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLSpecialColumns)(HSTMT StatementHandle,
     SQLUSMALLINT IdentifierType,
     SQLTCHAR * CatalogName,
     SQLSMALLINT NameLength1,
@@ -1703,7 +1671,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLSpecialColumns)(HSTMT StatementHandle,
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLStatistics)(HSTMT StatementHandle,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLStatistics)(HSTMT StatementHandle,
     SQLTCHAR * CatalogName,
     SQLSMALLINT NameLength1,
     SQLTCHAR * SchemaName,
@@ -1717,7 +1685,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLStatistics)(HSTMT StatementHandle,
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLColumnPrivileges)(HSTMT hstmt,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLColumnPrivileges)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1751,21 +1719,19 @@ SQLRETURN SQL_API SQLDescribeParam(
 }
 
 
-RETCODE SQL_API SQLExtendedFetch(HSTMT hstmt,
-    SQLUSMALLINT fFetchType,
-    SQLLEN irow,
-#if defined(WITH_UNIXODBC) && (SIZEOF_LONG != 8)
-    SQLROWSETSIZE * pcrow,
-#else
-    SQLULEN * pcrow,
-#endif /* WITH_UNIXODBC */
-    SQLUSMALLINT * rgfRowStatus) {
+SQLRETURN SQL_API SQLExtendedFetch(
+    SQLHSTMT         StatementHandle,
+    SQLUSMALLINT     FetchOrientation,
+    SQLLEN           FetchOffset,
+    SQLULEN *        RowCountPtr,
+    SQLUSMALLINT *   RowStatusArray
+) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLForeignKeys)(HSTMT hstmt,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLForeignKeys)(HSTMT hstmt,
     SQLTCHAR * szPkCatalogName,
     SQLSMALLINT cbPkCatalogName,
     SQLTCHAR * szPkSchemaName,
@@ -1783,7 +1749,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLForeignKeys)(HSTMT hstmt,
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrimaryKeys)(HSTMT hstmt,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLPrimaryKeys)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1795,7 +1761,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLPrimaryKeys)(HSTMT hstmt,
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLProcedureColumns)(HSTMT hstmt,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLProcedureColumns)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1809,7 +1775,7 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLProcedureColumns)(HSTMT hstmt,
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLProcedures)(HSTMT hstmt,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLProcedures)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1821,13 +1787,13 @@ RETCODE SQL_API FUNCTION_MAYBE_W(SQLProcedures)(HSTMT hstmt,
 }
 
 
-RETCODE SQL_API SQLSetPos(HSTMT hstmt, SQLSETPOSIROW irow, SQLUSMALLINT fOption, SQLUSMALLINT fLock) {
+SQLRETURN SQL_API SQLSetPos(HSTMT hstmt, SQLSETPOSIROW irow, SQLUSMALLINT fOption, SQLUSMALLINT fLock) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLTablePrivileges)(HSTMT hstmt,
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLTablePrivileges)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1867,49 +1833,28 @@ SQLRETURN SQL_API SQLBindParameter(
 }
 
 
-/*
-RETCODE SQL_API
-SQLBulkOperations(
-     SQLHSTMT       StatementHandle,
-     SQLUSMALLINT   Operation)
-{
-    LOG(__FUNCTION__);
-    return SQL_ERROR;
-}*/
-
-
-RETCODE SQL_API SQLCancelHandle(SQLSMALLINT HandleType, SQLHANDLE Handle) {
+SQLRETURN SQL_API SQLBulkOperations(
+    SQLHSTMT         StatementHandle,
+    SQLSMALLINT      Operation
+) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
 
-RETCODE SQL_API SQLCompleteAsync(SQLSMALLINT HandleType, SQLHANDLE Handle, RETCODE * AsyncRetCodePtr) {
+SQLRETURN SQL_API SQLCancelHandle(SQLSMALLINT HandleType, SQLHANDLE Handle) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
 
-RETCODE SQL_API SQLEndTran(SQLSMALLINT HandleType, SQLHANDLE Handle, SQLSMALLINT CompletionType) {
+SQLRETURN SQL_API SQLCompleteAsync(SQLSMALLINT HandleType, SQLHANDLE Handle, RETCODE * AsyncRetCodePtr) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
 
-RETCODE SQL_API FUNCTION_MAYBE_W(SQLError)(SQLHENV hDrvEnv,
-    SQLHDBC hDrvDbc,
-    SQLHSTMT hDrvStmt,
-    SQLTCHAR * szSqlState,
-    SQLINTEGER * pfNativeError,
-    SQLTCHAR * szErrorMsg,
-    SQLSMALLINT nErrorMsgMax,
-    SQLSMALLINT * pcbErrorMsg) {
-    LOG(__FUNCTION__);
-    return SQL_ERROR;
-}
-
-
-RETCODE SQL_API SQLParamOptions(SQLHSTMT hDrvStmt, SQLULEN nRow, SQLULEN * pnRow) {
+SQLRETURN SQL_API SQLEndTran(SQLSMALLINT HandleType, SQLHANDLE Handle, SQLSMALLINT CompletionType) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
@@ -2021,19 +1966,6 @@ SQLRETURN SQL_API SQLCopyDesc(
         TargetDescHandle
     );
 }
-        
-        
-RETCODE SQL_API SQLSetScrollOptions(SQLHSTMT hDrvStmt, SQLUSMALLINT fConcurrency, SQLLEN crowKeyset, SQLUSMALLINT crowRowset) {
-    LOG(__FUNCTION__);
-    return SQL_ERROR;
-}
-
-
-RETCODE SQL_API SQLTransact(SQLHENV hDrvEnv, SQLHDBC hDrvDbc, UWORD nType) {
-    LOG(__FUNCTION__);
-    return SQL_ERROR;
-}
-
 
 /*
  *	This function is used to cause the Driver Manager to
@@ -2041,14 +1973,11 @@ RETCODE SQL_API SQLTransact(SQLHENV hDrvEnv, SQLHDBC hDrvDbc, UWORD nType) {
  *	The ordinal value of this function must be 199 to have the
  *	Driver Manager do this.  Also, the ordinal values of the
  *	functions must match the value of fFunction in SQLGetFunctions()
+ *
+ *	EDIT: not relevant for 3.x drivers. Currently, used for testing dynamic loading only.
  */
-RETCODE SQL_API SQLDummyOrdinal(void) {
-#if defined(_win_)
-    // TODO (artpaul) implement SQLGetFunctions
-    return SQL_ERROR;
-#else
-    return SQL_ERROR;
-#endif
+SQLRETURN SQL_API SQLDummyOrdinal(void) {
+    return SQL_SUCCESS;
 }
 
 } // extern "C"

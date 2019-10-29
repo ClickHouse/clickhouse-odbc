@@ -90,21 +90,6 @@ SQLRETURN SQL_API SQLAllocHandle(SQLSMALLINT handle_type, SQLHANDLE input_handle
     }
 }
 
-SQLRETURN SQL_API SQLAllocEnv(SQLHDBC * output_handle) {
-    LOG(__FUNCTION__);
-    return allocEnv(output_handle);
-}
-
-SQLRETURN SQL_API SQLAllocConnect(SQLHENV input_handle, SQLHDBC * output_handle) {
-    LOG(__FUNCTION__ << " input_handle=" << input_handle);
-    return allocConnect(input_handle, output_handle);
-}
-
-SQLRETURN SQL_API SQLAllocStmt(SQLHDBC input_handle, SQLHSTMT * output_handle) {
-    LOG(__FUNCTION__ << " input_handle=" << input_handle);
-    return allocStmt(input_handle, output_handle);
-}
-
 SQLRETURN SQL_API SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE handle) {
     LOG(__FUNCTION__ << " handleType=" << handleType << " handle=" << handle);
 
@@ -118,16 +103,6 @@ SQLRETURN SQL_API SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE handle) {
             LOG("FreeHandle: Unknown handleType=" << handleType);
             return SQL_ERROR;
     }
-}
-
-SQLRETURN SQL_API SQLFreeEnv(HENV handle) {
-    LOG(__FUNCTION__);
-    return freeHandle(handle);
-}
-
-SQLRETURN SQL_API SQLFreeConnect(HDBC handle) {
-    LOG(__FUNCTION__);
-    return freeHandle(handle);
 }
 
 SQLRETURN SQL_API SQLFreeStmt(HSTMT statement_handle, SQLUSMALLINT option) {

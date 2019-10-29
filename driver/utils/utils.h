@@ -250,7 +250,7 @@ void stringToTCHAR(const std::string & data, STRING (&result)[Len]) {
 }
 
 template <typename STRING, typename PTR, typename LENGTH>
-RETCODE fillOutputStringImpl(
+SQLRETURN fillOutputStringImpl(
     const STRING & value, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes) {
     using CharType = typename STRING::value_type;
     LENGTH symbols = static_cast<LENGTH>(value.size());
@@ -288,12 +288,12 @@ RETCODE fillOutputStringImpl(
 }
 
 template <typename PTR, typename LENGTH>
-RETCODE fillOutputRawString(const std::string & value, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length) {
+SQLRETURN fillOutputRawString(const std::string & value, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length) {
     return fillOutputStringImpl(value, out_value, out_value_max_length, out_value_length, true);
 }
 
 template <typename PTR, typename LENGTH>
-RETCODE fillOutputUSC2String(
+SQLRETURN fillOutputUSC2String(
     const std::string & value, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true) {
     using CharType = MY_STD_W_CHAR;
 
@@ -310,7 +310,7 @@ RETCODE fillOutputUSC2String(
 }
 
 template <typename PTR, typename LENGTH>
-RETCODE fillOutputPlatformString(
+SQLRETURN fillOutputPlatformString(
     const std::string & value, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true) {
 #if defined(UNICODE)
     return fillOutputUSC2String(value, out_value, out_value_max_length, out_value_length, length_in_bytes);
@@ -321,14 +321,14 @@ RETCODE fillOutputPlatformString(
 
 
 template <typename NUM, typename PTR, typename LENGTH>
-RETCODE fillOutputNumber(NUM num, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length) {
+SQLRETURN fillOutputNumber(NUM num, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length) {
     if (out_value_length)
         *out_value_length = sizeof(num);
 
     if (out_value_max_length < 0)
         return SQL_ERROR;
 
-    bool res = SQL_SUCCESS;
+    SQLRETURN res = SQL_SUCCESS;
 
     if (out_value) {
         if (out_value_max_length == 0 || out_value_max_length >= static_cast<LENGTH>(sizeof(num))) {
@@ -342,7 +342,7 @@ RETCODE fillOutputNumber(NUM num, PTR out_value, LENGTH out_value_max_length, LE
     return res;
 }
 
-inline RETCODE fillOutputNULL(PTR out_value, SQLLEN out_value_max_length, SQLLEN * out_value_length) {
+inline SQLRETURN fillOutputNULL(PTR out_value, SQLLEN out_value_max_length, SQLLEN * out_value_length) {
     if (out_value_length)
         *out_value_length = SQL_NULL_DATA;
     return SQL_SUCCESS;

@@ -438,11 +438,11 @@ SQLRETURN SQL_API SQLSetEnvAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER
     return impl::SetEnvAttr(handle, attribute, value, value_length);
 }
 
-SQLRETURN SQL_API SQLSetConnectAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLSetConnectAttr)(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     return impl::SetConnectAttr(handle, attribute, value, value_length);
 }
 
-SQLRETURN SQL_API SQLSetStmtAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLSetStmtAttr)(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     return impl::SetStmtAttr(handle, attribute, value, value_length);
 }
 
@@ -451,36 +451,14 @@ SQLRETURN SQL_API SQLGetEnvAttr(
     return impl::GetEnvAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
-SQLRETURN SQL_API SQLGetConnectAttr(
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetConnectAttr)(
     SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
     return impl::GetConnectAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
-SQLRETURN SQL_API SQLGetStmtAttr(
+SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetStmtAttr)(
     SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
     return impl::GetStmtAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
-}
-
-SQLRETURN SQL_API SQLGetConnectOption(SQLHDBC connection_handle, UWORD attribute, PTR out_value) {
-    SQLINTEGER value_max_length = 64;
-    SQLINTEGER value_length_unused = 0;
-    return impl::GetConnectAttr(connection_handle, attribute, out_value, value_max_length, &value_length_unused);
-}
-
-SQLRETURN SQL_API SQLGetStmtOption(SQLHSTMT statement_handle, UWORD attribute, PTR out_value) {
-    SQLINTEGER value_max_length = 64;
-    SQLINTEGER value_length_unused = 0;
-    return impl::GetStmtAttr(statement_handle, attribute, out_value, value_max_length, &value_length_unused);
-}
-
-SQLRETURN SQL_API SQLSetConnectOption(SQLHDBC connection_handle, UWORD attribute, SQLULEN value) {
-    return impl::SetConnectAttr(connection_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
-}
-
-SQLRETURN SQL_API SQLSetStmtOption(SQLHSTMT statement_handle, UWORD attribute, SQLULEN value) {
-    /// TODO (artpaul)
-    /// See https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/sqlsetstmtoption-mapping for correct implementation.
-    return impl::SetStmtAttr(statement_handle, attribute, reinterpret_cast<void *>(value), sizeof(value));
 }
 
 } // extern "C"
