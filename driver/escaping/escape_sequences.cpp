@@ -6,11 +6,10 @@
 
 */
 #include "escape_sequences.h"
+#include "lexer.h"
 
 #include <iostream>
 #include <map>
-#include "lexer.h"
-//#include "log/log.h"
 
 
 using namespace std;

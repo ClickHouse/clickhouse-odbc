@@ -1,7 +1,7 @@
 #include "connection.h"
-#include "utils.h"
-#include "string_ref.h"
-#include "config.h"
+#include "utils/utils.h"
+#include "utils/string_ref.h"
+#include "config/config.h"
 #include "descriptor.h"
 #include "statement.h"
 

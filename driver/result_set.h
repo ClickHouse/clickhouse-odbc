@@ -3,9 +3,9 @@
 #include <deque>
 #include <memory>
 #include <vector>
-#include "platform.h"
-#include "read_helpers.h"
-#include "type_parser.h"
+#include "platform/platform.h"
+#include "utils/read_helpers.h"
+#include "utils/type_parser.h"
 
 class Statement;
 

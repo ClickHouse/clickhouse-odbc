@@ -1,4 +1,4 @@
-#include "platform.h"
+#include "platform/platform.h"
 
 #include <Poco/SharedLibrary.h>
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "platform.h"
-#include "unicode_t.h"
+#include "platform/platform.h"
+#include "platform/unicode_t.h"
 
 #include <algorithm>
 #include <string>

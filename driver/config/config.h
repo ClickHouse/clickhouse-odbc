@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ini_defines.h"
-#include "unicode_t.h"
+#include "platform/unicode_t.h"
 
 /**
  * Structure to hold all the connection attributes for a specific

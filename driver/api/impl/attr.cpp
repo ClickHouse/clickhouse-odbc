@@ -1,9 +1,9 @@
 #include <Poco/Net/HTTPClientSession.h>
 #include "connection.h"
 #include "environment.h"
-#include "scope_guard.h"
+#include "utils/scope_guard.h"
 #include "statement.h"
-#include "utils.h"
+#include "utils/utils.h"
 
 namespace { namespace impl {
 

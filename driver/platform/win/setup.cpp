@@ -1,8 +1,8 @@
 #define POCO_NO_UNWINDOWS
 
-#include "../platform.h"
-#include "../utils.h"
-#include "../config.h"
+#include "platform/platform.h"
+#include "utils/utils.h"
+#include "config/config.h"
 #include "resource.h"
 
 #if defined(_win_)

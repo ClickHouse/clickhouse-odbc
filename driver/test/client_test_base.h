@@ -1,6 +1,6 @@
 #pragma once
 
-#include "platform.h"
+#include "platform/platform.h"
 #include "gtest_env.h"
 #include "client_utils.h"
 

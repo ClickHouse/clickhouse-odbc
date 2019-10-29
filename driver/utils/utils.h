@@ -1,9 +1,9 @@
 #pragma once
 
-#include "platform.h"
+#include "platform/platform.h"
 #include "type_info.h"
 #include "string_ref.h"
-#include "unicode_t.h"
+#include "platform/unicode_t.h"
 
 #ifndef NDEBUG
 #    if USE_DEBUG_17

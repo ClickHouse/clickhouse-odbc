@@ -5,9 +5,9 @@
 #endif
 
 #if defined(UNICODE)
-#    include "config_cmakew.h"
+#    include "platform/config_cmakew.h"
 #else
-#    include "config_cmake.h"
+#    include "platform/config_cmake.h"
 #endif
 
 #if defined(__linux__)

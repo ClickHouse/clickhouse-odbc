@@ -1,7 +1,7 @@
 #pragma once
 
-#include "platform.h"
-#include "utils.h"
+#include "platform/platform.h"
+#include "utils/utils.h"
 #include "attributes.h"
 #include "diagnostics.h"
 

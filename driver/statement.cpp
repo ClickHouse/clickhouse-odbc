@@ -1,5 +1,5 @@
-#include "platform.h"
-#include "utils.h"
+#include "platform/platform.h"
+#include "utils/utils.h"
 #include "statement.h"
 #include "escaping/lexer.h"
 #include "escaping/escape_sequences.h"

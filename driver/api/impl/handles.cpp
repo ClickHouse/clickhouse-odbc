@@ -3,7 +3,7 @@
 #include "connection.h"
 #include "descriptor.h"
 #include "statement.h"
-#include "utils.h"
+#include "utils/utils.h"
 
 #include <Poco/Net/HTTPClientSession.h>
 

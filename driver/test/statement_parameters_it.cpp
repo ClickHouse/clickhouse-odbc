@@ -1,4 +1,4 @@
-#include "platform.h"
+#include "platform/platform.h"
 #include "gtest_env.h"
 #include "client_utils.h"
 #include "client_test_base.h"

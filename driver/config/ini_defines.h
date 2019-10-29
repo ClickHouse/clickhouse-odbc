@@ -1,4 +1,6 @@
-#include "platform.h"
+#pragma once
+
+#include "platform/platform.h"
 
 #define LARGE_REGISTRY_LEN 4096 /// used for special cases */
 #define MEDIUM_REGISTRY_LEN 256 /// normal size for user, database, etc.
