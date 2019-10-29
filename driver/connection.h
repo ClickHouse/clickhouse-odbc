@@ -1,12 +1,12 @@
 #pragma once
 
-#include "driver.h"
-#include "environment.h"
+#include "driver/driver.h"
+#include "driver/environment.h"
+
+#include <Poco/Net/HTTPClientSession.h>
 
 #include <memory>
 #include <mutex>
-
-#include <Poco/Net/HTTPClientSession.h>
 
 class DescriptorRecord;
 class Descriptor;

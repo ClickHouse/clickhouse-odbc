@@ -1,4 +1,4 @@
-#include "../platform.h"
+#include "driver/platform/platform.h"
 
 /// Saved module handle.
 HINSTANCE module_instance = 0;

@@ -1,4 +1,4 @@
-#include "diagnostics.h"
+#include "driver/diagnostics.h"
 
 #include <Poco/Exception.h>
 

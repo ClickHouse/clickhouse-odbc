@@ -1,9 +1,9 @@
 #define POCO_NO_UNWINDOWS
 
-#include "platform/platform.h"
-#include "utils/utils.h"
-#include "config/config.h"
-#include "resource.h"
+#include "driver/platform/platform.h"
+#include "driver/platform/win/resource.h"
+#include "driver/utils/utils.h"
+#include "driver/config/config.h"
 
 #if defined(_win_)
 

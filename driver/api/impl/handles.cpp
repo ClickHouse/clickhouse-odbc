@@ -1,9 +1,9 @@
-#include "driver.h"
-#include "environment.h"
-#include "connection.h"
-#include "descriptor.h"
-#include "statement.h"
-#include "utils/utils.h"
+#include "driver/utils/utils.h"
+#include "driver/driver.h"
+#include "driver/environment.h"
+#include "driver/connection.h"
+#include "driver/descriptor.h"
+#include "driver/statement.h"
 
 #include <Poco/Net/HTTPClientSession.h>
 

@@ -1,6 +1,7 @@
+#include "driver/utils/utils.h"
+#include "driver/connection.h"
+
 #include <Poco/NumberFormatter.h>
-#include "connection.h"
-#include "utils/utils.h"
 
 #if (ODBCVER >= 0x0380)
 #    define SQL_DRIVER_AWARE_POOLING_CAPABLE 0x00000001L

@@ -1,7 +1,3 @@
-find_package (Threads)
-
-add_subdirectory(escaping)
-
 function(declare_odbc_lib_targets libname UNICODE)
 
 #option (UNICODE "Enable unicode" 0)
@@ -38,40 +34,54 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/platform/config_cmake.h.in ${CMAKE_C
 
 # In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
 add_library(${libname}-impl STATIC
-    attributes.cpp
+    utils/read_helpers.cpp
+    utils/type_parser.cpp
+
     config/config.cpp
+
+    escaping/escape_sequences.cpp
+    escaping/lexer.cpp
+
+    attributes.cpp
     connection.cpp
     descriptor.cpp
     diagnostics.cpp
     driver.cpp
     environment.cpp
     object.cpp
-    utils/read_helpers.cpp
     result_set.cpp
     statement.cpp
     type_info.cpp
-    utils/type_parser.cpp
+
+
+    platform/platform.h
+    platform/unicode_t.h
+
+    utils/utils.h
+    utils/iostream_debug_helpers.h
+    utils/read_helpers.h
+    utils/type_parser.h
+    utils/scope_guard.h
+    utils/string_ref.h
+
+    config/config.h
+    config/ini_defines.h
+
+    escaping/escape_sequences.h
+    escaping/lexer.h
+    escaping/lexer_declare.h
+    escaping/function_declare.h
 
     attributes.h
-    config/config.h
     connection.h
     descriptor.h
     diagnostics.h
     driver.h
     environment.h
-    config/ini_defines.h
-    utils/iostream_debug_helpers.h
     object.h
-    platform/platform.h
-    utils/read_helpers.h
     result_set.h
-    utils/scope_guard.h
     statement.h
-    utils/string_ref.h
     type_info.h
-    utils/type_parser.h
-    platform/unicode_t.h
-    utils/utils.h
 )
 
 set (WIN_SOURCES)
@@ -110,15 +120,18 @@ if (UNICODE)
     #endif()
 endif ()
 
-target_include_directories (${libname}-impl PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_include_directories (${libname}-impl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories (${libname}-impl PUBLIC ${Poco_INCLUDE_DIRS})
-target_include_directories (${libname}-impl PUBLIC ${ODBC_INCLUDE_DIRECTORIES})
-
-target_link_libraries(${libname}-impl PUBLIC clickhouse-odbc-escaping)
+target_include_directories (${libname}-impl
+    PUBLIC ${PROJECT_BINARY_DIR}
+    PUBLIC ${PROJECT_SOURCE_DIR}
+    PUBLIC ${Poco_INCLUDE_DIRS}
+    PUBLIC ${ODBC_INCLUDE_DIRECTORIES}
+)
 
 if(USE_SSL)
-    target_link_libraries(${libname}-impl PUBLIC ${Poco_NetSSL_LIBRARY} ${Poco_Crypto_LIBRARY})
+    target_link_libraries(${libname}-impl
+        PUBLIC ${Poco_NetSSL_LIBRARY}
+        PUBLIC ${Poco_Crypto_LIBRARY}
+    )
     target_include_directories (${libname}-impl PUBLIC ${OPENSSL_INCLUDE_DIR})
 endif()
 
@@ -130,7 +143,7 @@ target_link_libraries(${libname}-impl
 )
 
 if(NOT APPLE AND NOT WIN32)
-    target_link_libraries(${libname}-impl PUBLIC "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script")
+    target_link_libraries(${libname}-impl PUBLIC "-Wl,--version-script=${PROJECT_SOURCE_DIR}/driver/platform/linker_script")
 endif()
 
 if(WIN32)

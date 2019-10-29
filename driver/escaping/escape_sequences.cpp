@@ -5,12 +5,11 @@
  https://my.vertica.com/docs/7.2.x/HTML/index.htm#Authoring/SQLReferenceManual/Functions/Date-Time/TIMESTAMPADD.htm%3FTocPath%3DSQL%2520Reference%2520Manual%7CSQL%2520Functions%7CDate%252FTime%2520Functions%7C_____43
 
 */
-#include "escape_sequences.h"
-#include "lexer.h"
+#include "driver/escaping/escape_sequences.h"
+#include "driver/escaping/lexer.h"
 
 #include <iostream>
 #include <map>
-
 
 using namespace std;
 

@@ -1,6 +1,6 @@
-#include "config.h"
-#include "driver.h"
-#include "utils/utils.h"
+#include "driver/utils/utils.h"
+#include "driver/config/config.h"
+#include "driver/driver.h"
 
 #include <odbcinst.h>
 

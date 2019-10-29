@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ini_defines.h"
-#include "platform/unicode_t.h"
+#include "driver/platform/unicode_t.h"
+#include "driver/config/ini_defines.h"
 
 /**
  * Structure to hold all the connection attributes for a specific

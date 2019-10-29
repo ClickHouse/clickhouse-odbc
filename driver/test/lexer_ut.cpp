@@ -1,4 +1,5 @@
-#include <escaping/lexer.h>
+#include "driver/escaping/lexer.h"
+
 #include <gtest/gtest.h>
 
 TEST(LexerCase, ParseString) {

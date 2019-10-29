@@ -1,7 +1,7 @@
 #pragma once
 
-#include "platform/platform.h"
-#include "type_info.h"
+#include "driver/platform/platform.h"
+#include "driver/type_info.h"
 
 namespace {
 

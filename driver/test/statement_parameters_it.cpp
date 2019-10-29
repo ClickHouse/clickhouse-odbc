@@ -1,7 +1,7 @@
-#include "platform/platform.h"
-#include "gtest_env.h"
-#include "client_utils.h"
-#include "client_test_base.h"
+#include "driver/platform/platform.h"
+#include "driver/test/gtest_env.h"
+#include "driver/test/client_utils.h"
+#include "driver/test/client_test_base.h"
 
 #include <gtest/gtest.h>
 

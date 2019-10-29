@@ -1,16 +1,17 @@
-#include "environment.h"
-#include "connection.h"
-
-#include <cstdio>
-#include <ctime>
-#include <sstream>
-#include <string>
-#include "platform/unicode_t.h"
+#include "driver/platform/unicode_t.h"
+#include "driver/environment.h"
+#include "driver/connection.h"
 
 #if defined(_unix_)
 #    include <pwd.h>
 #    include <unistd.h>
 #endif
+
+#include <sstream>
+#include <string>
+
+#include <cstdio>
+#include <ctime>
 
 Environment::Environment(Driver & driver)
     : ChildType(driver)

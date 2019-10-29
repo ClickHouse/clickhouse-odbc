@@ -1,10 +1,10 @@
 #pragma once
 
-#include "platform/platform.h"
-#include "utils/utils.h"
-#include "attributes.h"
-#include "diagnostics.h"
-#include "object.h"
+#include "driver/platform/platform.h"
+#include "driver/utils/utils.h"
+#include "driver/attributes.h"
+#include "driver/diagnostics.h"
+#include "driver/object.h"
 
 #include <Poco/Exception.h>
 

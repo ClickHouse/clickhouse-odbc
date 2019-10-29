@@ -1,7 +1,7 @@
 #pragma once
 
-#include "platform/platform.h"
-#include "utils/utils.h"
+#include "driver/platform/platform.h"
+#include "driver/utils/utils.h"
 
 #include <string>
 #include <unordered_map>

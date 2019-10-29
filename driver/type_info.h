@@ -1,7 +1,7 @@
 #pragma once
 
-#include "platform/platform.h"
-#include "platform/unicode_t.h"
+#include "driver/platform/platform.h"
+#include "driver/platform/unicode_t.h"
 
 #include <algorithm>
 #include <string>

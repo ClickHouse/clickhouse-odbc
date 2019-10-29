@@ -1,8 +1,8 @@
 #pragma once
 
-#include "platform/platform.h"
-#include "gtest_env.h"
-#include "client_utils.h"
+#include "driver/platform/platform.h"
+#include "driver/test/gtest_env.h"
+#include "driver/test/client_utils.h"
 
 #include <gtest/gtest.h>
 

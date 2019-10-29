@@ -1,9 +1,10 @@
+#include "driver/utils/utils.h"
+#include "driver/utils/scope_guard.h"
+#include "driver/environment.h"
+#include "driver/connection.h"
+#include "driver/statement.h"
+
 #include <Poco/Net/HTTPClientSession.h>
-#include "connection.h"
-#include "environment.h"
-#include "utils/scope_guard.h"
-#include "statement.h"
-#include "utils/utils.h"
 
 namespace { namespace impl {
 

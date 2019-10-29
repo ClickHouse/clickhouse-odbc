@@ -1,9 +1,9 @@
 #pragma once
 
+#include "driver/platform/platform.h"
+
 #include <codecvt>
 #include <locale>
-
-#include "platform.h"
 
 #if defined(_win_) && defined(UNICODE)
 #    define ODBC_WCHAR 1

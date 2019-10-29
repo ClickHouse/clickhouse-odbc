@@ -1,24 +1,25 @@
-#include "driver.h"
-#include "utils/utils.h"
-#include "utils/scope_guard.h"
-#include "utils/string_ref.h"
-#include "utils/type_parser.h"
-#include "attributes.h"
-#include "diagnostics.h"
-#include "environment.h"
-#include "connection.h"
-#include "descriptor.h"
-#include "statement.h"
-#include "result_set.h"
+#include "driver/utils/utils.h"
+#include "driver/utils/scope_guard.h"
+#include "driver/utils/string_ref.h"
+#include "driver/utils/type_parser.h"
+#include "driver/attributes.h"
+#include "driver/diagnostics.h"
+#include "driver/driver.h"
+#include "driver/environment.h"
+#include "driver/connection.h"
+#include "driver/descriptor.h"
+#include "driver/statement.h"
+#include "driver/result_set.h"
+
+#include <Poco/Net/HTTPClientSession.h>
 
 #include <iostream>
 #include <locale>
 #include <sstream>
 #include <stdexcept>
+
 #include <cstdio>
 #include <cstring>
-
-#include <Poco/Net/HTTPClientSession.h>
 
 /** Functions from the ODBC interface can not directly call other functions.
   * Because not a function from this library will be called, but a wrapper from the driver manager,

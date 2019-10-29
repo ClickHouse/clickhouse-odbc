@@ -5,9 +5,9 @@
 #endif
 
 #if defined(UNICODE)
-#    include "platform/config_cmakew.h"
+#    include "driver/platform/config_cmakew.h"
 #else
-#    include "platform/config_cmake.h"
+#    include "driver/platform/config_cmake.h"
 #endif
 
 #if defined(__linux__)

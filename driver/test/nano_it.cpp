@@ -1,14 +1,13 @@
 #include <nanodbc/nanodbc.h>
 
 #include <algorithm>
-#include <cstring>
 #include <iostream>
+
+#include <cstring>
 
 //#include "example_unicode_utils.h"
 #ifndef NANODBC_UNICODE_UTILS_H
 #    define NANODBC_UNICODE_UTILS_H
-
-#    include <nanodbc/nanodbc.h>
 
 #    if defined(__GNUC__) && __GNUC__ < 5
 #        include <cwchar>

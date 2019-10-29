@@ -10,7 +10,6 @@ function(declare_odbc_test_targets libname UNICODE)
     )
 
     target_link_libraries(${libname}-ut
-        PRIVATE clickhouse-odbc-escaping
         PRIVATE ${libname}-impl
         PRIVATE gtest-lib
         PRIVATE Threads::Threads
@@ -30,10 +29,8 @@ function(declare_odbc_test_targets libname UNICODE)
     )
 
     target_include_directories(${libname}-load-ut
-        PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
-        PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..
+        PRIVATE ${PROJECT_BINARY_DIR}
+        PRIVATE ${PROJECT_SOURCE_DIR}
         PRIVATE ${Poco_INCLUDE_DIRS}
         PRIVATE ${ODBC_INCLUDE_DIRECTORIES}
     )
@@ -51,7 +48,7 @@ function(declare_odbc_test_targets libname UNICODE)
         gtest_env.cpp
         client_utils.h
         client_test_base.h
-        ../type_info.cpp
+        ${PROJECT_SOURCE_DIR}/driver/type_info.cpp
         statement_parameters_it.cpp
         performance_it.cpp
     )
@@ -65,10 +62,8 @@ function(declare_odbc_test_targets libname UNICODE)
     )
 
     target_include_directories(${libname}-client-it
-        PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
-        PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/..
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..
+        PRIVATE ${PROJECT_BINARY_DIR}
+        PRIVATE ${PROJECT_SOURCE_DIR}
         PRIVATE ${Poco_INCLUDE_DIRS}
         PRIVATE ${ODBC_INCLUDE_DIRECTORIES}
     )

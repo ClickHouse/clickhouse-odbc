@@ -1,14 +1,24 @@
 #pragma once
 
-#include "platform/platform.h"
-#include "type_info.h"
-#include "string_ref.h"
-#include "platform/unicode_t.h"
+#include "driver/platform/platform.h"
+#include "driver/platform/unicode_t.h"
+#include "driver/utils/string_ref.h"
+#include "driver/type_info.h"
 
 #ifndef NDEBUG
 #    if USE_DEBUG_17
-#        include "iostream_debug_helpers.h"
+#        include "driver/utils/iostream_debug_helpers.h"
 #    endif
+#endif
+
+#include <Poco/NumberParser.h>
+#include <Poco/String.h>
+
+#ifdef _win_
+#   include <processthreadsapi.h>
+#else
+#   include <sys/types.h>
+#   include <unistd.h>
 #endif
 
 #include <algorithm>
@@ -20,16 +30,6 @@
 #include <type_traits>
 
 #include <cstring>
-
-#ifdef _win_
-#   include <processthreadsapi.h>
-#else
-#   include <sys/types.h>
-#   include <unistd.h>
-#endif
-
-#include <Poco/NumberParser.h>
-#include <Poco/String.h>
 
 #if __cplusplus >= 201703L
 
