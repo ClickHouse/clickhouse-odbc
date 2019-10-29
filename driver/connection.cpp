@@ -1,9 +1,9 @@
-#include "connection.h"
-#include "utils.h"
-#include "string_ref.h"
-#include "config.h"
-#include "descriptor.h"
-#include "statement.h"
+#include "driver/utils/utils.h"
+#include "driver/utils/string_ref.h"
+#include "driver/config/config.h"
+#include "driver/connection.h"
+#include "driver/descriptor.h"
+#include "driver/statement.h"
 
 #include <Poco/Base64Encoder.h>
 #include <Poco/Net/HTTPClientSession.h>
@@ -19,7 +19,6 @@
 #    include <Poco/Net/PrivateKeyPassphraseHandler.h>
 #    include <Poco/Net/SSLManager.h>
 #endif
-
 
 std::once_flag ssl_init_once;
 

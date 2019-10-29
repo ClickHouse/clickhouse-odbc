@@ -1,9 +1,9 @@
 #pragma once
 
-#include "platform.h"
-#include "utils.h"
-#include "attributes.h"
-#include "diagnostics.h"
+#include "driver/platform/platform.h"
+#include "driver/utils/utils.h"
+#include "driver/attributes.h"
+#include "driver/diagnostics.h"
 
 #include <fstream>
 #include <memory>

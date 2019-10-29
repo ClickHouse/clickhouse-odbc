@@ -1,11 +1,12 @@
 #pragma once
 
+#include "driver/platform/platform.h"
+#include "driver/utils/read_helpers.h"
+#include "driver/utils/type_parser.h"
+
 #include <deque>
 #include <memory>
 #include <vector>
-#include "platform.h"
-#include "read_helpers.h"
-#include "type_parser.h"
 
 class Statement;
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "driver.h"
-#include "diagnostics.h"
-#include "type_info.h"
+#include "driver/driver.h"
+#include "driver/diagnostics.h"
+#include "driver/type_info.h"
 
 #include <map>
 #include <stdexcept>

@@ -1,7 +1,3 @@
-find_package (Threads)
-
-add_subdirectory(escaping)
-
 function(declare_odbc_lib_targets libname UNICODE)
 
 #option (UNICODE "Enable unicode" 0)
@@ -34,62 +30,76 @@ endif ()
 
 message (STATUS "${libname}: UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_CONVERT} ODBC_WCHAR=${ODBC_WCHAR} ODBC_CHAR16=${ODBC_CHAR16}")
 
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/config_cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/config_cmake${_config_add}.h)
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/platform/config_cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/platform/config_cmake${_config_add}.h)
 
 # In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
 add_library(${libname}-impl STATIC
+    utils/read_helpers.cpp
+    utils/type_parser.cpp
+
+    config/config.cpp
+
+    escaping/escape_sequences.cpp
+    escaping/lexer.cpp
+
     attributes.cpp
-    config.cpp
     connection.cpp
     descriptor.cpp
     diagnostics.cpp
     driver.cpp
     environment.cpp
     object.cpp
-    read_helpers.cpp
     result_set.cpp
     statement.cpp
     type_info.cpp
-    type_parser.cpp
+
+
+    platform/platform.h
+    platform/unicode_t.h
+
+    utils/utils.h
+    utils/iostream_debug_helpers.h
+    utils/read_helpers.h
+    utils/type_parser.h
+    utils/scope_guard.h
+    utils/string_ref.h
+
+    config/config.h
+    config/ini_defines.h
+
+    escaping/escape_sequences.h
+    escaping/lexer.h
+    escaping/lexer_declare.h
+    escaping/function_declare.h
 
     attributes.h
-    config.h
     connection.h
     descriptor.h
     diagnostics.h
     driver.h
     environment.h
-    ini_defines.h
-    iostream_debug_helpers.h
     object.h
-    platform.h
-    read_helpers.h
     result_set.h
-    scope_guard.h
     statement.h
-    string_ref.h
     type_info.h
-    type_parser.h
-    unicode_t.h
-    utils.h
 )
 
 set (WIN_SOURCES)
 if (WIN32)
     set (WIN_SOURCES
-        "win/dllmain.cpp"
-        "win/resource.h"
-        "win/setup.cpp"
-        "win/resource.rc"
-        "win/${libname}.def"
+        platform/win/dllmain.cpp
+        platform/win/resource.h
+        platform/win/setup.cpp
+        platform/win/resource.rc
+        platform/win/${libname}.def
     )
 endif()
 
 add_library(${libname} SHARED
-    odbc.cpp
-    handles.cpp
-    attr.cpp
-    info.cpp
+    api/odbc.cpp
+    api/impl/handles.cpp
+    api/impl/attr.cpp
+    api/impl/info.cpp
 
     ${WIN_SOURCES}
 )
@@ -110,15 +120,18 @@ if (UNICODE)
     #endif()
 endif ()
 
-target_include_directories (${libname}-impl PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_include_directories (${libname}-impl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories (${libname}-impl PUBLIC ${Poco_INCLUDE_DIRS})
-target_include_directories (${libname}-impl PUBLIC ${ODBC_INCLUDE_DIRECTORIES})
-
-target_link_libraries(${libname}-impl PUBLIC clickhouse-odbc-escaping)
+target_include_directories (${libname}-impl
+    PUBLIC ${PROJECT_BINARY_DIR}
+    PUBLIC ${PROJECT_SOURCE_DIR}
+    PUBLIC ${Poco_INCLUDE_DIRS}
+    PUBLIC ${ODBC_INCLUDE_DIRECTORIES}
+)
 
 if(USE_SSL)
-    target_link_libraries(${libname}-impl PUBLIC ${Poco_NetSSL_LIBRARY} ${Poco_Crypto_LIBRARY})
+    target_link_libraries(${libname}-impl
+        PUBLIC ${Poco_NetSSL_LIBRARY}
+        PUBLIC ${Poco_Crypto_LIBRARY}
+    )
     target_include_directories (${libname}-impl PUBLIC ${OPENSSL_INCLUDE_DIR})
 endif()
 
@@ -130,7 +143,7 @@ target_link_libraries(${libname}-impl
 )
 
 if(NOT APPLE AND NOT WIN32)
-    target_link_libraries(${libname}-impl PUBLIC "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/linker_script")
+    target_link_libraries(${libname}-impl PUBLIC "-Wl,--version-script=${PROJECT_SOURCE_DIR}/driver/platform/linker_script")
 endif()
 
 if(WIN32)
@@ -180,5 +193,5 @@ set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
 set_target_properties(clickhouse-odbcw PROPERTIES OUTPUT_NAME "clickhouseodbcw")
 
 if(CLICKHOUSE_ODBC_TEST)
-    add_subdirectory(ut)
+    add_subdirectory(test)
 endif()

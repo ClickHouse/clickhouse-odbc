@@ -1,8 +1,8 @@
-#include "platform.h"
-#include "utils.h"
-#include "statement.h"
-#include "escaping/lexer.h"
-#include "escaping/escape_sequences.h"
+#include "driver/platform/platform.h"
+#include "driver/utils/utils.h"
+#include "driver/escaping/lexer.h"
+#include "driver/escaping/escape_sequences.h"
+#include "driver/statement.h"
 
 #include <Poco/Exception.h>
 #include <Poco/Net/HTTPClientSession.h>
