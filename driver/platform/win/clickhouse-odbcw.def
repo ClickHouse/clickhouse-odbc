@@ -1,77 +1,98 @@
-LIBRARY clickhouseodbcw
-EXPORTS 
+LIBRARY
+    clickhouseodbcw
 
-DllMain                 @201
-ConfigDSNW              @202
-ConfigDriverW           @203
+EXPORTS
+    ; DLL entry point
+    DllMain
 
-SQLAllocHandle          @1001
-SQLAllocEnv             @2
-SQLAllocConnect         @1
-SQLAllocStmt            @3
-SQLFreeHandle           @1006
-SQLFreeEnv              @15
-SQLFreeConnect          @14
-SQLFreeStmt             @16
+    ; Setup API
+    ConfigDSNW
+    ConfigDriverW
+;   ConfigTranslator
 
-SQLSetEnvAttr           @1019
-SQLSetConnectAttrW      @1016
-SQLSetStmtAttrW         @1020
-SQLGetEnvAttr           @1012
-SQLGetConnectAttrW      @1007
-SQLGetStmtAttrW         @1014
-SQLGetConnectOptionW    @42
-SQLGetStmtOption        @46
-SQLSetConnectOptionW    @50
-SQLSetStmtOption        @51
+    ; Translator API
+;   SQLDataSourceToDriverW
+;   SQLDriverToDataSourceW
 
-SQLGetInfoW             @45
+    ; SPI API
+;   SQLCleanupConnectionPoolID
+;   SQLGetPoolID
+;   SQLPoolConnect
+;   SQLRateConnection
+;   SQLSetConnectAttrForDbcInfo
+;   SQLSetConnectInfo
+;   SQLSetDriverConnectInfo
 
-SQLGetDescFieldW
-SQLGetDescRecW
-SQLSetDescFieldW
-SQLSetDescRec
-SQLCopyDesc
+    ; Unicode ODBC 3.x API
+    SQLAllocHandle
+    SQLBindCol
+    SQLBindParameter
+    SQLBrowseConnectW
+    SQLBulkOperations
+    SQLCancel
+    SQLCancelHandle
+    SQLCloseCursor
+    SQLColAttributeW
+    SQLColumnPrivilegesW
+    SQLColumnsW
+    SQLCompleteAsync
+    SQLConnectW
+    SQLCopyDesc
+    SQLDescribeColW
+    SQLDescribeParam
+    SQLDisconnect
+    SQLDriverConnectW
+    SQLEndTran
+    SQLExecDirectW
+    SQLExecute
+    SQLExtendedFetch
+    SQLFetch
+    SQLFetchScroll
+    SQLForeignKeysW
+    SQLFreeHandle
+    SQLFreeStmt
+    SQLGetConnectAttrW
+    SQLGetCursorNameW
+    SQLGetData
+    SQLGetDescFieldW
+    SQLGetDescRecW
+    SQLGetDiagFieldW
+    SQLGetDiagRecW
+    SQLGetEnvAttr
+    SQLGetFunctions
+    SQLGetInfoW
+    SQLGetStmtAttrW
+    SQLGetTypeInfo
+    SQLMoreResults
+    SQLNativeSqlW
+    SQLNumParams
+    SQLNumResultCols
+    SQLParamData
+    SQLPrepareW
+    SQLPrimaryKeysW
+    SQLProcedureColumnsW
+    SQLProceduresW
+    SQLPutData
+    SQLRowCount
+    SQLSetConnectAttrW
+    SQLSetCursorNameW
+    SQLSetDescFieldW
+    SQLSetDescRec
+    SQLSetEnvAttr
+    SQLSetPos
+    SQLSetStmtAttrW
+    SQLSpecialColumnsW
+    SQLStatisticsW
+    SQLTablePrivilegesW
+    SQLTablesW
 
-SQLDriverConnectW
-SQLMoreResults
-SQLBindParameter
-SQLNativeSqlW           @62
-SQLConnectW             @7
-SQLPrepareW             @19
-SQLExecute              @12
-SQLExecDirectW          @11
-SQLNumResultCols        @18
-SQLColAttributeW        @6
-SQLDescribeColW         @8
-SQLFetch                @13
-SQLFetchScroll          @1021		
-SQLGetData              @43
-SQLBindCol              @4
-SQLRowCount             @20
-SQLDisconnect           @9
-SQLGetDiagRecW          @1011
-SQLGetDiagFieldW        @1010
-SQLTablesW              @54
-SQLColumnsW             @40
-SQLGetTypeInfoW         @47		
-SQLCloseCursor          @1003
-SQLCancel               @5
-SQLDataSourcesW         @57
-SQLGetCursorNameW       @17
-SQLParamData            @48
-SQLPutData              @49
-SQLSetCursorNameW       @21
-SQLSetParam             @22
-SQLSpecialColumnsW      @52
-SQLStatisticsW          @53
-SQLCancelHandle         @1550
-SQLCompleteAsync        @1551
-SQLCopyDesc             @1004
-SQLEndTran              @1005
-SQLErrorW               @10
-SQLGetDescFieldW        @1008
-SQLGetDescRecW          @1009
-SQLSetDescFieldW        @1017
-SQLSetDescRec           @1018
-SQLTransact             @23
+;   This function is used to cause the Driver Manager to
+;   call functions by number rather than name, which is faster.
+;   The ordinal value of this function must be 199 to have the
+;   Driver Manager do this.  Also, the ordinal values of the
+;   functions must match the value of fFunction in SQLGetFunctions()
+;
+;   EDIT: not relevant for 3.x drivers. Currently, used for testing dynamic loading only.
+
+;   SQLDummyOrdinal      @199
+    SQLDummyOrdinal

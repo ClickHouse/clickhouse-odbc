@@ -19,7 +19,7 @@ int main(int argc, char * argv[]) {
             return 2;
         auto symbol = lib.getSymbol(func_name);
         std::cout << " symbol = " << symbol << ". " << endl;
-        RETCODE (*f)(void);
+        SQLRETURN (*f)(void);
         f = reinterpret_cast<decltype(f)>(symbol);
         f();
         std::cout << " Run ok. " << endl;
