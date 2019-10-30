@@ -615,6 +615,10 @@ SQLRETURN CopyDesc(
 
 extern "C" {
 
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+#   pragma GCC visibility push(default)
+#endif
+
 /// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlconnect-function
 SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     SQLTCHAR * dsn,
@@ -1979,5 +1983,9 @@ SQLRETURN SQL_API SQLCopyDesc(
 SQLRETURN SQL_API SQLDummyOrdinal(void) {
     return SQL_SUCCESS;
 }
+
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+#   pragma GCC visibility pop
+#endif
 
 } // extern "C"

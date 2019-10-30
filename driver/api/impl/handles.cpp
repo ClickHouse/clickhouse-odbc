@@ -9,7 +9,7 @@
 
 #include <type_traits>
 
-namespace {
+namespace { namespace impl {
 
 SQLRETURN allocEnv(SQLHENV * out_environment_handle) noexcept {
     return CALL([&] () {
@@ -67,23 +67,27 @@ SQLRETURN freeHandle(SQLHANDLE handle) noexcept {
     });
 }
 
-} // namespace
+} } // namespace impl
 
 
 extern "C" {
+
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+#   pragma GCC visibility push(default)
+#endif
 
 SQLRETURN SQL_API SQLAllocHandle(SQLSMALLINT handle_type, SQLHANDLE input_handle, SQLHANDLE * output_handle) {
     LOG(__FUNCTION__ << " handle_type=" << handle_type << " input_handle=" << input_handle);
 
     switch (handle_type) {
         case SQL_HANDLE_ENV:
-            return allocEnv((SQLHENV *)output_handle);
+            return impl::allocEnv((SQLHENV *)output_handle);
         case SQL_HANDLE_DBC:
-            return allocConnect((SQLHENV)input_handle, (SQLHDBC *)output_handle);
+            return impl::allocConnect((SQLHENV)input_handle, (SQLHDBC *)output_handle);
         case SQL_HANDLE_STMT:
-            return allocStmt((SQLHDBC)input_handle, (SQLHSTMT *)output_handle);
+            return impl::allocStmt((SQLHDBC)input_handle, (SQLHSTMT *)output_handle);
         case SQL_HANDLE_DESC:
-            return allocDesc((SQLHDBC)input_handle, (SQLHDESC *)output_handle);
+            return impl::allocDesc((SQLHDBC)input_handle, (SQLHDESC *)output_handle);
         default:
             LOG("AllocHandle: Unknown handleType=" << handle_type);
             return SQL_ERROR;
@@ -98,7 +102,7 @@ SQLRETURN SQL_API SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE handle) {
         case SQL_HANDLE_DBC:
         case SQL_HANDLE_STMT:
         case SQL_HANDLE_DESC:
-            return freeHandle(handle);
+            return impl::freeHandle(handle);
         default:
             LOG("FreeHandle: Unknown handleType=" << handleType);
             return SQL_ERROR;
@@ -115,7 +119,7 @@ SQLRETURN SQL_API SQLFreeStmt(HSTMT statement_handle, SQLUSMALLINT option) {
                 return SQL_SUCCESS;
 
             case SQL_DROP:
-                return freeHandle(statement_handle);
+                return impl::freeHandle(statement_handle);
 
             case SQL_UNBIND:
                 statement.resetColBindings();
@@ -129,5 +133,9 @@ SQLRETURN SQL_API SQLFreeStmt(HSTMT statement_handle, SQLUSMALLINT option) {
         return SQL_ERROR;
     });
 }
+
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+#   pragma GCC visibility pop
+#endif
 
 } // extern "C"

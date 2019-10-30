@@ -142,10 +142,6 @@ target_link_libraries(${libname}-impl
     PUBLIC ${ODBC_LIBRARIES}
 )
 
-if(NOT APPLE AND NOT WIN32)
-    target_link_libraries(${libname}-impl PUBLIC "-Wl,--version-script=${PROJECT_SOURCE_DIR}/driver/platform/linker_script")
-endif()
-
 if(WIN32)
     target_link_libraries(${libname}-impl PUBLIC ws2_32 Iphlpapi legacy_stdio_definitions)
 endif()
