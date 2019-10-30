@@ -434,6 +434,10 @@ SQLRETURN GetStmtAttr(
 
 extern "C" {
 
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+#   pragma GCC visibility push(default)
+#endif
+
 SQLRETURN SQL_API SQLSetEnvAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     return impl::SetEnvAttr(handle, attribute, value, value_length);
 }
@@ -460,5 +464,9 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetStmtAttr)(
     SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
     return impl::GetStmtAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
+
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+#   pragma GCC visibility pop
+#endif
 
 } // extern "C"
