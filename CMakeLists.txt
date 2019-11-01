@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.9)
 
-project (clickhouse-odbc VERSION 1.1.1.20191030 LANGUAGES C CXX)
+project (clickhouse-odbc VERSION 1.1.1.20191102 LANGUAGES C CXX)
 
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 
