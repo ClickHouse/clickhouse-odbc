@@ -610,6 +610,21 @@ SQLRETURN CopyDesc(
     return CALL_WITH_HANDLE(TargetDescHandle, func);
 }
 
+SQLRETURN EndTran(
+    SQLSMALLINT     handle_type,
+    SQLHANDLE       handle,
+    SQLSMALLINT     completion_type
+) noexcept {
+    auto func = [&] (auto & object) {
+
+        // TODO: implement.
+
+        return SQL_SUCCESS;
+    };
+
+    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, func);
+}
+
 } } // namespace impl
 
 
@@ -1572,7 +1587,7 @@ SQLRETURN SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionI
             SET_EXISTS(SQL_API_SQLDESCRIBEPARAM);
             SET_EXISTS(SQL_API_SQLDISCONNECT);
             SET_EXISTS(SQL_API_SQLDRIVERCONNECT);
-            //SET_EXISTS(SQL_API_SQLENDTRAN);
+            SET_EXISTS(SQL_API_SQLENDTRAN);
             SET_EXISTS(SQL_API_SQLEXECDIRECT);
             SET_EXISTS(SQL_API_SQLEXECUTE);
             //SET_EXISTS(SQL_API_SQLEXTENDEDFETCH);
@@ -1858,9 +1873,17 @@ SQLRETURN SQL_API SQLCompleteAsync(SQLSMALLINT HandleType, SQLHANDLE Handle, RET
 }
 
 
-SQLRETURN SQL_API SQLEndTran(SQLSMALLINT HandleType, SQLHANDLE Handle, SQLSMALLINT CompletionType) {
+SQLRETURN SQL_API SQLEndTran(
+    SQLSMALLINT     HandleType,
+    SQLHANDLE       Handle,
+    SQLSMALLINT     CompletionType
+) {
     LOG(__FUNCTION__);
-    return SQL_ERROR;
+    return impl::EndTran(
+        HandleType,
+        Handle,
+        CompletionType
+    );
 }
 
 
