@@ -260,7 +260,7 @@ INT_PTR CALLBACK ConfigDlgProc(HWND hdlg, UINT wMsg, WPARAM wParam, LPARAM lPara
     return FALSE;
 }
 
-BOOL INSTAPI FUNCTION_MAYBE_W(ConfigDSN)(HWND hwnd, WORD fRequest, LPCTSTR lpszDriver, LPCTSTR lpszAttributes) {
+BOOL INSTAPI EXPORTED_FUNCTION_MAYBE_W(ConfigDSN)(HWND hwnd, WORD fRequest, LPCTSTR lpszDriver, LPCTSTR lpszAttributes) {
     BOOL fSuccess = FALSE;
     GLOBALHANDLE hglbAttr;
     SetupDialogData * lpsetupdlg;
@@ -344,7 +344,7 @@ BOOL INSTAPI FUNCTION_MAYBE_W(ConfigDSN)(HWND hwnd, WORD fRequest, LPCTSTR lpszD
     return fSuccess;
 }
 
-BOOL INSTAPI FUNCTION_MAYBE_W(ConfigDriver)(
+BOOL INSTAPI EXPORTED_FUNCTION_MAYBE_W(ConfigDriver)(
 	HWND hwnd,
 	WORD fRequest,
 	LPCTSTR lpszDriver,

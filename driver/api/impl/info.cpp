@@ -24,11 +24,7 @@
 
 extern "C" {
 
-#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
-#   pragma GCC visibility push(default)
-#endif
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetInfo)(
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
     HDBC connection_handle,
     SQLUSMALLINT info_type,
     PTR out_value,
@@ -339,9 +335,5 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetInfo)(
 
     return CALL_WITH_HANDLE(connection_handle, func);
 }
-
-#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
-#   pragma GCC visibility pop
-#endif
 
 } // extern "C"

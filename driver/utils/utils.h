@@ -363,10 +363,3 @@ inline SQLRETURN fillOutputNULL(PTR out_value, SQLLEN out_value_max_length, SQLL
         LOG("GetInfo " << name << ", type: " << #TYPE << ", value: " << #VALUE << " = " << (VALUE)); \
         return fillOutputNumber<TYPE>(VALUE, out_value,                                              \
             std::decay<decltype(*out_value_length)>::type{0}/* out_value_max_length */, out_value_length);
-
-#if defined(UNICODE)
-#    define FUNCTION_MAYBE_W(NAME) NAME##W
-#else
-#    define FUNCTION_MAYBE_W(NAME) NAME
-#endif
-

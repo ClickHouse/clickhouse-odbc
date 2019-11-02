@@ -434,39 +434,31 @@ SQLRETURN GetStmtAttr(
 
 extern "C" {
 
-#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
-#   pragma GCC visibility push(default)
-#endif
-
-SQLRETURN SQL_API SQLSetEnvAttr(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLSetEnvAttr)(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     return impl::SetEnvAttr(handle, attribute, value, value_length);
 }
 
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLSetConnectAttr)(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLSetConnectAttr)(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     return impl::SetConnectAttr(handle, attribute, value, value_length);
 }
 
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLSetStmtAttr)(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLSetStmtAttr)(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
     return impl::SetStmtAttr(handle, attribute, value, value_length);
 }
 
-SQLRETURN SQL_API SQLGetEnvAttr(
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetEnvAttr)(
     SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
     return impl::GetEnvAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetConnectAttr)(
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetConnectAttr)(
     SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
     return impl::GetConnectAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetStmtAttr)(
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetStmtAttr)(
     SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
     return impl::GetStmtAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
-
-#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
-#   pragma GCC visibility pop
-#endif
 
 } // extern "C"

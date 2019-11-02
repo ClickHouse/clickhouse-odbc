@@ -72,11 +72,7 @@ SQLRETURN freeHandle(SQLHANDLE handle) noexcept {
 
 extern "C" {
 
-#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
-#   pragma GCC visibility push(default)
-#endif
-
-SQLRETURN SQL_API SQLAllocHandle(SQLSMALLINT handle_type, SQLHANDLE input_handle, SQLHANDLE * output_handle) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLAllocHandle)(SQLSMALLINT handle_type, SQLHANDLE input_handle, SQLHANDLE * output_handle) {
     LOG(__FUNCTION__ << " handle_type=" << handle_type << " input_handle=" << input_handle);
 
     switch (handle_type) {
@@ -94,7 +90,7 @@ SQLRETURN SQL_API SQLAllocHandle(SQLSMALLINT handle_type, SQLHANDLE input_handle
     }
 }
 
-SQLRETURN SQL_API SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE handle) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFreeHandle)(SQLSMALLINT handleType, SQLHANDLE handle) {
     LOG(__FUNCTION__ << " handleType=" << handleType << " handle=" << handle);
 
     switch (handleType) {
@@ -109,7 +105,7 @@ SQLRETURN SQL_API SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE handle) {
     }
 }
 
-SQLRETURN SQL_API SQLFreeStmt(HSTMT statement_handle, SQLUSMALLINT option) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFreeStmt)(HSTMT statement_handle, SQLUSMALLINT option) {
     LOG(__FUNCTION__ << " option=" << option);
 
     return CALL_WITH_HANDLE(statement_handle, [&] (Statement & statement) -> SQLRETURN {
@@ -133,9 +129,5 @@ SQLRETURN SQL_API SQLFreeStmt(HSTMT statement_handle, SQLUSMALLINT option) {
         return SQL_ERROR;
     });
 }
-
-#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
-#   pragma GCC visibility pop
-#endif
 
 } // extern "C"

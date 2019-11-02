@@ -98,6 +98,20 @@
 #    define USE_SSL 1
 #endif
 
-#if !defined(CMAKE_SYSTEM) && _win_
+#if !defined(CMAKE_SYSTEM) && defined(_win_)
 #    define CMAKE_SYSTEM "windows"
+#endif
+
+#if defined(_MSC_VER)
+#    define EXPORTED_FUNCTION(func) __pragma(comment(linker,"/export:"#func)) func
+#elif defined(_win_)
+#    define EXPORTED_FUNCTION(func) __declspec(dllexport) func
+#else
+#    define EXPORTED_FUNCTION(func) __attribute__((visibility("default"))) func
+#endif
+
+#if defined(UNICODE)
+#    define EXPORTED_FUNCTION_MAYBE_W(func) EXPORTED_FUNCTION(func##W)
+#else
+#    define EXPORTED_FUNCTION_MAYBE_W(func) EXPORTED_FUNCTION(func)
 #endif

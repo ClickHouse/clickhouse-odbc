@@ -91,7 +91,6 @@ if (WIN32)
         platform/win/resource.h
         platform/win/setup.cpp
         platform/win/resource.rc
-        platform/win/${libname}.def
     )
 endif()
 
