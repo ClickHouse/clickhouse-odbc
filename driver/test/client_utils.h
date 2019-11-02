@@ -6,7 +6,7 @@
 #ifdef NDEBUG
 #   define ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(test) test
 #else
-#   define ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(test) DISABLED_#test
+#   define ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(test) DISABLED_##test
 #endif
 
 namespace {
