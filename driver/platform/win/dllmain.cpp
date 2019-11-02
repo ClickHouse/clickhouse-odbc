@@ -5,7 +5,7 @@ HINSTANCE module_instance = 0;
 
 extern "C" {
 
-BOOL WINAPI DllMain(HANDLE hInst, ULONG ul_reason_for_call, LPVOID) {
+BOOL WINAPI EXPORTED_FUNCTION(DllMain)(HANDLE hInst, ULONG ul_reason_for_call, LPVOID) {
     switch (ul_reason_for_call) {
         case DLL_PROCESS_ATTACH:
             module_instance = (HINSTANCE)hInst; /* Save for dialog boxes */
@@ -26,4 +26,5 @@ BOOL WINAPI DllMain(HANDLE hInst, ULONG ul_reason_for_call, LPVOID) {
 
     return TRUE;
 }
+
 }

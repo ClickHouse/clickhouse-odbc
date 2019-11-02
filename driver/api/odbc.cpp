@@ -625,17 +625,174 @@ SQLRETURN EndTran(
     return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, func);
 }
 
+SQLRETURN GetData(
+    HSTMT statement_handle,
+    SQLUSMALLINT column_or_param_number,
+    SQLSMALLINT target_type,
+    PTR out_value,
+    SQLLEN out_value_max_size,
+    SQLLEN * out_value_size_or_indicator
+) noexcept {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
+        if (!statement.hasResultSet())
+            throw SqlException("Column info is not available", "07009");
+
+        if (column_or_param_number < 1 || column_or_param_number > statement.getNumColumns())
+            throw SqlException("Column number " + std::to_string(column_or_param_number) + " is out of range: 1.." +
+                std::to_string(statement.getNumColumns()), "07009");
+
+        if (!statement.hasCurrentRow())
+            throw SqlException("Invalid cursor state", "24000");
+
+        const auto column_idx = column_or_param_number - 1;
+
+        const Field & field = statement.getCurrentRow().data[column_idx];
+
+        LOG("column: " << column_idx << ", target_type: " << target_type << ", out_value_max_size: " << out_value_max_size
+                       << " null=" << field.is_null << " data=" << field.data);
+
+
+        // TODO: revisit the code, use descriptors for all cases.
+
+        
+        SQLINTEGER desc_type = SQL_ATTR_APP_ROW_DESC;
+
+//      if (target_type == SQL_APD_TYPE) {
+//          desc_type = SQL_ATTR_APP_PARAM_DESC;
+//          throw SqlException("Unable to read parameter data using SQLGetData");
+//      }
+
+        if (
+            target_type == SQL_ARD_TYPE ||
+//          target_type == SQL_APD_TYPE ||
+            target_type == SQL_C_DEFAULT
+        ) {
+            auto & desc = statement.getEffectiveDescriptor(desc_type);
+            auto & record = desc.getRecord(column_or_param_number, desc_type);
+
+            target_type = record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
+        }
+
+        if (field.is_null)
+            return fillOutputNULL(out_value, out_value_max_size, out_value_size_or_indicator);
+
+        switch (target_type) {
+            case SQL_C_CHAR:
+            case SQL_C_BINARY:
+                return fillOutputRawString(field.data, out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_WCHAR:
+                return fillOutputUSC2String(field.data, out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_TINYINT:
+            case SQL_C_STINYINT:
+                return fillOutputNumber<SQLSCHAR>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_UTINYINT:
+            case SQL_C_BIT:
+                return fillOutputNumber<SQLCHAR>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_SHORT:
+            case SQL_C_SSHORT:
+                return fillOutputNumber<SQLSMALLINT>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_USHORT:
+                return fillOutputNumber<SQLUSMALLINT>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_LONG:
+            case SQL_C_SLONG:
+                return fillOutputNumber<SQLINTEGER>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_ULONG:
+                return fillOutputNumber<SQLUINTEGER>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_SBIGINT:
+                return fillOutputNumber<SQLBIGINT>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_UBIGINT:
+                return fillOutputNumber<SQLUBIGINT>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_FLOAT:
+                return fillOutputNumber<SQLREAL>(field.getFloat(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_DOUBLE:
+                return fillOutputNumber<SQLDOUBLE>(field.getDouble(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_GUID:
+                return fillOutputNumber<SQLGUID>(field.getGUID(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_NUMERIC: {
+                auto & desc = statement.getEffectiveDescriptor(desc_type);
+                auto & record = desc.getRecord(column_or_param_number, desc_type);
+
+                const std::int16_t precision = record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION, 38);
+                const std::int16_t scale = record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
+
+                return fillOutputNumber<SQL_NUMERIC_STRUCT>(field.getNumeric(precision, scale), out_value, out_value_max_size, out_value_size_or_indicator);
+            }
+
+            case SQL_C_DATE:
+            case SQL_C_TYPE_DATE:
+                return fillOutputNumber<SQL_DATE_STRUCT>(field.getDate(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+//          case SQL_C_TIME:
+//          case SQL_C_TYPE_TIME:
+//              return fillOutputNumber<SQL_TIME_STRUCT>(field.getTime(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_TIMESTAMP:
+            case SQL_C_TYPE_TIMESTAMP:
+                return fillOutputNumber<SQL_TIMESTAMP_STRUCT>(field.getDateTime(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            default:
+                throw SqlException("Restricted data type attribute violation", "07006");
+        }
+    });
+}
+
+SQLRETURN Fetch(
+    HSTMT statement_handle
+) noexcept {
+    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
+        auto * rows_fetched_ptr = statement.getEffectiveDescriptor(SQL_ATTR_IMP_ROW_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
+
+        if (rows_fetched_ptr)
+            *rows_fetched_ptr = 0;
+
+        if (!statement.hasResultSet())
+            return SQL_NO_DATA;
+
+        if (!statement.advanceToNextRow())
+            return SQL_NO_DATA;
+
+        if (rows_fetched_ptr)
+            *rows_fetched_ptr = 1;
+
+        auto res = SQL_SUCCESS;
+
+        for (auto & col_num_binding : statement.bindings) {
+            auto code = impl::GetData(statement_handle,
+                col_num_binding.first,
+                col_num_binding.second.c_type,
+                col_num_binding.second.value,
+                col_num_binding.second.value_max_size,
+                col_num_binding.second.value_size/* or .indicator */);
+
+            if (code == SQL_SUCCESS_WITH_INFO)
+                res = code;
+            else if (code != SQL_SUCCESS)
+                return code;
+        }
+
+        return res;
+    });
+}
+
 } } // namespace impl
 
 
 extern "C" {
 
-#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
-#   pragma GCC visibility push(default)
-#endif
-
-/// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlconnect-function
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     SQLTCHAR * dsn,
     SQLSMALLINT dsn_size,
     SQLTCHAR * user,
@@ -656,9 +813,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     });
 }
 
-
-/// Description: https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqldriverconnect
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
     HWND unused_window,
     SQLTCHAR FAR * connection_str_in,
     SQLSMALLINT connection_str_in_size,
@@ -681,8 +836,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
     });
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size) {
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size) {
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -692,8 +846,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR 
     });
 }
 
-
-SQLRETURN SQL_API SQLExecute(HSTMT statement_handle) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLExecute)(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -702,8 +855,7 @@ SQLRETURN SQL_API SQLExecute(HSTMT statement_handle) {
     });
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size) {
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size) {
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -713,8 +865,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCH
     });
 }
 
-
-SQLRETURN SQL_API SQLNumResultCols(HSTMT statement_handle, SQLSMALLINT * column_count) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLNumResultCols)(HSTMT statement_handle, SQLSMALLINT * column_count) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -730,19 +881,15 @@ SQLRETURN SQL_API SQLNumResultCols(HSTMT statement_handle, SQLSMALLINT * column_
     });
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLColAttribute)(HSTMT statement_handle,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
+    SQLHSTMT statement_handle,
     SQLUSMALLINT column_number,
     SQLUSMALLINT field_identifier,
     SQLPOINTER out_string_value,
     SQLSMALLINT out_string_value_max_size,
     SQLSMALLINT * out_string_value_size,
-#if defined(_unix_) || defined(_win64_) || defined(__FreeBSD__)
-    SQLLEN *
-#else
-    SQLPOINTER
-#endif
-        out_num_value) {
+    SQLLEN * out_num_value
+) {
     LOG(__FUNCTION__ << "(col=" << column_number << ", field=" << field_identifier << ")");
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
@@ -861,8 +1008,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLColAttribute)(HSTMT statement_handle,
     });
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
     SQLUSMALLINT column_number,
     SQLTCHAR * out_column_name,
     SQLSMALLINT out_column_name_max_size,
@@ -901,214 +1047,51 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
     });
 }
 
-
-SQLRETURN impl_SQLGetData(HSTMT statement_handle,
-    SQLUSMALLINT column_or_param_number,
-    SQLSMALLINT target_type,
-    PTR out_value,
-    SQLLEN out_value_max_size,
-    SQLLEN * out_value_size_or_indicator) {
-    LOG(__FUNCTION__ << " column_or_param_number=" << column_or_param_number << " target_type=" << target_type);
-#ifndef NDEBUG
-    SCOPE_EXIT({ LOG("impl_SQLGetData finish."); }); // for timing only
-#endif
-
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
-        if (!statement.hasResultSet())
-            throw SqlException("Column info is not available", "07009");
-
-        if (column_or_param_number < 1 || column_or_param_number > statement.getNumColumns())
-            throw SqlException("Column number " + std::to_string(column_or_param_number) + " is out of range: 1.." +
-                std::to_string(statement.getNumColumns()), "07009");
-
-        if (!statement.hasCurrentRow())
-            throw SqlException("Invalid cursor state", "24000");
-
-        const auto column_idx = column_or_param_number - 1;
-
-        const Field & field = statement.getCurrentRow().data[column_idx];
-
-        LOG("column: " << column_idx << ", target_type: " << target_type << ", out_value_max_size: " << out_value_max_size
-                       << " null=" << field.is_null << " data=" << field.data);
-
-
-        // TODO: revisit the code, use descriptors for all cases.
-
-        
-        SQLINTEGER desc_type = SQL_ATTR_APP_ROW_DESC;
-
-//      if (target_type == SQL_APD_TYPE) {
-//          desc_type = SQL_ATTR_APP_PARAM_DESC;
-//          throw SqlException("Unable to read parameter data using SQLGetData");
-//      }
-
-        if (
-            target_type == SQL_ARD_TYPE ||
-//          target_type == SQL_APD_TYPE ||
-            target_type == SQL_C_DEFAULT
-        ) {
-            auto & desc = statement.getEffectiveDescriptor(desc_type);
-            auto & record = desc.getRecord(column_or_param_number, desc_type);
-
-            target_type = record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
-        }
-
-        if (field.is_null)
-            return fillOutputNULL(out_value, out_value_max_size, out_value_size_or_indicator);
-
-        switch (target_type) {
-            case SQL_C_CHAR:
-            case SQL_C_BINARY:
-                return fillOutputRawString(field.data, out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_WCHAR:
-                return fillOutputUSC2String(field.data, out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_TINYINT:
-            case SQL_C_STINYINT:
-                return fillOutputNumber<SQLSCHAR>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_UTINYINT:
-            case SQL_C_BIT:
-                return fillOutputNumber<SQLCHAR>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_SHORT:
-            case SQL_C_SSHORT:
-                return fillOutputNumber<SQLSMALLINT>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_USHORT:
-                return fillOutputNumber<SQLUSMALLINT>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_LONG:
-            case SQL_C_SLONG:
-                return fillOutputNumber<SQLINTEGER>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_ULONG:
-                return fillOutputNumber<SQLUINTEGER>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_SBIGINT:
-                return fillOutputNumber<SQLBIGINT>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_UBIGINT:
-                return fillOutputNumber<SQLUBIGINT>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_FLOAT:
-                return fillOutputNumber<SQLREAL>(field.getFloat(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_DOUBLE:
-                return fillOutputNumber<SQLDOUBLE>(field.getDouble(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_GUID:
-                return fillOutputNumber<SQLGUID>(field.getGUID(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_NUMERIC: {
-                auto & desc = statement.getEffectiveDescriptor(desc_type);
-                auto & record = desc.getRecord(column_or_param_number, desc_type);
-
-                const std::int16_t precision = record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION, 38);
-                const std::int16_t scale = record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
-
-                return fillOutputNumber<SQL_NUMERIC_STRUCT>(field.getNumeric(precision, scale), out_value, out_value_max_size, out_value_size_or_indicator);
-            }
-
-            case SQL_C_DATE:
-            case SQL_C_TYPE_DATE:
-                return fillOutputNumber<SQL_DATE_STRUCT>(field.getDate(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-//          case SQL_C_TIME:
-//          case SQL_C_TYPE_TIME:
-//              return fillOutputNumber<SQL_TIME_STRUCT>(field.getTime(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_TIMESTAMP:
-            case SQL_C_TYPE_TIMESTAMP:
-                return fillOutputNumber<SQL_TIMESTAMP_STRUCT>(field.getDateTime(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            default:
-                throw SqlException("Restricted data type attribute violation", "07006");
-        }
-    });
-}
-
-
-SQLRETURN
-impl_SQLFetch(HSTMT statement_handle) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFetch)(HSTMT statement_handle) {
     LOG(__FUNCTION__);
-#ifndef NDEBUG
-    SCOPE_EXIT({ LOG("impl_SQLFetch finish."); }); // for timing only
-#endif
-
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
-        auto * rows_fetched_ptr = statement.getEffectiveDescriptor(SQL_ATTR_IMP_ROW_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
-
-        if (rows_fetched_ptr)
-            *rows_fetched_ptr = 0;
-
-        if (!statement.hasResultSet())
-            return SQL_NO_DATA;
-
-        if (!statement.advanceToNextRow())
-            return SQL_NO_DATA;
-
-        if (rows_fetched_ptr)
-            *rows_fetched_ptr = 1;
-
-        // LOG("impl_SQLFetch statement.bindings.size()=" << statement.bindings.size());
-
-        auto res = SQL_SUCCESS;
-
-        for (auto & col_num_binding : statement.bindings) {
-            auto code = impl_SQLGetData(statement_handle,
-                col_num_binding.first,
-                col_num_binding.second.c_type,
-                col_num_binding.second.value,
-                col_num_binding.second.value_max_size,
-                col_num_binding.second.value_size/* or .indicator */);
-
-            if (code == SQL_SUCCESS_WITH_INFO)
-                res = code;
-            else if (code != SQL_SUCCESS)
-                return code;
-        }
-
-        return res;
-    });
+    return impl::Fetch(
+        statement_handle
+    );
 }
 
-
-SQLRETURN SQL_API SQLFetch(HSTMT statement_handle) {
-    return impl_SQLFetch(statement_handle);
-}
-
-
-SQLRETURN SQL_API SQLFetchScroll(HSTMT statement_handle, SQLSMALLINT orientation, SQLLEN offset) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFetchScroll)(HSTMT statement_handle, SQLSMALLINT orientation, SQLLEN offset) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
         if (orientation != SQL_FETCH_NEXT)
             throw SqlException("Fetch type out of range", "HY106");
 
-        return impl_SQLFetch(statement_handle);
+        return impl::Fetch(statement_handle);
     });
 }
 
-
-SQLRETURN SQL_API SQLGetData(HSTMT statement_handle,
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetData)(
+    HSTMT statement_handle,
     SQLUSMALLINT column_or_param_number,
     SQLSMALLINT target_type,
     PTR out_value,
     SQLLEN out_value_max_size,
-    SQLLEN * out_value_size_or_indicator) {
-    return impl_SQLGetData(
-        statement_handle, column_or_param_number, target_type, out_value, out_value_max_size, out_value_size_or_indicator);
+    SQLLEN * out_value_size_or_indicator
+) {
+    LOG(__FUNCTION__);
+    return impl::GetData(
+        statement_handle,
+        column_or_param_number,
+        target_type,
+        out_value,
+        out_value_max_size,
+        out_value_size_or_indicator
+    );
 }
 
-
-SQLRETURN SQL_API SQLBindCol(HSTMT statement_handle,
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindCol)(
+    HSTMT statement_handle,
     SQLUSMALLINT column_number,
     SQLSMALLINT target_type,
     PTR out_value,
     SQLLEN out_value_max_size,
-    SQLLEN * out_value_size_or_indicator) {
+    SQLLEN * out_value_size_or_indicator
+) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -1147,8 +1130,7 @@ SQLRETURN SQL_API SQLBindCol(HSTMT statement_handle,
     });
 }
 
-
-SQLRETURN SQL_API SQLRowCount(HSTMT statement_handle, SQLLEN * out_row_count) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLRowCount)(HSTMT statement_handle, SQLLEN * out_row_count) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -1160,8 +1142,7 @@ SQLRETURN SQL_API SQLRowCount(HSTMT statement_handle, SQLLEN * out_row_count) {
     });
 }
 
-
-SQLRETURN SQL_API SQLMoreResults(HSTMT statement_handle) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLMoreResults)(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -1169,19 +1150,15 @@ SQLRETURN SQL_API SQLMoreResults(HSTMT statement_handle) {
     });
 }
 
-
-SQLRETURN SQL_API SQLDisconnect(HDBC connection_handle) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLDisconnect)(HDBC connection_handle) {
     LOG(__FUNCTION__);
-
     return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
         connection.session->reset();
         return SQL_SUCCESS;
     });
 }
 
-
-/// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlgetdiagrec-function
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDiagRec)(
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetDiagRec)(
     SQLSMALLINT handle_type,
     SQLHANDLE handle,
     SQLSMALLINT record_number,
@@ -1203,9 +1180,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDiagRec)(
     );
 }
 
-
-/// Description: https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlgetdiagfield-function
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDiagField)(
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetDiagField)(
     SQLSMALLINT handle_type,
     SQLHANDLE handle,
     SQLSMALLINT record_number,
@@ -1225,9 +1200,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDiagField)(
     );
 }
 
-
-/// Description: https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-api/sqltables
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
     SQLTCHAR * catalog_name,
     SQLSMALLINT catalog_name_length,
     SQLTCHAR * schema_name,
@@ -1307,8 +1280,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
     });
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
     SQLTCHAR * catalog_name,
     SQLSMALLINT catalog_name_length,
     SQLTCHAR * schema_name,
@@ -1406,8 +1378,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
     });
 }
 
-
-SQLRETURN SQL_API SQLGetTypeInfo(HSTMT statement_handle, SQLSMALLINT type) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetTypeInfo)(HSTMT statement_handle, SQLSMALLINT type) {
     LOG(__FUNCTION__ << "(type = " << type << ")");
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
@@ -1495,8 +1466,7 @@ SQLRETURN SQL_API SQLGetTypeInfo(HSTMT statement_handle, SQLSMALLINT type) {
     });
 }
 
-
-SQLRETURN SQL_API SQLNumParams(
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLNumParams)(
     SQLHSTMT        StatementHandle,
     SQLSMALLINT *   ParameterCountPtr
 ) {
@@ -1507,8 +1477,7 @@ SQLRETURN SQL_API SQLNumParams(
     );
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle,
     SQLTCHAR * query,
     SQLINTEGER query_length,
     SQLTCHAR * out_query,
@@ -1522,8 +1491,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle,
     });
 }
 
-
-SQLRETURN SQL_API SQLCloseCursor(HSTMT statement_handle) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLCloseCursor)(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
@@ -1532,8 +1500,7 @@ SQLRETURN SQL_API SQLCloseCursor(HSTMT statement_handle) {
     });
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLBrowseConnect)(HDBC connection_handle,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLBrowseConnect)(HDBC connection_handle,
     SQLTCHAR * szConnStrIn,
     SQLSMALLINT cbConnStrIn,
     SQLTCHAR * szConnStrOut,
@@ -1543,23 +1510,19 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLBrowseConnect)(HDBC connection_handle,
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API SQLCancel(HSTMT StatementHandle) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLCancel)(HSTMT StatementHandle) {
     LOG(__FUNCTION__ << "Ignoring SQLCancel " << StatementHandle);
     return SQL_SUCCESS;
     //return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetCursorName)(
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetCursorName)(
     HSTMT StatementHandle, SQLTCHAR * CursorName, SQLSMALLINT BufferLength, SQLSMALLINT * NameLength) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
-
-/// This function can be implemented in the driver manager.
-SQLRETURN SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionId, SQLUSMALLINT * Supported) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetFunctions)(HDBC connection_handle, SQLUSMALLINT FunctionId, SQLUSMALLINT * Supported) {
     LOG(__FUNCTION__ << ":" << __LINE__ << " " << " id=" << FunctionId << " ptr=" << Supported);
 
 #define SET_EXISTS(x) Supported[(x) >> 4] |= (1 << ((x)&0xF))
@@ -1656,26 +1619,22 @@ SQLRETURN SQL_API SQLGetFunctions(HDBC connection_handle, SQLUSMALLINT FunctionI
 // #undef CLR_EXISTS
 }
 
-
-SQLRETURN SQL_API SQLParamData(HSTMT StatementHandle, PTR * Value) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLParamData)(HSTMT StatementHandle, PTR * Value) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API SQLPutData(HSTMT StatementHandle, PTR Data, SQLLEN StrLen_or_Ind) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLPutData)(HSTMT StatementHandle, PTR Data, SQLLEN StrLen_or_Ind) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLSetCursorName)(HSTMT StatementHandle, SQLTCHAR * CursorName, SQLSMALLINT NameLength) {
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLSetCursorName)(HSTMT StatementHandle, SQLTCHAR * CursorName, SQLSMALLINT NameLength) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLSpecialColumns)(HSTMT StatementHandle,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLSpecialColumns)(HSTMT StatementHandle,
     SQLUSMALLINT IdentifierType,
     SQLTCHAR * CatalogName,
     SQLSMALLINT NameLength1,
@@ -1689,8 +1648,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLSpecialColumns)(HSTMT StatementHandle,
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLStatistics)(HSTMT StatementHandle,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLStatistics)(HSTMT StatementHandle,
     SQLTCHAR * CatalogName,
     SQLSMALLINT NameLength1,
     SQLTCHAR * SchemaName,
@@ -1703,8 +1661,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLStatistics)(HSTMT StatementHandle,
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLColumnPrivileges)(HSTMT hstmt,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumnPrivileges)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1717,8 +1674,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLColumnPrivileges)(HSTMT hstmt,
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API SQLDescribeParam(
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLDescribeParam)(
     SQLHSTMT        StatementHandle,
     SQLUSMALLINT    ParameterNumber,
     SQLSMALLINT *   DataTypePtr,
@@ -1737,8 +1693,7 @@ SQLRETURN SQL_API SQLDescribeParam(
     );
 }
 
-
-SQLRETURN SQL_API SQLExtendedFetch(
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLExtendedFetch)(
     SQLHSTMT         StatementHandle,
     SQLUSMALLINT     FetchOrientation,
     SQLLEN           FetchOffset,
@@ -1749,8 +1704,7 @@ SQLRETURN SQL_API SQLExtendedFetch(
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLForeignKeys)(HSTMT hstmt,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLForeignKeys)(HSTMT hstmt,
     SQLTCHAR * szPkCatalogName,
     SQLSMALLINT cbPkCatalogName,
     SQLTCHAR * szPkSchemaName,
@@ -1767,8 +1721,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLForeignKeys)(HSTMT hstmt,
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLPrimaryKeys)(HSTMT hstmt,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLPrimaryKeys)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1779,8 +1732,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLPrimaryKeys)(HSTMT hstmt,
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLProcedureColumns)(HSTMT hstmt,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLProcedureColumns)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1793,8 +1745,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLProcedureColumns)(HSTMT hstmt,
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLProcedures)(HSTMT hstmt,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLProcedures)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1805,14 +1756,12 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLProcedures)(HSTMT hstmt,
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API SQLSetPos(HSTMT hstmt, SQLSETPOSIROW irow, SQLUSMALLINT fOption, SQLUSMALLINT fLock) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLSetPos)(HSTMT hstmt, SQLSETPOSIROW irow, SQLUSMALLINT fOption, SQLUSMALLINT fLock) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLTablePrivileges)(HSTMT hstmt,
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTablePrivileges)(HSTMT hstmt,
     SQLTCHAR * szCatalogName,
     SQLSMALLINT cbCatalogName,
     SQLTCHAR * szSchemaName,
@@ -1823,8 +1772,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLTablePrivileges)(HSTMT hstmt,
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API SQLBindParameter(
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindParameter)(
     SQLHSTMT        StatementHandle,
     SQLUSMALLINT    ParameterNumber,
     SQLSMALLINT     InputOutputType,
@@ -1851,8 +1799,7 @@ SQLRETURN SQL_API SQLBindParameter(
     );
 }
 
-
-SQLRETURN SQL_API SQLBulkOperations(
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBulkOperations)(
     SQLHSTMT         StatementHandle,
     SQLSMALLINT      Operation
 ) {
@@ -1860,20 +1807,17 @@ SQLRETURN SQL_API SQLBulkOperations(
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API SQLCancelHandle(SQLSMALLINT HandleType, SQLHANDLE Handle) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLCancelHandle)(SQLSMALLINT HandleType, SQLHANDLE Handle) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API SQLCompleteAsync(SQLSMALLINT HandleType, SQLHANDLE Handle, RETCODE * AsyncRetCodePtr) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLCompleteAsync)(SQLSMALLINT HandleType, SQLHANDLE Handle, RETCODE * AsyncRetCodePtr) {
     LOG(__FUNCTION__);
     return SQL_ERROR;
 }
 
-
-SQLRETURN SQL_API SQLEndTran(
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLEndTran)(
     SQLSMALLINT     HandleType,
     SQLHANDLE       Handle,
     SQLSMALLINT     CompletionType
@@ -1886,8 +1830,7 @@ SQLRETURN SQL_API SQLEndTran(
     );
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDescField)(
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetDescField)(
     SQLHDESC        DescriptorHandle,
     SQLSMALLINT     RecNumber,
     SQLSMALLINT     FieldIdentifier,
@@ -1906,8 +1849,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDescField)(
     );
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDescRec)(
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetDescRec)(
     SQLHDESC        DescriptorHandle,
     SQLSMALLINT     RecNumber,
     SQLTCHAR *      Name,
@@ -1936,8 +1878,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLGetDescRec)(
     );
 }
 
-
-SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLSetDescField)(
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLSetDescField)(
     SQLHDESC      DescriptorHandle,
     SQLSMALLINT   RecNumber,
     SQLSMALLINT   FieldIdentifier,
@@ -1954,8 +1895,7 @@ SQLRETURN SQL_API FUNCTION_MAYBE_W(SQLSetDescField)(
     );
 }
 
-
-SQLRETURN SQL_API SQLSetDescRec(
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLSetDescRec)(
     SQLHDESC      DescriptorHandle,
     SQLSMALLINT   RecNumber,
     SQLSMALLINT   Type,
@@ -1982,8 +1922,7 @@ SQLRETURN SQL_API SQLSetDescRec(
     );
 }
 
-
-SQLRETURN SQL_API SQLCopyDesc(
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLCopyDesc)(
     SQLHDESC     SourceDescHandle,
     SQLHDESC     TargetDescHandle
 ) {
@@ -2003,12 +1942,8 @@ SQLRETURN SQL_API SQLCopyDesc(
  *
  *	EDIT: not relevant for 3.x drivers. Currently, used for testing dynamic loading only.
  */
-SQLRETURN SQL_API SQLDummyOrdinal(void) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLDummyOrdinal)(void) {
     return SQL_SUCCESS;
 }
-
-#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
-#   pragma GCC visibility pop
-#endif
 
 } // extern "C"
