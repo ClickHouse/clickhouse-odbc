@@ -8,8 +8,8 @@
 #include <chrono>
 
 Driver::Driver() noexcept {
-    setAttrSilent(SQL_ATTR_TRACE, (isYes(INI_TRACE_DEFAULT) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
-    setAttr<std::string>(SQL_ATTR_TRACEFILE, INI_TRACEFILE_DEFAULT);
+    setAttrSilent(CH_SQL_ATTR_TRACE, (isYes(INI_TRACE_DEFAULT) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
+    setAttr<std::string>(CH_SQL_ATTR_TRACEFILE, INI_TRACEFILE_DEFAULT);
 }
 
 Driver::~Driver() {
@@ -75,11 +75,11 @@ Statement * Driver::dynamicCastTo<Statement>(Object * obj) {
 
 void Driver::onAttrChange(int attr) {
     switch (attr) {
-        case SQL_ATTR_TRACE:
-        case SQL_ATTR_TRACEFILE: {
+        case CH_SQL_ATTR_TRACE:
+        case CH_SQL_ATTR_TRACEFILE: {
             bool stream_open = (log_file_stream.is_open() && log_file_stream);
             const bool enable_logging = isLoggingEnabled();
-            const auto tracefile = getAttrAs<std::string>(SQL_ATTR_TRACEFILE);
+            const auto tracefile = getAttrAs<std::string>(CH_SQL_ATTR_TRACEFILE);
 
             if (enable_logging) {
                 if (stream_open && tracefile != log_file_name) {
@@ -109,7 +109,7 @@ void Driver::onAttrChange(int attr) {
 }
 
 bool Driver::isLoggingEnabled() const {
-    return (getAttrAs<SQLUINTEGER>(SQL_ATTR_TRACE) == SQL_OPT_TRACE_ON);
+    return (getAttrAs<SQLUINTEGER>(CH_SQL_ATTR_TRACE) == SQL_OPT_TRACE_ON);
 }
 
 std::ostream & Driver::getLogStream() {

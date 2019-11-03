@@ -201,12 +201,12 @@ void Connection::loadConfiguration() {
     {
         const std::string tracefile = stringFromMYTCHAR(ci.tracefile);
         if (!tracefile.empty()) {
-            getDriver().setAttr(SQL_ATTR_TRACEFILE, tracefile);
+            getDriver().setAttr(CH_SQL_ATTR_TRACEFILE, tracefile);
         }
 
         const std::string trace = stringFromMYTCHAR(ci.trace);
         if (!trace.empty()) {
-            getDriver().setAttr(SQL_ATTR_TRACE, (isYes(trace) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
+            getDriver().setAttr(CH_SQL_ATTR_TRACE, (isYes(trace) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
         }
     }
 

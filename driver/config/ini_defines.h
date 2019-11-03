@@ -22,8 +22,8 @@
 #define INI_DATABASE        "Database"        /* Database Name */
 #define INI_READONLY        "ReadOnly"        /* Database is read only */
 #define INI_STRINGMAXLENGTH "StringMaxLength"
-#define INI_TRACE           "Trace"
-#define INI_TRACEFILE       "TraceFile"
+#define INI_TRACE           "Log"
+#define INI_TRACEFILE       "LogFile"
 
 #define INI_DSN_DEFAULT             "ClickHouseDSN_localhost"
 #define INI_DESC_DEFAULT            ""
@@ -45,9 +45,9 @@
 #endif
 
 #ifdef _win_
-#    define INI_TRACEFILE_DEFAULT "\\temp\\clickhouse-odbc.log"
+#    define INI_TRACEFILE_DEFAULT "\\temp\\clickhouse-odbc-driver.log"
 #else
-#    define INI_TRACEFILE_DEFAULT "/tmp/clickhouse-odbc.log"
+#    define INI_TRACEFILE_DEFAULT "/tmp/clickhouse-odbc-driver.log"
 #endif
 
 #ifdef _win_

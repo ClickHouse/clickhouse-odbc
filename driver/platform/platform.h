@@ -115,3 +115,11 @@
 #else
 #    define EXPORTED_FUNCTION_MAYBE_W(func) EXPORTED_FUNCTION(func)
 #endif
+
+
+// Custom attributes and other macros that mimic and extend standard ODBC API specs.
+
+#define CH_SQL_OFFSET   30000
+
+#define CH_SQL_ATTR_TRACE            (SQL_ATTR_TRACE + CH_SQL_OFFSET)
+#define CH_SQL_ATTR_TRACEFILE        (SQL_ATTR_TRACEFILE + CH_SQL_OFFSET)
