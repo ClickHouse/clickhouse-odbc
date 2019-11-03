@@ -91,7 +91,6 @@ if (WIN32)
         platform/win/resource.h
         platform/win/setup.cpp
         platform/win/resource.rc
-        platform/win/${libname}.def
     )
 endif()
 
@@ -141,10 +140,6 @@ target_link_libraries(${libname}-impl
     PUBLIC ${Poco_Util_LIBRARY}
     PUBLIC ${ODBC_LIBRARIES}
 )
-
-if(NOT APPLE AND NOT WIN32)
-    target_link_libraries(${libname}-impl PUBLIC "-Wl,--version-script=${PROJECT_SOURCE_DIR}/driver/platform/linker_script")
-endif()
 
 if(WIN32)
     target_link_libraries(${libname}-impl PUBLIC ws2_32 Iphlpapi legacy_stdio_definitions)

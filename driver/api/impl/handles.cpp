@@ -9,7 +9,7 @@
 
 #include <type_traits>
 
-namespace {
+namespace { namespace impl {
 
 SQLRETURN allocEnv(SQLHENV * out_environment_handle) noexcept {
     return CALL([&] () {
@@ -67,45 +67,30 @@ SQLRETURN freeHandle(SQLHANDLE handle) noexcept {
     });
 }
 
-} // namespace
+} } // namespace impl
 
 
 extern "C" {
 
-SQLRETURN SQL_API SQLAllocHandle(SQLSMALLINT handle_type, SQLHANDLE input_handle, SQLHANDLE * output_handle) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLAllocHandle)(SQLSMALLINT handle_type, SQLHANDLE input_handle, SQLHANDLE * output_handle) {
     LOG(__FUNCTION__ << " handle_type=" << handle_type << " input_handle=" << input_handle);
 
     switch (handle_type) {
         case SQL_HANDLE_ENV:
-            return allocEnv((SQLHENV *)output_handle);
+            return impl::allocEnv((SQLHENV *)output_handle);
         case SQL_HANDLE_DBC:
-            return allocConnect((SQLHENV)input_handle, (SQLHDBC *)output_handle);
+            return impl::allocConnect((SQLHENV)input_handle, (SQLHDBC *)output_handle);
         case SQL_HANDLE_STMT:
-            return allocStmt((SQLHDBC)input_handle, (SQLHSTMT *)output_handle);
+            return impl::allocStmt((SQLHDBC)input_handle, (SQLHSTMT *)output_handle);
         case SQL_HANDLE_DESC:
-            return allocDesc((SQLHDBC)input_handle, (SQLHDESC *)output_handle);
+            return impl::allocDesc((SQLHDBC)input_handle, (SQLHDESC *)output_handle);
         default:
             LOG("AllocHandle: Unknown handleType=" << handle_type);
             return SQL_ERROR;
     }
 }
 
-SQLRETURN SQL_API SQLAllocEnv(SQLHDBC * output_handle) {
-    LOG(__FUNCTION__);
-    return allocEnv(output_handle);
-}
-
-SQLRETURN SQL_API SQLAllocConnect(SQLHENV input_handle, SQLHDBC * output_handle) {
-    LOG(__FUNCTION__ << " input_handle=" << input_handle);
-    return allocConnect(input_handle, output_handle);
-}
-
-SQLRETURN SQL_API SQLAllocStmt(SQLHDBC input_handle, SQLHSTMT * output_handle) {
-    LOG(__FUNCTION__ << " input_handle=" << input_handle);
-    return allocStmt(input_handle, output_handle);
-}
-
-SQLRETURN SQL_API SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE handle) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFreeHandle)(SQLSMALLINT handleType, SQLHANDLE handle) {
     LOG(__FUNCTION__ << " handleType=" << handleType << " handle=" << handle);
 
     switch (handleType) {
@@ -113,24 +98,14 @@ SQLRETURN SQL_API SQLFreeHandle(SQLSMALLINT handleType, SQLHANDLE handle) {
         case SQL_HANDLE_DBC:
         case SQL_HANDLE_STMT:
         case SQL_HANDLE_DESC:
-            return freeHandle(handle);
+            return impl::freeHandle(handle);
         default:
             LOG("FreeHandle: Unknown handleType=" << handleType);
             return SQL_ERROR;
     }
 }
 
-SQLRETURN SQL_API SQLFreeEnv(HENV handle) {
-    LOG(__FUNCTION__);
-    return freeHandle(handle);
-}
-
-SQLRETURN SQL_API SQLFreeConnect(HDBC handle) {
-    LOG(__FUNCTION__);
-    return freeHandle(handle);
-}
-
-SQLRETURN SQL_API SQLFreeStmt(HSTMT statement_handle, SQLUSMALLINT option) {
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFreeStmt)(HSTMT statement_handle, SQLUSMALLINT option) {
     LOG(__FUNCTION__ << " option=" << option);
 
     return CALL_WITH_HANDLE(statement_handle, [&] (Statement & statement) -> SQLRETURN {
@@ -140,7 +115,7 @@ SQLRETURN SQL_API SQLFreeStmt(HSTMT statement_handle, SQLUSMALLINT option) {
                 return SQL_SUCCESS;
 
             case SQL_DROP:
-                return freeHandle(statement_handle);
+                return impl::freeHandle(statement_handle);
 
             case SQL_UNBIND:
                 statement.resetColBindings();

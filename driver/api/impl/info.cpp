@@ -24,7 +24,7 @@
 
 extern "C" {
 
-SQLRETURN SQL_API SQLGetInfo(
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
     HDBC connection_handle,
     SQLUSMALLINT info_type,
     PTR out_value,

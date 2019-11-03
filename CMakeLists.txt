@@ -1,16 +1,23 @@
-cmake_minimum_required (VERSION 3.2)
+cmake_minimum_required (VERSION 3.9)
 
-project (clickhouse-odbc VERSION 1.1.0.20191028 LANGUAGES C CXX)
+project (clickhouse-odbc VERSION 1.1.1.20191102 LANGUAGES C CXX)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
-set(CMAKE_LINK_DEPENDS_NO_SHARED 1) # Do not relink all depended targets on .so
-set(CMAKE_CXX_EXTENSIONS 0)
-set(CMAKE_CXX_STANDARD_REQUIRED 1)
-set(CMAKE_POSITION_INDEPENDENT_CODE 1)
-set(CMAKE_BUILD_COLOR_MAKEFILE 1)
-set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ANSIDriver)
+set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 
-if (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "None")
+set (CMAKE_C_STANDARD 11)
+#set (CMAKE_C_EXTENSIONS 0)
+set (CMAKE_C_STANDARD_REQUIRED 1)
+
+set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_EXTENSIONS 0)
+set (CMAKE_CXX_STANDARD_REQUIRED 1)
+
+set (CMAKE_POSITION_INDEPENDENT_CODE 1)
+
+set (CMAKE_BUILD_COLOR_MAKEFILE 1)
+set (CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ANSIDriver)
+
+if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "RelWithDebInfo")
 endif ()
 
@@ -23,10 +30,6 @@ message (STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 string (TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UC)
 string (TOUPPER "${CMAKE_CONFIGURATION_TYPES}" CMAKE_CONFIGURATION_TYPES_UC)
 
-set (COMMON_WARNING_FLAGS "-Wall")	# -Werror is also added inside directories with our own code.
-set (CXX_WARNING_FLAGS "-Wnon-virtual-dtor")
-
-set (CMAKE_CXX_STANDARD 14)
 # For iostream_debug_helpers.h :
 if (CMAKE_BUILD_TYPE_UC STREQUAL "DEBUG" AND USE_DEBUG_17)
     set (CMAKE_CXX_STANDARD 17)
@@ -43,8 +46,6 @@ if (MSVC)
         endforeach ()
     endforeach ()
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
-else ()
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
 endif ()
 
 if (NOT BUILD_SHARED)
@@ -60,7 +61,7 @@ message (STATUS "BUILD_SHARED: ${BUILD_SHARED}")
 include (cmake/arch.cmake)
 
 if (ARCH_FREEBSD)
-    set (CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
 endif ()
 
 include (cmake/sanitize.cmake)
@@ -92,7 +93,6 @@ else ()
 endif ()
 
 option (ENABLE_SSL "Use openssl for accessing https:// interface" 1)
-
 if (ENABLE_SSL)
     include (cmake/find_ssl.cmake)
     if (OPENSSL_FOUND)
@@ -133,6 +133,18 @@ add_subdirectory (contrib EXCLUDE_FROM_ALL)
 foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
     set(CMAKE_${config}_POSTFIX "" CACHE STRING "" FORCE) # Don't append "d" or "md" to output lib name
 endforeach ()
+
+set (CMAKE_C_VISIBILITY_PRESET hidden)
+set (CMAKE_CXX_VISIBILITY_PRESET hidden)
+set (CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+
+include(CheckIPOSupported)
+
+check_ipo_supported(RESULT ipo_supported LANGUAGES C CXX)
+if (ipo_supported)
+    set (CMAKE_INTERPROCEDURAL_OPTIMIZATION 1)
+    set (CMAKE_INTERPROCEDURAL_OPTIMIZATION_DEBUG 0)
+endif ()
 
 add_subdirectory (driver)
 
