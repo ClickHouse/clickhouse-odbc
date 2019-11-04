@@ -2,9 +2,7 @@
 
 #include "driver/platform/platform.h"
 
-#define LARGE_REGISTRY_LEN 4096 /// used for special cases */
-#define MEDIUM_REGISTRY_LEN 256 /// normal size for user, database, etc.
-#define SMALL_REGISTRY_LEN 10   /// for 1/0 settings
+#define MAX_DSN_VALUE_LEN 10240
 
 #define INI_DRIVER          "Driver"
 #define INI_DSN             "DSN"

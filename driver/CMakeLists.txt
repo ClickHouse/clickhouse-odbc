@@ -1,21 +1,11 @@
 function(declare_odbc_lib_targets libname UNICODE)
 
-#option (UNICODE "Enable unicode" 0)
 if (UNICODE)
-    set(UNICODE 1)
-    if (ODBC_UNIXODBC)
-        option (SQL_WCHART_CONVERT "Unixodbc SQL_WCHART_CONVERT (use four bytes TCHAR)" 0)
-    endif ()
-    if(ODBC_IODBC)
-        #option (ODBC_CHAR16 "Strange option for iodbc" 1)
-    endif()
-    if (ODBC_IODBC AND APPLE)
-        set(ODBC_WCHAR 1)
-    endif()
-
     set(_config_add w)
+    message (STATUS "${libname}: UNICODE")
 else ()
-    set(UNICODE 0)
+    set(_config_add)
+    message (STATUS "${libname}: ANSI")
 endif ()
 
 # Hell matrix
@@ -27,8 +17,6 @@ endif ()
 # iodbc APPLE   wchar_t     4           wchar_t == TCHAR
 # unixodbc      wchar_t     4           true == SQL_WCHART_CONVERT
 # unixodbc      char16_t    2           false == SQL_WCHART_CONVERT
-
-message (STATUS "${libname}: UNICODE=${UNICODE} SQL_WCHART_CONVERT=${SQL_WCHART_CONVERT} ODBC_WCHAR=${ODBC_WCHAR} ODBC_CHAR16=${ODBC_CHAR16}")
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/platform/config_cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/platform/config_cmake${_config_add}.h)
 
@@ -55,9 +43,9 @@ add_library(${libname}-impl STATIC
 
 
     platform/platform.h
-    platform/unicode_t.h
 
     utils/utils.h
+    utils/unicode_conv.h
     utils/iostream_debug_helpers.h
     utils/read_helpers.h
     utils/type_parser.h
@@ -108,15 +96,6 @@ if (UNICODE)
         PUBLIC UNICODE=1
         PUBLIC _UNICODE=1
     )
-
-    # Mode for unixodbc for working with wchar as in iodbc
-    if (SQL_WCHART_CONVERT)
-        target_compile_definitions(${libname}-impl PUBLIC SQL_WCHART_CONVERT=1)
-    endif ()
-
-    #if(ODBC_IODBC)
-    #    target_compile_definitions(${libname}-impl PUBLIC SQL_NOUNICODEMAP=1)
-    #endif()
 endif ()
 
 target_include_directories (${libname}-impl

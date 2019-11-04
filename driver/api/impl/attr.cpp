@@ -60,7 +60,7 @@ SQLRETURN GetEnvAttr(
 
         switch (attribute) {
             case SQL_ATTR_ODBC_VERSION:
-                fillOutputNumber<SQLUINTEGER>(environment.odbc_version, out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length);
+                fillOutputPOD<SQLUINTEGER>(environment.odbc_version, out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length);
                 return SQL_SUCCESS;
 
             case SQL_ATTR_CONNECTION_POOLING:
@@ -98,7 +98,7 @@ SQLRETURN SetConnectAttr(
             }
 
             case SQL_ATTR_CURRENT_CATALOG:
-                connection.setDatabase(stringFromSQLBytes((SQLTCHAR *)value, value_length));
+                connection.setDatabase(toUTF8((SQLTCHAR *)value, value_length));
                 return SQL_SUCCESS;
 
             case SQL_ATTR_ANSI_APP:
@@ -118,19 +118,15 @@ SQLRETURN SetConnectAttr(
                 return SQL_SUCCESS;
             }
 
-            case SQL_ATTR_TRACEFILE: {
-                const std::string tracefile = stringFromSQLBytes((SQLTCHAR *)value, value_length);
-                connection.getDriver().setAttr(SQL_ATTR_TRACEFILE, tracefile);
+            case SQL_ATTR_TRACEFILE:
+                connection.getDriver().setAttr(SQL_ATTR_TRACEFILE, toUTF8((SQLTCHAR *)value, value_length));
                 return SQL_SUCCESS;
-            }
 
 #if defined(SQL_APPLICATION_NAME)
-            case SQL_APPLICATION_NAME: {
-                auto string = stringFromSQLBytes((SQLTCHAR *)value, value_length);
-                LOG("SetConnectAttr: SQL_APPLICATION_NAME: " << string);
-                connection.useragent = string;
+            case SQL_APPLICATION_NAME:
+                connection.useragent = toUTF8((SQLTCHAR *)value, value_length);
+                LOG("SetConnectAttr: SQL_APPLICATION_NAME: " << connection.useragent);
                 return SQL_SUCCESS;
-            }
 #endif
 
             case SQL_ATTR_METADATA_ID:
@@ -180,23 +176,27 @@ SQLRETURN GetConnectAttr(
                 SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout);
             CASE_NUM(SQL_ATTR_TXN_ISOLATION, SQLINTEGER, SQL_TXN_SERIALIZABLE); // mssql linked server
             CASE_NUM(SQL_ATTR_AUTOCOMMIT, SQLINTEGER, SQL_AUTOCOMMIT_ON);
-            CASE_NUM(SQL_ATTR_TRACE, SQLINTEGER, (connection.getDriver().isLoggingEnabled() ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
 
             case SQL_ATTR_CURRENT_CATALOG:
-                fillOutputPlatformString(connection.getDatabase(), out_value, out_value_max_length, out_value_length);
-                return SQL_SUCCESS;
+                return fillOutputString<SQLTCHAR>(connection.getDatabase(), out_value, out_value_max_length, out_value_length);
 
             case SQL_ATTR_ANSI_APP:
                 return SQL_ERROR;
 
-            case SQL_ATTR_TRACEFILE: {
-                const auto tracefile = connection.getDriver().getAttrAs<std::string>(SQL_ATTR_TRACEFILE);
-                fillOutputPlatformString(tracefile, out_value, out_value_max_length, out_value_length);
-                return SQL_SUCCESS;
-            }
+            case SQL_ATTR_TRACE:
+                return fillOutputPOD<SQLINTEGER>(
+                    (connection.getDriver().isLoggingEnabled() ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF),
+                    out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length
+                );
+
+            case SQL_ATTR_TRACEFILE:
+                return fillOutputString<SQLTCHAR>(
+                    connection.getDriver().getAttrAs<std::string>(SQL_ATTR_TRACEFILE),
+                    out_value, out_value_max_length, out_value_length
+                );
 
             case SQL_ATTR_METADATA_ID:
-                return fillOutputNumber<SQLUINTEGER>(
+                return fillOutputPOD<SQLUINTEGER>(
                     connection.getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE),
                     out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length
                 );
@@ -361,7 +361,7 @@ SQLRETURN GetStmtAttr(
 
 #define CASE_GET_FROM_DESC(STMT_ATTR, DESC_TYPE, DESC_ATTR, VALUE_TYPE) \
             case STMT_ATTR: \
-                return fillOutputNumber<VALUE_TYPE>(statement.getEffectiveDescriptor(DESC_TYPE).getAttrAs<VALUE_TYPE>(DESC_ATTR), out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length);
+                return fillOutputPOD<VALUE_TYPE>(statement.getEffectiveDescriptor(DESC_TYPE).getAttrAs<VALUE_TYPE>(DESC_ATTR), out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length);
 
             CASE_GET_FROM_DESC(SQL_ATTR_PARAM_BIND_OFFSET_PTR, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
             CASE_GET_FROM_DESC(SQL_ATTR_PARAM_BIND_TYPE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
@@ -382,7 +382,7 @@ SQLRETURN GetStmtAttr(
             CASE_FALLTHROUGH(SQL_ATTR_APP_PARAM_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_IMP_ROW_DESC)
             CASE_FALLTHROUGH(SQL_ATTR_IMP_PARAM_DESC)
-				return fillOutputNumber<SQLHANDLE>(statement.getEffectiveDescriptor(attribute).getHandle(),
+				return fillOutputPOD<SQLHANDLE>(statement.getEffectiveDescriptor(attribute).getHandle(),
                     out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length);
 
             CASE_NUM(SQL_ATTR_CURSOR_SCROLLABLE, SQLULEN, SQL_NONSCROLLABLE);
@@ -395,7 +395,7 @@ SQLRETURN GetStmtAttr(
             CASE_NUM(SQL_ATTR_MAX_ROWS, SQLULEN, 0);
 
             CASE_FALLTHROUGH(SQL_ATTR_METADATA_ID)
-                return fillOutputNumber<SQLULEN>(
+                return fillOutputPOD<SQLULEN>(
                     statement.getAttrAs<SQLULEN>(
                         SQL_ATTR_METADATA_ID,
                         statement.getParent().getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE)
@@ -404,7 +404,7 @@ SQLRETURN GetStmtAttr(
                 );
 
             CASE_FALLTHROUGH(SQL_ATTR_NOSCAN)
-                return fillOutputNumber<SQLULEN>(
+                return fillOutputPOD<SQLULEN>(
                     statement.getAttrAs<SQLULEN>(SQL_ATTR_NOSCAN, SQL_NOSCAN_OFF),
                     out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length
                 );

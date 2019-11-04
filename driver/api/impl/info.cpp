@@ -58,11 +58,11 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
         case NAME:                               \
             if ((out_value_max_length % 2) != 0) \
                 return SQL_ERROR;                \
-            return fillOutputPlatformString(VALUE, out_value, out_value_max_length, out_value_length);
+            return fillOutputString<SQLTCHAR>(VALUE, out_value, out_value_max_length, out_value_length);
 #else
 #    define CASE_STRING(NAME, VALUE) \
         case NAME:                   \
-            return fillOutputPlatformString(VALUE, out_value, out_value_max_length, out_value_length);
+            return fillOutputString<SQLTCHAR>(VALUE, out_value, out_value_max_length, out_value_length);
 #endif
 
             CASE_STRING(SQL_DRIVER_VER, VERSION_STRING)

@@ -71,16 +71,6 @@
 #            define LPTSTR LPSTR
 #        endif
 #    endif
-#    if defined(UNICODE)
-#      if defined(ODBC_CHAR16)
-#        define TEXT(value) L"" value
-#      else
-#        define TEXT(value) u"" value
-#      endif
-#    else
-#        define TEXT(value) value
-#    endif
-
 #    if !defined(LPCTSTR)
 #        if defined(UNICODE)
 #            define LPCTSTR LPCWSTR

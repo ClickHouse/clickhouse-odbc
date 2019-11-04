@@ -1,30 +1,47 @@
 #include "driver/utils/utils.h"
 #include "driver/config/config.h"
+#include "driver/config/ini_defines.h"
 #include "driver/driver.h"
 
 #include <odbcinst.h>
 
+#include <type_traits>
+#include <vector>
+
 #include <cstring>
 
 void getDSNinfo(ConnInfo * ci, bool overwrite) {
-    MYTCHAR odbc_ini[MEDIUM_REGISTRY_LEN] = {};
-    MYTCHAR ini_name[MEDIUM_REGISTRY_LEN] = {};
-    MYTCHAR default_value[LARGE_REGISTRY_LEN] = {};
-    stringToTCHAR(ODBC_INI, odbc_ini);
+    using CharType = std::remove_cv<std::remove_pointer<LPCTSTR>::type>::type;
+
+    std::vector<CharType> dsn;
+    std::vector<CharType> config_file;
+    std::vector<CharType> name;
+    std::vector<CharType> default_value;
+    std::vector<CharType> value;
+
+    fromUTF8(ci->dsn, dsn);
+    fromUTF8(ODBC_INI, config_file);
 
 #define GET_CONFIG(NAME, INI_NAME, DEFAULT)           \
-    if (ci->NAME[0] == '\0' || overwrite) {           \
-        stringToTCHAR(INI_NAME, ini_name);            \
-        stringToTCHAR(DEFAULT, default_value);        \
+    if (ci->NAME.empty() || overwrite) {              \
+        fromUTF8(INI_NAME, name);                     \
+        fromUTF8(DEFAULT, default_value);             \
+        value.clear();                                \
+        value.resize(MAX_DSN_VALUE_LEN);              \
         const auto read = SQLGetPrivateProfileString( \
-            ci->dsn,                                  \
-            ini_name,                                 \
-            default_value,                            \
-            ci->NAME,                                 \
-            lengthof(ci->NAME),                       \
-            odbc_ini                                  \
+            &dsn[0],                                  \
+            &name[0],                                 \
+            &default_value[0],                        \
+            &value[0],                                \
+            value.size(),                             \
+            &config_file[0]                           \
         );                                            \
-        ci->NAME[read] = '\0';                        \
+        if (read < 0)                                 \
+            throw std::runtime_error("SQLGetPrivateProfileString failed to extract the value of " INI_NAME);        \
+        if (read > MAX_DSN_VALUE_LEN)                 \
+            throw std::runtime_error("SQLGetPrivateProfileString failed to extract the entire value of " INI_NAME); \
+        value.resize(read);                           \
+        ci->NAME = toUTF8(value);                     \
     }
 
 	GET_CONFIG(desc,            INI_DESC,            INI_DESC_DEFAULT);
@@ -45,22 +62,28 @@ void getDSNinfo(ConnInfo * ci, bool overwrite) {
 }
 
 void writeDSNinfo(const ConnInfo * ci) {
-    MYTCHAR odbc_ini[MEDIUM_REGISTRY_LEN] = {};
-    MYTCHAR ini_name[MEDIUM_REGISTRY_LEN] = {};
-    stringToTCHAR(ODBC_INI, odbc_ini);
+    using CharType = std::remove_cv<std::remove_pointer<LPCTSTR>::type>::type;
+
+    std::vector<CharType> dsn;
+    std::vector<CharType> config_file;
+    std::vector<CharType> name;
+    std::vector<CharType> value;
+
+    fromUTF8(ci->dsn, dsn);
+    fromUTF8(ODBC_INI, config_file);
 
 #define WRITE_CONFIG(NAME, INI_NAME)                      \
     {                                                     \
-        stringToTCHAR(INI_NAME, ini_name);                \
+        fromUTF8(INI_NAME, name);                         \
+        fromUTF8(ci->NAME, value);                        \
         const auto result = SQLWritePrivateProfileString( \
-            ci->dsn,                                      \
-            ini_name,                                     \
-            ci->NAME,                                     \
-            odbc_ini                                      \
+            &dsn[0],                                      \
+            &name[0],                                     \
+            &value[0],                                    \
+            &config_file[0]                               \
         );                                                \
         if (!result)                                      \
-            throw std::runtime_error(                     \
-				"SQLWritePrivateProfileString failed");   \
+            throw std::runtime_error("SQLWritePrivateProfileString failed to write value of " INI_NAME); \
     }
 
     WRITE_CONFIG(desc,            INI_DESC);

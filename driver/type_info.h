@@ -1,7 +1,7 @@
 #pragma once
 
 #include "driver/platform/platform.h"
-#include "driver/platform/unicode_t.h"
+#include "driver/utils/unicode_conv.h"
 
 #include <algorithm>
 #include <string>
@@ -218,7 +218,7 @@ namespace value_manip {
 
     template <>
     inline std::string to<std::string>::from<SQLCHAR *>(const BindingInfo & binding_info) {
-        const auto * cstr = reinterpret_cast<const char *>(binding_info.value);
+        const auto * cstr = reinterpret_cast<const SQLCHAR *>(binding_info.value);
 
         if (!cstr)
             return std::string{};
@@ -230,7 +230,7 @@ namespace value_manip {
             switch (*ind_ptr) {
                 case 0:
                 case SQL_NTS:
-                    return std::string{cstr};
+                    return toUTF8(cstr);
 
                 case SQL_NULL_DATA:
                 case SQL_DEFAULT_PARAM:
@@ -243,21 +243,19 @@ namespace value_manip {
         }
 
         if (!sz_ptr || *sz_ptr < 0)
-            return std::string{cstr};
+            return toUTF8(cstr);
 
-        return std::string{cstr, static_cast<std::size_t>(*sz_ptr)};
+        return toUTF8(cstr, (static_cast<std::size_t>(*sz_ptr) / sizeof(decltype(*cstr))));
     }
 
     template <>
     inline std::string to<std::string>::from<SQLWCHAR *>(SQLWCHAR * const & str) {
-        const auto * wcstr = reinterpret_cast<const wchar_t *>(str);
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> convert;
-        return convert.to_bytes(wcstr);
+        return toUTF8(str);
     }
 
     template <>
     inline std::string to<std::string>::from<SQLWCHAR *>(const BindingInfo & binding_info) {
-        const auto * wcstr = reinterpret_cast<const wchar_t *>(binding_info.value);
+        const auto * wcstr = reinterpret_cast<const SQLWCHAR *>(binding_info.value);
 
         if (!wcstr)
             return std::string{};
@@ -271,7 +269,7 @@ namespace value_manip {
             switch (*ind_ptr) {
                 case 0:
                 case SQL_NTS:
-                    return convert.to_bytes(wcstr);
+                    return toUTF8(wcstr);
 
                 case SQL_NULL_DATA:
                 case SQL_DEFAULT_PARAM:
@@ -284,10 +282,9 @@ namespace value_manip {
         }
 
         if (!sz_ptr || *sz_ptr < 0)
-            return convert.to_bytes(wcstr);
+            return toUTF8(wcstr);
 
-        const auto* wcstr_last = wcstr + static_cast<std::size_t>(*sz_ptr) / sizeof(decltype(*wcstr));
-        return convert.to_bytes(wcstr, wcstr_last);
+        return toUTF8(wcstr, (static_cast<std::size_t>(*sz_ptr) / sizeof(decltype(*wcstr))));
     }
 
     template <>
