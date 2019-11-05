@@ -68,7 +68,7 @@ inline decltype(auto) toUTF8(const unsigned char * src, SQLLEN length = SQL_NTS)
 }
 
 inline decltype(auto) toUTF8(const unsigned short * src, SQLLEN length = SQL_NTS) {
-    static_assert(sizeof(unsigned short) == sizeof(char16_t));
+    static_assert(sizeof(unsigned short) == sizeof(char16_t), "unsigned short doesn't match char16_t exactly");
     return toUTF8(reinterpret_cast<const char16_t *>(src), length);
 }
 
@@ -160,7 +160,7 @@ inline decltype(auto) fromUTF8<unsigned char>(const std::string & src) {
 
 template <>
 inline decltype(auto) fromUTF8<unsigned short>(const std::string & src) {
-    static_assert(sizeof(unsigned short) == sizeof(char16_t));
+    static_assert(sizeof(unsigned short) == sizeof(char16_t), "unsigned short doesn't match char16_t exactly");
     const auto converted = fromUTF8<char16_t>(src);
     return std::basic_string<unsigned short>{converted.begin(), converted.end()};
 }

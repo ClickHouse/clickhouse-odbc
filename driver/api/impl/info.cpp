@@ -25,11 +25,11 @@
 extern "C" {
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
-    HDBC connection_handle,
-    SQLUSMALLINT info_type,
-    PTR out_value,
-    SQLSMALLINT out_value_max_length,
-    SQLSMALLINT * out_value_length
+    SQLHDBC         connection_handle,
+    SQLUSMALLINT    info_type,
+    SQLPOINTER      out_value,
+    SQLSMALLINT     out_value_max_length,
+    SQLSMALLINT *   out_value_length
 ) {
     LOG("GetInfo with info_type: " << info_type << ", out_value_max_length: " << out_value_max_length);
 
