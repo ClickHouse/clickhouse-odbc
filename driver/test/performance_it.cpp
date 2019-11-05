@@ -19,11 +19,16 @@ protected:
     virtual void SetUp() override {
         ClientTestBase::SetUp();
 
+#if !defined(_IODBCUNIX_H)
         ODBC_CALL_ON_DBC_THROW(hdbc, SQLGetConnectAttr(hdbc, SQL_ATTR_TRACE, &driver_manager_trace, 0, nullptr));
         if (driver_manager_trace == SQL_OPT_TRACE_ON) {
             std::cout << "Temporarily disabling driver manager tracing..." << std::endl;
             ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, SQL_ATTR_TRACE, (SQLPOINTER)SQL_OPT_TRACE_OFF, 0));
         }
+#else
+        std::cout << "WARNING: using iODBC, so unable to detect and disable driver manager tracing from the client code!" <<
+            " Performance test results may not be very representative and may take significantly more time and disk space." << std::endl;
+#endif
 
         ODBC_CALL_ON_DBC_THROW(hdbc, SQLGetConnectAttr(hdbc, CH_SQL_ATTR_TRACE, &driver_trace, 0, nullptr));
         if (driver_trace == SQL_OPT_TRACE_ON) {
@@ -38,10 +43,12 @@ protected:
             ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, CH_SQL_ATTR_TRACE, (SQLPOINTER)SQL_OPT_TRACE_ON, 0));
         }
 
+#if !defined(_IODBCUNIX_H)
         if (driver_manager_trace == SQL_OPT_TRACE_ON) {
             std::cout << "Re-enabling driver manager tracing..." << std::endl;
             ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, SQL_ATTR_TRACE, (SQLPOINTER)SQL_OPT_TRACE_ON, 0));
         }
+#endif
 
         ClientTestBase::TearDown();
     }
