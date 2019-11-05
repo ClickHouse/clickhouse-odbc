@@ -217,6 +217,11 @@ namespace value_manip {
     };
 
     template <>
+    inline std::string to<std::string>::from<SQLCHAR *>(SQLCHAR * const & str) {
+        return toUTF8(str);
+    }
+
+    template <>
     inline std::string to<std::string>::from<SQLCHAR *>(const BindingInfo & binding_info) {
         const auto * cstr = reinterpret_cast<const SQLCHAR *>(binding_info.value);
 
@@ -262,8 +267,6 @@ namespace value_manip {
 
         const auto * sz_ptr = binding_info.value_size;
         const auto * ind_ptr = binding_info.indicator;
-
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> convert;
 
         if (ind_ptr) {
             switch (*ind_ptr) {
@@ -609,7 +612,7 @@ namespace value_manip {
         return res;
     }
 
-} // namespace convert
+} // namespace value_manip
 
 template <typename T> constexpr inline SQLSMALLINT getCTypeFor(); // leave unimplemented for general case
 template <> constexpr inline SQLSMALLINT getCTypeFor< SQLCHAR *            >() { return SQL_C_CHAR;           }

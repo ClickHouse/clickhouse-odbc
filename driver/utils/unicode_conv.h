@@ -5,15 +5,32 @@
 #include <algorithm>
 #include <codecvt>
 #include <locale>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
-#include <vector>
+
+using CharTypeLPCTSTR = std::remove_cv<std::remove_pointer<LPCTSTR>::type>::type;
+
+inline std::string toUTF8(const char * src, const std::locale& locale, SQLLEN length = SQL_NTS) {
+
+    // TODO: implement and use conversion from the specified locale.
+
+    throw std::runtime_error("not implemented");
+}
+
+inline decltype(auto) toUTF8(const signed char * src, const std::locale& locale, SQLLEN length = SQL_NTS) {
+    return toUTF8(reinterpret_cast<const char *>(src), locale, length);
+}
+
+inline decltype(auto) toUTF8(const unsigned char * src, const std::locale& locale, SQLLEN length = SQL_NTS) {
+    return toUTF8(reinterpret_cast<const char *>(src), locale, length);
+}
 
 inline std::string toUTF8(const char * src, SQLLEN length = SQL_NTS) {
     if (!src || (length != SQL_NTS && length <= 0))
         return {};
 
-    // TODO: convert from the current locale?
+    // TODO: convert from the current locale by default?
 
     return (length == SQL_NTS ? std::string{src} : std::string{src, static_cast<std::string::size_type>(length)});
 }
@@ -22,7 +39,7 @@ inline std::string toUTF8(const char16_t * src, SQLLEN length = SQL_NTS) {
     if (!src || (length != SQL_NTS && length <= 0))
         return {};
 
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> convert;
     return (length == SQL_NTS ? convert.to_bytes(src) : convert.to_bytes(src, src + length));
 }
 
@@ -30,7 +47,7 @@ inline std::string toUTF8(const char32_t * src, SQLLEN length = SQL_NTS) {
     if (!src || (length != SQL_NTS && length <= 0))
         return {};
 
-    std::wstring_convert<std::codecvt_utf8_utf16<char32_t>, char32_t> convert;
+    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> convert;
     return (length == SQL_NTS ? convert.to_bytes(src) : convert.to_bytes(src, src + length));
 }
 
@@ -38,112 +55,138 @@ inline std::string toUTF8(const wchar_t * src, SQLLEN length = SQL_NTS) {
     if (!src || (length != SQL_NTS && length <= 0))
         return {};
 
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> convert;
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
     return (length == SQL_NTS ? convert.to_bytes(src) : convert.to_bytes(src, src + length));
 }
 
-inline auto toUTF8(const signed char * src, SQLLEN length = SQL_NTS) {
+inline decltype(auto) toUTF8(const signed char * src, SQLLEN length = SQL_NTS) {
     return toUTF8(reinterpret_cast<const char *>(src), length);
 }
 
-inline auto toUTF8(const unsigned char * src, SQLLEN length = SQL_NTS) {
+inline decltype(auto) toUTF8(const unsigned char * src, SQLLEN length = SQL_NTS) {
     return toUTF8(reinterpret_cast<const char *>(src), length);
 }
 
-inline auto toUTF8(const unsigned short * src, SQLLEN length = SQL_NTS) {
+inline decltype(auto) toUTF8(const unsigned short * src, SQLLEN length = SQL_NTS) {
     static_assert(sizeof(unsigned short) == sizeof(char16_t));
     return toUTF8(reinterpret_cast<const char16_t *>(src), length);
 }
 
-// TODO: use the generic template defined below, when converting from the current locale implemented.
+inline std::string toUTF8(const std::string & src, const std::locale& locale) {
+
+    // TODO: implement and use conversion to the specified locale.
+
+    throw std::runtime_error("not implemented");
+}
+
+// Returns cref to the original, to avoid string copy in no-op case, for now.
 inline const std::string & toUTF8(const std::string & src) {
+
+    // TODO: convert to the current locale by default?
+
     return src;
 }
 
 template <typename CharType>
-inline auto toUTF8(const std::basic_string<CharType> & src) {
+inline decltype(auto) toUTF8(const std::basic_string<CharType> & src) {
     return toUTF8(src.c_str(), src.size());
 }
 
 template <typename CharType>
-inline auto toUTF8(const std::vector<CharType> & src) {
-    return toUTF8((src.empty() ? nullptr : &src[0]), src.size());
+inline decltype(auto) fromUTF8(const std::string & src, const std::locale& locale); // Leave unimplemented for general case.
+
+template <>
+inline decltype(auto) fromUTF8<char>(const std::string & src, const std::locale& locale) {
+
+    // TODO: implement and use conversion to the specified locale.
+
+    throw std::runtime_error("not implemented");
+
+    return std::string{};
+}
+
+template <>
+inline decltype(auto) fromUTF8<signed char>(const std::string & src, const std::locale& locale) {
+    const auto converted = fromUTF8<char>(src, locale);
+    return std::basic_string<signed char>{converted.begin(), converted.end()};
+}
+
+template <>
+inline decltype(auto) fromUTF8<unsigned char>(const std::string & src, const std::locale& locale) {
+    const auto converted = fromUTF8<char>(src, locale);
+    return std::basic_string<unsigned char>{converted.begin(), converted.end()};
 }
 
 template <typename CharType>
-struct fromUTF8Helper {
-    using return_type = std::basic_string<CharType>;
-};
+inline decltype(auto) fromUTF8(const std::string & src); // Leave unimplemented for general case.
 
 template <>
-struct fromUTF8Helper<char> {
-    // TODO: remove reference, when not the original unchanged string is returned anymore.
-    using return_type = const std::string &;
-};
+inline decltype(auto) fromUTF8<char>(const std::string & src) {
 
-template <>
-struct fromUTF8Helper<signed char> {
-    using return_type = typename fromUTF8Helper<char>::return_type;
-};
-
-template <>
-struct fromUTF8Helper<unsigned char> {
-    using return_type = typename fromUTF8Helper<char>::return_type;
-};
-
-template <>
-struct fromUTF8Helper<unsigned short> {
-    using return_type = typename fromUTF8Helper<char16_t>::return_type;
-};
-
-template <typename CharType>
-inline typename fromUTF8Helper<CharType>::return_type fromUTF8(const std::string & src); // Leave unimplemented for general case.
-
-template <>
-inline typename fromUTF8Helper<char>::return_type fromUTF8<char>(const std::string & src) {
-    
     // TODO: convert to the current locale?
-    
+
     return src;
 }
 
 template <>
-inline typename fromUTF8Helper<char16_t>::return_type fromUTF8<char16_t>(const std::string & src) {
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+inline decltype(auto) fromUTF8<char16_t>(const std::string & src) {
+    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> convert;
     return convert.from_bytes(src);
 }
 
 template <>
-inline typename fromUTF8Helper<char32_t>::return_type fromUTF8<char32_t>(const std::string & src) {
-    std::wstring_convert<std::codecvt_utf8_utf16<char32_t>, char32_t> convert;
+inline decltype(auto) fromUTF8<char32_t>(const std::string & src) {
+    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> convert;
     return convert.from_bytes(src);
 }
 
 template <>
-inline typename fromUTF8Helper<wchar_t>::return_type fromUTF8<wchar_t>(const std::string & src) {
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> convert;
+inline decltype(auto) fromUTF8<wchar_t>(const std::string & src) {
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
     return convert.from_bytes(src);
 }
 
 template <>
-inline typename fromUTF8Helper<signed char>::return_type fromUTF8<signed char>(const std::string & src) {
-    return fromUTF8<char>(src);
+inline decltype(auto) fromUTF8<signed char>(const std::string & src) {
+    const auto converted = fromUTF8<char>(src);
+    return std::basic_string<signed char>{converted.begin(), converted.end()};
 }
 
 template <>
-inline typename fromUTF8Helper<unsigned char>::return_type fromUTF8<unsigned char>(const std::string & src) {
-    return fromUTF8<char>(src);
+inline decltype(auto) fromUTF8<unsigned char>(const std::string & src) {
+    const auto converted = fromUTF8<char>(src);
+    return std::basic_string<unsigned char>{converted.begin(), converted.end()};
 }
 
 template <>
-inline typename fromUTF8Helper<unsigned short>::return_type fromUTF8<unsigned short>(const std::string & src) {
-    return fromUTF8<char16_t>(src);
+inline decltype(auto) fromUTF8<unsigned short>(const std::string & src) {
+    static_assert(sizeof(unsigned short) == sizeof(char16_t));
+    const auto converted = fromUTF8<char16_t>(src);
+    return std::basic_string<unsigned short>{converted.begin(), converted.end()};
+}
+
+template <typename CharType>
+inline void fromUTF8(const std::string & src, std::basic_string<CharType> & dest, const std::locale& locale); // Leave unimplemented for general case.
+
+template <>
+inline void fromUTF8<char>(const std::string & src, std::string & dest, const std::locale& locale) {
+    dest = fromUTF8<char>(src, locale);
+}
+
+template <>
+inline void fromUTF8<signed char>(const std::string & src, std::basic_string<signed char> & dest, const std::locale& locale) {
+    dest = fromUTF8<signed char>(src, locale);
+}
+
+template <>
+inline void fromUTF8<unsigned char>(const std::string & src, std::basic_string<unsigned char> & dest, const std::locale& locale) {
+    dest = fromUTF8<unsigned char>(src, locale);
 }
 
 template <typename CharType>
 inline void fromUTF8(const std::string & src, std::basic_string<CharType> & dest,
-    typename std::enable_if<std::is_same<
-        std::basic_string<CharType>, typename std::decay<decltype(fromUTF8<CharType>(src))>::type
+    typename std::enable_if<std::is_assignable<
+        std::basic_string<CharType>, decltype(fromUTF8<CharType>(src))
     >::value>::type * = nullptr
 ) {
     dest = fromUTF8<CharType>(src);
@@ -151,21 +194,12 @@ inline void fromUTF8(const std::string & src, std::basic_string<CharType> & dest
 
 template <typename CharType>
 inline void fromUTF8(const std::string & src, std::basic_string<CharType> & dest,
-    typename std::enable_if<!std::is_same<
-        std::basic_string<CharType>, typename std::decay<decltype(fromUTF8<CharType>(src))>::type
+    typename std::enable_if<!std::is_assignable<
+        std::basic_string<CharType>, decltype(fromUTF8<CharType>(src))
     >::value>::type * = nullptr
 ) {
     const auto converted = fromUTF8<CharType>(src);
     dest.clear();
     dest.reserve(converted.size() + 1);
     dest.assign(converted.begin(), converted.end());
-}
-
-template <typename CharType>
-inline void fromUTF8(const std::string & src, std::vector<CharType> & dest) {
-    const auto converted = fromUTF8<CharType>(src);
-    dest.clear();
-    dest.reserve(converted.size() + 1);
-    dest.assign(converted.begin(), converted.end());
-    dest.emplace_back(0);
 }

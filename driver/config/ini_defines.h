@@ -2,6 +2,7 @@
 
 #include "driver/platform/platform.h"
 
+#define MAX_DSN_KEY_LEN   256
 #define MAX_DSN_VALUE_LEN 10240
 
 #define INI_DRIVER          "Driver"

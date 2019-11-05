@@ -77,6 +77,16 @@ template <> constexpr int getObjectHandleType<Descriptor>() { return SQL_HANDLE_
 template <> constexpr int getObjectHandleType<Statement>() { return SQL_HANDLE_STMT; }
 
 template <typename T>
+inline constexpr T * ptr_rm_const(const T * ptr) noexcept {
+    return const_cast<T *>(ptr);
+}
+
+template <typename T>
+inline constexpr void * vptr_rm_const(const T * ptr) noexcept {
+    return ptr_rm_const(ptr);
+}
+
+template <typename T>
 inline std::string toHexString(T n) {
     std::stringstream stream;
     stream << "0x" << std::setfill('0') << std::setw(sizeof(T) * 2) << std::hex << n;

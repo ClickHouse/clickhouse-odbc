@@ -26,6 +26,22 @@
 #    endif
 #endif
 
+#if defined(_UNICODE) && _UNICODE == 0
+#    undef _UNICODE
+#endif
+
+#if defined(UNICODE) && UNICODE == 0
+#    undef UNICODE
+#endif
+
+#if defined(_UNICODE) || defined(UNICODE)
+#    undef _UNICODE
+#    define _UNICODE 1
+
+#    undef UNICODE
+#    define UNICODE 1
+#endif
+
 #if defined(UNICODE)
 #    include "driver/platform/config_cmakew.h"
 #else

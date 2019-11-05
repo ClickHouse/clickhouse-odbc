@@ -26,23 +26,17 @@ extern HINSTANCE module_instance;
 
 namespace {
 
-#    define MAXPGPATH 1024
-/// Max keyword length
-#    define MAXKEYLEN (32 + 1)
-/// Max data source name length
-#    define MAXDSNAME (32 + 1)
-
 #    define ABBR_PROTOCOL "A1"
 #    define ABBR_READONLY "A0"
 
 /* NOTE:  All these are used by the dialog procedures */
 struct SetupDialogData {
-    HWND hwnd_parent;    /// Parent window handle
-    LPCTSTR driver_name; /// Driver description
+    HWND hwnd_parent;        /// Parent window handle
+    std::string driver_name; /// Driver description
+    std::string dsn;         /// Original data source name
+    bool is_new_dsn;         /// New data source flag
+    bool is_default;         /// Default data source flag
     ConnInfo ci;
-    TCHAR dsn[MAXDSNAME]; /// Original data source name
-    bool is_new_dsn;      /// New data source flag
-    bool is_default;      /// Default data source flag
 };
 
 BOOL copyAttributes(ConnInfo * ci, LPCTSTR attribute, LPCTSTR value) {
@@ -50,7 +44,7 @@ BOOL copyAttributes(ConnInfo * ci, LPCTSTR attribute, LPCTSTR value) {
 
 #define COPY_ATTR_IF(NAME, INI_NAME)                          \
     if (Poco::UTF8::icompare(attribute_str, INI_NAME) == 0) { \
-           ci->NAME = toUTF8(value);                          \
+        ci->NAME = toUTF8(value);                             \
         return TRUE;                                          \
     }
 
@@ -78,9 +72,9 @@ BOOL copyAttributes(ConnInfo * ci, LPCTSTR attribute, LPCTSTR value) {
 static void parseAttributes(LPCTSTR lpszAttributes, SetupDialogData * lpsetupdlg) {
     LPCTSTR lpsz;
     LPCTSTR lpszStart;
-    TCHAR aszKey[MAXKEYLEN];
+    TCHAR aszKey[MAX_DSN_KEY_LEN];
     int cbKey;
-    TCHAR value[MAXPGPATH];
+    TCHAR value[MAX_DSN_VALUE_LEN];
 
     for (lpsz = lpszAttributes; *lpsz; lpsz++) {
         /*
@@ -94,6 +88,7 @@ static void parseAttributes(LPCTSTR lpszAttributes, SetupDialogData * lpsetupdlg
             else if (*lpsz == '=')
                 break; /* Valid key found */
         }
+
         /* Determine the key's index in the key table (-1 if not found) */
         cbKey = lpsz - lpszStart;
         if (cbKey < sizeof(aszKey)) {
@@ -107,7 +102,7 @@ static void parseAttributes(LPCTSTR lpszAttributes, SetupDialogData * lpsetupdlg
             ;
 
         /* lpsetupdlg->aAttr[iElement].fSupplied = TRUE; */
-        memcpy(value, lpszStart, std::min<size_t>(lpsz - lpszStart + 1, MAXPGPATH) * sizeof(TCHAR));
+        memcpy(value, lpszStart, std::min<size_t>(lpsz - lpszStart + 1, MAX_DSN_VALUE_LEN) * sizeof(TCHAR));
 
         /* Copy the appropriate value to the conninfo  */
         copyAttributes(&lpsetupdlg->ci, aszKey, value);
@@ -118,13 +113,11 @@ static void parseAttributes(LPCTSTR lpszAttributes, SetupDialogData * lpsetupdlg
 }
 
 static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWORD * errcode) {
-    using CharType = std::remove_cv<std::remove_pointer<LPCTSTR>::type>::type;
+    std::basic_string<CharTypeLPCTSTR> Driver;
+    fromUTF8(lpsetupdlg->driver_name, Driver);
 
-    std::vector<CharType> DSN;
+    std::basic_string<CharTypeLPCTSTR> DSN;
     fromUTF8(lpsetupdlg->ci.dsn, DSN);
-
-    /// Pointer to data source name
-    LPCTSTR lpszDSN = &DSN[0];
 
     if (errcode)
         *errcode = 0;
@@ -132,11 +125,12 @@ static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWOR
     /* Validate arguments */
     if (lpsetupdlg->is_new_dsn && lpsetupdlg->ci.dsn.empty())
         return FALSE;
-    if (!SQLValidDSN(lpszDSN))
+
+    if (!SQLValidDSN(DSN.c_str()))
         return FALSE;
 
     /* Write the data source name */
-    if (!SQLWriteDSNToIni(lpszDSN, lpsetupdlg->driver_name)) {
+    if (!SQLWriteDSNToIni(DSN.c_str(), Driver.c_str())) {
         RETCODE ret = SQL_ERROR;
         DWORD err = SQL_ERROR;
         TCHAR szMsg[SQL_MAX_MESSAGE_LENGTH];
@@ -146,8 +140,10 @@ static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWOR
             if (SQL_SUCCESS != ret)
                 MessageBox(hwndParent, szMsg, TEXT("Bad DSN configuration"), MB_ICONEXCLAMATION | MB_OK);
         }
+
         if (errcode)
             *errcode = err;
+
         return FALSE;
     }
 
@@ -155,8 +151,10 @@ static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWOR
     writeDSNinfo(&lpsetupdlg->ci);
 
     /* If the data source name has changed, remove the old name */
-    if (Poco::UTF8::icompare(toUTF8(lpsetupdlg->dsn), lpsetupdlg->ci.dsn) != 0)
-        SQLRemoveDSNFromIni(lpsetupdlg->dsn);
+    if (Poco::UTF8::icompare(lpsetupdlg->dsn, lpsetupdlg->ci.dsn) != 0) {
+        fromUTF8(lpsetupdlg->dsn, DSN);
+        SQLRemoveDSNFromIni(DSN.c_str());
+    }
 
     return TRUE;
 }
@@ -207,30 +205,24 @@ void INTFUNC CenterDialog(HWND hdlg) {
 }
 
 INT_PTR CALLBACK ConfigDlgProc(HWND hdlg, UINT wMsg, WPARAM wParam, LPARAM lParam) {
-    using CharType = std::remove_cv<std::remove_pointer<LPCTSTR>::type>::type;
-
-    SetupDialogData * lpsetupdlg;
-    ConnInfo * ci;
-    //char strbuf[64];
-
     switch (wMsg) {
         case WM_INITDIALOG: {
-            lpsetupdlg = (SetupDialogData *)lParam;
-            ci = &lpsetupdlg->ci;
+            auto & lpsetupdlg = *(SetupDialogData *)lParam;
+            auto & ci = lpsetupdlg.ci;
+
             SetWindowLongPtr(hdlg, DWLP_USER, lParam);
-
             CenterDialog(hdlg); /* Center dialog */
+            getDSNinfo(&ci, false);
 
-            getDSNinfo(ci, false);
+            std::basic_string<CharTypeLPCTSTR> value;
 
-            std::vector<CharType> value;
-
-#define SET_DLG_ITEM(NAME, ID)                                \
-    {                                                         \
-        value.clear();                                        \
-        fromUTF8(ci->NAME, value);                            \
-        const auto res = SetDlgItemText(hdlg, ID, &value[0]); \
+#define SET_DLG_ITEM(NAME, ID)                                    \
+    {                                                             \
+        value.clear();                                            \
+        fromUTF8(ci.NAME, value);                                 \
+        const auto res = SetDlgItemText(hdlg, ID, value.c_str()); \
     }
+
             SET_DLG_ITEM(dsn, IDC_DSN_NAME);
             SET_DLG_ITEM(desc, IDC_DESCRIPTION);
             SET_DLG_ITEM(url, IDC_URL);
@@ -247,22 +239,22 @@ INT_PTR CALLBACK ConfigDlgProc(HWND hdlg, UINT wMsg, WPARAM wParam, LPARAM lPara
             return TRUE; /* Focus was not set */
         }
 
-        case WM_COMMAND:
+        case WM_COMMAND: {
             switch (const DWORD cmd = LOWORD(wParam)) {
                 case IDOK: {
-                    lpsetupdlg = (SetupDialogData *)GetWindowLongPtr(hdlg, DWLP_USER);
-                    ci = &lpsetupdlg->ci;
+                    auto & lpsetupdlg = *(SetupDialogData *)GetWindowLongPtr(hdlg, DWLP_USER);
+                    auto & ci = lpsetupdlg.ci;
 
-                    std::vector<CharType> value;
+                    std::basic_string<CharTypeLPCTSTR> value;
 
-#    define GET_DLG_ITEM(NAME, ID)                                               \
-        {                                                                        \
-            value.clear();                                                       \
-            value.resize(MAX_DSN_VALUE_LEN);                                     \
-            const auto read = GetDlgItemText(hdlg, ID, &value[0], value.size()); \
-            value.resize(read <= 0 || read > value.size() ? 0 : read);           \
-            ci->NAME = toUTF8(value);                                            \
-        }
+#define GET_DLG_ITEM(NAME, ID)                                                   \
+    {                                                                            \
+        value.clear();                                                           \
+        value.resize(MAX_DSN_VALUE_LEN);                                         \
+        const auto read = GetDlgItemText(hdlg, ID, value.data(), value.size());  \
+        value.resize((read <= 0 || read > value.size()) ? 0 : read);             \
+        ci.NAME = toUTF8(value);                                                 \
+    }
 
                     GET_DLG_ITEM(dsn, IDC_DSN_NAME);
                     GET_DLG_ITEM(desc, IDC_DESCRIPTION);
@@ -275,15 +267,18 @@ INT_PTR CALLBACK ConfigDlgProc(HWND hdlg, UINT wMsg, WPARAM wParam, LPARAM lPara
                     GET_DLG_ITEM(timeout, IDC_TIMEOUT);
                     GET_DLG_ITEM(sslmode, IDC_SSLMODE);
 
-#    undef GET_DLG_ITEM
+#undef GET_DLG_ITEM
 
                     /* Return to caller */
                 }
-                case IDCANCEL:
+
+                case IDCANCEL: {
                     EndDialog(hdlg, cmd);
                     return TRUE;
+                }
             }
             break;
+        }
     }
 
     /* Message not processed */
@@ -299,24 +294,15 @@ BOOL INSTAPI EXPORTED_FUNCTION_MAYBE_W(ConfigDSN)(HWND hwnd, WORD fRequest, LPCT
     hglbAttr = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, sizeof(SetupDialogData));
     if (!hglbAttr)
         return FALSE;
+
     lpsetupdlg = (SetupDialogData *)GlobalLock(hglbAttr);
+
     /* Parse attribute string */
     if (lpszAttributes)
         parseAttributes(lpszAttributes, lpsetupdlg);
 
-    using CharType = std::remove_cv<std::remove_pointer<LPCTSTR>::type>::type;
-
-    std::vector<CharType> DSN;
-    fromUTF8(lpsetupdlg->ci.dsn, DSN);
-
-    /// Pointer to data source name
-    LPCTSTR lpszDSN = &DSN[0];
-
     /* Save original data source name */
-    if (!lpsetupdlg->ci.dsn.empty())
-        lstrcpy(lpsetupdlg->dsn, lpszDSN);
-    else
-        lpsetupdlg->dsn[0] = '\0';
+    lpsetupdlg->dsn = lpsetupdlg->ci.dsn;
 
     /* Remove data source */
     if (ODBC_REMOVE_DSN == fRequest) {
@@ -325,14 +311,17 @@ BOOL INSTAPI EXPORTED_FUNCTION_MAYBE_W(ConfigDSN)(HWND hwnd, WORD fRequest, LPCT
             fSuccess = FALSE;
 
         /* Otherwise remove data source from ODBC.INI */
-        else
-            fSuccess = SQLRemoveDSNFromIni(lpszDSN);
+        else {
+            std::basic_string<CharTypeLPCTSTR> DSN;
+            fromUTF8(lpsetupdlg->ci.dsn, DSN);
+            fSuccess = SQLRemoveDSNFromIni(DSN.c_str());
+        }
     }
     /* Add or Configure data source */
     else {
         /* Save passed variables for global access (e.g., dialog access) */
         lpsetupdlg->hwnd_parent = hwnd;
-        lpsetupdlg->driver_name = lpszDriver;
+        lpsetupdlg->driver_name = toUTF8(lpszDriver);
         lpsetupdlg->is_new_dsn = (ODBC_ADD_DSN == fRequest);
         lpsetupdlg->is_default = (Poco::UTF8::icompare(lpsetupdlg->ci.dsn, INI_DSN_DEFAULT) == 0);
 
@@ -345,7 +334,8 @@ BOOL INSTAPI EXPORTED_FUNCTION_MAYBE_W(ConfigDSN)(HWND hwnd, WORD fRequest, LPCT
             auto ret = DialogBoxParam(module_instance, MAKEINTRESOURCE(IDD_DIALOG1), hwnd, ConfigDlgProc, (LPARAM)lpsetupdlg);
             if (ret == IDOK) {
                 fSuccess = setDSNAttributes(hwnd, lpsetupdlg, NULL);
-            } else if (ret != IDCANCEL) {
+            }
+            else if (ret != IDCANCEL) {
                 auto err = GetLastError();
                 LPVOID lpMsgBuf;
                 LPVOID lpDisplayBuf;
@@ -366,7 +356,8 @@ BOOL INSTAPI EXPORTED_FUNCTION_MAYBE_W(ConfigDSN)(HWND hwnd, WORD fRequest, LPCT
                 LocalFree(lpMsgBuf);
                 LocalFree(lpDisplayBuf);
             }
-        } else if (lpsetupdlg->ci.dsn[0])
+        }
+        else if (!lpsetupdlg->ci.dsn.empty())
             fSuccess = setDSNAttributes(hwnd, lpsetupdlg, NULL);
         else
             fSuccess = TRUE;

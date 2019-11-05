@@ -1,7 +1,19 @@
 #pragma once
 
+#if defined(_UNICODE) && _UNICODE == 0
+#    undef _UNICODE
+#endif
+
 #if defined(UNICODE) && UNICODE == 0
 #    undef UNICODE
+#endif
+
+#if defined(_UNICODE) || defined(UNICODE)
+#    undef _UNICODE
+#    define _UNICODE 1
+
+#    undef UNICODE
+#    define UNICODE 1
 #endif
 
 #if defined(UNICODE)
@@ -12,21 +24,20 @@
 
 #if defined(__linux__)
 #    define _linux_ 1
-#elif defined(_WIN64)
+#elif defined(_WIN64) || defined(WIN64)
 #    define _win64_ 1
 #    define _win32_ 1
-#elif defined(__WIN32__) || defined(_WIN32)
+#elif defined(__WIN32__) || defined(_WIN32) || defined(WIN32)
 #    define _win32_ 1
 #elif defined(__APPLE__)
 #    define _darwin_ 1
-#    define _unix_ 1
 #endif
 
 #if defined(_win32_) || defined(_win64_)
 #    define _win_ 1
 #endif
 
-#if defined(_linux_)
+#if defined(_linux_) || defined(_darwin_)
 #    define _unix_ 1
 #endif
 

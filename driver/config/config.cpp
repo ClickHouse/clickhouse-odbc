@@ -5,19 +5,16 @@
 
 #include <odbcinst.h>
 
-#include <type_traits>
-#include <vector>
+#include <string>
 
 #include <cstring>
 
 void getDSNinfo(ConnInfo * ci, bool overwrite) {
-    using CharType = std::remove_cv<std::remove_pointer<LPCTSTR>::type>::type;
-
-    std::vector<CharType> dsn;
-    std::vector<CharType> config_file;
-    std::vector<CharType> name;
-    std::vector<CharType> default_value;
-    std::vector<CharType> value;
+    std::basic_string<CharTypeLPCTSTR> dsn;
+    std::basic_string<CharTypeLPCTSTR> config_file;
+    std::basic_string<CharTypeLPCTSTR> name;
+    std::basic_string<CharTypeLPCTSTR> default_value;
+    std::basic_string<CharTypeLPCTSTR> value;
 
     fromUTF8(ci->dsn, dsn);
     fromUTF8(ODBC_INI, config_file);
@@ -29,12 +26,12 @@ void getDSNinfo(ConnInfo * ci, bool overwrite) {
         value.clear();                                \
         value.resize(MAX_DSN_VALUE_LEN);              \
         const auto read = SQLGetPrivateProfileString( \
-            &dsn[0],                                  \
-            &name[0],                                 \
-            &default_value[0],                        \
-            &value[0],                                \
+            dsn.c_str(),                              \
+            name.c_str(),                             \
+            default_value.c_str(),                    \
+            ptr_rm_const(value.data()),               \
             value.size(),                             \
-            &config_file[0]                           \
+            config_file.c_str()                       \
         );                                            \
         if (read < 0)                                 \
             throw std::runtime_error("SQLGetPrivateProfileString failed to extract the value of " INI_NAME);        \
@@ -62,12 +59,10 @@ void getDSNinfo(ConnInfo * ci, bool overwrite) {
 }
 
 void writeDSNinfo(const ConnInfo * ci) {
-    using CharType = std::remove_cv<std::remove_pointer<LPCTSTR>::type>::type;
-
-    std::vector<CharType> dsn;
-    std::vector<CharType> config_file;
-    std::vector<CharType> name;
-    std::vector<CharType> value;
+    std::basic_string<CharTypeLPCTSTR> dsn;
+    std::basic_string<CharTypeLPCTSTR> config_file;
+    std::basic_string<CharTypeLPCTSTR> name;
+    std::basic_string<CharTypeLPCTSTR> value;
 
     fromUTF8(ci->dsn, dsn);
     fromUTF8(ODBC_INI, config_file);
@@ -77,10 +72,10 @@ void writeDSNinfo(const ConnInfo * ci) {
         fromUTF8(INI_NAME, name);                         \
         fromUTF8(ci->NAME, value);                        \
         const auto result = SQLWritePrivateProfileString( \
-            &dsn[0],                                      \
-            &name[0],                                     \
-            &value[0],                                    \
-            &config_file[0]                               \
+            dsn.c_str(),                                  \
+            name.c_str(),                                 \
+            value.c_str(),                                \
+            config_file.c_str()                           \
         );                                                \
         if (!result)                                      \
             throw std::runtime_error("SQLWritePrivateProfileString failed to write value of " INI_NAME); \
