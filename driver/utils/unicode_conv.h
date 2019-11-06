@@ -32,6 +32,14 @@ inline std::string toUTF8(const char * src, SQLLEN length = SQL_NTS) {
 
     // TODO: convert from the current locale by default?
 
+    // Workaround for UnixODBC Unicode client vs ANSI driver string encoding issue:
+    // strings may be reported with a fixed length that also includes a trailing null character.
+    // TODO: review this. This is not a formally right thing to do, but should not cause problems in practice.
+#if defined(ODBC_UNIXODBC) && !defined(UNICODE)
+    if (src && length > 0 && src[length - 1] == '\0')
+        --length;
+#endif
+
     return (length == SQL_NTS ? std::string{src} : std::string{src, static_cast<std::string::size_type>(length)});
 }
 
