@@ -215,8 +215,8 @@ SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLINT handl
                 return doCall(callable);
             }
             catch (const SqlException & ex) {
-                LOG(ex.getSQLState() << " (" << ex.what() << ")");
-                return SQL_ERROR;
+                LOG(ex.getSQLState() << " (" << ex.what() << ")" << "[rc: " << ex.getReturnCode() << "]");
+                return ex.getReturnCode();
             }
             catch (const Poco::Exception & ex) {
                 LOG("HY000 (" << ex.displayText() << ")");
@@ -253,10 +253,10 @@ SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLINT handl
 
             }
             catch (const SqlException & ex) {
-                LOG(ex.getSQLState() << " (" << ex.what() << ")");
+                LOG(ex.getSQLState() << " (" << ex.what() << ")" << "[rc: " << ex.getReturnCode() << "]");
                 if (!skip_diag)
-                    obj_ptr->fillDiag(SQL_ERROR, ex.getSQLState(), ex.what(), 1);
-                return SQL_ERROR;
+                    obj_ptr->fillDiag(ex.getReturnCode(), ex.getSQLState(), ex.what(), 1);
+                return ex.getReturnCode();
             }
             catch (const Poco::Exception & ex) {
                 LOG("HY000 (" << ex.displayText() << ")");

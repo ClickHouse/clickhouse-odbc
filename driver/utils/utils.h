@@ -121,7 +121,7 @@ inline auto tryStripParamPrefix(std::string param_name) {
 }
 
 /// Parse a string of the form `key1=value1;key2=value2` ... TODO Parsing values in curly brackets.
-static const char * nextKeyValuePair(const char * data, const char * end, StringRef & out_key, StringRef & out_value) {
+inline const char * nextKeyValuePair(const char * data, const char * end, StringRef & out_key, StringRef & out_value) {
     if (data >= end)
         return nullptr;
 
