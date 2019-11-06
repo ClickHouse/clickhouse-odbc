@@ -208,6 +208,9 @@ inline SQLRETURN fillOutputString(
     if (in_length_in_bytes && out_value && (out_value_max_length % sizeof(CharType)) != 0)
         throw SqlException("Invalid string or buffer length", "HY090");
 
+    if (out_value && out_value_max_length <= 0)
+        throw SqlException("Invalid string or buffer length", "HY090");
+
     decltype(auto) converted = fromUTF8<CharType>(in_value);
 
     const auto converted_length_in_symbols = converted.size();
