@@ -36,6 +36,7 @@ add_library(${libname}-impl STATIC
     diagnostics.cpp
     driver.cpp
     environment.cpp
+    exception.cpp
     object.cpp
     result_set.cpp
     statement.cpp
@@ -66,6 +67,7 @@ add_library(${libname}-impl STATIC
     diagnostics.h
     driver.h
     environment.h
+    exception.h
     object.h
     result_set.h
     statement.h

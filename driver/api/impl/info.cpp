@@ -53,17 +53,9 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
 
         switch (info_type) {
 
-#if defined(UNICODE)
-#    define CASE_STRING(NAME, VALUE)             \
-        case NAME:                               \
-            if ((out_value_max_length % 2) != 0) \
-                return SQL_ERROR;                \
-            return fillOutputString<SQLTCHAR>(VALUE, out_value, out_value_max_length, out_value_length);
-#else
-#    define CASE_STRING(NAME, VALUE) \
-        case NAME:                   \
-            return fillOutputString<SQLTCHAR>(VALUE, out_value, out_value_max_length, out_value_length);
-#endif
+#define CASE_STRING(NAME, VALUE) \
+            case NAME:           \
+                return fillOutputString<SQLTCHAR>(VALUE, out_value, out_value_max_length, out_value_length, true);
 
             CASE_STRING(SQL_DRIVER_VER, VERSION_STRING)
             CASE_STRING(SQL_DRIVER_ODBC_VER, "03.80")

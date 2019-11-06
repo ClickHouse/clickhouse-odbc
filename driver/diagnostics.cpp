@@ -1,18 +1,6 @@
 #include "driver/diagnostics.h"
 
-#include <Poco/Exception.h>
-
 #include <algorithm>
-
-SqlException::SqlException(const std::string & message_, const std::string & sql_state_)
-    : std::runtime_error(message_)
-    , sql_state(sql_state_)
-{
-}
-
-const std::string& SqlException::getSQLState() const noexcept {
-    return sql_state;
-}
 
 void DiagnosticsContainer::fillDiag(SQLRETURN rc, const std::string& sql_status, const std::string& message, SQLINTEGER native_error_code) {
     setReturnCode(rc);

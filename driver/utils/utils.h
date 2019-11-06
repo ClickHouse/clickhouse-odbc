@@ -4,6 +4,7 @@
 #include "driver/utils/unicode_conv.h"
 #include "driver/utils/string_ref.h"
 #include "driver/type_info.h"
+#include "driver/exception.h"
 
 #ifndef NDEBUG
 #    if USE_DEBUG_17
@@ -163,97 +164,144 @@ static const char * nextKeyValuePair(const char * data, const char * end, String
 }
 
 // Directly write raw bytes to the buffer.
-template <typename CharType, typename PointerType, typename LengthType>
+template <typename LengthType1, typename LengthType2, typename LengthType3>
 inline SQLRETURN fillOutputBuffer(
-    const std::basic_string<CharType> & in_value,
-    PointerType * out_value,
-    LengthType out_value_max_length,
-    LengthType * out_value_length,
-    bool report_length_in_bytes = true,
-    bool ensure_nts = false
+    const void * in_value,
+    LengthType1 in_value_length,
+    void * out_value,
+    LengthType2 out_value_max_length,
+    LengthType3 * out_value_length
 ) {
-    const auto length_in_symbols = static_cast<LengthType>(in_value.size());
-    const auto length_in_bytes = length_in_symbols * sizeof(CharType);
-
-    if (out_value_length) {
-        if (length_in_bytes)
-            *out_value_length = length_in_bytes;
-        else
-            *out_value_length = length_in_symbols;
-    }
-
-    if (out_value_max_length < 0)
+    if (in_value_length < 0 || (in_value_length > 0 && !in_value))
         return SQL_ERROR;
 
-    if (out_value) {
-        const auto max_length_in_bytes = (length_in_bytes ? out_value_max_length : (out_value_max_length * sizeof(CharType)));
+    if (out_value_length)
+        *out_value_length = in_value_length;
 
-        if (max_length_in_bytes >= length_in_bytes) {
-            std::memcpy(out_value, in_value.c_str(), length_in_bytes);
-            if (ensure_nts) {
-                if (max_length_in_bytes < (length_in_bytes + sizeof(CharType)))
-                    return SQL_SUCCESS_WITH_INFO;
-                reinterpret_cast<CharType *>(out_value)[length_in_symbols] = 0;
-            }
-        }
-        else {
-            std::memcpy(out_value, in_value.data(), max_length_in_bytes);
-            return SQL_SUCCESS_WITH_INFO;
-        }
-    }
+    if (!out_value || in_value_length == 0)
+        return SQL_SUCCESS;
 
-    return SQL_SUCCESS;
+    if (out_value_max_length < 0)
+        throw SqlException("Invalid string or buffer length", "HY090");
+
+    if (out_value_max_length == 0)
+        out_value_max_length = in_value_length;
+
+    const auto bytes_to_copy = std::min<std::int64_t>(in_value_length, out_value_max_length);
+    std::memcpy(out_value, in_value, bytes_to_copy);
+
+    return (bytes_to_copy > out_value_max_length ? SQL_SUCCESS_WITH_INFO : SQL_SUCCESS);
 }
 
 // Change encoding, when appropriate, and write the result to the buffer.
-// Extre string copy happens here for wide char strings, and strings that require encoding change.
-template <typename CharType, typename PointerType, typename LengthType>
+// Extra string copy happens here for wide char strings, and strings that require encoding change.
+template <typename CharType, typename LengthType1, typename LengthType2>
 inline SQLRETURN fillOutputString(
     const std::string & in_value,
-    PointerType * out_value,
-    LengthType out_value_max_length,
-    LengthType * out_value_length,
-    bool report_length_in_bytes = true
+    void * out_value,
+    LengthType1 out_value_max_length,
+    LengthType2 * out_value_length,
+    bool in_length_in_bytes,
+    bool out_length_in_bytes,
+    bool ensure_nts
 ) {
-    return fillOutputBuffer(fromUTF8<CharType>(in_value), out_value, out_value_max_length, out_value_length, report_length_in_bytes, true);
-}
+    if (in_length_in_bytes && out_value && (out_value_max_length % sizeof(CharType)) != 0)
+        throw SqlException("Invalid string or buffer length", "HY090");
 
-// ObjectType, that are pointers, are treated as integer values of the pointer.
-template <typename ObjectType, typename PointerType, typename LengthType>
-inline SQLRETURN fillOutputPOD(
-    const ObjectType & obj,
-    PointerType out_value,
-    LengthType out_value_max_length,
-    LengthType * out_value_length
-) {
-    constexpr auto sizeof_obj = static_cast<LengthType>(sizeof(obj));
+    decltype(auto) converted = fromUTF8<CharType>(in_value);
 
-    if (out_value_length)
-        *out_value_length = sizeof_obj;
+    const auto converted_length_in_symbols = converted.size();
+    const auto converted_length_in_bytes = converted_length_in_symbols * sizeof(CharType);
+    const auto out_value_max_length_in_symbols = (in_length_in_bytes ? out_value_max_length / sizeof(CharType) : out_value_max_length);
+    const auto out_value_max_length_in_bytes = (in_length_in_bytes ? out_value_max_length : out_value_max_length * sizeof(CharType));
 
-    if (out_value_max_length < 0)
-        return SQL_ERROR;
+    auto rc = fillOutputBuffer(
+        converted.data(),
+        converted_length_in_bytes,
+        out_value,
+        out_value_max_length_in_bytes,
+        out_value_length
+    );
 
-    if (out_value) {
-        if (out_value_max_length == 0 || out_value_max_length >= sizeof_obj) {
-            std::memcpy(out_value, &obj, sizeof_obj);
-        } else {
-            std::memcpy(out_value, &obj, out_value_max_length);
-            return SQL_SUCCESS_WITH_INFO;
+    if (!out_length_in_bytes && out_value_length)
+        *out_value_length /= sizeof(CharType);
+
+    if (ensure_nts && SQL_SUCCEEDED(rc)) {
+        if ((converted_length_in_symbols + 1) >= out_value_max_length_in_symbols) {
+            if (out_value)
+                reinterpret_cast<CharType *>(out_value)[out_value_max_length_in_symbols] = 0;
+            rc = SQL_SUCCESS_WITH_INFO;
+        }
+        else {
+            if (out_value)
+                reinterpret_cast<CharType *>(out_value)[converted_length_in_symbols] = 0;
         }
     }
 
-    return SQL_SUCCESS;
+    return rc;
 }
 
-template <typename PointerType, typename LengthType>
-inline SQLRETURN fillOutputNULL(
-    PointerType * out_value,
-    LengthType out_value_max_length,
-    LengthType * out_value_length
+template <typename CharType, typename LengthType1, typename LengthType2>
+inline SQLRETURN fillOutputString(
+    const std::string & in_value,
+    void * out_value,
+    LengthType1 out_value_max_length,
+    LengthType2 * out_value_length,
+    bool length_in_bytes
 ) {
-    if (!out_value_length)
+    return fillOutputString<CharType>(
+        in_value,
+        out_value,
+        out_value_max_length,
+        out_value_length,
+        length_in_bytes,
+        length_in_bytes,
+        true
+    );
+}
+
+// ObjectType, that is a pointer type, is treated as an integer, the value of that pointer.
+template <typename ObjectType, typename LengthType1, typename LengthType2>
+inline SQLRETURN fillOutputPOD(
+    const ObjectType & obj,
+    void * out_value,
+    LengthType1 out_value_max_length,
+    LengthType2 * out_value_length
+) {
+    return fillOutputBuffer(
+        &obj,
+        sizeof(obj),
+        out_value,
+        out_value_max_length,
+        out_value_length
+    );
+}
+
+template <typename ObjectType, typename LengthType1>
+inline SQLRETURN fillOutputPOD(
+    const ObjectType & obj,
+    void * out_value,
+    LengthType1 * out_value_length
+) {
+    return fillOutputPOD(
+        obj,
+        out_value,
+        sizeof(obj),
+        out_value_length
+    );
+}
+
+template <typename LengthType1, typename LengthType2>
+inline SQLRETURN fillOutputNULL(
+    void * out_value,
+    LengthType1 out_value_max_length,
+    LengthType2 * out_value_length
+) {
+    if (out_value_length)
         *out_value_length = SQL_NULL_DATA;
+    else
+        throw SqlException("Indicator variable required but not supplied", "22002");
+
     return SQL_SUCCESS;
 }
 

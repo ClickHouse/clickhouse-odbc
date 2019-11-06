@@ -4,20 +4,8 @@
 #include "driver/utils/utils.h"
 #include "driver/attributes.h"
 
-#include <stdexcept>
 #include <string>
 #include <vector>
-
-class SqlException
-    : public std::runtime_error
-{
-public:
-    explicit SqlException(const std::string & message_, const std::string & sql_state_ = "HY000");
-    const std::string& getSQLState() const noexcept;
-
-private:
-    const std::string sql_state;
-};
 
 class DiagnosticsRecord
     : public AttributeContainer
