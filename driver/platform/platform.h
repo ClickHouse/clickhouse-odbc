@@ -104,6 +104,7 @@
 #endif
 
 #if defined(_MSC_VER)
+     // An entry in .def file still must be added for 32-bit targets.
 #    define EXPORTED_FUNCTION(func) __pragma(comment(linker,"/export:"#func)) func
 #elif defined(_win_)
 #    define EXPORTED_FUNCTION(func) __declspec(dllexport) func

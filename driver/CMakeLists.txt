@@ -8,16 +8,6 @@ else ()
     message (STATUS "${libname}: ANSI")
 endif ()
 
-# Hell matrix
-#               TCHAR       sizeof()    note
-# not unicode   char        1
-# unicode:
-# win           wchar_t     2
-# iodbc LINUX   wchar_t     4           wchar_t != TCHAR
-# iodbc APPLE   wchar_t     4           wchar_t == TCHAR
-# unixodbc      wchar_t     4           true == SQL_WCHART_CONVERT
-# unixodbc      char16_t    2           false == SQL_WCHART_CONVERT
-
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/platform/config_cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/platform/config_cmake${_config_add}.h)
 
 # In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
@@ -82,6 +72,13 @@ if (WIN32)
         platform/win/setup.cpp
         platform/win/resource.rc
     )
+
+    if (NOT "${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
+        set (WIN_SOURCES
+            ${WIN_SOURCES}
+            platform/win/${libname}.def
+        )
+    endif()
 endif()
 
 add_library(${libname} SHARED

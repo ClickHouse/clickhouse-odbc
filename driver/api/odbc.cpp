@@ -888,7 +888,11 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
     SQLPOINTER out_string_value,
     SQLSMALLINT out_string_value_max_size,
     SQLSMALLINT * out_string_value_size,
+#if defined(_win32_) && !defined(_win64_)
+    SQLPOINTER out_num_value
+#else
     SQLLEN * out_num_value
+#endif
 ) {
     LOG(__FUNCTION__ << "(col=" << column_number << ", field=" << field_identifier << ")");
 
