@@ -199,14 +199,14 @@ void Connection::loadConfiguration() {
     getDSNinfo(&ci, true);
 
     {
-        const std::string tracefile = stringFromMYTCHAR(ci.tracefile);
-        if (!tracefile.empty()) {
-            getDriver().setAttr(CH_SQL_ATTR_TRACEFILE, tracefile);
+        const std::string log_file = stringFromMYTCHAR(ci.driverlogfile);
+        if (!log_file.empty()) {
+            getDriver().setAttr(CH_SQL_ATTR_DRIVERLOGFILE, log_file);
         }
 
-        const std::string trace = stringFromMYTCHAR(ci.trace);
-        if (!trace.empty()) {
-            getDriver().setAttr(CH_SQL_ATTR_TRACE, (isYes(trace) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
+        const std::string log = stringFromMYTCHAR(ci.driverlog);
+        if (!log.empty()) {
+            getDriver().setAttr(CH_SQL_ATTR_DRIVERLOG, (isYes(log) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
         }
     }
 

@@ -30,17 +30,17 @@ protected:
             " Performance test results may not be very representative and may take significantly more time and disk space." << std::endl;
 #endif
 
-        ODBC_CALL_ON_DBC_THROW(hdbc, SQLGetConnectAttr(hdbc, CH_SQL_ATTR_TRACE, &driver_trace, 0, nullptr));
-        if (driver_trace == SQL_OPT_TRACE_ON) {
-            std::cout << "Temporarily disabling driver tracing..." << std::endl;
-            ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, CH_SQL_ATTR_TRACE, (SQLPOINTER)SQL_OPT_TRACE_OFF, 0));
+        ODBC_CALL_ON_DBC_THROW(hdbc, SQLGetConnectAttr(hdbc, CH_SQL_ATTR_DRIVERLOG, &driver_log, 0, nullptr));
+        if (driver_log == SQL_OPT_TRACE_ON) {
+            std::cout << "Temporarily disabling driver logging..." << std::endl;
+            ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, CH_SQL_ATTR_DRIVERLOG, (SQLPOINTER)SQL_OPT_TRACE_OFF, 0));
         }
     }
 
     virtual void TearDown() override {
-        if (driver_trace == SQL_OPT_TRACE_ON) {
-            std::cout << "Re-enabling driver tracing..." << std::endl;
-            ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, CH_SQL_ATTR_TRACE, (SQLPOINTER)SQL_OPT_TRACE_ON, 0));
+        if (driver_log == SQL_OPT_TRACE_ON) {
+            std::cout << "Re-enabling driver logging..." << std::endl;
+            ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, CH_SQL_ATTR_DRIVERLOG, (SQLPOINTER)SQL_OPT_TRACE_ON, 0));
         }
 
 #if !defined(_IODBCUNIX_H)
@@ -55,7 +55,7 @@ protected:
 
 private:
     SQLUINTEGER driver_manager_trace = SQL_OPT_TRACE_ON;
-    SQLUINTEGER driver_trace = SQL_OPT_TRACE_ON;
+    SQLUINTEGER driver_log = SQL_OPT_TRACE_ON;
 };
 
 #ifdef NDEBUG

@@ -208,20 +208,20 @@ script:
     clickhouse_localhost_w = clickhouse_driver_w
 
     [clickhouse_localhost]
-    Driver      = clickhouse_driver
-    Description = ClickHouse DSN (ANSI, localhost)
-    Url         = http://${CLICKHOUSE_SERVER_IP}
-    Timeout     = 30
-    Log         = yes
-    LogFile     = /tmp/clickhouse-odbc-driver.log
+    Driver        = clickhouse_driver
+    Description   = ClickHouse DSN (ANSI, localhost)
+    Url           = http://${CLICKHOUSE_SERVER_IP}
+    Timeout       = 30
+    DriverLog     = yes
+    DriverLogFile = /tmp/clickhouse-odbc-driver.log
 
     [clickhouse_localhost_w]
-    Driver      = clickhouse_driver_w
-    Description = ClickHouse DSN (Unicode, localhost)
-    Url         = http://${CLICKHOUSE_SERVER_IP}
-    Timeout     = 30
-    Log         = yes
-    LogFile     = /tmp/clickhouse-odbc-driver-w.log
+    Driver        = clickhouse_driver_w
+    Description   = ClickHouse DSN (Unicode, localhost)
+    Url           = http://${CLICKHOUSE_SERVER_IP}
+    Timeout       = 30
+    DriverLog     = yes
+    DriverLogFile = /tmp/clickhouse-odbc-driver-w.log
     EOF
   - echo "Staring tests..."
   - ctest -VV

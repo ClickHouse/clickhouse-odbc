@@ -8,8 +8,8 @@
 #include <chrono>
 
 Driver::Driver() noexcept {
-    setAttrSilent(CH_SQL_ATTR_TRACE, (isYes(INI_TRACE_DEFAULT) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
-    setAttr<std::string>(CH_SQL_ATTR_TRACEFILE, INI_TRACEFILE_DEFAULT);
+    setAttrSilent(CH_SQL_ATTR_DRIVERLOG, (isYes(INI_DRIVERLOG_DEFAULT) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
+    setAttr<std::string>(CH_SQL_ATTR_DRIVERLOGFILE, INI_DRIVERLOGFILE_DEFAULT);
 }
 
 Driver::~Driver() {
@@ -75,22 +75,22 @@ Statement * Driver::dynamicCastTo<Statement>(Object * obj) {
 
 void Driver::onAttrChange(int attr) {
     switch (attr) {
-        case CH_SQL_ATTR_TRACE:
-        case CH_SQL_ATTR_TRACEFILE: {
+        case CH_SQL_ATTR_DRIVERLOG:
+        case CH_SQL_ATTR_DRIVERLOGFILE: {
             bool stream_open = (log_file_stream.is_open() && log_file_stream);
             const bool enable_logging = isLoggingEnabled();
-            const auto tracefile = getAttrAs<std::string>(CH_SQL_ATTR_TRACEFILE);
+            const auto log_file_attr = getAttrAs<std::string>(CH_SQL_ATTR_DRIVERLOGFILE);
 
             if (enable_logging) {
-                if (stream_open && tracefile != log_file_name) {
-                    LOG("Switching trace output to " << (tracefile.empty() ? "standard log output" : tracefile));
+                if (stream_open && log_file_attr != log_file_name) {
+                    LOG("Switching driver log output to " << (log_file_attr.empty() ? "standard log output" : log_file_attr));
                     writeLogSessionEnd(getLogStream());
                     log_file_stream.close();
                     stream_open = false;
                 }
 
                 if (!stream_open) {
-                    log_file_name = tracefile;
+                    log_file_name = log_file_attr;
                     log_file_stream = (log_file_name.empty() ? std::ofstream{} : std::ofstream{log_file_name, std::ios_base::out | std::ios_base::app});
                     writeLogSessionStart(getLogStream());
                 }
@@ -109,7 +109,7 @@ void Driver::onAttrChange(int attr) {
 }
 
 bool Driver::isLoggingEnabled() const {
-    return (getAttrAs<SQLUINTEGER>(CH_SQL_ATTR_TRACE) == SQL_OPT_TRACE_ON);
+    return (getAttrAs<SQLUINTEGER>(CH_SQL_ATTR_DRIVERLOG) == SQL_OPT_TRACE_ON);
 }
 
 std::ostream & Driver::getLogStream() {
