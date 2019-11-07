@@ -38,8 +38,8 @@ void getDSNinfo(ConnInfo * ci, bool overwrite) {
     GET_CONFIG(database,        INI_DATABASE,        INI_DATABASE_DEFAULT);
     GET_CONFIG(onlyread,        INI_READONLY,        INI_READONLY_DEFAULT);
     GET_CONFIG(stringmaxlength, INI_STRINGMAXLENGTH, INI_STRINGMAXLENGTH_DEFAULT);
-    GET_CONFIG(trace,           INI_TRACE,           INI_TRACE_DEFAULT);
-    GET_CONFIG(tracefile,       INI_TRACEFILE,       INI_TRACEFILE_DEFAULT);
+    GET_CONFIG(driverlog,       INI_DRIVERLOG,       INI_DRIVERLOG_DEFAULT);
+    GET_CONFIG(driverlogfile,   INI_DRIVERLOGFILE,   INI_DRIVERLOGFILE_DEFAULT);
 
 #undef GET_CONFIG
 }
@@ -74,8 +74,8 @@ void writeDSNinfo(const ConnInfo * ci) {
     WRITE_CONFIG(database,        INI_DATABASE);
     WRITE_CONFIG(onlyread,        INI_READONLY);
     WRITE_CONFIG(stringmaxlength, INI_STRINGMAXLENGTH);
-    WRITE_CONFIG(trace,           INI_TRACE);
-    WRITE_CONFIG(tracefile,       INI_TRACEFILE);
+    WRITE_CONFIG(driverlog,       INI_DRIVERLOG);
+    WRITE_CONFIG(driverlogfile,   INI_DRIVERLOGFILE);
 
 #undef WRITE_CONFIG
 }

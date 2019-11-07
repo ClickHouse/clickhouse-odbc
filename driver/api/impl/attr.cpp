@@ -104,23 +104,23 @@ SQLRETURN SetConnectAttr(
             case SQL_ATTR_ANSI_APP:
                 return SQL_ERROR;
 
-            case SQL_ATTR_TRACE: {
+            case CH_SQL_ATTR_DRIVERLOG: {
                 if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_ON)) {
-                    connection.getDriver().setAttr(SQL_ATTR_TRACE, SQL_OPT_TRACE_ON);
+                    connection.getDriver().setAttr(CH_SQL_ATTR_DRIVERLOG, SQL_OPT_TRACE_ON);
                 }
                 else if (value == reinterpret_cast<SQLPOINTER>(SQL_OPT_TRACE_OFF)) {
-                    connection.getDriver().setAttr(SQL_ATTR_TRACE, SQL_OPT_TRACE_OFF);
+                    connection.getDriver().setAttr(CH_SQL_ATTR_DRIVERLOG, SQL_OPT_TRACE_OFF);
                 }
                 else {
-                    LOG("SetConnectAttr: SQL_ATTR_TRACE: Unknown value " << value);
+                    LOG("SetConnectAttr: CH_SQL_ATTR_DRIVERLOG: Unknown value " << value);
                     return SQL_ERROR;
                 }
                 return SQL_SUCCESS;
             }
 
-            case SQL_ATTR_TRACEFILE: {
-                const std::string tracefile = stringFromSQLBytes((SQLTCHAR *)value, value_length);
-                connection.getDriver().setAttr(SQL_ATTR_TRACEFILE, tracefile);
+            case CH_SQL_ATTR_DRIVERLOGFILE: {
+                const std::string log_file = stringFromSQLBytes((SQLTCHAR *)value, value_length);
+                connection.getDriver().setAttr(CH_SQL_ATTR_DRIVERLOGFILE, log_file);
                 return SQL_SUCCESS;
             }
 
@@ -176,24 +176,27 @@ SQLRETURN GetConnectAttr(
         switch (attribute) {
             CASE_NUM(SQL_ATTR_CONNECTION_DEAD, SQLUINTEGER, SQL_CD_FALSE);
             CASE_FALLTHROUGH(SQL_ATTR_CONNECTION_TIMEOUT);
-            CASE_NUM(
-                SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout);
+            CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout);
             CASE_NUM(SQL_ATTR_TXN_ISOLATION, SQLINTEGER, SQL_TXN_SERIALIZABLE); // mssql linked server
             CASE_NUM(SQL_ATTR_AUTOCOMMIT, SQLINTEGER, SQL_AUTOCOMMIT_ON);
-            CASE_NUM(SQL_ATTR_TRACE, SQLINTEGER, (connection.getDriver().isLoggingEnabled() ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
 
             case SQL_ATTR_CURRENT_CATALOG:
-                fillOutputPlatformString(connection.getDatabase(), out_value, out_value_max_length, out_value_length);
-                return SQL_SUCCESS;
+                return fillOutputPlatformString(connection.getDatabase(), out_value, out_value_max_length, out_value_length);
 
             case SQL_ATTR_ANSI_APP:
                 return SQL_ERROR;
 
-            case SQL_ATTR_TRACEFILE: {
-                const auto tracefile = connection.getDriver().getAttrAs<std::string>(SQL_ATTR_TRACEFILE);
-                fillOutputPlatformString(tracefile, out_value, out_value_max_length, out_value_length);
-                return SQL_SUCCESS;
-            }
+            case CH_SQL_ATTR_DRIVERLOG:
+                return fillOutputNumber<SQLINTEGER>(
+                    (connection.getDriver().isLoggingEnabled() ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF),
+                    out_value, SQLINTEGER{0}/* out_value_max_length */, out_value_length
+                );
+
+            case CH_SQL_ATTR_DRIVERLOGFILE:
+                return fillOutputPlatformString(
+                    connection.getDriver().getAttrAs<std::string>(CH_SQL_ATTR_DRIVERLOGFILE),
+                    out_value, out_value_max_length, out_value_length
+                );
 
             case SQL_ATTR_METADATA_ID:
                 return fillOutputNumber<SQLUINTEGER>(

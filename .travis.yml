@@ -181,7 +181,7 @@ script:
     cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
     [ODBC]
     Trace     = yes
-    TraceFile = /tmp/odbc-driver-manager-trace.log
+    TraceFile = /tmp/odbc-driver-manager.log
 
     [ODBC Drivers]
     clickhouse_driver   = Installed
@@ -199,25 +199,29 @@ script:
     EOF
   - |
     cat > $ODBCSYSINI/.odbc.ini <<-EOF
+    [ODBC]
+    Trace     = yes
+    TraceFile = /tmp/odbc-driver-manager.log
+
     [ODBC Data Sources]
     clickhouse_localhost   = clickhouse_driver
     clickhouse_localhost_w = clickhouse_driver_w
 
     [clickhouse_localhost]
-    Driver      = clickhouse_driver
-    Description = ClickHouse DSN (ANSI, localhost)
-    Url         = http://${CLICKHOUSE_SERVER_IP}
-    Timeout     = 30
-    Trace       = yes
-    TraceFile   = /tmp/clickhouse-odbc-driver-trace.log
+    Driver        = clickhouse_driver
+    Description   = ClickHouse DSN (ANSI, localhost)
+    Url           = http://${CLICKHOUSE_SERVER_IP}
+    Timeout       = 30
+    DriverLog     = yes
+    DriverLogFile = /tmp/clickhouse-odbc-driver.log
 
     [clickhouse_localhost_w]
-    Driver      = clickhouse_driver_w
-    Description = ClickHouse DSN (Unicode, localhost)
-    Url         = http://${CLICKHOUSE_SERVER_IP}
-    Timeout     = 30
-    Trace       = yes
-    TraceFile   = /tmp/clickhouse-odbc-driver-w-trace.log
+    Driver        = clickhouse_driver_w
+    Description   = ClickHouse DSN (Unicode, localhost)
+    Url           = http://${CLICKHOUSE_SERVER_IP}
+    Timeout       = 30
+    DriverLog     = yes
+    DriverLogFile = /tmp/clickhouse-odbc-driver-w.log
     EOF
   - echo "Staring tests..."
   - ctest -VV

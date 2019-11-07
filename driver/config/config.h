@@ -25,8 +25,8 @@ struct ConnInfo {
     MYTCHAR translation_dll[MEDIUM_REGISTRY_LEN] = {};
     MYTCHAR translation_option[SMALL_REGISTRY_LEN] = {};
     MYTCHAR conn_settings[MEDIUM_REGISTRY_LEN] = {};
-    MYTCHAR trace[SMALL_REGISTRY_LEN] = {};
-    MYTCHAR tracefile[MEDIUM_REGISTRY_LEN] = {};
+    MYTCHAR driverlog[SMALL_REGISTRY_LEN] = {};
+    MYTCHAR driverlogfile[MEDIUM_REGISTRY_LEN] = {};
     MYTCHAR privateKeyFile[MEDIUM_REGISTRY_LEN] = {};
     MYTCHAR certificateFile[MEDIUM_REGISTRY_LEN] = {};
     MYTCHAR caLocation[MEDIUM_REGISTRY_LEN] = {};
