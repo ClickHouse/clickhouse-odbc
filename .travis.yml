@@ -16,89 +16,39 @@ env:
 matrix:
   include:
 
-    - name: "Ubuntu 18.04 - UnixODBC - GCC - Debug"
-      os: linux
-      dist: bionic
-      compiler: gcc
-      env:
-        - CC=gcc
-        - CXX=g++
-        - ODBC_DRIVER_MANAGER=unixodbc
-        - BUILD_TYPE=Debug
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - gcc
-            - g++
-            - unixodbc
-            - unixodbc-bin
-            - unixodbc-dev
-
-    - name: "Ubuntu 18.04 - UnixODBC - GCC - RelWithDebInfo"
-      os: linux
-      dist: bionic
-      compiler: gcc
-      env:
-        - CC=gcc
-        - CXX=g++
-        - ODBC_DRIVER_MANAGER=unixodbc
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - gcc
-            - g++
-            - unixodbc
-            - unixodbc-bin
-            - unixodbc-dev
-
-    - name: "Ubuntu 18.04 - UnixODBC - GCC - Release"
-      os: linux
-      dist: bionic
-      compiler: gcc
-      env:
-        - CC=gcc
-        - CXX=g++
-        - ODBC_DRIVER_MANAGER=unixodbc
-        - BUILD_TYPE=Release
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - gcc
-            - g++
-            - unixodbc
-            - unixodbc-bin
-            - unixodbc-dev
-
-    # - name: "Ubuntu 18.04 - iODBC - GCC - RelWithDebInfo"
+    # - name: "Ubuntu 18.04 - UnixODBC - GCC - Debug"
     #   os: linux
     #   dist: bionic
     #   compiler: gcc
     #   env:
     #     - CC=gcc
     #     - CXX=g++
-    #     - ODBC_DRIVER_MANAGER=iodbc
+    #     - ODBC_DRIVER_MANAGER=unixodbc
+    #     - BUILD_TYPE=Debug
+    #     - EXTERNAL_THIRD_PARTY=no
+    #     - PACKAGING=yes
+    #     - TESTING=yes
+    #     - STANDALONE_TESTS_ONLY=no
+    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+    #   services:
+    #     - docker
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - gcc
+    #         - g++
+    #         - unixodbc
+    #         - unixodbc-bin
+    #         - unixodbc-dev
+
+    # - name: "Ubuntu 18.04 - UnixODBC - GCC - RelWithDebInfo"
+    #   os: linux
+    #   dist: bionic
+    #   compiler: gcc
+    #   env:
+    #     - CC=gcc
+    #     - CXX=g++
+    #     - ODBC_DRIVER_MANAGER=unixodbc
     #     - BUILD_TYPE=RelWithDebInfo
     #     - EXTERNAL_THIRD_PARTY=no
     #     - PACKAGING=yes
@@ -112,42 +62,68 @@ matrix:
     #       packages:
     #         - gcc
     #         - g++
-    #         - iodbc
-    #         - libiodbc2
-    #         - libiodbc2-dev
+    #         - unixodbc
+    #         - unixodbc-bin
+    #         - unixodbc-dev
 
-    - name: "Ubuntu 18.04 - UnixODBC - Clang - RelWithDebInfo"
-      os: linux
-      dist: bionic
-      compiler: clang
-      env:
-        - CC=clang
-        - CXX=clang++
-        - ODBC_DRIVER_MANAGER=unixodbc
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - clang
-            - unixodbc
-            - unixodbc-bin
-            - unixodbc-dev
+    # - name: "Ubuntu 18.04 - UnixODBC - GCC - Release"
+    #   os: linux
+    #   dist: bionic
+    #   compiler: gcc
+    #   env:
+    #     - CC=gcc
+    #     - CXX=g++
+    #     - ODBC_DRIVER_MANAGER=unixodbc
+    #     - BUILD_TYPE=Release
+    #     - EXTERNAL_THIRD_PARTY=no
+    #     - PACKAGING=yes
+    #     - TESTING=yes
+    #     - STANDALONE_TESTS_ONLY=no
+    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+    #   services:
+    #     - docker
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - gcc
+    #         - g++
+    #         - unixodbc
+    #         - unixodbc-bin
+    #         - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - iODBC - Clang - RelWithDebInfo"
+    # # - name: "Ubuntu 18.04 - iODBC - GCC - RelWithDebInfo"
+    # #   os: linux
+    # #   dist: bionic
+    # #   compiler: gcc
+    # #   env:
+    # #     - CC=gcc
+    # #     - CXX=g++
+    # #     - ODBC_DRIVER_MANAGER=iodbc
+    # #     - BUILD_TYPE=RelWithDebInfo
+    # #     - EXTERNAL_THIRD_PARTY=no
+    # #     - PACKAGING=yes
+    # #     - TESTING=yes
+    # #     - STANDALONE_TESTS_ONLY=no
+    # #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+    # #   services:
+    # #     - docker
+    # #   addons:
+    # #     apt:
+    # #       packages:
+    # #         - gcc
+    # #         - g++
+    # #         - iodbc
+    # #         - libiodbc2
+    # #         - libiodbc2-dev
+
+    # - name: "Ubuntu 18.04 - UnixODBC - Clang - RelWithDebInfo"
     #   os: linux
     #   dist: bionic
     #   compiler: clang
     #   env:
     #     - CC=clang
     #     - CXX=clang++
-    #     - ODBC_DRIVER_MANAGER=iodbc
+    #     - ODBC_DRIVER_MANAGER=unixodbc
     #     - BUILD_TYPE=RelWithDebInfo
     #     - EXTERNAL_THIRD_PARTY=no
     #     - PACKAGING=yes
@@ -160,43 +136,42 @@ matrix:
     #     apt:
     #       packages:
     #         - clang
-    #         - iodbc
-    #         - libiodbc2
-    #         - libiodbc2-dev
+    #         - unixodbc
+    #         - unixodbc-bin
+    #         - unixodbc-dev
 
-    - name: "Ubuntu 18.04 - UnixODBC - GCC 8 - RelWithDebInfo"
-      os: linux
-      dist: bionic
-      compiler: gcc
-      env:
-        - CC=gcc-8
-        - CXX=g++-8
-        - ODBC_DRIVER_MANAGER=unixodbc
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - gcc-8
-            - g++-8
-            - unixodbc
-            - unixodbc-bin
-            - unixodbc-dev
+    # # - name: "Ubuntu 18.04 - iODBC - Clang - RelWithDebInfo"
+    # #   os: linux
+    # #   dist: bionic
+    # #   compiler: clang
+    # #   env:
+    # #     - CC=clang
+    # #     - CXX=clang++
+    # #     - ODBC_DRIVER_MANAGER=iodbc
+    # #     - BUILD_TYPE=RelWithDebInfo
+    # #     - EXTERNAL_THIRD_PARTY=no
+    # #     - PACKAGING=yes
+    # #     - TESTING=yes
+    # #     - STANDALONE_TESTS_ONLY=no
+    # #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+    # #   services:
+    # #     - docker
+    # #   addons:
+    # #     apt:
+    # #       packages:
+    # #         - clang
+    # #         - iodbc
+    # #         - libiodbc2
+    # #         - libiodbc2-dev
 
-    # - name: "Ubuntu 18.04 - iODBC - GCC 8 - RelWithDebInfo"
+    # - name: "Ubuntu 18.04 - UnixODBC - GCC 8 - RelWithDebInfo"
     #   os: linux
     #   dist: bionic
     #   compiler: gcc
     #   env:
     #     - CC=gcc-8
     #     - CXX=g++-8
-    #     - ODBC_DRIVER_MANAGER=iodbc
+    #     - ODBC_DRIVER_MANAGER=unixodbc
     #     - BUILD_TYPE=RelWithDebInfo
     #     - EXTERNAL_THIRD_PARTY=no
     #     - PACKAGING=yes
@@ -210,89 +185,114 @@ matrix:
     #       packages:
     #         - gcc-8
     #         - g++-8
-    #         - iodbc
-    #         - libiodbc2
-    #         - libiodbc2-dev
+    #         - unixodbc
+    #         - unixodbc-bin
+    #         - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - UnixODBC - GCC - RelWithDebInfo - System third-party libs"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: gcc
+    # # - name: "Ubuntu 18.04 - iODBC - GCC 8 - RelWithDebInfo"
+    # #   os: linux
+    # #   dist: bionic
+    # #   compiler: gcc
+    # #   env:
+    # #     - CC=gcc-8
+    # #     - CXX=g++-8
+    # #     - ODBC_DRIVER_MANAGER=iodbc
+    # #     - BUILD_TYPE=RelWithDebInfo
+    # #     - EXTERNAL_THIRD_PARTY=no
+    # #     - PACKAGING=yes
+    # #     - TESTING=yes
+    # #     - STANDALONE_TESTS_ONLY=no
+    # #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+    # #   services:
+    # #     - docker
+    # #   addons:
+    # #     apt:
+    # #       packages:
+    # #         - gcc-8
+    # #         - g++-8
+    # #         - iodbc
+    # #         - libiodbc2
+    # #         - libiodbc2-dev
+
+    # # - name: "Ubuntu 18.04 - UnixODBC - GCC - RelWithDebInfo - System third-party libs"
+    # #   os: linux
+    # #   dist: bionic
+    # #   compiler: gcc
+    # #   env:
+    # #     - CC=gcc
+    # #     - CXX=g++
+    # #     - ODBC_DRIVER_MANAGER=unixodbc
+    # #     - BUILD_TYPE=RelWithDebInfo
+    # #     - EXTERNAL_THIRD_PARTY=yes
+    # #     - PACKAGING=yes
+    # #     - TESTING=yes
+    # #     - STANDALONE_TESTS_ONLY=no
+    # #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+    # #   services:
+    # #     - docker
+    # #   addons:
+    # #     apt:
+    # #       packages:
+    # #         - gcc
+    # #         - g++
+    # #         - openssl
+    # #         - libssl-dev
+    # #         - libpoco-dev
+    # #         - googletest
+    # #         - unixodbc
+    # #         - unixodbc-bin
+    # #         - unixodbc-dev
+
+    # - name: "macOS 10.14 - iODBC - AppleClang (Xcode 11.2) - RelWithDebInfo"
+    #   os: osx
+    #   osx_image: xcode11.2
+    #   compiler: clang
     #   env:
-    #     - CC=gcc
-    #     - CXX=g++
+    #     - ODBC_DRIVER_MANAGER=iodbc
+    #     - BUILD_TYPE=RelWithDebInfo
+    #     - EXTERNAL_THIRD_PARTY=no
+    #     - PACKAGING=yes
+    #     - TESTING=yes
+    #     - STANDALONE_TESTS_ONLY=no
+    #   addons:
+    #     homebrew:
+    #       packages:
+    #         - libiodbc
+
+    # - name: "macOS 10.14 - UnixODBC - AppleClang (Xcode 11.2) - RelWithDebInfo"
+    #   os: osx
+    #   osx_image: xcode11.2
+    #   compiler: clang
+    #   env:
     #     - ODBC_DRIVER_MANAGER=unixodbc
+    #     - BUILD_TYPE=RelWithDebInfo
+    #     - EXTERNAL_THIRD_PARTY=no
+    #     - PACKAGING=yes
+    #     - TESTING=yes
+    #     - STANDALONE_TESTS_ONLY=no
+    #   addons:
+    #     homebrew:
+    #       packages:
+    #         - unixodbc
+
+    # - name: "macOS 10.14 - iODBC - AppleClang (Xcode 11.2) - RelWithDebInfo - System third-party libs"
+    #   os: osx
+    #   osx_image: xcode11.2
+    #   compiler: clang
+    #   env:
+    #     - ODBC_DRIVER_MANAGER=iodbc
     #     - BUILD_TYPE=RelWithDebInfo
     #     - EXTERNAL_THIRD_PARTY=yes
     #     - PACKAGING=yes
     #     - TESTING=yes
     #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
     #   addons:
-    #     apt:
+    #     homebrew:
     #       packages:
-    #         - gcc
-    #         - g++
     #         - openssl
-    #         - libssl-dev
-    #         - libpoco-dev
-    #         - googletest
-    #         - unixodbc
-    #         - unixodbc-bin
-    #         - unixodbc-dev
-
-    - name: "macOS 10.14 - iODBC - AppleClang (Xcode 11.2) - RelWithDebInfo"
-      os: osx
-      osx_image: xcode11.2
-      compiler: clang
-      env:
-        - ODBC_DRIVER_MANAGER=iodbc
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-      addons:
-        homebrew:
-          packages:
-            - libiodbc
-
-    - name: "macOS 10.14 - UnixODBC - AppleClang (Xcode 11.2) - RelWithDebInfo"
-      os: osx
-      osx_image: xcode11.2
-      compiler: clang
-      env:
-        - ODBC_DRIVER_MANAGER=unixodbc
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-      addons:
-        homebrew:
-          packages:
-            - unixodbc
-
-    - name: "macOS 10.14 - iODBC - AppleClang (Xcode 11.2) - RelWithDebInfo - System third-party libs"
-      os: osx
-      osx_image: xcode11.2
-      compiler: clang
-      env:
-        - ODBC_DRIVER_MANAGER=iodbc
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=yes
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-      addons:
-        homebrew:
-          packages:
-            - openssl
-            - poco
-            - gtest
-            - libiodbc
+    #         - poco
+    #         - gtest
+    #         - libiodbc
 
 before_install: |-
   if [ "$TRAVIS_OS_NAME" == "linux" ]; then
