@@ -56,6 +56,7 @@ function(declare_odbc_test_targets libname UNICODE)
         client_test_base.h
         ${PROJECT_SOURCE_DIR}/driver/type_info.cpp
         ${PROJECT_SOURCE_DIR}/driver/utils/unicode_conv.h
+        misc_it.cpp
         statement_parameters_it.cpp
         performance_it.cpp
     )
