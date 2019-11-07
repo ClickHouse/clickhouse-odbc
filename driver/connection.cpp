@@ -199,11 +199,11 @@ void Connection::loadConfiguration() {
     ci.dsn = data_source;
     getDSNinfo(&ci, true);
 
-    if (!ci.tracefile.empty())
-        getDriver().setAttr(SQL_ATTR_TRACEFILE, ci.tracefile);
+    if (!ci.driverlogfile.empty())
+        getDriver().setAttr(CH_SQL_ATTR_DRIVERLOGFILE, ci.driverlogfile);
 
-    if (!ci.trace.empty())
-        getDriver().setAttr(SQL_ATTR_TRACE, (isYes(ci.trace) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
+    if (!ci.driverlog.empty())
+        getDriver().setAttr(CH_SQL_ATTR_DRIVERLOG, (isYes(ci.driverlog) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
 
     if (url.empty())
         url = ci.url;

@@ -24,8 +24,8 @@ struct ConnInfo {
     std::string translation_dll;
     std::string translation_option;
     std::string conn_settings;
-    std::string trace;
-    std::string tracefile;
+    std::string driverlog;
+    std::string driverlogfile;
     std::string privateKeyFile;
     std::string certificateFile;
     std::string caLocation;

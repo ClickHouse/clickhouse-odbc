@@ -19,25 +19,43 @@ protected:
     virtual void SetUp() override {
         ClientTestBase::SetUp();
 
-        ODBC_CALL_ON_DBC_THROW(hdbc, SQLGetConnectAttr(hdbc, SQL_ATTR_TRACE, &trace, 0, nullptr));
-
-        if (trace == SQL_OPT_TRACE_ON) {
-            std::cout << "Disabling driver tracing/extended logging..." << std::endl;
+#if !defined(_IODBCUNIX_H)
+        ODBC_CALL_ON_DBC_THROW(hdbc, SQLGetConnectAttr(hdbc, SQL_ATTR_TRACE, &driver_manager_trace, 0, nullptr));
+        if (driver_manager_trace == SQL_OPT_TRACE_ON) {
+            std::cout << "Temporarily disabling driver manager tracing..." << std::endl;
             ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, SQL_ATTR_TRACE, (SQLPOINTER)SQL_OPT_TRACE_OFF, 0));
+        }
+#else
+        std::cout << "WARNING: using iODBC, so unable to detect and disable driver manager tracing from the client code!" <<
+            " Performance test results may not be very representative and may take significantly more time and disk space." << std::endl;
+#endif
+
+        ODBC_CALL_ON_DBC_THROW(hdbc, SQLGetConnectAttr(hdbc, CH_SQL_ATTR_DRIVERLOG, &driver_log, 0, nullptr));
+        if (driver_log == SQL_OPT_TRACE_ON) {
+            std::cout << "Temporarily disabling driver logging..." << std::endl;
+            ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, CH_SQL_ATTR_DRIVERLOG, (SQLPOINTER)SQL_OPT_TRACE_OFF, 0));
         }
     }
 
     virtual void TearDown() override {
-        if (trace == SQL_OPT_TRACE_ON) {
-            std::cout << "Re-enabling driver tracing/extended logging..." << std::endl;
+        if (driver_log == SQL_OPT_TRACE_ON) {
+            std::cout << "Re-enabling driver logging..." << std::endl;
+            ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, CH_SQL_ATTR_DRIVERLOG, (SQLPOINTER)SQL_OPT_TRACE_ON, 0));
+        }
+
+#if !defined(_IODBCUNIX_H)
+        if (driver_manager_trace == SQL_OPT_TRACE_ON) {
+            std::cout << "Re-enabling driver manager tracing..." << std::endl;
             ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, SQL_ATTR_TRACE, (SQLPOINTER)SQL_OPT_TRACE_ON, 0));
         }
+#endif
 
         ClientTestBase::TearDown();
     }
-        
+
 private:
-    SQLUINTEGER trace = SQL_OPT_TRACE_ON;
+    SQLUINTEGER driver_manager_trace = SQL_OPT_TRACE_ON;
+    SQLUINTEGER driver_log = SQL_OPT_TRACE_ON;
 };
 
 #ifdef NDEBUG

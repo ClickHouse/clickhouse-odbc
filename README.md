@@ -122,8 +122,8 @@ url = https://localhost
 # Timeout for http queries to ClickHouse server (default is 30 seconds)
 #timeout=60
 
-#trace=1
-#tracefile=/tmp/clickhouse-odbc.log
+#DriverLog = yes
+#DriverLofFile = /tmp/clickhouse-odbc-driver.log
 ```
 
 Sometimes you should change ~/.odbcinst.ini or /etc/odbcinst.ini or /Library/ODBC/odbcinst.ini :
