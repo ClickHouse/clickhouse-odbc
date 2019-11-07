@@ -11,6 +11,7 @@ env:
     - SOURCE_DIR=$TRAVIS_BUILD_DIR
     - BUILD_DIR=$TRAVIS_BUILD_DIR/build
     - RUN_DIR=$TRAVIS_BUILD_DIR/run
+    - EXTRA_CTEST_PARAMS="${EXTRA_CTEST_PARAMS:--VV}"
 
 matrix:
   include:
@@ -26,8 +27,8 @@ matrix:
         - BUILD_TYPE=Debug
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
-        - UNIT_TESTING=yes
-        - E2E_TESTING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
         - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
       services:
         - docker
@@ -51,8 +52,8 @@ matrix:
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
-        - UNIT_TESTING=yes
-        - E2E_TESTING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
         - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
       services:
         - docker
@@ -76,8 +77,8 @@ matrix:
         - BUILD_TYPE=Release
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
-        - UNIT_TESTING=yes
-        - E2E_TESTING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
         - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
       services:
         - docker
@@ -101,8 +102,8 @@ matrix:
     #     - BUILD_TYPE=RelWithDebInfo
     #     - EXTERNAL_THIRD_PARTY=no
     #     - PACKAGING=yes
-    #     - UNIT_TESTING=yes
-    #     - E2E_TESTING=yes
+    #     - TESTING=yes
+    #     - STANDALONE_TESTS_ONLY=no
     #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
     #   services:
     #     - docker
@@ -126,8 +127,8 @@ matrix:
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
-        - UNIT_TESTING=yes
-        - E2E_TESTING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
         - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
       services:
         - docker
@@ -150,8 +151,8 @@ matrix:
     #     - BUILD_TYPE=RelWithDebInfo
     #     - EXTERNAL_THIRD_PARTY=no
     #     - PACKAGING=yes
-    #     - UNIT_TESTING=yes
-    #     - E2E_TESTING=yes
+    #     - TESTING=yes
+    #     - STANDALONE_TESTS_ONLY=no
     #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
     #   services:
     #     - docker
@@ -174,8 +175,8 @@ matrix:
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
-        - UNIT_TESTING=yes
-        - E2E_TESTING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
         - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
       services:
         - docker
@@ -199,8 +200,8 @@ matrix:
     #     - BUILD_TYPE=RelWithDebInfo
     #     - EXTERNAL_THIRD_PARTY=no
     #     - PACKAGING=yes
-    #     - UNIT_TESTING=yes
-    #     - E2E_TESTING=yes
+    #     - TESTING=yes
+    #     - STANDALONE_TESTS_ONLY=no
     #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
     #   services:
     #     - docker
@@ -224,8 +225,8 @@ matrix:
     #     - BUILD_TYPE=RelWithDebInfo
     #     - EXTERNAL_THIRD_PARTY=yes
     #     - PACKAGING=yes
-    #     - UNIT_TESTING=yes
-    #     - E2E_TESTING=yes
+    #     - TESTING=yes
+    #     - STANDALONE_TESTS_ONLY=no
     #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
     #   services:
     #     - docker
@@ -251,8 +252,8 @@ matrix:
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
-        - UNIT_TESTING=yes
-        - E2E_TESTING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
       addons:
         homebrew:
           packages:
@@ -267,8 +268,8 @@ matrix:
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
-        - UNIT_TESTING=yes
-        - E2E_TESTING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
       addons:
         homebrew:
           packages:
@@ -283,8 +284,8 @@ matrix:
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=yes
         - PACKAGING=yes
-        - UNIT_TESTING=yes
-        - E2E_TESTING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
       addons:
         homebrew:
           packages:
@@ -316,7 +317,7 @@ install: |-
   fi
 
 .clickhouse_start: &clickhouse_start |-
-  if [ "$E2E_TESTING" == "yes" ]; then
+  if [ "$TESTING" == "yes" ] && [ "$STANDALONE_TESTS_ONLY" != "yes" ]; then
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       docker pull ${CLICKHOUSE_SERVER_IMAGE}
       CLICKHOUSE_SERVER_CONTAINER=$(docker run -d ${CLICKHOUSE_SERVER_IMAGE})
@@ -332,7 +333,7 @@ install: |-
   fi
 
 .odbc_configure: &odbc_configure |-
-  if [ "$E2E_TESTING" == "yes" ]; then
+  if [ "$TESTING" == "yes" ] && [ "$STANDALONE_TESTS_ONLY" != "yes" ]; then
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       ODBC_DRIVER_PATH=$BUILD_DIR/driver/libclickhouseodbc.so
       ODBC_DRIVERW_PATH=$BUILD_DIR/driver/libclickhouseodbcw.so
@@ -419,16 +420,14 @@ install: |-
     cpack -C $BUILD_TYPE
   fi
 
-.run_unit_tests: &run_unit_tests |-
-  if [ "$UNIT_TESTING" == "yes" ]; then
+.test: &test |-
+  if [ "$TESTING" == "yes" ]; then
     cd $BUILD_DIR
-    ctest -C $BUILD_TYPE -R '.*-ut.*' -VV
-  fi
-
-.run_e2e_tests: &run_e2e_tests |-
-  if [ "$E2E_TESTING" == "yes" ]; then
-    cd $BUILD_DIR
-    ctest -C $BUILD_TYPE -E '.*-ut.*' -VV
+    if [ "$STANDALONE_TESTS_ONLY" == "yes" ]; then
+      ctest -C $BUILD_TYPE -R '.*-ut.*' $EXTRA_CTEST_PARAMS
+    else
+      ctest -C $BUILD_TYPE $EXTRA_CTEST_PARAMS
+    fi
   fi
 
 before_script: |-
@@ -441,5 +440,4 @@ script:
   - *configure
   - *build
   - *pack
-  - *run_unit_tests
-  - *run_e2e_tests
+  - *test
