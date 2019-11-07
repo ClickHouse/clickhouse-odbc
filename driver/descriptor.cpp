@@ -30,7 +30,11 @@ void DescriptorRecord::onAttrChange(int attr) {
 
             switch (type) {
                 case SQL_CHAR:
+                case SQL_WCHAR:
                 case SQL_VARCHAR:
+                case SQL_WVARCHAR:
+                case SQL_LONGVARCHAR:
+                case SQL_WLONGVARCHAR:
                     setAttrSilent(SQL_DESC_LENGTH, 1);
                     setAttrSilent(SQL_DESC_PRECISION, 0);
                     break;

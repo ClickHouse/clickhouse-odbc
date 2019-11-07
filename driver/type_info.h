@@ -26,7 +26,10 @@ struct TypeInfo {
     }
 
     inline bool isStringType() const {
-        return sql_type == SQL_VARCHAR;
+        return
+            sql_type == SQL_CHAR || sql_type == SQL_VARCHAR || sql_type == SQL_LONGVARCHAR ||
+            sql_type == SQL_WCHAR || sql_type == SQL_WVARCHAR || sql_type == SQL_WLONGVARCHAR
+        ;
     }
 };
 

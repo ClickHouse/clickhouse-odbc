@@ -181,8 +181,11 @@ SQLRETURN BindParameter(
 
             switch (parameter_type) {
                 case SQL_CHAR:
+                case SQL_WCHAR:
                 case SQL_VARCHAR:
+                case SQL_WVARCHAR:
                 case SQL_LONGVARCHAR:
+                case SQL_WLONGVARCHAR:
                 case SQL_BINARY:
                 case SQL_VARBINARY:
                 case SQL_LONGVARBINARY:
