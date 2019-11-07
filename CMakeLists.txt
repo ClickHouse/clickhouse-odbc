@@ -38,6 +38,11 @@ endif ()
 include(GNUInstallDirs)
 
 if (MSVC)
+    # This default encoding mode will be overriden by UNICODE, in the corresponding cases.
+    add_compile_definitions(SBCS _SBCS)
+
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
+
     foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
         foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
             set (var "${lang}_${config}")
@@ -45,7 +50,6 @@ if (MSVC)
             string (REPLACE "-MD" "-MT" ${var} "${${var}}")
         endforeach ()
     endforeach ()
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
 endif ()
 
 if (NOT BUILD_SHARED)
@@ -118,7 +122,7 @@ else ()
 endif ()
 
 if(WIN32)
-   set(ODBC_LIBRARIES "odbc32" "odbccp32")
+   set(ODBC_LIBRARIES "odbc32" "odbccp32" "legacy_stdio_definitions")
    message(STATUS "Windows native ODBC Support Enabled")
 endif ()
 message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")

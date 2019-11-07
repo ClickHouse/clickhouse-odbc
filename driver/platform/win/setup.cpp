@@ -8,26 +8,32 @@
 
 #include <Poco/UTF8String.h>
 
+#include <odbcinst.h>
+
+#include <algorithm>
+
 #if defined(_win_)
 
-#    include <algorithm>
 #    include <strsafe.h>
 
-#    include <odbcinst.h>
-#    pragma comment(lib, "odbc32.lib")
-#    pragma comment(lib, "legacy_stdio_definitions.lib")
-
-#    ifndef INTFUNC
-#        define INTFUNC __stdcall
-#    endif /* INTFUNC */
+#    define ABBR_PROTOCOL "A1"
+#    define ABBR_READONLY "A0"
 
 /// Saved module handle.
 extern HINSTANCE module_instance;
 
-namespace {
+extern "C" {
 
-#    define ABBR_PROTOCOL "A1"
-#    define ABBR_READONLY "A0"
+INT_PTR CALLBACK ConfigDlgProc(
+    HWND hdlg,
+    UINT wMsg,
+    WPARAM wParam,
+    LPARAM lParam
+);
+
+} // extern "C"
+
+namespace { namespace impl {
 
 /* NOTE:  All these are used by the dialog procedures */
 struct SetupDialogData {
@@ -39,7 +45,7 @@ struct SetupDialogData {
     ConnInfo ci;
 };
 
-BOOL copyAttributes(ConnInfo * ci, LPCTSTR attribute, LPCTSTR value) {
+inline BOOL copyAttributes(ConnInfo * ci, LPCTSTR attribute, LPCTSTR value) {
     const auto attribute_str = toUTF8(attribute);
 
 #define COPY_ATTR_IF(NAME, INI_NAME)                          \
@@ -69,7 +75,7 @@ BOOL copyAttributes(ConnInfo * ci, LPCTSTR attribute, LPCTSTR value) {
     return FALSE;
 }
 
-static void parseAttributes(LPCTSTR lpszAttributes, SetupDialogData * lpsetupdlg) {
+inline void parseAttributes(LPCTSTR lpszAttributes, SetupDialogData * lpsetupdlg) {
     LPCTSTR lpsz;
     LPCTSTR lpszStart;
     TCHAR aszKey[MAX_DSN_KEY_LEN];
@@ -107,12 +113,12 @@ static void parseAttributes(LPCTSTR lpszAttributes, SetupDialogData * lpsetupdlg
         /* Copy the appropriate value to the conninfo  */
         copyAttributes(&lpsetupdlg->ci, aszKey, value);
 
-        //if (!copyAttributes(&lpsetupdlg->ci, aszKey, value))
+        //if (copyAttributes(&lpsetupdlg->ci, aszKey, value) != TRUE)
         //    copyCommonAttributes(&lpsetupdlg->ci, aszKey, value);
     }
 }
 
-static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWORD * errcode) {
+inline BOOL setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWORD * errcode) {
     std::basic_string<CharTypeLPCTSTR> Driver;
     fromUTF8(lpsetupdlg->driver_name, Driver);
 
@@ -159,11 +165,7 @@ static bool setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWOR
     return TRUE;
 }
 
-} // namespace
-
-extern "C" {
-
-void INTFUNC CenterDialog(HWND hdlg) {
+inline void CenterDialog(HWND hdlg) {
     HWND hwndFrame;
     RECT rcDlg;
     RECT rcScr;
@@ -204,7 +206,12 @@ void INTFUNC CenterDialog(HWND hdlg) {
     return;
 }
 
-INT_PTR CALLBACK ConfigDlgProc(HWND hdlg, UINT wMsg, WPARAM wParam, LPARAM lParam) {
+inline INT_PTR ConfigDlgProc_(
+    HWND hdlg,
+    UINT wMsg,
+    WPARAM wParam,
+    LPARAM lParam
+) noexcept {
     switch (wMsg) {
         case WM_INITDIALOG: {
             auto & lpsetupdlg = *(SetupDialogData *)lParam;
@@ -285,19 +292,18 @@ INT_PTR CALLBACK ConfigDlgProc(HWND hdlg, UINT wMsg, WPARAM wParam, LPARAM lPara
     return FALSE;
 }
 
-BOOL INSTAPI EXPORTED_FUNCTION_MAYBE_W(ConfigDSN)(HWND hwnd, WORD fRequest, LPCTSTR lpszDriver, LPCTSTR lpszAttributes) {
+inline BOOL ConfigDSN_(
+    HWND hwnd,
+    WORD fRequest,
+    LPCTSTR lpszDriver,
+    LPCTSTR lpszAttributes
+) noexcept {
     BOOL fSuccess = FALSE;
-    GLOBALHANDLE hglbAttr;
-    SetupDialogData * lpsetupdlg;
 
-    /* Allocate attribute array */
-    hglbAttr = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, sizeof(SetupDialogData));
-    if (!hglbAttr)
-        return FALSE;
+	SetupDialogData setupdlg;
+    SetupDialogData * lpsetupdlg = &setupdlg;
 
-    lpsetupdlg = (SetupDialogData *)GlobalLock(hglbAttr);
-
-    /* Parse attribute string */
+	/* Parse attribute string */
     if (lpszAttributes)
         parseAttributes(lpszAttributes, lpsetupdlg);
 
@@ -363,10 +369,52 @@ BOOL INSTAPI EXPORTED_FUNCTION_MAYBE_W(ConfigDSN)(HWND hwnd, WORD fRequest, LPCT
             fSuccess = TRUE;
     }
 
-    GlobalUnlock(hglbAttr);
-    GlobalFree(hglbAttr);
+	return fSuccess;
+}
 
-    return fSuccess;
+inline BOOL ConfigDriver_(
+    HWND hwnd,
+    WORD fRequest,
+    LPCTSTR lpszDriver,
+    LPCTSTR lpszArgs,
+    LPTSTR lpszMsg,
+    WORD cbMsgMax,
+    WORD * pcbMsgOut
+) noexcept {
+    MessageBox(hwnd, TEXT("ConfigDriver"), TEXT("Debug"), MB_OK);
+    return TRUE;
+}
+
+} } // namespace impl
+
+extern "C" {
+
+INT_PTR CALLBACK ConfigDlgProc(
+    HWND hdlg,
+    UINT wMsg,
+    WPARAM wParam,
+    LPARAM lParam
+) {
+    return impl::ConfigDlgProc_(
+        hdlg,
+        wMsg,
+        wParam,
+        lParam
+    );
+}
+
+BOOL INSTAPI EXPORTED_FUNCTION_MAYBE_W(ConfigDSN)(
+    HWND hwnd,
+    WORD fRequest,
+    LPCTSTR lpszDriver,
+    LPCTSTR lpszAttributes
+) {
+    return impl::ConfigDSN_(
+        hwnd,
+        fRequest,
+        lpszDriver,
+        lpszAttributes
+    );
 }
 
 BOOL INSTAPI EXPORTED_FUNCTION_MAYBE_W(ConfigDriver)(
@@ -378,10 +426,17 @@ BOOL INSTAPI EXPORTED_FUNCTION_MAYBE_W(ConfigDriver)(
     WORD cbMsgMax,
     WORD * pcbMsgOut
 ) {
-    MessageBox(hwnd, TEXT("ConfigDriver"), TEXT("Debug"), MB_OK);
-    return TRUE;
+    return impl::ConfigDriver_(
+        hwnd,
+        fRequest,
+        lpszDriver,
+        lpszArgs,
+        lpszMsg,
+        cbMsgMax,
+        pcbMsgOut
+    );
 }
 
-} // extern
+} // extern "C"
 
 #endif

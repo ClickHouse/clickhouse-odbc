@@ -1,14 +1,19 @@
 function(declare_odbc_lib_targets libname UNICODE)
 
 if (UNICODE)
-    set(_config_add w)
-    message (STATUS "${libname}: UNICODE")
+    set(DRIVER_PREFIX Unicode)
+    set(WIDECHAR_SUFFIX w)
 else ()
-    set(_config_add)
-    message (STATUS "${libname}: ANSI")
+    set(DRIVER_PREFIX ANSI)
+    set(WIDECHAR_SUFFIX)
 endif ()
 
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/platform/config_cmake.h.in ${CMAKE_CURRENT_BINARY_DIR}/platform/config_cmake${_config_add}.h)
+message (STATUS "${libname}: ${DRIVER_PREFIX}")
+
+configure_file (
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/config_cmake.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/platform/config_cmake${WIDECHAR_SUFFIX}.h
+)
 
 # In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
 add_library(${libname}-impl STATIC
@@ -81,19 +86,10 @@ if (WIN32)
     endif()
 endif()
 
-add_library(${libname} SHARED
-    api/odbc.cpp
-    api/impl/handles.cpp
-    api/impl/attr.cpp
-    api/impl/info.cpp
-
-    ${WIN_SOURCES}
-)
-
 if (UNICODE)
     target_compile_definitions(${libname}-impl
-        PUBLIC UNICODE=1
-        PUBLIC _UNICODE=1
+        PUBLIC UNICODE
+        PUBLIC _UNICODE
     )
 endif ()
 
@@ -109,7 +105,9 @@ if(USE_SSL)
         PUBLIC ${Poco_NetSSL_LIBRARY}
         PUBLIC ${Poco_Crypto_LIBRARY}
     )
-    target_include_directories (${libname}-impl PUBLIC ${OPENSSL_INCLUDE_DIR})
+    target_include_directories (${libname}-impl
+        PUBLIC ${OPENSSL_INCLUDE_DIR}
+    )
 endif()
 
 target_link_libraries(${libname}-impl
@@ -117,23 +115,29 @@ target_link_libraries(${libname}-impl
     PUBLIC ${Poco_Foundation_LIBRARY}
     PUBLIC ${Poco_Util_LIBRARY}
     PUBLIC ${ODBC_LIBRARIES}
+    PUBLIC Threads::Threads
 )
 
-if(WIN32)
-    target_link_libraries(${libname}-impl PUBLIC ws2_32 Iphlpapi legacy_stdio_definitions)
-endif()
+if (WIN32)
+    target_link_libraries(${libname}-impl PUBLIC Ws2_32 Iphlpapi)
+endif ()
 
-if(ARCH_LINUX)
-    target_link_libraries(${libname}-impl PUBLIC Threads::Threads)
-endif()
+add_library(${libname} SHARED
+    api/odbc.cpp
+    api/impl/handles.cpp
+    api/impl/attr.cpp
+    api/impl/info.cpp
 
-target_link_libraries(${libname} PRIVATE ${libname}-impl)
+    ${WIN_SOURCES}
+)
 
-if (UNICODE)
-    set(DRIVER_PREFIX Unicode)
-else()
-    set(DRIVER_PREFIX ANSI)
-endif()
+set_target_properties(${libname} PROPERTIES
+    OUTPUT_NAME "clickhouseodbc${WIDECHAR_SUFFIX}"
+)
+
+target_link_libraries(${libname}
+    PRIVATE ${libname}-impl
+)
 
 if (MSVC)
     install(
@@ -161,9 +165,6 @@ endfunction()
 
 declare_odbc_lib_targets(clickhouse-odbc 0)
 declare_odbc_lib_targets(clickhouse-odbcw 1)
-
-set_target_properties(clickhouse-odbc PROPERTIES OUTPUT_NAME "clickhouseodbc")
-set_target_properties(clickhouse-odbcw PROPERTIES OUTPUT_NAME "clickhouseodbcw")
 
 if(CLICKHOUSE_ODBC_TEST)
     add_subdirectory(test)
