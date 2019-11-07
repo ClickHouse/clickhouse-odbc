@@ -1,4 +1,4 @@
-#include "descriptor.h"
+#include "driver/descriptor.h"
 
 #include <algorithm>
 
@@ -30,7 +30,11 @@ void DescriptorRecord::onAttrChange(int attr) {
 
             switch (type) {
                 case SQL_CHAR:
+                case SQL_WCHAR:
                 case SQL_VARCHAR:
+                case SQL_WVARCHAR:
+                case SQL_LONGVARCHAR:
+                case SQL_WLONGVARCHAR:
                     setAttrSilent(SQL_DESC_LENGTH, 1);
                     setAttrSilent(SQL_DESC_PRECISION, 0);
                     break;
@@ -38,7 +42,7 @@ void DescriptorRecord::onAttrChange(int attr) {
                 case SQL_DECIMAL:
                 case SQL_NUMERIC:
                     setAttrSilent(SQL_DESC_SCALE, 0);
-                    setAttrSilent(SQL_DESC_PRECISION, 6); // TODO: fix this.
+                    setAttrSilent(SQL_DESC_PRECISION, 38);
                     break;
 
                 case SQL_FLOAT:
@@ -157,6 +161,31 @@ Descriptor::Descriptor(Connection & connection)
     : ChildType(connection)
 {
     setAttr(SQL_DESC_COUNT, 0);
+}
+
+Descriptor & Descriptor::operator= (Descriptor & other) {
+    if (this != &other) {
+        const bool alloc_type_set = hasAttr(SQL_DESC_ALLOC_TYPE);
+        const auto alloc_type = getAttrAs<SQLSMALLINT>(SQL_DESC_ALLOC_TYPE);
+
+        AttributeContainer & attrs = *this;
+        AttributeContainer & other_attrs = other;
+
+        attrs = other_attrs;
+        records = other.records;
+
+        if (alloc_type_set)
+            setAttr(SQL_DESC_ALLOC_TYPE, alloc_type);
+        else
+            resetAttr(SQL_DESC_ALLOC_TYPE);
+
+        for (auto & record : records) {
+            if (record.hasAttr(SQL_DESC_DATA_PTR))
+                record.consistencyCheck();
+        }
+    }
+
+    return *this;
 }
 
 std::size_t Descriptor::getRecordCount() const {

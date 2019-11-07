@@ -1,16 +1,23 @@
-cmake_minimum_required (VERSION 3.2)
+cmake_minimum_required (VERSION 3.9)
 
-project (clickhouse-odbc VERSION 1.1.0.20191007 LANGUAGES C CXX)
+project (clickhouse-odbc VERSION 1.1.1.20191102 LANGUAGES C CXX)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
-set(CMAKE_LINK_DEPENDS_NO_SHARED 1) # Do not relink all depended targets on .so
-set(CMAKE_CXX_EXTENSIONS 0)
-set(CMAKE_CXX_STANDARD_REQUIRED 1)
-set(CMAKE_POSITION_INDEPENDENT_CODE 1)
-set(CMAKE_BUILD_COLOR_MAKEFILE 1)
-set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ASCIIDriver)
+set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 
-if (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "None")
+set (CMAKE_C_STANDARD 11)
+#set (CMAKE_C_EXTENSIONS 0)
+set (CMAKE_C_STANDARD_REQUIRED 1)
+
+set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_EXTENSIONS 0)
+set (CMAKE_CXX_STANDARD_REQUIRED 1)
+
+set (CMAKE_POSITION_INDEPENDENT_CODE 1)
+
+set (CMAKE_BUILD_COLOR_MAKEFILE 1)
+set (CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ANSIDriver)
+
+if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "RelWithDebInfo")
 endif ()
 
@@ -23,10 +30,6 @@ message (STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 string (TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UC)
 string (TOUPPER "${CMAKE_CONFIGURATION_TYPES}" CMAKE_CONFIGURATION_TYPES_UC)
 
-set (COMMON_WARNING_FLAGS "-Wall")	# -Werror is also added inside directories with our own code.
-set (CXX_WARNING_FLAGS "-Wnon-virtual-dtor")
-
-set (CMAKE_CXX_STANDARD 14)
 # For iostream_debug_helpers.h :
 if (CMAKE_BUILD_TYPE_UC STREQUAL "DEBUG" AND USE_DEBUG_17)
     set (CMAKE_CXX_STANDARD 17)
@@ -35,6 +38,11 @@ endif ()
 include(GNUInstallDirs)
 
 if (MSVC)
+    # This default encoding mode will be overriden by UNICODE, in the corresponding cases.
+    add_compile_definitions(SBCS _SBCS)
+
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
+
     foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
         foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
             set (var "${lang}_${config}")
@@ -42,9 +50,6 @@ if (MSVC)
             string (REPLACE "-MD" "-MT" ${var} "${${var}}")
         endforeach ()
     endforeach ()
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
-else ()
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
 endif ()
 
 if (NOT BUILD_SHARED)
@@ -60,10 +65,12 @@ message (STATUS "BUILD_SHARED: ${BUILD_SHARED}")
 include (cmake/arch.cmake)
 
 if (ARCH_FREEBSD)
-    set (CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
 endif ()
 
 include (cmake/sanitize.cmake)
+
+find_package (Threads)
 
 # to avoid this error:
 # /usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/libssl.a(s23_srvr.o): relocation R_X86_64_PC32 against symbol `ssl23_get_client_hello' can not be used when making a shared object; recompile with -fPIC
@@ -90,7 +97,6 @@ else ()
 endif ()
 
 option (ENABLE_SSL "Use openssl for accessing https:// interface" 1)
-
 if (ENABLE_SSL)
     include (cmake/find_ssl.cmake)
     if (OPENSSL_FOUND)
@@ -116,7 +122,7 @@ else ()
 endif ()
 
 if(WIN32)
-   set(ODBC_LIBRARIES "odbc32" "odbccp32")
+   set(ODBC_LIBRARIES "odbc32" "odbccp32" "legacy_stdio_definitions")
    message(STATUS "Windows native ODBC Support Enabled")
 endif ()
 message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")
@@ -131,6 +137,18 @@ add_subdirectory (contrib EXCLUDE_FROM_ALL)
 foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
     set(CMAKE_${config}_POSTFIX "" CACHE STRING "" FORCE) # Don't append "d" or "md" to output lib name
 endforeach ()
+
+set (CMAKE_C_VISIBILITY_PRESET hidden)
+set (CMAKE_CXX_VISIBILITY_PRESET hidden)
+set (CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+
+include(CheckIPOSupported)
+
+check_ipo_supported(RESULT ipo_supported LANGUAGES C CXX)
+if (ipo_supported)
+    set (CMAKE_INTERPROCEDURAL_OPTIMIZATION 1)
+    set (CMAKE_INTERPROCEDURAL_OPTIMIZATION_DEBUG 0)
+endif ()
 
 add_subdirectory (driver)
 
@@ -157,23 +175,23 @@ include(CPackComponent)
 get_cmake_property(CPACK_COMPONENTS_ALL COMPONENTS)
 list(REMOVE_ITEM CPACK_COMPONENTS_ALL "Devel")
 
-cpack_add_component_group(ASCIIGroup
-    DISPLAY_NAME "ASCII ${ARCH_BITS}-bit Driver"
-    DESCRIPTION "ClickHouse ODBC Driver (ASCII, ${ARCH_BITS}-bit)"
+cpack_add_component_group(ANSIGroup
+    DISPLAY_NAME "ANSI ${ARCH_BITS}-bit Driver"
+    DESCRIPTION "ClickHouse ODBC Driver (ANSI, ${ARCH_BITS}-bit)"
     EXPANDED
 )
-cpack_add_component(ASCIIDriver
+cpack_add_component(ANSIDriver
     DISPLAY_NAME "Driver"
-    DESCRIPTION "ClickHouse ODBC Driver (ASCII, ${ARCH_BITS}-bit)"
+    DESCRIPTION "ClickHouse ODBC Driver (ANSI, ${ARCH_BITS}-bit)"
     REQUIRED
-    GROUP ASCIIGroup
+    GROUP ANSIGroup
 )
-cpack_add_component(ASCIIDriverDebugSymbols
+cpack_add_component(ANSIDriverDebugSymbols
     DISPLAY_NAME "Debug symbols"
-    DESCRIPTION "Debug symbols (PDB) for the Driver (ASCII, ${ARCH_BITS}-bit)"
+    DESCRIPTION "Debug symbols (PDB) for the Driver (ANSI, ${ARCH_BITS}-bit)"
     DISABLED
-    DEPENDS ASCIIDriver
-    GROUP ASCIIGroup
+    DEPENDS ANSIDriver
+    GROUP ANSIGroup
 )
 cpack_add_component_group(UnicodeGroup
     DISPLAY_NAME "Unicode ${ARCH_BITS}-bit Driver"
@@ -183,7 +201,7 @@ cpack_add_component_group(UnicodeGroup
 cpack_add_component(UnicodeDriver
     DISPLAY_NAME "Driver"
     DESCRIPTION "ClickHouse ODBC Driver (Unicode, ${ARCH_BITS}-bit)"
-    DEPENDS ASCIIDriver
+    DEPENDS ANSIDriver
     GROUP UnicodeGroup
 )
 cpack_add_component(UnicodeDriverDebugSymbols
@@ -196,7 +214,7 @@ cpack_add_component(UnicodeDriverDebugSymbols
 cpack_add_component(RuntimeLibraries
     DISPLAY_NAME "Runtime Libraries"
     DESCRIPTION "System/language redistributable runtime libraries"
-    DEPENDS ASCIIDriver
+    DEPENDS ANSIDriver
 )
 
 if(WIN32 AND NOT UNIX)

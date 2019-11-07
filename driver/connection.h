@@ -1,12 +1,12 @@
 #pragma once
 
-#include "driver.h"
-#include "environment.h"
+#include "driver/driver.h"
+#include "driver/environment.h"
+
+#include <Poco/Net/HTTPClientSession.h>
 
 #include <memory>
 #include <mutex>
-
-#include <Poco/Net/HTTPClientSession.h>
 
 class DescriptorRecord;
 class Descriptor;
@@ -40,6 +40,7 @@ public:
 
     std::unique_ptr<Poco::Net::HTTPClientSession> session;
     int retry_count = 3;
+    int redirect_limit = 10;
 
 public:
     explicit Connection(Environment & environment);

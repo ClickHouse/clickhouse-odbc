@@ -1,11 +1,12 @@
 #pragma once
 
+#include "driver/platform/platform.h"
+#include "driver/utils/read_helpers.h"
+#include "driver/utils/type_parser.h"
+
 #include <deque>
 #include <memory>
 #include <vector>
-#include "platform.h"
-#include "read_helpers.h"
-#include "type_parser.h"
 
 class Statement;
 
@@ -18,6 +19,10 @@ public:
     int64_t getInt() const;
     float getFloat() const;
     double getDouble() const;
+
+    SQLGUID getGUID() const;
+
+    SQL_NUMERIC_STRUCT getNumeric(const std::int16_t precision, const std::int16_t scale) const;
 
     SQL_DATE_STRUCT getDate() const;
     SQL_TIMESTAMP_STRUCT getDateTime() const;

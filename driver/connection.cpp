@@ -1,9 +1,10 @@
-#include "connection.h"
-#include "utils.h"
-#include "string_ref.h"
-#include "config.h"
-#include "descriptor.h"
-#include "statement.h"
+#include "driver/utils/utils.h"
+#include "driver/utils/string_ref.h"
+#include "driver/config/config.h"
+#include "driver/config/ini_defines.h"
+#include "driver/connection.h"
+#include "driver/descriptor.h"
+#include "driver/statement.h"
 
 #include <Poco/Base64Encoder.h>
 #include <Poco/Net/HTTPClientSession.h>
@@ -19,7 +20,6 @@
 #    include <Poco/Net/PrivateKeyPassphraseHandler.h>
 #    include <Poco/Net/SSLManager.h>
 #endif
-
 
 std::once_flag ssl_init_once;
 
@@ -196,68 +196,68 @@ void Connection::loadConfiguration() {
         data_source = INI_DSN_DEFAULT;
 
     ConnInfo ci;
-    stringToTCHAR(data_source, ci.dsn);
+    ci.dsn = data_source;
     getDSNinfo(&ci, true);
 
-    {
-        const std::string tracefile = stringFromMYTCHAR(ci.tracefile);
-        if (!tracefile.empty()) {
-            getDriver().setAttr(SQL_ATTR_TRACEFILE, tracefile);
-        }
+    if (!ci.driverlogfile.empty())
+        getDriver().setAttr(CH_SQL_ATTR_DRIVERLOGFILE, ci.driverlogfile);
 
-        const std::string trace = stringFromMYTCHAR(ci.trace);
-        if (!trace.empty()) {
-            getDriver().setAttr(SQL_ATTR_TRACE, (isYes(trace) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
-        }
-    }
+    if (!ci.driverlog.empty())
+        getDriver().setAttr(CH_SQL_ATTR_DRIVERLOG, (isYes(ci.driverlog) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
 
     if (url.empty())
-        url = stringFromMYTCHAR(ci.url);
+        url = ci.url;
+
     if (!port && ci.port[0] != 0) {
-        const std::string string = stringFromMYTCHAR(ci.port);
-        if (!string.empty()) {
+        if (!ci.port.empty()) {
             int tmp = 0;
-            if (!Poco::NumberParser::tryParse(string, tmp))
-                throw std::runtime_error(("Cannot parse port number [" + string + "].").c_str());
+            if (!Poco::NumberParser::tryParse(ci.port, tmp))
+                throw std::runtime_error(("Cannot parse port number [" + ci.port + "].").c_str());
             port = tmp;
         }
     }
+
     if (timeout == 0) {
-        const std::string string = stringFromMYTCHAR(ci.timeout);
-        if (!string.empty()) {
-            if (!Poco::NumberParser::tryParse(string, this->timeout))
-                throw std::runtime_error("Cannot parse connection timeout value [" + string + "].");
-            this->connection_timeout = this->timeout;
+        if (!ci.timeout.empty()) {
+            if (!Poco::NumberParser::tryParse(ci.timeout, timeout))
+                throw std::runtime_error("Cannot parse connection timeout value [" + ci.timeout + "].");
+            connection_timeout = timeout;
         }
     }
+
     if (stringmaxlength == 0) {
-        const std::string string = stringFromMYTCHAR(ci.stringmaxlength);
-        if (!string.empty()) {
-            if (!Poco::NumberParser::tryParse(string, this->stringmaxlength))
-                throw std::runtime_error("Cannot parse stringmaxlength value [" + string + "].");
+        if (!ci.stringmaxlength.empty()) {
+            if (!Poco::NumberParser::tryParse(ci.stringmaxlength, stringmaxlength))
+                throw std::runtime_error("Cannot parse stringmaxlength value [" + ci.stringmaxlength + "].");
         }
     }
 
     if (server.empty())
-        server = stringFromMYTCHAR(ci.server);
+        server = ci.server;
+
     if (user.empty())
-        user = stringFromMYTCHAR(ci.username);
+        user = ci.username;
+
     if (password.empty())
-        password = stringFromMYTCHAR(ci.password);
+        password = ci.password;
+
     if (database.empty())
-        database = stringFromMYTCHAR(ci.database);
-    auto sslmode = stringFromMYTCHAR(ci.sslmode);
-    if (proto.empty() && (sslmode == "require" || sslmode == "prefer" || sslmode == "allow" || port == 8443))
+        database = ci.database;
+
+    if (proto.empty() && (ci.sslmode == "require" || ci.sslmode == "prefer" || ci.sslmode == "allow" || port == 8443))
         proto = "https";
-    if (sslmode == "require")
+
+    if (ci.sslmode == "require")
         ssl_strict = true;
 
     if (privateKeyFile.empty())
-        privateKeyFile = stringFromMYTCHAR(ci.privateKeyFile);
+        privateKeyFile = ci.privateKeyFile;
+
     if (certificateFile.empty())
-        certificateFile = stringFromMYTCHAR(ci.certificateFile);
+        certificateFile = ci.certificateFile;
+
     if (caLocation.empty())
-        caLocation = stringFromMYTCHAR(ci.caLocation);
+        caLocation = ci.caLocation;
 }
 
 void Connection::setDefaults() {
@@ -270,12 +270,19 @@ void Connection::setDefaults() {
         if (server.empty())
             server = uri.getHost();
         if (port == 0) {
+            // TODO(dakovalkov): This doesn't work when you explicitly set 80 for http and 443 for https.
             const auto tmp_port = uri.getPort();
             if ((proto == "https" && tmp_port != 443) || (proto == "http" && tmp_port != 80))
                 port = tmp_port;
         }
         if (path.empty())
             path = uri.getPath();
+
+        for (const auto& parameter : uri.getQueryParameters()) {
+            if (parameter.first == "database") {
+                database = parameter.second;
+            }
+        }
 
         auto user_info = uri.getUserInfo();
         auto index = user_info.find(':');
@@ -298,7 +305,7 @@ void Connection::setDefaults() {
     if (path[0] != '/')
         path = "/" + path;
     if (stringmaxlength == 0)
-        stringmaxlength = Environment::string_max_size;
+        stringmaxlength = TypeInfo::string_max_size;
     if (user.empty())
         user = "default";
     if (database.empty())

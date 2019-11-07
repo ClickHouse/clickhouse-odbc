@@ -348,19 +348,25 @@ install: |-
       # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
       export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
     fi
-    
+
     cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
+  [ODBC]
+  Trace     = yes
+  TraceFile = ${RUN_DIR}/odbc-driver-manager-trace.log
+
   [ODBC Drivers]
   clickhouse_driver   = Installed
   clickhouse_driver_w = Installed
 
   [clickhouse_driver]
-  Driver = ${ODBC_DRIVER_PATH}
-  Setup  = ${ODBC_DRIVER_PATH}
+  Driver     = ${ODBC_DRIVER_PATH}
+  Setup      = ${ODBC_DRIVER_PATH}
+  UsageCount = 1
 
   [clickhouse_driver_w]
-  Driver = ${ODBC_DRIVERW_PATH}
-  Setup  = ${ODBC_DRIVERW_PATH}
+  Driver     = ${ODBC_DRIVERW_PATH}
+  Setup      = ${ODBC_DRIVERW_PATH}
+  UsageCount = 1
   EOF
 
     cat > $ODBCSYSINI/.odbc.ini <<-EOF
@@ -373,20 +379,20 @@ install: |-
   clickhouse_localhost_w = clickhouse_driver_w
 
   [clickhouse_localhost]
-  Driver      = clickhouse_driver
-  Description = ClickHouse DSN (ASCII, localhost)
-  Url         = http://${CLICKHOUSE_SERVER_IP}
-  Timeout     = 30
-  Trace       = yes
-  TraceFile   = ${RUN_DIR}/clickhouse-odbc-driver-trace.log
+  Driver        = clickhouse_driver
+  Description   = ClickHouse DSN (ANSI, localhost)
+  Url           = http://${CLICKHOUSE_SERVER_IP}
+  Timeout       = 30
+  DriverLog     = yes
+  DriverLogFile = ${RUN_DIR}/clickhouse-odbc-driver.log
 
   [clickhouse_localhost_w]
-  Driver      = clickhouse_driver_w
-  Description = ClickHouse DSN (Unicode, localhost)
-  Url         = http://${CLICKHOUSE_SERVER_IP}
-  Timeout     = 30
-  Trace       = yes
-  TraceFile   = ${RUN_DIR}/clickhouse-odbc-driver-w-trace.log
+  Driver        = clickhouse_driver_w
+  Description   = ClickHouse DSN (Unicode, localhost)
+  Url           = http://${CLICKHOUSE_SERVER_IP}
+  Timeout       = 30
+  DriverLog     = yes
+  DriverLogFile = ${RUN_DIR}/clickhouse-odbc-driver-w.log
   EOF
   fi
 

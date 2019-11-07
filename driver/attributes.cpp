@@ -1,4 +1,4 @@
-#include "attributes.h"
+#include "driver/attributes.h"
 
 bool AttributeContainer::hasAttrInteger(int attr) const {
     auto it = integers.find(attr);
@@ -18,6 +18,11 @@ bool AttributeContainer::hasAttrString(int attr) const {
 
 bool AttributeContainer::hasAttr(int attr) const {
     return (hasAttrInteger(attr) || hasAttrString(attr));
+}
+
+void AttributeContainer::resetAttr(int attr) {
+    integers.erase(attr);
+    strings.erase(attr);
 }
 
 void AttributeContainer::resetAttrs() {

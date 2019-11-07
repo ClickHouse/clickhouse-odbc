@@ -1,15 +1,15 @@
-#include "driver.h"
-#include "environment.h"
-#include "connection.h"
-#include "descriptor.h"
-#include "statement.h"
-#include "ini_defines.h"
+#include "driver/config/ini_defines.h"
+#include "driver/driver.h"
+#include "driver/environment.h"
+#include "driver/connection.h"
+#include "driver/descriptor.h"
+#include "driver/statement.h"
 
 #include <chrono>
 
 Driver::Driver() noexcept {
-    setAttrSilent(SQL_ATTR_TRACE, (isYes(INI_TRACE_DEFAULT) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
-    setAttr<std::string>(SQL_ATTR_TRACEFILE, INI_TRACEFILE_DEFAULT);
+    setAttrSilent(CH_SQL_ATTR_DRIVERLOG, (isYes(INI_DRIVERLOG_DEFAULT) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
+    setAttr<std::string>(CH_SQL_ATTR_DRIVERLOGFILE, INI_DRIVERLOGFILE_DEFAULT);
 }
 
 Driver::~Driver() {
@@ -75,22 +75,22 @@ Statement * Driver::dynamicCastTo<Statement>(Object * obj) {
 
 void Driver::onAttrChange(int attr) {
     switch (attr) {
-        case SQL_ATTR_TRACE:
-        case SQL_ATTR_TRACEFILE: {
+        case CH_SQL_ATTR_DRIVERLOG:
+        case CH_SQL_ATTR_DRIVERLOGFILE: {
             bool stream_open = (log_file_stream.is_open() && log_file_stream);
             const bool enable_logging = isLoggingEnabled();
-            const auto tracefile = getAttrAs<std::string>(SQL_ATTR_TRACEFILE);
+            const auto log_file_attr = getAttrAs<std::string>(CH_SQL_ATTR_DRIVERLOGFILE);
 
             if (enable_logging) {
-                if (stream_open && tracefile != log_file_name) {
-                    LOG("Switching trace output to " << (tracefile.empty() ? "standard log output" : tracefile));
+                if (stream_open && log_file_attr != log_file_name) {
+                    LOG("Switching driver log output to " << (log_file_attr.empty() ? "standard log output" : log_file_attr));
                     writeLogSessionEnd(getLogStream());
                     log_file_stream.close();
                     stream_open = false;
                 }
 
                 if (!stream_open) {
-                    log_file_name = tracefile;
+                    log_file_name = log_file_attr;
                     log_file_stream = (log_file_name.empty() ? std::ofstream{} : std::ofstream{log_file_name, std::ios_base::out | std::ios_base::app});
                     writeLogSessionStart(getLogStream());
                 }
@@ -109,7 +109,7 @@ void Driver::onAttrChange(int attr) {
 }
 
 bool Driver::isLoggingEnabled() const {
-    return (getAttrAs<SQLUINTEGER>(SQL_ATTR_TRACE) == SQL_OPT_TRACE_ON);
+    return (getAttrAs<SQLUINTEGER>(CH_SQL_ATTR_DRIVERLOG) == SQL_OPT_TRACE_ON);
 }
 
 std::ostream & Driver::getLogStream() {
@@ -134,31 +134,26 @@ void Driver::writeLogSessionStart(std::ostream & stream) {
     stream << " ====================" << std::endl;
 
     stream << " VERSION=" << VERSION_STRING;
+
 #if defined(_win64_)
     stream << " WIN64";
 #elif defined(_win32_)
     stream << " WIN32";
 #endif
+
 #if ODBC_IODBC
     stream << " ODBC_IODBC";
 #endif
-#if ODBC_CHAR16
-    stream << " ODBC_CHAR16";
-#endif
+
 #if ODBC_UNIXODBC
     stream << " ODBC_UNIXODBC";
 #endif
 
 #if defined(UNICODE)
     stream << " UNICODE=" << UNICODE;
-#    if defined(ODBC_WCHAR)
-        stream << " ODBC_WCHAR=" << ODBC_WCHAR;
-#    endif
     stream << " sizeof(SQLTCHAR)=" << sizeof(SQLTCHAR) << " sizeof(wchar_t)=" << sizeof(wchar_t);
 #endif
-#if defined(SQL_WCHART_CONVERT)
-    stream << " SQL_WCHART_CONVERT";
-#endif
+
 #if ODBCVER
     {
         std::stringstream hstream;
@@ -166,12 +161,15 @@ void Driver::writeLogSessionStart(std::ostream & stream) {
         stream << hstream.str();
     }
 #endif
+
 #if defined(ODBC_LIBRARIES)
     stream << " ODBC_LIBRARIES=" << ODBC_LIBRARIES;
 #endif
+
 #if defined(ODBC_INCLUDE_DIRECTORIES)
     stream << " ODBC_INCLUDE_DIRECTORIES=" << ODBC_INCLUDE_DIRECTORIES;
 #endif
+
     stream << std::endl;
 }
 

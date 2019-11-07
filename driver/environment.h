@@ -1,27 +1,11 @@
 #pragma once
 
-#include "driver.h"
-#include "diagnostics.h"
+#include "driver/driver.h"
+#include "driver/diagnostics.h"
+#include "driver/type_info.h"
 
 #include <map>
 #include <stdexcept>
-
-struct TypeInfo {
-    std::string sql_type_name;
-    bool is_unsigned;
-    SQLSMALLINT sql_type;
-    int32_t column_size;
-    int32_t octet_length;
-
-    inline bool isIntegerType() const {
-        return sql_type == SQL_TINYINT || sql_type == SQL_SMALLINT || sql_type == SQL_INTEGER || sql_type == SQL_BIGINT;
-    }
-
-    inline bool isStringType() const {
-        return sql_type == SQL_VARCHAR;
-    }
-};
-
 
 class Environment
     : public Child<Driver, Environment>
@@ -36,8 +20,6 @@ public:
     template <typename T> T& allocateChild();
     template <typename T> void deallocateChild(SQLHANDLE) noexcept;
 
-    static const auto string_max_size = 0xFFFFFF;
-    static const std::map<std::string, TypeInfo> types_info;
     const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs = "") const;
 
 public:

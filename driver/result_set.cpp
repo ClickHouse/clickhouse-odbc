@@ -1,6 +1,5 @@
-#include "result_set.h"
-
-#include "statement.h"
+#include "driver/statement.h"
+#include "driver/result_set.h"
 
 uint64_t Field::getUInt() const {
     try {
@@ -9,6 +8,7 @@ uint64_t Field::getUInt() const {
         throw std::runtime_error("Cannot interpret '" + data + "' as uint64: " + e.what());
     }
 }
+
 int64_t Field::getInt() const {
     try {
         return std::stoll(data);
@@ -16,6 +16,7 @@ int64_t Field::getInt() const {
         throw std::runtime_error("Cannot interpret '" + data + "' as int64: " + e.what());
     }
 }
+
 float Field::getFloat() const {
     try {
         return std::stof(data);
@@ -23,12 +24,21 @@ float Field::getFloat() const {
         throw std::runtime_error("Cannot interpret '" + data + "' as float: " + e.what());
     }
 }
+
 double Field::getDouble() const {
     try {
         return std::stod(data);
     } catch (std::exception & e) {
         throw std::runtime_error("Cannot interpret '" + data + "' as double: " + e.what());
     }
+}
+
+SQLGUID Field::getGUID() const {
+    return value_manip::to<SQLGUID>::template from<std::string>(data);
+}
+
+SQL_NUMERIC_STRUCT Field::getNumeric(const std::int16_t precision, const std::int16_t scale) const {
+    return value_manip::to<SQL_NUMERIC_STRUCT>::template from<std::string>(data, precision, scale);
 }
 
 SQL_DATE_STRUCT Field::getDate() const {
