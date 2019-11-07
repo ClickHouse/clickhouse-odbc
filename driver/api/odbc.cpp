@@ -738,7 +738,7 @@ SQLRETURN GetData(
 
 //          case SQL_C_TIME:
 //          case SQL_C_TYPE_TIME:
-//              return fillOutputPOD<SQL_TIME_STRUCT &>(field.getTime(), out_value, out_value_size_or_indicator);
+//              return fillOutputPOD<SQL_TIME_STRUCT>(field.getTime(), out_value, out_value_size_or_indicator);
 
             case SQL_C_TIMESTAMP:
             case SQL_C_TYPE_TIMESTAMP:
