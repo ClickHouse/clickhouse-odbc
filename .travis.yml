@@ -16,7 +16,7 @@ env:
 matrix:
   include:
 
-    - name: "Ubuntu 18.04 - GCC - UnixODBC - Debug"
+    - name: "Ubuntu 18.04 - UnixODBC - GCC - Debug"
       os: linux
       dist: bionic
       compiler: gcc
@@ -41,7 +41,7 @@ matrix:
             - unixodbc-bin
             - unixodbc-dev
 
-    - name: "Ubuntu 18.04 - GCC - UnixODBC - RelWithDebInfo"
+    - name: "Ubuntu 18.04 - UnixODBC - GCC - RelWithDebInfo"
       os: linux
       dist: bionic
       compiler: gcc
@@ -66,7 +66,7 @@ matrix:
             - unixodbc-bin
             - unixodbc-dev
 
-    - name: "Ubuntu 18.04 - GCC - UnixODBC - Release"
+    - name: "Ubuntu 18.04 - UnixODBC - GCC - Release"
       os: linux
       dist: bionic
       compiler: gcc
@@ -91,7 +91,7 @@ matrix:
             - unixodbc-bin
             - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - GCC - iODBC - RelWithDebInfo"
+    # - name: "Ubuntu 18.04 - iODBC - GCC - RelWithDebInfo"
     #   os: linux
     #   dist: bionic
     #   compiler: gcc
@@ -116,7 +116,7 @@ matrix:
     #         - libiodbc2
     #         - libiodbc2-dev
 
-    - name: "Ubuntu 18.04 - Clang - UnixODBC - RelWithDebInfo"
+    - name: "Ubuntu 18.04 - UnixODBC - Clang - RelWithDebInfo"
       os: linux
       dist: bionic
       compiler: clang
@@ -140,7 +140,7 @@ matrix:
             - unixodbc-bin
             - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - Clang - iODBC - RelWithDebInfo"
+    # - name: "Ubuntu 18.04 - iODBC - Clang - RelWithDebInfo"
     #   os: linux
     #   dist: bionic
     #   compiler: clang
@@ -164,7 +164,7 @@ matrix:
     #         - libiodbc2
     #         - libiodbc2-dev
 
-    - name: "Ubuntu 18.04 - GCC 8 - UnixODBC - RelWithDebInfo"
+    - name: "Ubuntu 18.04 - UnixODBC - GCC 8 - RelWithDebInfo"
       os: linux
       dist: bionic
       compiler: gcc
@@ -189,7 +189,7 @@ matrix:
             - unixodbc-bin
             - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - GCC 8 - iODBC - RelWithDebInfo"
+    # - name: "Ubuntu 18.04 - iODBC - GCC 8 - RelWithDebInfo"
     #   os: linux
     #   dist: bionic
     #   compiler: gcc
@@ -214,7 +214,7 @@ matrix:
     #         - libiodbc2
     #         - libiodbc2-dev
 
-    # - name: "Ubuntu 18.04 - GCC - UnixODBC - RelWithDebInfo - System third-party libs"
+    # - name: "Ubuntu 18.04 - UnixODBC - GCC - RelWithDebInfo - System third-party libs"
     #   os: linux
     #   dist: bionic
     #   compiler: gcc
@@ -243,7 +243,7 @@ matrix:
     #         - unixodbc-bin
     #         - unixodbc-dev
 
-    - name: "macOS 10.14 - Xcode 11.2 (AppleClang) - iODBC - RelWithDebInfo"
+    - name: "macOS 10.14 - iODBC - AppleClang (Xcode 11.2) - RelWithDebInfo"
       os: osx
       osx_image: xcode11.2
       compiler: clang
@@ -259,7 +259,7 @@ matrix:
           packages:
             - libiodbc
 
-    - name: "macOS 10.14 - Xcode 11.2 (AppleClang) - UnixODBC - RelWithDebInfo"
+    - name: "macOS 10.14 - UnixODBC - AppleClang (Xcode 11.2) - RelWithDebInfo"
       os: osx
       osx_image: xcode11.2
       compiler: clang
@@ -275,7 +275,7 @@ matrix:
           packages:
             - unixodbc
 
-    - name: "macOS 10.14 - Xcode 11.2 (AppleClang) - iODBC - RelWithDebInfo - System third-party libs"
+    - name: "macOS 10.14 - iODBC - AppleClang (Xcode 11.2) - RelWithDebInfo - System third-party libs"
       os: osx
       osx_image: xcode11.2
       compiler: clang
