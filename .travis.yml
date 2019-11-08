@@ -11,7 +11,7 @@ env:
     - SOURCE_DIR=$TRAVIS_BUILD_DIR
     - BUILD_DIR=$TRAVIS_BUILD_DIR/build
     - RUN_DIR=$TRAVIS_BUILD_DIR/run
-#   - EXTRA_CTEST_PARAMS="${EXTRA_CTEST_PARAMS:--VV}"
+#   - CTEST_EXTRA_FLAGS="${CTEST_EXTRA_FLAGS:--VV}"
 
 matrix:
   include:
@@ -243,7 +243,7 @@ matrix:
     # #         - unixodbc-bin
     # #         - unixodbc-dev
 
-    - name: "Windows - MDAC - MSVC (Visual Studio 2017) - Debug"
+    - name: "Windows - MDAC - MSVC (Visual Studio 2017) - x64 - Debug"
       os: windows
       language: bash
       env:
@@ -252,6 +252,7 @@ matrix:
         - PACKAGING=yes
         - TESTING=yes
         - STANDALONE_TESTS_ONLY=yes
+        - CMAKE_BUILD_EXTRA_FLAGS="-A x64 $CMAKE_BUILD_EXTRA_FLAGS"
 
     # - name: "macOS 10.14 - iODBC - AppleClang (Xcode 11.2) - RelWithDebInfo"
     #   os: osx
@@ -305,36 +306,40 @@ matrix:
     #         - libiodbc
 
 before_install: |-
-  if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+  if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     sudo apt-get update -q
-  elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
+  elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     brew update
+  elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+#   choco upgrade
   fi
 
 install: |-
-  if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+  if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     sudo apt-get install -y build-essential cmake perl libdbi-perl libdbd-odbc-perl python python-pyodbc
-  elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
+  elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     brew install cmake perl python@2
     PERL_MM_USE_DEFAULT=1 cpan -T DBD::ODBC
-    if [ "$ODBC_DRIVER_MANAGER" == "iodbc" ]; then
+    if [[ "$ODBC_DRIVER_MANAGER" == "iodbc" ]]; then
       # It looks like older version of pyodbc works with iodbc out of the box on macOS:
       # https://github.com/mkleehammer/pyodbc/commit/aa178bfd25afd6fb90c77d054c1bcf0a6aa54411
       pip install --user pyodbc==3.0.7
     else
       pip install --user pyodbc
     fi
+  elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+    choco install wixtoolset
   fi
 
 .clickhouse_start: &clickhouse_start |-
-  if [ "$TESTING" == "yes" ] && [ "$STANDALONE_TESTS_ONLY" != "yes" ]; then
-    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+  if [[ "$TESTING" == "yes" ]] && [[ "$STANDALONE_TESTS_ONLY" != "yes" ]]; then
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       docker pull ${CLICKHOUSE_SERVER_IMAGE}
       CLICKHOUSE_SERVER_CONTAINER=$(docker run -d ${CLICKHOUSE_SERVER_IMAGE})
       CLICKHOUSE_SERVER_IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' ${CLICKHOUSE_SERVER_CONTAINER})
       docker ps -a
       docker stats -a --no-stream
-    elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       # In macOS, ClickHouse is installed and running as a separate process on this same system.
       # TODO: use native package manager when available.
       $SOURCE_DIR/test/deploy_and_run_clickhouse_macos.sh
@@ -343,16 +348,16 @@ install: |-
   fi
 
 .odbc_configure: &odbc_configure |-
-  if [ "$TESTING" == "yes" ] && [ "$STANDALONE_TESTS_ONLY" != "yes" ]; then
-    if [ "$TRAVIS_OS_NAME" == "windows" ]; then
+  if [[ "$TESTING" == "yes" ]] && [[ "$STANDALONE_TESTS_ONLY" != "yes" ]]; then
+    if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
 
       # TODO
 
     else
-      if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         ODBC_DRIVER_PATH=$BUILD_DIR/driver/libclickhouseodbc.so
         ODBC_DRIVERW_PATH=$BUILD_DIR/driver/libclickhouseodbcw.so
-      elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         ODBC_DRIVER_PATH=$BUILD_DIR/driver/libclickhouseodbc.dylib
         ODBC_DRIVERW_PATH=$BUILD_DIR/driver/libclickhouseodbcw.dylib
       fi
@@ -360,7 +365,7 @@ install: |-
       export ODBCSYSINI=$RUN_DIR
       export ODBCINSTINI=.odbcinst.ini
       export ODBCINI=$ODBCSYSINI/.odbc.ini
-      if [ "$ODBC_DRIVER_MANAGER" == "iodbc" ]; then
+      if [[ "$ODBC_DRIVER_MANAGER" == "iodbc" ]]; then
         # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
         export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
       fi
@@ -414,36 +419,38 @@ install: |-
   fi
 
 .configure: &configure |-
-  CMAKE_FLAGS="-DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w"
-  if [ "$EXTERNAL_THIRD_PARTY" == "yes" ]; then
-    CMAKE_FLAGS="-DUNBUNDLED=1 $CMAKE_FLAGS"
+  CMAKE_CONFIGURE_FLAGS="-DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w $CMAKE_CONFIGURE_EXTRA_FLAGS"
+  if [[ "$EXTERNAL_THIRD_PARTY" == "yes" ]]; then
+    CMAKE_CONFIGURE_FLAGS="-DUNBUNDLED=1 $CMAKE_CONFIGURE_FLAGS"
   fi
-  if [ "$ODBC_DRIVER_MANAGER" == "unixodbc" ]; then
-    CMAKE_FLAGS="-DFIND_UNIXODBC_FIRST=1 $CMAKE_FLAGS"
-  elif [ "$ODBC_DRIVER_MANAGER" == "iodbc" ]; then
-    CMAKE_FLAGS="-DFIND_IODBC_FIRST=1 $CMAKE_FLAGS"
+  if [[ "$ODBC_DRIVER_MANAGER" == "unixodbc" ]]; then
+    CMAKE_CONFIGURE_FLAGS="-DFIND_UNIXODBC_FIRST=1 $CMAKE_CONFIGURE_FLAGS"
+  elif [[ "$ODBC_DRIVER_MANAGER" == "iodbc" ]]; then
+    CMAKE_CONFIGURE_FLAGS="-DFIND_IODBC_FIRST=1 $CMAKE_CONFIGURE_FLAGS"
   fi
   cd $BUILD_DIR
-  cmake $CMAKE_FLAGS $SOURCE_DIR
+  cmake $CMAKE_CONFIGURE_FLAGS $SOURCE_DIR
 
 .build: &build |-
+  CMAKE_BUILD_FLAGS="--config $BUILD_TYPE $CMAKE_BUILD_EXTRA_FLAGS -- $CMAKE_BUILD_NATIVE_EXTRA_FLAGS"
   cd $BUILD_DIR
-  cmake --build . --config $BUILD_TYPE
+  cmake --build . $CMAKE_BUILD_FLAGS
 
 .pack: &pack |-
-  if [ "$PACKAGING" == "yes" ]; then
+  if [[ "$PACKAGING" == "yes" ]]; then
+    CPACK_FLAGS="-C $BUILD_TYPE $CPACK_EXTRA_FLAGS"
     cd $BUILD_DIR
-    cpack -C $BUILD_TYPE
+    cpack $CPACK_FLAGS
   fi
 
 .test: &test |-
-  if [ "$TESTING" == "yes" ]; then
-    cd $BUILD_DIR
-    if [ "$STANDALONE_TESTS_ONLY" == "yes" ]; then
-      ctest -C $BUILD_TYPE -R '.*-ut.*' $EXTRA_CTEST_PARAMS
-    else
-      ctest -C $BUILD_TYPE $EXTRA_CTEST_PARAMS
+  if [[ "$TESTING" == "yes" ]]; then
+    CTEST_FLAGS="-C $BUILD_TYPE $CTEST_EXTRA_FLAGS"
+    if [[ "$STANDALONE_TESTS_ONLY" == "yes" ]]; then
+      CTEST_FLAGS="-R '.*-ut.*' $CTEST_FLAGS"
     fi
+    cd $BUILD_DIR
+    ctest $CTEST_FLAGS
   fi
 
 before_script: |-
