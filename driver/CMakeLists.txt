@@ -3,9 +3,14 @@ function(declare_odbc_lib_targets libname UNICODE)
 if (UNICODE)
     set(DRIVER_PREFIX Unicode)
     set(WIDECHAR_SUFFIX w)
+    unset(WORKAROUND_TRIM_TRAILING_NULL)
 else ()
     set(DRIVER_PREFIX ANSI)
     set(WIDECHAR_SUFFIX)
+    if ("${ODBC_IMPL}" STREQUAL "UnixODBC")
+        # See the usage in the code for comments.
+        set(WORKAROUND_TRIM_TRAILING_NULL 1)
+    endif ()
 endif ()
 
 message (STATUS "${libname}: ${DRIVER_PREFIX}")
@@ -14,6 +19,8 @@ configure_file (
     ${CMAKE_CURRENT_SOURCE_DIR}/platform/config_cmake.h.in
     ${CMAKE_CURRENT_BINARY_DIR}/platform/config_cmake${WIDECHAR_SUFFIX}.h
 )
+
+unset(WORKAROUND_TRIM_TRAILING_NULL)
 
 # In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
 add_library(${libname}-impl STATIC
@@ -99,7 +106,6 @@ target_include_directories (${libname}-impl
     PUBLIC ${PROJECT_BINARY_DIR}
     PUBLIC ${PROJECT_SOURCE_DIR}
     PUBLIC ${Poco_INCLUDE_DIRS}
-    PUBLIC ${ODBC_INCLUDE_DIRECTORIES}
 )
 
 if(USE_SSL)
@@ -116,13 +122,9 @@ target_link_libraries(${libname}-impl
     PUBLIC ${Poco_Net_LIBRARY}
     PUBLIC ${Poco_Foundation_LIBRARY}
     PUBLIC ${Poco_Util_LIBRARY}
-    PUBLIC ${ODBC_LIBRARIES}
+    PUBLIC ODBC::DriverAPI
     PUBLIC Threads::Threads
 )
-
-if (WIN32)
-    target_link_libraries(${libname}-impl PUBLIC Ws2_32 Iphlpapi)
-endif ()
 
 add_library(${libname} SHARED
     api/odbc.cpp

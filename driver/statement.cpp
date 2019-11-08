@@ -11,6 +11,7 @@
 #include <Poco/UUID.h>
 #include <Poco/UUIDGenerator.h>
 
+#include <cctype>
 #include <cstdio>
 
 Statement::Statement(Connection & connection)

@@ -35,7 +35,7 @@ inline std::string toUTF8(const char * src, SQLLEN length = SQL_NTS) {
     // Workaround for UnixODBC Unicode client vs ANSI driver string encoding issue:
     // strings may be reported with a fixed length that also includes a trailing null character.
     // TODO: review this. This is not a formally right thing to do, but should not cause problems in practice.
-#if defined(ODBC_UNIXODBC) && !defined(UNICODE)
+#ifdef WORKAROUND_TRIM_TRAILING_NULL
     if (src && length > 0 && src[length - 1] == '\0')
         --length;
 #endif

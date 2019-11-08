@@ -21,21 +21,16 @@ function(declare_odbc_test_targets libname UNICODE)
     )
 
     target_link_libraries(${libname}-load-ut
-        PRIVATE ${ODBC_LIBRARIES}
+        PRIVATE ODBC::DriverAPI
         PRIVATE ${Poco_Foundation_LIBRARY}
         PRIVATE ${CMAKE_DL_LIBS}
         PRIVATE Threads::Threads
     )
 
-    if (WIN32)
-        target_link_libraries(${libname}-load-ut PUBLIC Iphlpapi)
-    endif ()
-
     target_include_directories(${libname}-load-ut
         PRIVATE ${PROJECT_BINARY_DIR}
         PRIVATE ${PROJECT_SOURCE_DIR}
         PRIVATE ${Poco_INCLUDE_DIRS}
-        PRIVATE ${ODBC_INCLUDE_DIRECTORIES}
     )
 
     if (UNICODE)
@@ -62,7 +57,7 @@ function(declare_odbc_test_targets libname UNICODE)
     )
 
     target_link_libraries(${libname}-client-it
-        PRIVATE ${ODBC_LIBRARIES}
+        PRIVATE ODBC::ClientAPI
         PRIVATE ${Poco_Foundation_LIBRARY}
         PRIVATE gtest-lib
         PRIVATE ${CMAKE_DL_LIBS}
@@ -73,7 +68,6 @@ function(declare_odbc_test_targets libname UNICODE)
         PRIVATE ${PROJECT_BINARY_DIR}
         PRIVATE ${PROJECT_SOURCE_DIR}
         PRIVATE ${Poco_INCLUDE_DIRS}
-        PRIVATE ${ODBC_INCLUDE_DIRECTORIES}
     )
 
     if (UNICODE)

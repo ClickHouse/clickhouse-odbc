@@ -13,10 +13,10 @@ cd ..
  for lib in ${USE_LIBS=libiodbc unixodbc}; do
 
     if [ "$lib" = "libiodbc" ]; then
-        CMAKE_FLAGS0=" -DFIND_IODBC_FIRST=1 "
+        CMAKE_FLAGS0=" -DODBC_IMPL=iODBC "
     fi
     if [ "$lib" = "unixodbc" ]; then
-        CMAKE_FLAGS0=" -DFIND_UNIXODBC_FIRST=1 "
+        CMAKE_FLAGS0=" -DODBC_IMPL=UnixODBC "
     fi
 if [[ "$OSTYPE" == "darwin"* ]]; then
     if [ "$lib" = "libiodbc" ]; then

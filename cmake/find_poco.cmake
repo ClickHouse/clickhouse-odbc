@@ -68,6 +68,11 @@ elseif (NOT MISSING_INTERNAL_POCO_LIBRARY)
         "${clickhouse-odbc_SOURCE_DIR}/contrib/poco/JSON/include/"
     )
 
+    if (WIN32)
+        list (APPEND Poco_Foundation_LIBRARY Iphlpapi)
+        list (APPEND Poco_Net_LIBRARY Ws2_32)
+    endif ()
+
     if (USE_SSL)
         if (WIN32)
             set (Poco_NetSSL_LIBRARY NetSSLWin)

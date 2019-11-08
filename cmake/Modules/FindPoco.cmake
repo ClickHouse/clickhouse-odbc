@@ -193,8 +193,7 @@ foreach( component ${components} )
 endforeach()
 
 if(Poco_DataODBC_LIBRARY)
-    list(APPEND Poco_DataODBC_LIBRARY ${ODBC_LIBRARIES} ${LTDL_LIBRARY})
-    list(APPEND Poco_INCLUDE_DIRS ${ODBC_INCLUDE_DIRECTORIES})
+    list(APPEND Poco_DataODBC_LIBRARY ODBC::ClientAPI)
 endif()
 
 if(Poco_NetSSL_LIBRARY)

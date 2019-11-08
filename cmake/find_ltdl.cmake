@@ -1,6 +1,6 @@
 
 # /usr/bin/x86_64-linux-gnu-ld: /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/libltdl.a(libltdl_libltdl_la-lt__alloc.o): relocation R_X86_64_PC32 against symbol `stderr@@GLIBC_2.2.5' can not be used when making a shared object; recompile with -fPIC
-if (NOT BUILD_SHARED AND "${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     execute_process(
         COMMAND lsb_release -is
         OUTPUT_VARIABLE _distname

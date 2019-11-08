@@ -134,42 +134,21 @@ void Driver::writeLogSessionStart(std::ostream & stream) {
     stream << " ====================" << std::endl;
 
     stream << " VERSION=" << VERSION_STRING;
-
-#if defined(_win64_)
-    stream << " WIN64";
-#elif defined(_win32_)
-    stream << " WIN32";
-#endif
-
-#if ODBC_IODBC
-    stream << " ODBC_IODBC";
-#endif
-
-#if ODBC_UNIXODBC
-    stream << " ODBC_UNIXODBC";
-#endif
-
+    stream << " SYSTEM=" << SYSTEM_STRING;
+    stream << " " << ODBC_IMPL;
 #if defined(UNICODE)
-    stream << " UNICODE=" << UNICODE;
-    stream << " sizeof(SQLTCHAR)=" << sizeof(SQLTCHAR) << " sizeof(wchar_t)=" << sizeof(wchar_t);
+    stream << " UNICODE";
+#else
+    stream << " ANSI";
 #endif
-
-#if ODBCVER
     {
         std::stringstream hstream;
-        hstream << " ODBCVER=" << std::hex << ODBCVER << std::dec;
-        stream << hstream.str();
+        hstream << std::hex << ODBCVER << std::dec;
+        stream << " ODBCVER=" << hstream.str();
     }
-#endif
-
-#if defined(ODBC_LIBRARIES)
-    stream << " ODBC_LIBRARIES=" << ODBC_LIBRARIES;
-#endif
-
-#if defined(ODBC_INCLUDE_DIRECTORIES)
-    stream << " ODBC_INCLUDE_DIRECTORIES=" << ODBC_INCLUDE_DIRECTORIES;
-#endif
-
+    stream << " sizeof(void *)=" << sizeof(void *);
+    stream << " sizeof(SQLTCHAR)=" << sizeof(SQLTCHAR);
+    stream << " sizeof(wchar_t)=" << sizeof(wchar_t);
     stream << std::endl;
 }
 

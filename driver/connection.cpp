@@ -326,7 +326,7 @@ std::string Connection::buildCredentialsString() const {
 
 std::string Connection::buildUserAgentString() const {
     std::ostringstream user_agent;
-    user_agent << "clickhouse-odbc/" << VERSION_STRING << " (" << CMAKE_SYSTEM << ")";
+    user_agent << "clickhouse-odbc/" << VERSION_STRING << " (" << SYSTEM_STRING << ")";
 #if defined(UNICODE)
     user_agent << " UNICODE";
 #endif

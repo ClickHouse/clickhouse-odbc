@@ -9,9 +9,11 @@ git:
 env:
   global:
     - SOURCE_DIR=$TRAVIS_BUILD_DIR
-    - BUILD_DIR=$TRAVIS_BUILD_DIR/build
-    - RUN_DIR=$TRAVIS_BUILD_DIR/run
-    # - CTEST_EXTRA_FLAGS="${CTEST_EXTRA_FLAGS:--VV}"
+    - BUILD_DIR=$SOURCE_DIR/build
+    - INSTALL_DIR=$SOURCE_DIR/build/prefix
+    - PACKAGE_DIR=$SOURCE_DIR/build/package
+    - RUN_DIR=$SOURCE_DIR/build/run
+    # - CTEST_EXTRA_ARGS="${CTEST_EXTRA_ARGS:--VV}"
 
 matrix:
   include:
@@ -252,7 +254,8 @@ matrix:
         - PACKAGING=yes
         - TESTING=yes
         - STANDALONE_TESTS_ONLY=yes
-        - CMAKE_BUILD_EXTRA_FLAGS="-A x64 $CMAKE_BUILD_EXTRA_FLAGS"
+        - CMAKE_CONFIGURE_EXTRA_ARGS="-A x64 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
+        - VCVARSALL_ARGS=x64
 
     # - name: "macOS 10.14 - iODBC - AppleClang (Xcode 11.2) - RelWithDebInfo"
     #   os: osx
@@ -306,6 +309,8 @@ matrix:
     #         - libiodbc
 
 before_install: |-
+  set -Eeo pipefail
+
   if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     sudo apt-get update -q
   elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -328,7 +333,15 @@ install: |-
       pip install --user pyodbc
     fi
   elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
-    choco install windows-sdk-10-version-1809-all wixtoolset --confirm --accept-license --execution-timeout=540 --verbose
+    export OLD_VSWHERE=yes
+
+    # TODO: use choco instead of manual download/unpack/ev setting, once 3.14+ version
+    # is available, since starting from 3.14 WiX Toolset doesn't depend on .NET 3.5,
+    # which has problems installing via choco.
+    # choco install wixtoolset --yes
+    wget https://wixtoolset.org/downloads/v3.14.0.712/wix314-binaries.zip
+    powershell -Command Expand-Archive wix314-binaries.zip -DestinationPath wix314-binaries
+    export WIX="$(cd wix314-binaries && pwd -W)"
   fi
 
 .clickhouse_start: &clickhouse_start |-
@@ -351,7 +364,7 @@ install: |-
   if [[ "$TESTING" == "yes" ]] && [[ "$STANDALONE_TESTS_ONLY" != "yes" ]]; then
     if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
 
-      # TODO
+      : # TODO
 
     else
       if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
@@ -419,43 +432,72 @@ install: |-
   fi
 
 .configure: &configure |-
-  CMAKE_CONFIGURE_FLAGS="-DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w $CMAKE_CONFIGURE_EXTRA_FLAGS"
+  CMAKE_CONFIGURE_ARGS="-DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w $CMAKE_CONFIGURE_EXTRA_ARGS"
   if [[ "$EXTERNAL_THIRD_PARTY" == "yes" ]]; then
-    CMAKE_CONFIGURE_FLAGS="-DUNBUNDLED=1 $CMAKE_CONFIGURE_FLAGS"
+    CMAKE_CONFIGURE_ARGS="-DUNBUNDLED=1 $CMAKE_CONFIGURE_ARGS"
   fi
   if [[ "$ODBC_DRIVER_MANAGER" == "unixodbc" ]]; then
-    CMAKE_CONFIGURE_FLAGS="-DFIND_UNIXODBC_FIRST=1 $CMAKE_CONFIGURE_FLAGS"
+    CMAKE_CONFIGURE_ARGS="-DODBC_IMPL=UnixODBC $CMAKE_CONFIGURE_ARGS"
   elif [[ "$ODBC_DRIVER_MANAGER" == "iodbc" ]]; then
-    CMAKE_CONFIGURE_FLAGS="-DFIND_IODBC_FIRST=1 $CMAKE_CONFIGURE_FLAGS"
+    CMAKE_CONFIGURE_ARGS="-DODBC_IMPL=iODBC $CMAKE_CONFIGURE_ARGS"
   fi
   cd $BUILD_DIR
-  cmake $CMAKE_CONFIGURE_FLAGS $SOURCE_DIR
+  if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+    $SOURCE_DIR/test/vcvars_enabled_bash.sh cmake $CMAKE_CONFIGURE_ARGS $SOURCE_DIR
+  else
+    cmake $CMAKE_CONFIGURE_ARGS $SOURCE_DIR
+  fi
 
 .build: &build |-
-  CMAKE_BUILD_FLAGS="--config $BUILD_TYPE $CMAKE_BUILD_EXTRA_FLAGS -- $CMAKE_BUILD_NATIVE_EXTRA_FLAGS"
+  CMAKE_BUILD_ARGS="--config $BUILD_TYPE $CMAKE_BUILD_EXTRA_ARGS -- $CMAKE_BUILD_NATIVE_EXTRA_ARGS"
   cd $BUILD_DIR
-  cmake --build . $CMAKE_BUILD_FLAGS
+  if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+    $SOURCE_DIR/test/vcvars_enabled_bash.sh cmake --build . $CMAKE_BUILD_ARGS
+  else
+    cmake --build . $CMAKE_BUILD_ARGS
+  fi
 
 .pack: &pack |-
   if [[ "$PACKAGING" == "yes" ]]; then
-    CPACK_FLAGS="-C $BUILD_TYPE $CPACK_EXTRA_FLAGS"
+    CPACK_ARGS="-C $BUILD_TYPE $CPACK_EXTRA_ARGS"
     cd $BUILD_DIR
-    cpack $CPACK_FLAGS
+    if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+      # 'cpack' is a chocolatey tool, so we use CMake's 'package' target instead
+      CPACK_ARGS="--build . --config $BUILD_TYPE --target package -- $CPACK_EXTRA_ARGS"
+      $SOURCE_DIR/test/vcvars_enabled_bash.sh cmake $CPACK_ARGS
+    else
+      cpack $CPACK_ARGS
+    fi
   fi
 
 .test: &test |-
   if [[ "$TESTING" == "yes" ]]; then
-    CTEST_FLAGS="-C $BUILD_TYPE $CTEST_EXTRA_FLAGS"
+    CTEST_ARGS="-C $BUILD_TYPE $CTEST_EXTRA_ARGS"
     if [[ "$STANDALONE_TESTS_ONLY" == "yes" ]]; then
-      CTEST_FLAGS="-R '.*-ut.*' $CTEST_FLAGS"
+      CTEST_ARGS="-R '.*-ut.*' $CTEST_ARGS"
     fi
     cd $BUILD_DIR
-    ctest $CTEST_FLAGS
+    if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+      $SOURCE_DIR/test/vcvars_enabled_bash.sh ctest $CTEST_ARGS
+    else
+      ctest $CTEST_ARGS
+    fi
   fi
 
 before_script: |-
+  mkdir -p $SOURCE_DIR
   mkdir -p $BUILD_DIR
+  mkdir -p $INSTALL_DIR
+  mkdir -p $PACKAGE_DIR
   mkdir -p $RUN_DIR
+
+  if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+    SOURCE_DIR="$(cd $SOURCE_DIR && pwd -W)"
+    BUILD_DIR="$(cd $BUILD_DIR && pwd -W)"
+    INSTALL_DIR="$(cd $INSTALL_DIR && pwd -W)"
+    PACKAGE_DIR="$(cd $PACKAGE_DIR && pwd -W)"
+    RUN_DIR="$(cd $RUN_DIR && pwd -W)"
+  fi
 
 script:
   - *clickhouse_start

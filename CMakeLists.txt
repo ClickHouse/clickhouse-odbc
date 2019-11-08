@@ -35,8 +35,6 @@ if (CMAKE_BUILD_TYPE_UC STREQUAL "DEBUG" AND USE_DEBUG_17)
     set (CMAKE_CXX_STANDARD 17)
 endif ()
 
-include(GNUInstallDirs)
-
 if (MSVC)
     # This default encoding mode will be overriden by UNICODE, in the corresponding cases.
     add_compile_definitions(SBCS _SBCS)
@@ -60,9 +58,8 @@ if (NOT BUILD_SHARED)
     endif ()
 endif ()
 
-message (STATUS "BUILD_SHARED: ${BUILD_SHARED}")
-
 include (cmake/arch.cmake)
+include(GNUInstallDirs)
 
 if (ARCH_FREEBSD)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
@@ -70,18 +67,8 @@ endif ()
 
 include (cmake/sanitize.cmake)
 
-find_package (Threads)
-
-# to avoid this error:
-# /usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/libssl.a(s23_srvr.o): relocation R_X86_64_PC32 against symbol `ssl23_get_client_hello' can not be used when making a shared object; recompile with -fPIC
-# use:  cmake .. -DFORCE_STATIC_LINK=
-#set (FORCE_STATIC_LINK "-Bstatic," CACHE INTERNAL "")
-
 if (NOT APPLE AND NOT ARCH_FREEBSD AND NOT WIN32)
     set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,${FORCE_STATIC_LINK}--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
-endif ()
-if (WIN32)
-    #set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
 endif ()
 
 option (CLICKHOUSE_ODBC_TEST "Enable tests" 1)
@@ -104,31 +91,12 @@ if (ENABLE_SSL)
     endif ()
 endif ()
 
-include (cmake/find_ltdl.cmake) # for odbc
-include (cmake/find_odbc.cmake)
-
-#if (NOT WIN32)
-#    set (OPENSSL_LIBRARIES "-Wl,-Bdynamic ${OPENSSL_LIBRARIES} -Wl,-Bstatic")
-#endif ()
+find_package (Threads)
+find_package (ODBC REQUIRED)
 
 include (cmake/find_poco.cmake)
 include (cmake/find_nanoodbc.cmake)
 include (cmake/find_ccache.cmake)
-
-if (EXISTS contrib/poco/cmake/FindODBC.cmake)
-    include (contrib/poco/cmake/FindODBC.cmake)
-else ()
-    include (cmake/find_odbc.cmake)
-endif ()
-
-if(WIN32)
-   set(ODBC_LIBRARIES "odbc32" "odbccp32" "legacy_stdio_definitions")
-   message(STATUS "Windows native ODBC Support Enabled")
-endif ()
-message (STATUS "Using odbc: ${ODBC_INCLUDE_DIRECTORIES} : ${ODBC_LIBRARIES}")
-#if(NOT WIN32 AND NOT ODBC_LIBRARIES MATCHES "iodbc")
-#    include(cmake/Modules/CheckODBCversion.cmake)
-#endif()
 
 message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_LIBRARY_ARCHITECTURE} ; CCACHE=${CCACHE_FOUND} ${CCACHE_VERSION}")
 
@@ -160,8 +128,8 @@ include (cmake/print_flags.cmake)
 
 if(NOT WIN32)
     install(
-        FILES packaging/unixodbc.ini packaging/odbc.ini
-        DESTINATION ${CMAKE_INSTALL_DOCDIR}/sample-config
+        FILES packaging/odbcinst.ini.sample packaging/odbc.ini.sample
+        DESTINATION ${CMAKE_INSTALL_DOCDIR}/config
         COMPONENT Documentation
     )
 endif()
