@@ -311,7 +311,7 @@ before_install: |-
   elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     brew update
   elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
-    # choco upgrade
+    : # choco upgrade
   fi
 
 install: |-
