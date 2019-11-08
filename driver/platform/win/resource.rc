@@ -135,7 +135,7 @@ BEGIN
         BEGIN
             VALUE "Comments", ""
             VALUE "CompanyName", "Yandex"
-            VALUE "FileDescription", "Clickhouse ODBC driver"
+            VALUE "FileDescription", "ClickHouse ODBC driver"
             VALUE "FileVersion", VERSION_STRING
             VALUE "InternalName", "clickhouse-odbc"
             VALUE "LegalCopyright", "(c) 2017-2018"

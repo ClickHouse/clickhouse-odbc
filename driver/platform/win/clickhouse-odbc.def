@@ -1,0 +1,98 @@
+LIBRARY
+    clickhouseodbc
+
+EXPORTS
+    ; DLL entry point
+    DllMain
+
+    ; Setup API
+    ConfigDSN
+    ConfigDriver
+;   ConfigTranslator
+
+    ; Translator API
+;   SQLDataSourceToDriver
+;   SQLDriverToDataSource
+
+    ; SPI API
+;   SQLCleanupConnectionPoolID
+;   SQLGetPoolID
+;   SQLPoolConnect
+;   SQLRateConnection
+;   SQLSetConnectAttrForDbcInfo
+;   SQLSetConnectInfo
+;   SQLSetDriverConnectInfo
+
+    ; ANSI ODBC 3.x API
+    SQLAllocHandle
+    SQLBindCol
+    SQLBindParameter
+    SQLBrowseConnect
+    SQLBulkOperations
+    SQLCancel
+    SQLCancelHandle
+    SQLCloseCursor
+    SQLColAttribute
+    SQLColumnPrivileges
+    SQLColumns
+    SQLCompleteAsync
+    SQLConnect
+    SQLCopyDesc
+    SQLDescribeCol
+    SQLDescribeParam
+    SQLDisconnect
+    SQLDriverConnect
+    SQLEndTran
+    SQLExecDirect
+    SQLExecute
+    SQLExtendedFetch
+    SQLFetch
+    SQLFetchScroll
+    SQLForeignKeys
+    SQLFreeHandle
+    SQLFreeStmt
+    SQLGetConnectAttr
+    SQLGetCursorName
+    SQLGetData
+    SQLGetDescField
+    SQLGetDescRec
+    SQLGetDiagField
+    SQLGetDiagRec
+    SQLGetEnvAttr
+    SQLGetFunctions
+    SQLGetInfo
+    SQLGetStmtAttr
+    SQLGetTypeInfo
+    SQLMoreResults
+    SQLNativeSql
+    SQLNumParams
+    SQLNumResultCols
+    SQLParamData
+    SQLPrepare
+    SQLPrimaryKeys
+    SQLProcedureColumns
+    SQLProcedures
+    SQLPutData
+    SQLRowCount
+    SQLSetConnectAttr
+    SQLSetCursorName
+    SQLSetDescField
+    SQLSetDescRec
+    SQLSetEnvAttr
+    SQLSetPos
+    SQLSetStmtAttr
+    SQLSpecialColumns
+    SQLStatistics
+    SQLTablePrivileges
+    SQLTables
+
+;   This function is used to cause the Driver Manager to
+;   call functions by number rather than name, which is faster.
+;   The ordinal value of this function must be 199 to have the
+;   Driver Manager do this.  Also, the ordinal values of the
+;   functions must match the value of fFunction in SQLGetFunctions()
+;
+;   EDIT: not relevant for 3.x drivers. Currently, used for testing dynamic loading only.
+
+;   SQLDummyOrdinal      @199
+    SQLDummyOrdinal

@@ -2,6 +2,7 @@
 
 #include "driver/platform/platform.h"
 #include "driver/type_info.h"
+#include "driver/utils/unicode_conv.h"
 
 namespace {
 
@@ -9,8 +10,8 @@ namespace {
         std::string result;
         SQLSMALLINT i = 0;
         SQLINTEGER native = 0;
-        SQLTCHAR state[7] = {};
-        SQLTCHAR text[256] = {};
+        SQLTCHAR state[6] = {};     // Exactly 6 char long buffer to store 5 char long SQLSTATE string plus the terminating null.
+        SQLTCHAR text[10240] = {};  // A reasonably long buffer to store diagnostics messages.
         SQLSMALLINT len = 0;
         SQLRETURN rc = SQL_SUCCESS;
 
@@ -20,9 +21,9 @@ namespace {
                 if (!result.empty())
                     result += '\n';
                 result += std::to_string(i) + ":";
-                result += "[" + std::string((char*)state) + "]";
+                result += "[" + toUTF8(state) + "]";
                 result += "[" + std::to_string(native) + "]";
-                result += std::string((char*)text);
+                result += toUTF8(text);
             }
         } while (rc == SQL_SUCCESS);
 

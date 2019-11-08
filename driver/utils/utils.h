@@ -1,9 +1,10 @@
 #pragma once
 
 #include "driver/platform/platform.h"
-#include "driver/platform/unicode_t.h"
+#include "driver/utils/unicode_conv.h"
 #include "driver/utils/string_ref.h"
 #include "driver/type_info.h"
+#include "driver/exception.h"
 
 #ifndef NDEBUG
 #    if USE_DEBUG_17
@@ -28,6 +29,7 @@
 #include <sstream>
 #include <thread>
 #include <type_traits>
+#include <vector>
 
 #include <cstring>
 
@@ -151,200 +153,148 @@ inline const char * nextKeyValuePair(const char * data, const char * end, String
     return value_end;
 }
 
-#if ODBC_CHAR16
-template <typename SIZE_TYPE = decltype(SQL_NTS)>
-std::string stringFromChar16String(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
-    if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
-        return {};
-
-#if defined(UNICODE)
-    return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(reinterpret_cast<const char16_t *>(data));
-#else
-    return {reinterpret_cast<const char *>(data)};
-#endif
-}
-#endif
-
-template <typename SIZE_TYPE = decltype(SQL_NTS)>
-std::string stringFromSQLTSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
-    if (!data || symbols == 0 || symbols == SQL_NULL_DATA)
-        return {};
-
-#if defined(UNICODE)
-    return MY_UTF_W_CONVERT().to_bytes(reinterpret_cast<const MY_STD_T_CHAR *>(data));
-#else
-    return {reinterpret_cast<const char *>(data)};
-#endif
-}
-
-template <typename SIZE_TYPE = decltype(SQL_NTS)>
-std::string stringFromSQLSymbols(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
-#if ODBC_CHAR16
-    return stringFromChar16String(data, symbols);
-#else
-    return stringFromSQLTSymbols(data, symbols);
-#endif
-}
-
-
-template <typename SIZE_TYPE = decltype(SQL_NTS)>
-std::string stringFromSQLSymbols2(SQLTCHAR * data, SIZE_TYPE symbols = SQL_NTS) {
-#if ODBC_CHAR16
-    return stringFromChar16String(data, symbols);
-#else
-    return stringFromSQLSymbols(data, symbols);
-#endif
-}
-
-template <typename SIZE_TYPE = decltype(SQL_NTS)>
-std::string stringFromSQLBytes(SQLTCHAR * data, SIZE_TYPE size = SQL_NTS) {
-    if (!data || size == 0)
-        return {};
-    // Count of symblols in the string
-    size_t symbols = 0;
-    if (size == SQL_IS_POINTER || size == SQL_IS_UINTEGER || size == SQL_IS_INTEGER || size == SQL_IS_USMALLINT
-        || size == SQL_IS_SMALLINT) {
-        throw std::runtime_error("SQL data is not a string");
-    } else if (size < 0) {
-        return {reinterpret_cast<const char *>(data), (size_t)SQL_LEN_BINARY_ATTR(size)};
-    } else {
-        symbols = static_cast<size_t>(size) / sizeof(SQLTCHAR);
-    }
-
-    return stringFromSQLSymbols(data, symbols);
-}
-
-inline std::string stringFromMYTCHAR(MYTCHAR * data) {
-    return stringFromSQLTSymbols(reinterpret_cast<SQLTCHAR *>(data));
-}
-
-/*
-inline std::string stringFromTCHAR(SQLTCHAR * data) {
-    return stringFromSQLSymbols(data);
-}
-*/
-
-template <size_t Len, typename STRING>
-void stringToTCHAR(const std::string & data, STRING (&result)[Len]) {
-#if defined(UNICODE)
-    using CharType = MY_STD_T_CHAR;
-    using StringType = MY_STD_T_STRING;
-
-    StringType tmp = MY_UTF_W_CONVERT().from_bytes(data);
-#else
-    const auto & tmp = data;
-#endif
-
-    const size_t len = std::min<size_t>(Len - 1, data.size());
-
-#if defined(UNICODE)
-#    if ODBC_WCHAR
-    wcsncpy(reinterpret_cast<CharType *>(result), tmp.c_str(), len);
-#    else
-    memcpy(reinterpret_cast<char *>(result), reinterpret_cast<const char *>(tmp.c_str()), len * sizeof(CharType));
-#    endif
-#else
-    strncpy(reinterpret_cast<char *>(result), tmp.c_str(), len);
-#endif
-    result[len] = 0;
-}
-
-template <typename STRING, typename PTR, typename LENGTH>
-SQLRETURN fillOutputStringImpl(
-    const STRING & value, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes) {
-    using CharType = typename STRING::value_type;
-    LENGTH symbols = static_cast<LENGTH>(value.size());
-
-    if (out_value_length) {
-        if (length_in_bytes)
-            *out_value_length = symbols * sizeof(CharType);
-        else
-            *out_value_length = symbols;
-    }
-
-    if (out_value_max_length < 0)
+// Directly write raw bytes to the buffer.
+template <typename LengthType1, typename LengthType2, typename LengthType3>
+inline SQLRETURN fillOutputBuffer(
+    const void * in_value,
+    LengthType1 in_value_length,
+    void * out_value,
+    LengthType2 out_value_max_length,
+    LengthType3 * out_value_length
+) {
+    if (in_value_length < 0 || (in_value_length > 0 && !in_value))
         return SQL_ERROR;
 
-    if (out_value) {
-        size_t max_length_in_bytes;
+    if (out_value_length)
+        *out_value_length = in_value_length;
 
-        if (length_in_bytes)
-            max_length_in_bytes = out_value_max_length;
-        else
-            max_length_in_bytes = out_value_max_length * sizeof(CharType);
+    if (!out_value || in_value_length == 0)
+        return SQL_SUCCESS;
 
-        if (max_length_in_bytes >= (symbols + 1) * sizeof(CharType)) {
-            memcpy(out_value, value.c_str(), (symbols + 1) * sizeof(CharType));
-        } else {
-            if (max_length_in_bytes >= sizeof(CharType)) {
-                memcpy(out_value, value.data(), max_length_in_bytes - sizeof(CharType));
-                reinterpret_cast<CharType *>(out_value)[(max_length_in_bytes / sizeof(CharType)) - 1] = 0;
-            }
-            return SQL_SUCCESS_WITH_INFO;
+    if (out_value_max_length < 0)
+        throw SqlException("Invalid string or buffer length", "HY090");
+
+    if (out_value_max_length == 0)
+        out_value_max_length = in_value_length;
+
+    const auto bytes_to_copy = std::min<std::int64_t>(in_value_length, out_value_max_length);
+    std::memcpy(out_value, in_value, bytes_to_copy);
+
+    return (bytes_to_copy > out_value_max_length ? SQL_SUCCESS_WITH_INFO : SQL_SUCCESS);
+}
+
+// Change encoding, when appropriate, and write the result to the buffer.
+// Extra string copy happens here for wide char strings, and strings that require encoding change.
+template <typename CharType, typename LengthType1, typename LengthType2>
+inline SQLRETURN fillOutputString(
+    const std::string & in_value,
+    void * out_value,
+    LengthType1 out_value_max_length,
+    LengthType2 * out_value_length,
+    bool in_length_in_bytes,
+    bool out_length_in_bytes,
+    bool ensure_nts
+) {
+    if (in_length_in_bytes && out_value && (out_value_max_length % sizeof(CharType)) != 0)
+        throw SqlException("Invalid string or buffer length", "HY090");
+
+    if (out_value && out_value_max_length <= 0)
+        throw SqlException("Invalid string or buffer length", "HY090");
+
+    decltype(auto) converted = fromUTF8<CharType>(in_value);
+
+    const auto converted_length_in_symbols = converted.size();
+    const auto converted_length_in_bytes = converted_length_in_symbols * sizeof(CharType);
+    const auto out_value_max_length_in_symbols = (in_length_in_bytes ? out_value_max_length / sizeof(CharType) : out_value_max_length);
+    const auto out_value_max_length_in_bytes = (in_length_in_bytes ? out_value_max_length : out_value_max_length * sizeof(CharType));
+
+    auto rc = fillOutputBuffer(
+        converted.data(),
+        converted_length_in_bytes,
+        out_value,
+        out_value_max_length_in_bytes,
+        out_value_length
+    );
+
+    if (!out_length_in_bytes && out_value_length)
+        *out_value_length /= sizeof(CharType);
+
+    if (ensure_nts && SQL_SUCCEEDED(rc)) {
+        if ((converted_length_in_symbols + 1) >= out_value_max_length_in_symbols) {
+            if (out_value)
+                reinterpret_cast<CharType *>(out_value)[out_value_max_length_in_symbols] = 0;
+            rc = SQL_SUCCESS_WITH_INFO;
+        }
+        else {
+            if (out_value)
+                reinterpret_cast<CharType *>(out_value)[converted_length_in_symbols] = 0;
         }
     }
 
-    return SQL_SUCCESS;
+    return rc;
 }
 
-template <typename PTR, typename LENGTH>
-SQLRETURN fillOutputRawString(const std::string & value, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length) {
-    return fillOutputStringImpl(value, out_value, out_value_max_length, out_value_length, true);
-}
-
-template <typename PTR, typename LENGTH>
-SQLRETURN fillOutputUSC2String(
-    const std::string & value, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true) {
-    using CharType = MY_STD_W_CHAR;
-
-    return fillOutputStringImpl(
-#if ODBC_CHAR16
-        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().from_bytes(value),
-#else
-        std::wstring_convert<std::codecvt_utf8<CharType>, CharType>().from_bytes(value),
-#endif
+template <typename CharType, typename LengthType1, typename LengthType2>
+inline SQLRETURN fillOutputString(
+    const std::string & in_value,
+    void * out_value,
+    LengthType1 out_value_max_length,
+    LengthType2 * out_value_length,
+    bool length_in_bytes
+) {
+    return fillOutputString<CharType>(
+        in_value,
         out_value,
         out_value_max_length,
         out_value_length,
-        length_in_bytes);
+        length_in_bytes,
+        length_in_bytes,
+        true
+    );
 }
 
-template <typename PTR, typename LENGTH>
-SQLRETURN fillOutputPlatformString(
-    const std::string & value, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length, bool length_in_bytes = true) {
-#if defined(UNICODE)
-    return fillOutputUSC2String(value, out_value, out_value_max_length, out_value_length, length_in_bytes);
-#else
-    return fillOutputRawString(value, out_value, out_value_max_length, out_value_length);
-#endif
+// ObjectType, that is a pointer type, is treated as an integer, the value of that pointer.
+template <typename ObjectType, typename LengthType1, typename LengthType2>
+inline SQLRETURN fillOutputPOD(
+    const ObjectType & obj,
+    void * out_value,
+    LengthType1 out_value_max_length,
+    LengthType2 * out_value_length
+) {
+    return fillOutputBuffer(
+        &obj,
+        sizeof(obj),
+        out_value,
+        out_value_max_length,
+        out_value_length
+    );
 }
 
-
-template <typename NUM, typename PTR, typename LENGTH>
-SQLRETURN fillOutputNumber(NUM num, PTR out_value, LENGTH out_value_max_length, LENGTH * out_value_length) {
-    if (out_value_length)
-        *out_value_length = sizeof(num);
-
-    if (out_value_max_length < 0)
-        return SQL_ERROR;
-
-    SQLRETURN res = SQL_SUCCESS;
-
-    if (out_value) {
-        if (out_value_max_length == 0 || out_value_max_length >= static_cast<LENGTH>(sizeof(num))) {
-            memcpy(out_value, &num, sizeof(num));
-        } else {
-            memcpy(out_value, &num, out_value_max_length);
-            res = SQL_SUCCESS_WITH_INFO;
-        }
-    }
-
-    return res;
+template <typename ObjectType, typename LengthType1>
+inline SQLRETURN fillOutputPOD(
+    const ObjectType & obj,
+    void * out_value,
+    LengthType1 * out_value_length
+) {
+    return fillOutputPOD(
+        obj,
+        out_value,
+        sizeof(obj),
+        out_value_length
+    );
 }
 
-inline SQLRETURN fillOutputNULL(PTR out_value, SQLLEN out_value_max_length, SQLLEN * out_value_length) {
+template <typename LengthType1, typename LengthType2>
+inline SQLRETURN fillOutputNULL(
+    void * out_value,
+    LengthType1 out_value_max_length,
+    LengthType2 * out_value_length
+) {
     if (out_value_length)
         *out_value_length = SQL_NULL_DATA;
+    else
+        throw SqlException("Indicator variable required but not supplied", "22002");
+
     return SQL_SUCCESS;
 }
 
@@ -361,5 +311,5 @@ inline SQLRETURN fillOutputNULL(PTR out_value, SQLLEN out_value_max_length, SQLL
         if (!name)                                                                                   \
             name = #NAME;                                                                            \
         LOG("GetInfo " << name << ", type: " << #TYPE << ", value: " << #VALUE << " = " << (VALUE)); \
-        return fillOutputNumber<TYPE>(VALUE, out_value,                                              \
+        return fillOutputPOD<TYPE>(VALUE, out_value,                                                 \
             std::decay<decltype(*out_value_length)>::type{0}/* out_value_max_length */, out_value_length);

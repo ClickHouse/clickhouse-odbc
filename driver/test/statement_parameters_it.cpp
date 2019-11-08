@@ -16,7 +16,10 @@ class StatementParametersTest
 };
 
 TEST_F(StatementParametersTest, BindingMissing) {
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT isNull(?)", SQL_NTS));
+    const auto query = fromUTF8<SQLTCHAR>("SELECT isNull(?)");
+    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
     SQLRETURN rc = SQLFetch(hstmt);
 
@@ -50,10 +53,13 @@ TEST_F(StatementParametersTest, BindingMissing) {
 }
 
 TEST_F(StatementParametersTest, BindingNoBuffer) {
+    const auto query = fromUTF8<SQLTCHAR>("SELECT isNull(?)");
+    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
     SQLINTEGER param = 0;
     SQLLEN param_ind = 0;
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT isNull(?)", SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt,
         SQLBindParameter(
             hstmt,
@@ -101,27 +107,46 @@ TEST_F(StatementParametersTest, BindingNoBuffer) {
 }
 
 TEST_F(StatementParametersTest, BindingNullStringValueForInteger) {
-    SQLCHAR param[16] = {};
+    const auto query = fromUTF8<SQLTCHAR>("SELECT isNull(?)");
+    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+#if defined(_IODBCUNIX_H)
+    // iODBC workaround: disable potential use of SQLWCHAR in this test case,
+    // since iODBC, for reasons unknown, changes the 4th argument of SQLBindParameter()
+    // from SQL_C_WCHAR to SQL_C_CHAR, if this client is Unicode and the driver pointed by DSN is ANSI,
+    // but does not convert the actual buffer (naturally). This makes the driver unable to interpret the buffer correctly.
+    // TODO: eventually review and fix or report a defect on iODBC, if it doesn't have any reasonable explanation.
+#    define SQLmyTCHAR SQLCHAR
+#    define SQL_C_myTCHAR SQL_C_CHAR
+#else
+#    define SQLmyTCHAR SQLTCHAR
+#    define SQL_C_myTCHAR SQL_C_TCHAR
+#endif
+
+    std::basic_string<SQLmyTCHAR> param;
     SQLLEN param_ind = 0;
 
-    char * param_ptr = reinterpret_cast<char *>(param);
-    std::strncpy(param_ptr, "Null", lengthof(param));
+    fromUTF8<SQLmyTCHAR>("Null", param);
+    auto * param_wptr = const_cast<SQLmyTCHAR *>(param.c_str());
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT isNull(?)", SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt,
         SQLBindParameter(
             hstmt,
             1,
             SQL_PARAM_INPUT,
-            SQL_C_CHAR,
+            SQL_C_myTCHAR,
             SQL_INTEGER,
-            std::strlen(param_ptr),
+            param.size(),
             0,
-            param_ptr,
-            lengthof(param),
+            param_wptr,
+            param.size() * sizeof(SQLTCHAR),
             &param_ind
         )
     );
+
+#undef SQLmyTCHAR
+#undef SQL_C_myTCHAR
 
     // TODO: Workaround for workaround for https://github.com/ClickHouse/ClickHouse/issues/7488 . Remove when sorted-out.
     // Strictly speaking, this is not allowed, and parameters must always be nullable.
@@ -162,27 +187,46 @@ TEST_F(StatementParametersTest, BindingNullStringValueForInteger) {
 }
 
 TEST_F(StatementParametersTest, BindingNullStringValueForString) {
-    SQLCHAR param[16] = {};
+    const auto query = fromUTF8<SQLTCHAR>("SELECT isNull(?)");
+    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+#if defined(_IODBCUNIX_H)
+    // iODBC workaround: disable potential use of SQLWCHAR in this test case,
+    // since iODBC, for reasons unknown, changes the 4th argument of SQLBindParameter()
+    // from SQL_C_WCHAR to SQL_C_CHAR, if this client is Unicode and the driver pointed by DSN is ANSI,
+    // but does not convert the actual buffer (naturally). This makes the driver unable to interpret the buffer correctly.
+    // TODO: eventually review and fix or report a defect on iODBC, if it doesn't have any reasonable explanation.
+#    define SQLmyTCHAR SQLCHAR
+#    define SQL_C_myTCHAR SQL_C_CHAR
+#else
+#    define SQLmyTCHAR SQLTCHAR
+#    define SQL_C_myTCHAR SQL_C_TCHAR
+#endif
+
+    std::basic_string<SQLmyTCHAR> param;
     SQLLEN param_ind = 0;
 
-    char * param_ptr = reinterpret_cast<char *>(param);
-    std::strncpy(param_ptr, "Null", lengthof(param));
+    fromUTF8<SQLmyTCHAR>("Null", param);
+    auto * param_wptr = const_cast<SQLmyTCHAR *>(param.c_str());
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT isNull(?)", SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt,
         SQLBindParameter(
             hstmt,
             1,
             SQL_PARAM_INPUT,
-            SQL_C_CHAR,
+            SQL_C_myTCHAR,
             SQL_CHAR,
-            std::strlen(param_ptr),
+            param.size(),
             0,
-            param_ptr,
-            lengthof(param),
+            param_wptr,
+            param.size() * sizeof(SQLTCHAR),
             &param_ind
         )
     );
+
+#undef SQLmyTCHAR
+#undef SQL_C_myTCHAR
 
     // TODO: Workaround for workaround for https://github.com/ClickHouse/ClickHouse/issues/7488 . Remove when sorted-out.
     // Strictly speaking, this is not allowed, and parameters must always be nullable.
@@ -232,6 +276,9 @@ protected:
     }
 
     inline auto execute_with_decimal_as_string(const std::string & initial_str, const std::string & expected_str, bool case_sensitive = true) {
+        const auto query = fromUTF8<SQLTCHAR>("SELECT ?");
+        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
         SQLCHAR param[256] = {};
         SQLLEN param_ind = 0;
 
@@ -241,7 +288,7 @@ protected:
         // We need this to autodetect actual precision and scale of the value in initial_str.
         auto param_typed = value_manip::to<SQL_NUMERIC_STRUCT>::template from<std::string>(initial_str);
 
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT ?", SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
         ODBC_CALL_ON_STMT_THROW(hstmt,
             SQLBindParameter(
                 hstmt,
@@ -318,10 +365,13 @@ private:
             !std::is_same<T, SQL_NUMERIC_STRUCT>::value
         >::type * = nullptr // T is a struct (except SQL_NUMERIC_STRUCT) or scalar type
     ) {
+        const auto query = fromUTF8<SQLTCHAR>("SELECT ?");
+        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
         auto param = value_manip::to<T>::template from<std::string>(initial_str);
         SQLLEN param_ind = 0;
 
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT ?", SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
         ODBC_CALL_ON_STMT_THROW(hstmt,
             SQLBindParameter(
                 hstmt,
@@ -381,10 +431,13 @@ private:
             std::is_same<T, SQL_NUMERIC_STRUCT>::value
         >::type * = nullptr // T is SQL_NUMERIC_STRUCT
     ) {
+        const auto query = fromUTF8<SQLTCHAR>("SELECT ?");
+        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
         auto param = value_manip::to<T>::template from<std::string>(initial_str);
         SQLLEN param_ind = 0;
 
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) "SELECT ?", SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
         ODBC_CALL_ON_STMT_THROW(hstmt,
             SQLBindParameter(
                 hstmt,
@@ -536,7 +589,7 @@ INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripNumericAsymmetri
 );
 
 
-using ParameterColumnRoundTripDecimalAsStringSymmetric  = ParameterColumnRoundTripSymmetric<SQLCHAR>;
+using ParameterColumnRoundTripDecimalAsStringSymmetric  = ParameterColumnRoundTripSymmetric<void>;
 
 TEST_P(ParameterColumnRoundTripDecimalAsStringSymmetric, Execute) {
     execute_with_decimal_as_string(GetParam(), GetParam());

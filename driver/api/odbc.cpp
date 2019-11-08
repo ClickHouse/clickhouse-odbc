@@ -39,7 +39,7 @@ SQLRETURN GetDiagRec(
     SQLSMALLINT record_number,
     SQLTCHAR * out_sqlstate,
     SQLINTEGER * out_native_error_code,
-    SQLTCHAR * out_mesage,
+    SQLTCHAR * out_message,
     SQLSMALLINT out_message_max_size,
     SQLSMALLINT * out_message_size
 ) noexcept {
@@ -52,18 +52,17 @@ SQLRETURN GetDiagRec(
 
         const auto & record = object.getDiagStatus(record_number);
 
-        /// The five-letter SQLSTATE and the trailing zero.
         if (out_sqlstate) {
             std::size_t size = 6;
             std::size_t written = 0;
-            fillOutputPlatformString(record.template getAttrAs<std::string>(SQL_DIAG_SQLSTATE), out_sqlstate, size, &written, true);
+            fillOutputString<SQLTCHAR>(record.template getAttrAs<std::string>(SQL_DIAG_SQLSTATE), out_sqlstate, size, &written, false);
         }
 
         if (out_native_error_code != nullptr) {
             *out_native_error_code = record.template getAttrAs<SQLINTEGER>(SQL_DIAG_NATIVE);
         }
 
-        return fillOutputPlatformString(record.template getAttrAs<std::string>(SQL_DIAG_MESSAGE_TEXT), out_mesage, out_message_max_size, out_message_size, true);
+        return fillOutputString<SQLTCHAR>(record.template getAttrAs<std::string>(SQL_DIAG_MESSAGE_TEXT), out_message, out_message_max_size, out_message_size, false);
     };
 
     return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, func);
@@ -74,7 +73,7 @@ SQLRETURN GetDiagField(
     SQLHANDLE handle,
     SQLSMALLINT record_number,
     SQLSMALLINT field_id,
-    SQLPOINTER out_mesage,
+    SQLPOINTER out_message,
     SQLSMALLINT out_message_max_size,
     SQLSMALLINT * out_message_size
 ) noexcept {
@@ -114,11 +113,11 @@ SQLRETURN GetDiagField(
 
 #define CASE_ATTR_NUM(NAME, TYPE) \
     case NAME: \
-        return fillOutputNumber(record.template getAttrAs<TYPE>(NAME), out_mesage, SQLSMALLINT{0}/* out_value_max_length */, out_message_size);
+        return fillOutputPOD(record.template getAttrAs<TYPE>(NAME), out_message, out_message_size);
 
 #define CASE_ATTR_STR(NAME) \
     case NAME: \
-        return fillOutputPlatformString(record.template getAttrAs<std::string>(NAME), out_mesage, out_message_max_size, out_message_size);
+        return fillOutputString<SQLTCHAR>(record.template getAttrAs<std::string>(NAME), out_message, out_message_max_size, out_message_size, true);
 
             CASE_ATTR_NUM(SQL_DIAG_CURSOR_ROW_COUNT, SQLLEN);
             CASE_ATTR_STR(SQL_DIAG_DYNAMIC_FUNCTION);
@@ -182,8 +181,11 @@ SQLRETURN BindParameter(
 
             switch (parameter_type) {
                 case SQL_CHAR:
+                case SQL_WCHAR:
                 case SQL_VARCHAR:
+                case SQL_WVARCHAR:
                 case SQL_LONGVARCHAR:
+                case SQL_WLONGVARCHAR:
                 case SQL_BINARY:
                 case SQL_VARBINARY:
                 case SQL_LONGVARBINARY:
@@ -310,10 +312,10 @@ SQLRETURN GetDescField(
         switch (FieldIdentifier) {
 
 #define CASE_FIELD_NUM(NAME, TYPE) \
-            case NAME: return fillOutputNumber<TYPE>(descriptor.getAttrAs<TYPE>(NAME), ValuePtr, SQLINTEGER{0}, StringLengthPtr);
+            case NAME: return fillOutputPOD<TYPE>(descriptor.getAttrAs<TYPE>(NAME), ValuePtr, StringLengthPtr);
 
 #define CASE_FIELD_NUM_DEF(NAME, TYPE, DEFAULT) \
-            case NAME: return fillOutputNumber<TYPE>(descriptor.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, SQLINTEGER{0}, StringLengthPtr);
+            case NAME: return fillOutputPOD<TYPE>(descriptor.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, StringLengthPtr);
 
             CASE_FIELD_NUM     ( SQL_DESC_ALLOC_TYPE,         SQLSMALLINT                       );
             CASE_FIELD_NUM_DEF ( SQL_DESC_ARRAY_SIZE,         SQLULEN,       1                  );
@@ -339,13 +341,13 @@ SQLRETURN GetDescField(
         switch (FieldIdentifier) {
 
 #define CASE_FIELD_NUM(NAME, TYPE) \
-            case NAME: return fillOutputNumber<TYPE>(record.getAttrAs<TYPE>(NAME), ValuePtr, SQLINTEGER{0}, StringLengthPtr);
+            case NAME: return fillOutputPOD<TYPE>(record.getAttrAs<TYPE>(NAME), ValuePtr, StringLengthPtr);
 
 #define CASE_FIELD_NUM_DEF(NAME, TYPE, DEFAULT) \
-            case NAME: return fillOutputNumber<TYPE>(record.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, SQLINTEGER{0}, StringLengthPtr);
+            case NAME: return fillOutputPOD<TYPE>(record.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, StringLengthPtr);
 
 #define CASE_FIELD_STR(NAME) \
-            case NAME: return fillOutputPlatformString(record.getAttrAs<std::string>(NAME), ValuePtr, BufferLength, StringLengthPtr);
+            case NAME: return fillOutputString<SQLTCHAR>(record.getAttrAs<std::string>(NAME), ValuePtr, BufferLength, StringLengthPtr, true);
 
             CASE_FIELD_NUM     ( SQL_DESC_AUTO_UNIQUE_VALUE,           SQLINTEGER                              );
             CASE_FIELD_STR     ( SQL_DESC_BASE_COLUMN_NAME                                                     );
@@ -437,7 +439,7 @@ SQLRETURN GetDescRec(
         if (NullablePtr && record.hasAttrInteger(SQL_DESC_NULLABLE))
             *NullablePtr = record.getAttrAs<SQLSMALLINT>(SQL_DESC_NULLABLE);
 
-        return fillOutputPlatformString(record.getAttrAs<std::string>(SQL_DESC_NAME), Name, BufferLength, StringLengthPtr);
+        return fillOutputString<SQLTCHAR>(record.getAttrAs<std::string>(SQL_DESC_NAME), Name, BufferLength, StringLengthPtr, false);
     };
 
     return CALL_WITH_HANDLE(DescriptorHandle, func);
@@ -677,49 +679,51 @@ SQLRETURN GetData(
             return fillOutputNULL(out_value, out_value_max_size, out_value_size_or_indicator);
 
         switch (target_type) {
-            case SQL_C_CHAR:
             case SQL_C_BINARY:
-                return fillOutputRawString(field.data, out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputBuffer(field.data.data(), field.data.size(), out_value, out_value_max_size, out_value_size_or_indicator);
+
+            case SQL_C_CHAR:
+                return fillOutputString<SQLCHAR>(field.data, out_value, out_value_max_size, out_value_size_or_indicator, true);
 
             case SQL_C_WCHAR:
-                return fillOutputUSC2String(field.data, out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputString<SQLWCHAR>(field.data, out_value, out_value_max_size, out_value_size_or_indicator, true);
 
             case SQL_C_TINYINT:
             case SQL_C_STINYINT:
-                return fillOutputNumber<SQLSCHAR>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQLSCHAR>(field.getInt(), out_value, out_value_size_or_indicator);
 
             case SQL_C_UTINYINT:
             case SQL_C_BIT:
-                return fillOutputNumber<SQLCHAR>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQLCHAR>(field.getUInt(), out_value, out_value_size_or_indicator);
 
             case SQL_C_SHORT:
             case SQL_C_SSHORT:
-                return fillOutputNumber<SQLSMALLINT>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQLSMALLINT>(field.getInt(), out_value, out_value_size_or_indicator);
 
             case SQL_C_USHORT:
-                return fillOutputNumber<SQLUSMALLINT>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQLUSMALLINT>(field.getUInt(), out_value, out_value_size_or_indicator);
 
             case SQL_C_LONG:
             case SQL_C_SLONG:
-                return fillOutputNumber<SQLINTEGER>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQLINTEGER>(field.getInt(), out_value, out_value_size_or_indicator);
 
             case SQL_C_ULONG:
-                return fillOutputNumber<SQLUINTEGER>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQLUINTEGER>(field.getUInt(), out_value, out_value_size_or_indicator);
 
             case SQL_C_SBIGINT:
-                return fillOutputNumber<SQLBIGINT>(field.getInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQLBIGINT>(field.getInt(), out_value, out_value_size_or_indicator);
 
             case SQL_C_UBIGINT:
-                return fillOutputNumber<SQLUBIGINT>(field.getUInt(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQLUBIGINT>(field.getUInt(), out_value, out_value_size_or_indicator);
 
             case SQL_C_FLOAT:
-                return fillOutputNumber<SQLREAL>(field.getFloat(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQLREAL>(field.getFloat(), out_value, out_value_size_or_indicator);
 
             case SQL_C_DOUBLE:
-                return fillOutputNumber<SQLDOUBLE>(field.getDouble(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQLDOUBLE>(field.getDouble(), out_value, out_value_size_or_indicator);
 
             case SQL_C_GUID:
-                return fillOutputNumber<SQLGUID>(field.getGUID(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQLGUID>(field.getGUID(), out_value, out_value_size_or_indicator);
 
             case SQL_C_NUMERIC: {
                 auto & desc = statement.getEffectiveDescriptor(desc_type);
@@ -728,20 +732,20 @@ SQLRETURN GetData(
                 const std::int16_t precision = record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION, 38);
                 const std::int16_t scale = record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
 
-                return fillOutputNumber<SQL_NUMERIC_STRUCT>(field.getNumeric(precision, scale), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQL_NUMERIC_STRUCT>(field.getNumeric(precision, scale), out_value, out_value_size_or_indicator);
             }
 
             case SQL_C_DATE:
             case SQL_C_TYPE_DATE:
-                return fillOutputNumber<SQL_DATE_STRUCT>(field.getDate(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQL_DATE_STRUCT>(field.getDate(), out_value, out_value_size_or_indicator);
 
 //          case SQL_C_TIME:
 //          case SQL_C_TYPE_TIME:
-//              return fillOutputNumber<SQL_TIME_STRUCT>(field.getTime(), out_value, out_value_max_size, out_value_size_or_indicator);
+//              return fillOutputPOD<SQL_TIME_STRUCT>(field.getTime(), out_value, out_value_size_or_indicator);
 
             case SQL_C_TIMESTAMP:
             case SQL_C_TYPE_TIMESTAMP:
-                return fillOutputNumber<SQL_TIMESTAMP_STRUCT>(field.getDateTime(), out_value, out_value_max_size, out_value_size_or_indicator);
+                return fillOutputPOD<SQL_TIMESTAMP_STRUCT>(field.getDateTime(), out_value, out_value_size_or_indicator);
 
             default:
                 throw SqlException("Restricted data type attribute violation", "07006");
@@ -802,9 +806,9 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
     // LOG(__FUNCTION__ << " dsn_size=" << dsn_size << " dsn=" << dsn << " user_size=" << user_size << " user=" << user << " password_size=" << password_size << " password=" << password);
 
     return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
-        std::string dsn_str = stringFromSQLSymbols(dsn, dsn_size);
-        std::string user_str = stringFromSQLSymbols(user, user_size);
-        std::string password_str = stringFromSQLSymbols(password, password_size);
+        const auto dsn_str = toUTF8(dsn, dsn_size);
+        const auto user_str = toUTF8(user, user_size);
+        const auto password_str = toUTF8(password, password_size);
 
         LOG(__FUNCTION__ << " dsn=" << dsn_str << " user=" << user_str << " pwd=" << password_str);
 
@@ -826,12 +830,11 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_ha
 
     return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
         // if (connection_str_in_size > 0) hexPrint(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(connection_str_in)), static_cast<size_t>(connection_str_in_size)});
-        auto connection_str = stringFromSQLSymbols2(connection_str_in, connection_str_in_size);
+        const auto connection_str = toUTF8(connection_str_in, connection_str_in_size);
         // LOG("connection_str=" << str);
         connection.init(connection_str);
         // Copy complete connection string.
-        fillOutputPlatformString(
-            connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size, false);
+        fillOutputString<SQLTCHAR>(connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size, false);
         return SQL_SUCCESS;
     });
 }
@@ -840,7 +843,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, 
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        const auto query = stringFromSQLSymbols2(statement_text, statement_text_size);
+        const auto query = toUTF8(statement_text, statement_text_size);
         statement.prepareQuery(query);
         return SQL_SUCCESS;
     });
@@ -859,7 +862,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handl
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        const auto query = stringFromSQLSymbols(statement_text, statement_text_size);
+        const auto query = toUTF8(statement_text, statement_text_size);
         statement.executeQuery(query);
         return SQL_SUCCESS;
     });
@@ -888,7 +891,11 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
     SQLPOINTER out_string_value,
     SQLSMALLINT out_string_value_max_size,
     SQLSMALLINT * out_string_value_size,
+#if defined(_win32_) && !defined(_win64_)
+    SQLPOINTER out_num_value
+#else
     SQLLEN * out_num_value
+#endif
 ) {
     LOG(__FUNCTION__ << "(col=" << column_number << ", field=" << field_identifier << ")");
 
@@ -1004,7 +1011,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
 
         LOG(__FUNCTION__ << " num_value=" << num_value << " str_value=" << str_value);
 
-        return fillOutputPlatformString(str_value, out_string_value, out_string_value_max_size, out_string_value_size);
+        return fillOutputString<SQLTCHAR>(str_value, out_string_value, out_string_value_max_size, out_string_value_size, true);
     });
 }
 
@@ -1043,7 +1050,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_hand
         if (out_is_nullable)
             *out_is_nullable = column_info.is_nullable ? SQL_NULLABLE : SQL_NO_NULLS;
 
-        return fillOutputPlatformString(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size, false);
+        return fillOutputString<SQLTCHAR>(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size, false);
     });
 }
 
@@ -1164,7 +1171,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetDiagRec)(
     SQLSMALLINT record_number,
     SQLTCHAR * out_sqlstate,
     SQLINTEGER * out_native_error_code,
-    SQLTCHAR * out_mesage,
+    SQLTCHAR * out_message,
     SQLSMALLINT out_message_max_size,
     SQLSMALLINT * out_message_size
 ) {
@@ -1174,7 +1181,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetDiagRec)(
         record_number,
         out_sqlstate,
         out_native_error_code,
-        out_mesage,
+        out_message,
         out_message_max_size,
         out_message_size
     );
@@ -1185,7 +1192,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetDiagField)(
     SQLHANDLE handle,
     SQLSMALLINT record_number,
     SQLSMALLINT field_id,
-    SQLPOINTER out_mesage,
+    SQLPOINTER out_message,
     SQLSMALLINT out_message_max_size,
     SQLSMALLINT * out_message_size
 ) {
@@ -1194,7 +1201,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetDiagField)(
         handle,
         record_number,
         field_id,
-        out_mesage,
+        out_message,
         out_message_max_size,
         out_message_size
     );
@@ -1213,7 +1220,10 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
 
     // TODO (artpaul) Take statement.getMetatadaId() into account.
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        const std::string catalog = stringFromSQLSymbols(catalog_name, catalog_name_length);
+        const auto catalog = toUTF8(catalog_name, catalog_name_length);
+        const auto schema = toUTF8(schema_name, schema_name_length);
+        const auto table = toUTF8(table_name, table_name_length);
+        const auto ttype = toUTF8(table_type, table_type_length);
 
         std::stringstream query;
 
@@ -1264,13 +1274,13 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
                      " WHERE (1 == 1)";
 
             if (catalog_name && catalog_name_length)
-                query << " AND TABLE_CAT LIKE '" << stringFromSQLSymbols(catalog_name, catalog_name_length) << "'";
+                query << " AND TABLE_CAT LIKE '" << catalog << "'";
             //if (schema_name_length)
-            //    query << " AND TABLE_SCHEM LIKE '" << stringFromSQLSymbols(schema_name, schema_name_length) << "'";
+            //    query << " AND TABLE_SCHEM LIKE '" << schema << "'";
             if (table_name && table_name_length)
-                query << " AND TABLE_NAME LIKE '" << stringFromSQLSymbols(table_name, table_name_length) << "'";
+                query << " AND TABLE_NAME LIKE '" << table << "'";
             //if (table_type_length)
-            //    query << " AND TABLE_TYPE = '" << stringFromSQLSymbols(table_type, table_type_length) << "'";
+            //    query << " AND TABLE_TYPE = '" << ttype << "'";
 
             query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
         }
@@ -1352,22 +1362,22 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
                  " WHERE (1 == 1)";
 
         std::string s;
-        s = stringFromSQLSymbols(catalog_name, catalog_name_length);
+        s = toUTF8(catalog_name, catalog_name_length);
         if (s.length() > 0) {
             query << " AND TABLE_CAT LIKE '" << s << "'";
         } else {
             query << " AND TABLE_CAT = currentDatabase()";
         }
 
-        s = stringFromSQLSymbols(schema_name, schema_name_length);
+        s = toUTF8(schema_name, schema_name_length);
         if (s.length() > 0)
             query << " AND TABLE_SCHEM LIKE '" << s << "'";
 
-        s = stringFromSQLSymbols(table_name, table_name_length);
+        s = toUTF8(table_name, table_name_length);
         if (s.length() > 0)
             query << " AND TABLE_NAME LIKE '" << s << "'";
 
-        s = stringFromSQLSymbols(column_name, column_name_length);
+        s = toUTF8(column_name, column_name_length);
         if (s.length() > 0)
             query << " AND COLUMN_NAME LIKE '" << s << "'";
 
@@ -1486,8 +1496,8 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle
     LOG(__FUNCTION__);
 
     return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
-        std::string query_str = stringFromSQLSymbols(query, query_length);
-        return fillOutputPlatformString(query_str, out_query, out_query_max_length, out_query_length, false);
+        std::string query_str = toUTF8(query, query_length);
+        return fillOutputString<SQLTCHAR>(query_str, out_query, out_query_max_length, out_query_length, false);
     });
 }
 

@@ -62,18 +62,23 @@ private:
 
 TEST_F(PerformanceTest, Basic) {
     const std::size_t total_rows_expected = 1000000;
-    const std::string query = "SELECT CAST('some not very long text', 'String') as col1, CAST('12345', 'Int') as col2, CAST('12.345', 'Float32') as col3, CAST('-123.456789012345678', 'Float64') as col4 FROM numbers(" + std::to_string(total_rows_expected) + ")";
-    std::cout << "Executing query:\n\t" << query << std::endl;
+    const std::string query_orig = "SELECT CAST('some not very long text', 'String') as col1, CAST('12345', 'Int') as col2, CAST('12.345', 'Float32') as col3, CAST('-123.456789012345678', 'Float64') as col4 FROM numbers(" + std::to_string(total_rows_expected) + ")";
+
+    std::cout << "Executing query:\n\t" << query_orig << std::endl;
+
+    const auto query = fromUTF8<SQLTCHAR>(query_orig);
+    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
     const auto start = std::chrono::system_clock::now();
 
     std::size_t total_rows = 0;
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, (SQLTCHAR*) query.c_str(), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
-    
+
     while (true) {
         SQLRETURN rc = SQLFetch(hstmt);
-        
+
         if (rc == SQL_NO_DATA)
             break;
 
@@ -86,7 +91,7 @@ TEST_F(PerformanceTest, Basic) {
         if (!SQL_SUCCEEDED(rc))
             throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
-        SQLCHAR col1[32] = {};
+        SQLTCHAR col1[32] = {};
         SQLLEN col1_ind = 0;
 
         SQLINTEGER col2 = 0;

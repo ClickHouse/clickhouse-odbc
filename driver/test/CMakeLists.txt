@@ -12,7 +12,6 @@ function(declare_odbc_test_targets libname UNICODE)
     target_link_libraries(${libname}-ut
         PRIVATE ${libname}-impl
         PRIVATE gtest-lib
-        PRIVATE Threads::Threads
     )
 
     add_test(NAME ${libname}-ut COMMAND ${libname}-ut)
@@ -28,6 +27,10 @@ function(declare_odbc_test_targets libname UNICODE)
         PRIVATE Threads::Threads
     )
 
+    if (WIN32)
+        target_link_libraries(${libname}-load-ut PUBLIC Iphlpapi)
+    endif ()
+
     target_include_directories(${libname}-load-ut
         PRIVATE ${PROJECT_BINARY_DIR}
         PRIVATE ${PROJECT_SOURCE_DIR}
@@ -35,8 +38,11 @@ function(declare_odbc_test_targets libname UNICODE)
         PRIVATE ${ODBC_INCLUDE_DIRECTORIES}
     )
 
-    if (WIN32)
-        target_link_libraries(${libname}-load-ut PRIVATE Iphlpapi)
+    if (UNICODE)
+        target_compile_definitions(${libname}-load-ut
+            PUBLIC UNICODE
+            PUBLIC _UNICODE
+        )
     endif ()
 
     add_test(NAME "${libname}-load-ut" COMMAND ${libname}-load-ut $<TARGET_FILE:clickhouse-odbc>)
@@ -49,6 +55,7 @@ function(declare_odbc_test_targets libname UNICODE)
         client_utils.h
         client_test_base.h
         ${PROJECT_SOURCE_DIR}/driver/type_info.cpp
+        ${PROJECT_SOURCE_DIR}/driver/utils/unicode_conv.h
         misc_it.cpp
         statement_parameters_it.cpp
         performance_it.cpp
@@ -68,6 +75,13 @@ function(declare_odbc_test_targets libname UNICODE)
         PRIVATE ${Poco_INCLUDE_DIRS}
         PRIVATE ${ODBC_INCLUDE_DIRECTORIES}
     )
+
+    if (UNICODE)
+        target_compile_definitions(${libname}-client-it
+            PUBLIC UNICODE
+            PUBLIC _UNICODE
+        )
+    endif ()
 
     if (TEST_DSN)
         add_test(NAME ${libname}-client-it COMMAND ${libname}-client-it ${TEST_DSN})
@@ -96,6 +110,13 @@ function(declare_odbc_test_targets libname UNICODE)
         target_link_libraries(${libname}-${nanoname}-it
             PRIVATE ${NANOODBC_LIBRARY}
         )
+
+        if (UNICODE)
+            target_compile_definitions(${libname}-${nanoname}-it
+                PUBLIC UNICODE
+                PUBLIC _UNICODE
+            )
+        endif ()
 
         if (TEST_DSN)
             add_test(NAME ${libname}-${nanoname}-it COMMAND ${libname}-${nanoname}-it DSN=${TEST_DSN})
