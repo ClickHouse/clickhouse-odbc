@@ -79,6 +79,8 @@ if (WIN32)
     )
 
     if (NOT "${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
+        # An entry in .def file still must be added for each exported function for 32-bit targets.
+        # See also the definition of 'EXPORTED_FUNCTION' C/C++ macro in the code.
         set (WIN_SOURCES
             ${WIN_SOURCES}
             platform/win/${libname}.def

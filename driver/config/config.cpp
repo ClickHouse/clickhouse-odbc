@@ -19,26 +19,26 @@ void getDSNinfo(ConnInfo * ci, bool overwrite) {
     fromUTF8(ci->dsn, dsn);
     fromUTF8(ODBC_INI, config_file);
 
-#define GET_CONFIG(NAME, INI_NAME, DEFAULT)           \
-    if (ci->NAME.empty() || overwrite) {              \
-        fromUTF8(INI_NAME, name);                     \
-        fromUTF8(DEFAULT, default_value);             \
-        value.clear();                                \
-        value.resize(MAX_DSN_VALUE_LEN);              \
-        const auto read = SQLGetPrivateProfileString( \
-            dsn.c_str(),                              \
-            name.c_str(),                             \
-            default_value.c_str(),                    \
-            ptr_rm_const(value.data()),               \
-            value.size(),                             \
-            config_file.c_str()                       \
-        );                                            \
-        if (read < 0)                                 \
+#define GET_CONFIG(NAME, INI_NAME, DEFAULT)              \
+    if (ci->NAME.empty() || overwrite) {                 \
+        fromUTF8(INI_NAME, name);                        \
+        fromUTF8(DEFAULT, default_value);                \
+        value.clear();                                   \
+        value.resize(MAX_DSN_VALUE_LEN);                 \
+        const auto read = SQLGetPrivateProfileString(    \
+            dsn.c_str(),                                 \
+            name.c_str(),                                \
+            default_value.c_str(),                       \
+            const_cast<CharTypeLPCTSTR *>(value.data()), \
+            value.size(),                                \
+            config_file.c_str()                          \
+        );                                               \
+        if (read < 0)                                    \
             throw std::runtime_error("SQLGetPrivateProfileString failed to extract the value of " INI_NAME);        \
-        if (read > MAX_DSN_VALUE_LEN)                 \
+        if (read > MAX_DSN_VALUE_LEN)                    \
             throw std::runtime_error("SQLGetPrivateProfileString failed to extract the entire value of " INI_NAME); \
-        value.resize(read);                           \
-        ci->NAME = toUTF8(value);                     \
+        value.resize(read);                              \
+        ci->NAME = toUTF8(value);                        \
     }
 
 	GET_CONFIG(desc,            INI_DESC,            INI_DESC_DEFAULT);

@@ -10,8 +10,8 @@ namespace {
         std::string result;
         SQLSMALLINT i = 0;
         SQLINTEGER native = 0;
-        SQLTCHAR state[6] = {};
-        SQLTCHAR text[256] = {};
+        SQLTCHAR state[6] = {};     // Exactly 6 char long buffer to store 5 char long SQLSTATE string plus the terminating null.
+        SQLTCHAR text[10240] = {};  // A reasonably long buffer to store diagnostics messages.
         SQLSMALLINT len = 0;
         SQLRETURN rc = SQL_SUCCESS;
 
