@@ -328,7 +328,7 @@ install: |-
       pip install --user pyodbc
     fi
   elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
-    choco install windows-sdk-10-version-1809-all wixtoolset
+    choco install windows-sdk-10-version-1809-all wixtoolset --confirm --accept-license --execution-timeout=540 --verbose
   fi
 
 .clickhouse_start: &clickhouse_start |-
