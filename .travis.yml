@@ -11,7 +11,7 @@ env:
     - SOURCE_DIR=$TRAVIS_BUILD_DIR
     - BUILD_DIR=$TRAVIS_BUILD_DIR/build
     - RUN_DIR=$TRAVIS_BUILD_DIR/run
-#   - CTEST_EXTRA_FLAGS="${CTEST_EXTRA_FLAGS:--VV}"
+    # - CTEST_EXTRA_FLAGS="${CTEST_EXTRA_FLAGS:--VV}"
 
 matrix:
   include:
@@ -252,6 +252,7 @@ matrix:
         - PACKAGING=yes
         - TESTING=yes
         - STANDALONE_TESTS_ONLY=yes
+        - CMAKE_BUILD_EXTRA_FLAGS="-A x64 $CMAKE_BUILD_EXTRA_FLAGS"
 
     # - name: "macOS 10.14 - iODBC - AppleClang (Xcode 11.2) - RelWithDebInfo"
     #   os: osx
@@ -310,7 +311,7 @@ before_install: |-
   elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     brew update
   elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
-#   choco upgrade
+    # choco upgrade
   fi
 
 install: |-
