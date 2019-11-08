@@ -252,7 +252,6 @@ matrix:
         - PACKAGING=yes
         - TESTING=yes
         - STANDALONE_TESTS_ONLY=yes
-        - 'CMAKE_BUILD_EXTRA_FLAGS="-A x64 $CMAKE_BUILD_EXTRA_FLAGS"'
 
     # - name: "macOS 10.14 - iODBC - AppleClang (Xcode 11.2) - RelWithDebInfo"
     #   os: osx
