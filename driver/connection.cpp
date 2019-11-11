@@ -208,7 +208,7 @@ void Connection::loadConfiguration() {
     if (url.empty())
         url = ci.url;
 
-    if (!port && ci.port[0] != 0) {
+    if (port == 0) {
         if (!ci.port.empty()) {
             int tmp = 0;
             if (!Poco::NumberParser::tryParse(ci.port, tmp))

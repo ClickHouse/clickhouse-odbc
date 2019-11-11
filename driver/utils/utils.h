@@ -205,8 +205,8 @@ inline SQLRETURN fillOutputString(
 
     const auto converted_length_in_symbols = converted.size();
     const auto converted_length_in_bytes = converted_length_in_symbols * sizeof(CharType);
-    const auto out_value_max_length_in_symbols = (in_length_in_bytes ? out_value_max_length / sizeof(CharType) : out_value_max_length);
-    const auto out_value_max_length_in_bytes = (in_length_in_bytes ? out_value_max_length : out_value_max_length * sizeof(CharType));
+    const auto out_value_max_length_in_symbols = (in_length_in_bytes ? (out_value_max_length / sizeof(CharType)) : out_value_max_length);
+    const auto out_value_max_length_in_bytes = (in_length_in_bytes ? out_value_max_length : (out_value_max_length * sizeof(CharType)));
 
     auto rc = fillOutputBuffer(
         converted.data(),
@@ -220,14 +220,14 @@ inline SQLRETURN fillOutputString(
         *out_value_length /= sizeof(CharType);
 
     if (ensure_nts && SQL_SUCCEEDED(rc)) {
-        if ((converted_length_in_symbols + 1) >= out_value_max_length_in_symbols) {
+        if (converted_length_in_symbols < out_value_max_length_in_symbols) {
             if (out_value)
-                reinterpret_cast<CharType *>(out_value)[out_value_max_length_in_symbols] = 0;
-            rc = SQL_SUCCESS_WITH_INFO;
+                reinterpret_cast<CharType *>(out_value)[converted_length_in_symbols] = CharType{};
         }
         else {
             if (out_value)
-                reinterpret_cast<CharType *>(out_value)[converted_length_in_symbols] = 0;
+                reinterpret_cast<CharType *>(out_value)[out_value_max_length_in_symbols - 1] = CharType{};
+            rc = SQL_SUCCESS_WITH_INFO;
         }
     }
 
