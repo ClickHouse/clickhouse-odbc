@@ -123,7 +123,7 @@ url = https://localhost
 #timeout=60
 
 #DriverLog = yes
-#DriverLofFile = /tmp/clickhouse-odbc-driver.log
+#DriverLogFile = /tmp/clickhouse-odbc-driver.log
 ```
 
 Sometimes you should change ~/.odbcinst.ini or /etc/odbcinst.ini or /Library/ODBC/odbcinst.ini :
