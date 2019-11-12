@@ -929,25 +929,41 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
             CASE_FIELD_NUM(SQL_DESC_CASE_SENSITIVE, SQL_TRUE);
             CASE_FIELD_STR(SQL_DESC_CATALOG_NAME, "");
             CASE_FIELD_NUM(SQL_DESC_CONCISE_TYPE, type_info.sql_type);
+
+            case SQL_COLUMN_COUNT: /* fallthrough */
             CASE_FIELD_NUM(SQL_DESC_COUNT, statement.getNumColumns());
+
             CASE_FIELD_NUM(SQL_DESC_DISPLAY_SIZE, column_info.display_size);
             CASE_FIELD_NUM(SQL_DESC_FIXED_PREC_SCALE, SQL_FALSE);
             CASE_FIELD_STR(SQL_DESC_LABEL, column_info.name);
+
+            case SQL_COLUMN_LENGTH: /* fallthrough */ // TODO: alight with ODBCv2 semantics!
             CASE_FIELD_NUM(SQL_DESC_LENGTH, (!type_info.isBufferType() ? 0 :
                 std::min<int32_t>(statement.getParent().stringmaxlength, (column_info.fixed_size ? column_info.fixed_size : column_info.display_size))
             ));
+
             CASE_FIELD_STR(SQL_DESC_LITERAL_PREFIX, "");
             CASE_FIELD_STR(SQL_DESC_LITERAL_SUFFIX, "");
             CASE_FIELD_STR(SQL_DESC_LOCAL_TYPE_NAME, "");
+
+            case SQL_COLUMN_NAME: /* fallthrough */
             CASE_FIELD_STR(SQL_DESC_NAME, column_info.name);
+
+            case SQL_COLUMN_NULLABLE: /* fallthrough */
             CASE_FIELD_NUM(SQL_DESC_NULLABLE, (column_info.is_nullable ? SQL_NULLABLE : SQL_NO_NULLS));
+
             CASE_FIELD_NUM(SQL_DESC_NUM_PREC_RADIX, (type_info.isIntegerType() ? 10 : 0));
             CASE_FIELD_NUM(SQL_DESC_OCTET_LENGTH, (!type_info.isBufferType() ? type_info.octet_length :
                 std::min<int32_t>(statement.getParent().stringmaxlength, (column_info.fixed_size ? column_info.fixed_size : column_info.display_size))
                     * (type_info.isWideCharStringType() ? sizeof(SQLWCHAR) : sizeof(SQLCHAR))
             ));
+
+            case SQL_COLUMN_PRECISION: /* fallthrough */ // TODO: alight with ODBCv2 semantics!
             CASE_FIELD_NUM(SQL_DESC_PRECISION, 0);
+
+            case SQL_COLUMN_SCALE: /* fallthrough */ // TODO: alight with ODBCv2 semantics!
             CASE_FIELD_NUM(SQL_DESC_SCALE, 0);
+
             CASE_FIELD_STR(SQL_DESC_SCHEMA_NAME, "");
             CASE_FIELD_NUM(SQL_DESC_SEARCHABLE, SQL_SEARCHABLE);
             CASE_FIELD_STR(SQL_DESC_TABLE_NAME, "");
