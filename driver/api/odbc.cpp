@@ -834,8 +834,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_ha
         // LOG("connection_str=" << str);
         connection.init(connection_str);
         // Copy complete connection string.
-        fillOutputString<SQLTCHAR>(connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size, false);
-        return SQL_SUCCESS;
+        return fillOutputString<SQLTCHAR>(connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size, false);
     });
 }
 

@@ -154,8 +154,10 @@ inline const char * nextKeyValuePair(const char * data, const char * end, String
 }
 
 // Directly write raw bytes to the buffer.
+// On truncation, return SQL_SUCCESS_WITH_INFO.
+// Throw exceptions on other errors.
 template <typename LengthType1, typename LengthType2, typename LengthType3>
-inline SQLRETURN fillOutputBuffer(
+inline SQLRETURN fillOutputBufferInternal(
     const void * in_value,
     LengthType1 in_value_length,
     void * out_value,
@@ -163,7 +165,7 @@ inline SQLRETURN fillOutputBuffer(
     LengthType3 * out_value_length
 ) {
     if (in_value_length < 0 || (in_value_length > 0 && !in_value))
-        return SQL_ERROR;
+        throw SqlException("Invalid string or buffer length", "HY090");
 
     if (out_value_length)
         *out_value_length = in_value_length;
@@ -179,8 +181,35 @@ inline SQLRETURN fillOutputBuffer(
 
     const auto bytes_to_copy = std::min<std::int64_t>(in_value_length, out_value_max_length);
     std::memcpy(out_value, in_value, bytes_to_copy);
+    
+    if (bytes_to_copy > out_value_max_length)
+        return SQL_SUCCESS_WITH_INFO;
 
-    return (bytes_to_copy > out_value_max_length ? SQL_SUCCESS_WITH_INFO : SQL_SUCCESS);
+    return SQL_SUCCESS;
+}
+
+// Directly write raw bytes to the buffer.
+// Throw on all errors, including truncations.
+template <typename LengthType1, typename LengthType2, typename LengthType3>
+inline SQLRETURN fillOutputBuffer(
+    const void * in_value,
+    LengthType1 in_value_length,
+    void * out_value,
+    LengthType2 out_value_max_length,
+    LengthType3 * out_value_length
+) {
+    const auto rc = fillOutputBufferInternal(
+        in_value,
+        in_value_length,
+        out_value,
+        out_value_max_length,
+        out_value_length
+    );
+
+    if (rc == SQL_SUCCESS_WITH_INFO)
+        throw SqlException("String data, right truncated", "01004", rc);
+
+    return rc;
 }
 
 // Change encoding, when appropriate, and write the result to the buffer.
@@ -208,7 +237,7 @@ inline SQLRETURN fillOutputString(
     const auto out_value_max_length_in_symbols = (in_length_in_bytes ? (out_value_max_length / sizeof(CharType)) : out_value_max_length);
     const auto out_value_max_length_in_bytes = (in_length_in_bytes ? out_value_max_length : (out_value_max_length * sizeof(CharType)));
 
-    auto rc = fillOutputBuffer(
+    auto rc = fillOutputBufferInternal(
         converted.data(),
         converted_length_in_bytes,
         out_value,
@@ -230,6 +259,9 @@ inline SQLRETURN fillOutputString(
             rc = SQL_SUCCESS_WITH_INFO;
         }
     }
+
+    if (rc == SQL_SUCCESS_WITH_INFO)
+        throw SqlException("String data, right truncated", "01004", rc);
 
     return rc;
 }
