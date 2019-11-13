@@ -12,6 +12,7 @@ struct TypeAst {
         Number,
         Terminal,
         Tuple,
+        LowCardinality
     };
 
     /// Type's category.

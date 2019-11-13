@@ -26,6 +26,10 @@ static TypeAst::Meta getTypeMeta(const std::string & name) {
         return TypeAst::Tuple;
     }
 
+    if (name == "LowCardinality") {
+        return TypeAst::LowCardinality;
+    }
+
     return TypeAst::Terminal;
 }
 
