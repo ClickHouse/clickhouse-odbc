@@ -1279,7 +1279,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
         ColumnsMutator(Environment * env_) : env(env_) {}
 
         void UpdateColumnInfo(std::vector<ColumnInfo> * columns_info) override {
-            columns_info->at(4).name = "Int16";
+            columns_info->at(4).type = "Int16";
             columns_info->at(4).type_without_parameters = "Int16";
         }
 
