@@ -909,6 +909,20 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
         const auto & column_info = statement.getColumnInfo(column_idx);
         const auto & type_info = statement.getTypeInfo(column_info.type, column_info.type_without_parameters);
 
+        std::int32_t SQL_DESC_LENGTH_value = 0;
+        if (type_info.isBufferType()) {
+            const auto data_size = (column_info.fixed_size ? column_info.fixed_size : column_info.display_size);
+            SQL_DESC_LENGTH_value = std::min<int32_t>(statement.getParent().stringmaxlength, data_size);
+        }
+
+        std::int32_t SQL_DESC_OCTET_LENGTH_value = type_info.octet_length;
+        if (type_info.isBufferType()) {
+            if (type_info.isWideCharStringType())
+                SQL_DESC_OCTET_LENGTH_value = SQL_DESC_LENGTH_value * sizeof(SQLWCHAR);
+            else
+                SQL_DESC_OCTET_LENGTH_value = SQL_DESC_LENGTH_value * sizeof(SQLCHAR);
+        }
+
         switch (field_identifier) {
 
 #define CASE_FIELD_NUM(NAME, VALUE)                                     \
@@ -937,9 +951,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
             CASE_FIELD_STR(SQL_DESC_LABEL, column_info.name);
 
             case SQL_COLUMN_LENGTH: /* fallthrough */ // TODO: alight with ODBCv2 semantics!
-            CASE_FIELD_NUM(SQL_DESC_LENGTH, (!type_info.isBufferType() ? 0 :
-                std::min<int32_t>(statement.getParent().stringmaxlength, (column_info.fixed_size ? column_info.fixed_size : column_info.display_size))
-            ));
+            CASE_FIELD_NUM(SQL_DESC_LENGTH, SQL_DESC_LENGTH_value);
 
             CASE_FIELD_STR(SQL_DESC_LITERAL_PREFIX, "");
             CASE_FIELD_STR(SQL_DESC_LITERAL_SUFFIX, "");
@@ -952,10 +964,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
             CASE_FIELD_NUM(SQL_DESC_NULLABLE, (column_info.is_nullable ? SQL_NULLABLE : SQL_NO_NULLS));
 
             CASE_FIELD_NUM(SQL_DESC_NUM_PREC_RADIX, (type_info.isIntegerType() ? 10 : 0));
-            CASE_FIELD_NUM(SQL_DESC_OCTET_LENGTH, (!type_info.isBufferType() ? type_info.octet_length :
-                std::min<int32_t>(statement.getParent().stringmaxlength, (column_info.fixed_size ? column_info.fixed_size : column_info.display_size))
-                    * (type_info.isWideCharStringType() ? sizeof(SQLWCHAR) : sizeof(SQLCHAR))
-            ));
+            CASE_FIELD_NUM(SQL_DESC_OCTET_LENGTH, SQL_DESC_OCTET_LENGTH_value);
 
             case SQL_COLUMN_PRECISION: /* fallthrough */ // TODO: alight with ODBCv2 semantics!
             CASE_FIELD_NUM(SQL_DESC_PRECISION, 0);
