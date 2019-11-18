@@ -62,7 +62,7 @@ EXPORTS
     SQLGetFunctions
     SQLGetInfoW
     SQLGetStmtAttrW
-    SQLGetTypeInfo
+    SQLGetTypeInfoW
     SQLMoreResults
     SQLNativeSqlW
     SQLNumParams

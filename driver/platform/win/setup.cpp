@@ -258,7 +258,7 @@ inline INT_PTR ConfigDlgProc_(
     {                                                                            \
         value.clear();                                                           \
         value.resize(MAX_DSN_VALUE_LEN);                                         \
-        const auto read = GetDlgItemText(hdlg, ID, value.data(), value.size());  \
+        const auto read = GetDlgItemText(hdlg, ID, const_cast<CharTypeLPCTSTR *>(value.data()), value.size()); \
         value.resize((read <= 0 || read > value.size()) ? 0 : read);             \
         ci.NAME = toUTF8(value);                                                 \
     }
