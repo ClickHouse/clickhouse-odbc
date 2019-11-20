@@ -21,15 +21,20 @@ struct TypeInfo {
 
     static constexpr auto string_max_size = 0xFFFFFF;
 
-    inline bool isIntegerType() const {
+    inline bool isIntegerType() const noexcept {
         return sql_type == SQL_TINYINT || sql_type == SQL_SMALLINT || sql_type == SQL_INTEGER || sql_type == SQL_BIGINT;
     }
 
-    inline bool isStringType() const {
+    inline bool isBufferType() const noexcept {
         return
             sql_type == SQL_CHAR || sql_type == SQL_VARCHAR || sql_type == SQL_LONGVARCHAR ||
-            sql_type == SQL_WCHAR || sql_type == SQL_WVARCHAR || sql_type == SQL_WLONGVARCHAR
+            sql_type == SQL_WCHAR || sql_type == SQL_WVARCHAR || sql_type == SQL_WLONGVARCHAR ||
+            sql_type == SQL_BINARY || sql_type == SQL_VARBINARY || sql_type == SQL_LONGVARBINARY
         ;
+    }
+
+    inline bool isWideCharStringType() const noexcept {
+        return sql_type == SQL_WCHAR || sql_type == SQL_WVARCHAR || sql_type == SQL_WLONGVARCHAR;
     }
 };
 

@@ -60,8 +60,7 @@ SQLRETURN GetEnvAttr(
 
         switch (attribute) {
             case SQL_ATTR_ODBC_VERSION:
-                fillOutputPOD<SQLUINTEGER>(environment.odbc_version, out_value, out_value_length);
-                return SQL_SUCCESS;
+                return fillOutputPOD<SQLUINTEGER>(environment.odbc_version, out_value, out_value_length);
 
             case SQL_ATTR_CONNECTION_POOLING:
             case SQL_ATTR_CP_MATCH:

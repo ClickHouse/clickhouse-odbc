@@ -834,8 +834,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_ha
         // LOG("connection_str=" << str);
         connection.init(connection_str);
         // Copy complete connection string.
-        fillOutputString<SQLTCHAR>(connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size, false);
-        return SQL_SUCCESS;
+        return fillOutputString<SQLTCHAR>(connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size, false);
     });
 }
 
@@ -898,8 +897,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
 #endif
 ) {
     LOG(__FUNCTION__ << "(col=" << column_number << ", field=" << field_identifier << ")");
-
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
+    auto func = [&](Statement & statement) -> SQLRETURN {
         if (!statement.hasResultSet())
             throw SqlException("Column info is not available", "07009");
 
@@ -908,111 +906,94 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
                 std::to_string(statement.getNumColumns()), "07009");
 
         const auto column_idx = column_number - 1;
+        const auto & column_info = statement.getColumnInfo(column_idx);
+        const auto & type_info = statement.getTypeInfo(column_info.type, column_info.type_without_parameters);
 
-        SQLLEN num_value = 0;
-        std::string str_value;
-
-        const ColumnInfo & column_info = statement.getColumnInfo(column_idx);
-        const TypeInfo & type_info = statement.getTypeInfo(column_info.type, column_info.type_without_parameters);
-
-        switch (field_identifier) {
-            case SQL_DESC_AUTO_UNIQUE_VALUE:
-                num_value = SQL_FALSE;
-                break;
-            case SQL_DESC_BASE_COLUMN_NAME:
-                str_value = column_info.name;
-                break;
-            case SQL_DESC_BASE_TABLE_NAME:
-                break;
-            case SQL_DESC_CASE_SENSITIVE:
-                num_value = SQL_TRUE;
-                break;
-            case SQL_DESC_CATALOG_NAME:
-                break;
-            case SQL_DESC_CONCISE_TYPE:
-                num_value = type_info.sql_type;
-                break;
-            case SQL_DESC_COUNT:
-                num_value = statement.getNumColumns();
-                break;
-            case SQL_DESC_DISPLAY_SIZE:
-                // TODO (artpaul) https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/display-size
-                num_value = column_info.display_size;
-                break;
-            case SQL_DESC_FIXED_PREC_SCALE:
-                num_value = SQL_FALSE;
-                break;
-            case SQL_DESC_LABEL:
-                str_value = column_info.name;
-                break;
-            case SQL_DESC_LENGTH:
-                if (type_info.isStringType())
-                    num_value = std::min<int32_t>(
-                        statement.getParent().stringmaxlength, column_info.fixed_size ? column_info.fixed_size : column_info.display_size);
-                break;
-            case SQL_DESC_LITERAL_PREFIX:
-                break;
-            case SQL_DESC_LITERAL_SUFFIX:
-                break;
-            case SQL_DESC_LOCAL_TYPE_NAME:
-                break;
-            case SQL_DESC_NAME:
-                str_value = column_info.name;
-                break;
-            case SQL_DESC_NULLABLE:
-                num_value = column_info.is_nullable;
-                break;
-            case SQL_DESC_OCTET_LENGTH:
-                if (type_info.isStringType())
-                    num_value = std::min<int32_t>(statement.getParent().stringmaxlength,
-                                    column_info.fixed_size ? column_info.fixed_size : column_info.display_size)
-                        * SIZEOF_CHAR;
-                else
-                    num_value = type_info.octet_length;
-                break;
-            case SQL_DESC_PRECISION:
-                num_value = 0;
-                break;
-            case SQL_DESC_NUM_PREC_RADIX:
-                if (type_info.isIntegerType())
-                    num_value = 10;
-                break;
-            case SQL_DESC_SCALE:
-                break;
-            case SQL_DESC_SCHEMA_NAME:
-                break;
-            case SQL_DESC_SEARCHABLE:
-                num_value = SQL_SEARCHABLE;
-                break;
-            case SQL_DESC_TABLE_NAME:
-                break;
-            case SQL_DESC_TYPE:
-                num_value = type_info.sql_type;
-                break;
-            case SQL_DESC_TYPE_NAME:
-                str_value = type_info.sql_type_name;
-                break;
-            case SQL_DESC_UNNAMED:
-                num_value = SQL_NAMED;
-                break;
-            case SQL_DESC_UNSIGNED:
-                num_value = type_info.is_unsigned;
-                break;
-            case SQL_DESC_UPDATABLE:
-                num_value = SQL_FALSE;
-                break;
-            default:
-                LOG(__FUNCTION__ << ": Unsupported FieldIdentifier = " + std::to_string(field_identifier));
-                throw SqlException("Unsupported FieldIdentifier = " + std::to_string(field_identifier), "HYC00");
+        std::int32_t SQL_DESC_LENGTH_value = 0;
+        if (type_info.isBufferType()) {
+            const auto data_size = (column_info.fixed_size ? column_info.fixed_size : column_info.display_size);
+            SQL_DESC_LENGTH_value = std::min<int32_t>(statement.getParent().stringmaxlength, data_size);
         }
 
-        if (out_num_value)
-            memcpy(out_num_value, &num_value, sizeof(SQLLEN));
+        std::int32_t SQL_DESC_OCTET_LENGTH_value = type_info.octet_length;
+        if (type_info.isBufferType()) {
+            if (type_info.isWideCharStringType())
+                SQL_DESC_OCTET_LENGTH_value = SQL_DESC_LENGTH_value * sizeof(SQLWCHAR);
+            else
+                SQL_DESC_OCTET_LENGTH_value = SQL_DESC_LENGTH_value * sizeof(SQLCHAR);
+        }
 
-        LOG(__FUNCTION__ << " num_value=" << num_value << " str_value=" << str_value);
+        switch (field_identifier) {
 
-        return fillOutputString<SQLTCHAR>(str_value, out_string_value, out_string_value_max_size, out_string_value_size, true);
-    });
+#define CASE_FIELD_NUM(NAME, VALUE)                                     \
+            case NAME:                                                  \
+                if (out_num_value)                                      \
+                    *reinterpret_cast<SQLLEN *>(out_num_value) = VALUE; \
+                return SQL_SUCCESS;
+
+#define CASE_FIELD_STR(NAME, VALUE) \
+            case NAME: return fillOutputString<SQLTCHAR>(VALUE, out_string_value, out_string_value_max_size, out_string_value_size, true);
+
+            // TODO: Use IRD (the descriptor) when column data representation is migrated there.
+
+            CASE_FIELD_NUM(SQL_DESC_AUTO_UNIQUE_VALUE, SQL_FALSE);
+            CASE_FIELD_STR(SQL_DESC_BASE_COLUMN_NAME, column_info.name);
+            CASE_FIELD_STR(SQL_DESC_BASE_TABLE_NAME, "");
+            CASE_FIELD_NUM(SQL_DESC_CASE_SENSITIVE, SQL_TRUE);
+            CASE_FIELD_STR(SQL_DESC_CATALOG_NAME, "");
+            CASE_FIELD_NUM(SQL_DESC_CONCISE_TYPE, type_info.sql_type);
+
+            case SQL_COLUMN_COUNT: /* fallthrough */
+            CASE_FIELD_NUM(SQL_DESC_COUNT, statement.getNumColumns());
+
+            CASE_FIELD_NUM(SQL_DESC_DISPLAY_SIZE, column_info.display_size);
+            CASE_FIELD_NUM(SQL_DESC_FIXED_PREC_SCALE, SQL_FALSE);
+            CASE_FIELD_STR(SQL_DESC_LABEL, column_info.name);
+
+            case SQL_COLUMN_LENGTH: /* fallthrough */ // TODO: alight with ODBCv2 semantics!
+            CASE_FIELD_NUM(SQL_DESC_LENGTH, SQL_DESC_LENGTH_value);
+
+            CASE_FIELD_STR(SQL_DESC_LITERAL_PREFIX, "");
+            CASE_FIELD_STR(SQL_DESC_LITERAL_SUFFIX, "");
+            CASE_FIELD_STR(SQL_DESC_LOCAL_TYPE_NAME, "");
+
+            case SQL_COLUMN_NAME: /* fallthrough */
+            CASE_FIELD_STR(SQL_DESC_NAME, column_info.name);
+
+            case SQL_COLUMN_NULLABLE: /* fallthrough */
+            CASE_FIELD_NUM(SQL_DESC_NULLABLE, (column_info.is_nullable ? SQL_NULLABLE : SQL_NO_NULLS));
+
+            CASE_FIELD_NUM(SQL_DESC_NUM_PREC_RADIX, (type_info.isIntegerType() ? 10 : 0));
+            CASE_FIELD_NUM(SQL_DESC_OCTET_LENGTH, SQL_DESC_OCTET_LENGTH_value);
+
+            case SQL_COLUMN_PRECISION: /* fallthrough */ // TODO: alight with ODBCv2 semantics!
+            CASE_FIELD_NUM(SQL_DESC_PRECISION, 0);
+
+            case SQL_COLUMN_SCALE: /* fallthrough */ // TODO: alight with ODBCv2 semantics!
+            CASE_FIELD_NUM(SQL_DESC_SCALE, 0);
+
+            CASE_FIELD_STR(SQL_DESC_SCHEMA_NAME, "");
+            CASE_FIELD_NUM(SQL_DESC_SEARCHABLE, SQL_SEARCHABLE);
+            CASE_FIELD_STR(SQL_DESC_TABLE_NAME, "");
+            CASE_FIELD_NUM(SQL_DESC_TYPE, type_info.sql_type);
+            CASE_FIELD_STR(SQL_DESC_TYPE_NAME, type_info.sql_type_name);
+            CASE_FIELD_NUM(SQL_DESC_UNNAMED, SQL_NAMED);
+            CASE_FIELD_NUM(SQL_DESC_UNSIGNED, (type_info.is_unsigned ? SQL_TRUE : SQL_FALSE));
+#ifdef SQL_ATTR_READ_ONLY
+            CASE_FIELD_NUM(SQL_DESC_UPDATABLE, SQL_ATTR_READ_ONLY);
+#else
+            CASE_FIELD_NUM(SQL_DESC_UPDATABLE, SQL_FALSE);
+#endif
+
+#undef CASE_FIELD_NUM
+#undef CASE_FIELD_STR
+
+            default:
+                throw SqlException("Driver not capable", "HYC00");
+        }
+    };
+
+    return CALL_WITH_HANDLE(statement_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
@@ -1306,7 +1287,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
         ColumnsMutator(Environment * env_) : env(env_) {}
 
         void UpdateColumnInfo(std::vector<ColumnInfo> * columns_info) override {
-            columns_info->at(4).name = "Int16";
+            columns_info->at(4).type = "Int16";
             columns_info->at(4).type_without_parameters = "Int16";
         }
 
@@ -1388,7 +1369,10 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
     });
 }
 
-SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetTypeInfo)(HSTMT statement_handle, SQLSMALLINT type) {
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetTypeInfo)(
+    SQLHSTMT statement_handle,
+    SQLSMALLINT type
+) {
     LOG(__FUNCTION__ << "(type = " << type << ")");
 
     return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
