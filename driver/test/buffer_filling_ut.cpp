@@ -105,11 +105,11 @@ using unsigned_short = unsigned short;
 DECLARE_TEST_GROUP(char);
 DECLARE_TEST_GROUP(signed_char);
 DECLARE_TEST_GROUP(unsigned_char);
+DECLARE_TEST_GROUP(wchar_t);
 #if !defined(_MSC_VER) || _MSC_VER >= 1920
+DECLARE_TEST_GROUP(unsigned_short);
 DECLARE_TEST_GROUP(char16_t);
 DECLARE_TEST_GROUP(char32_t);
 #endif
-DECLARE_TEST_GROUP(wchar_t);
-DECLARE_TEST_GROUP(unsigned_short);
 
 #undef DECLARE_TEST_GROUP
