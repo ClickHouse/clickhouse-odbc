@@ -335,7 +335,7 @@ install: |-
   elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
     export OLD_VSWHERE=yes
 
-    # TODO: use choco instead of manual download/unpack/ev setting, once 3.14+ version
+    # TODO: use choco instead of manual download/unpack/env setting, once 3.14+ version
     # is available, since starting from 3.14 WiX Toolset doesn't depend on .NET 3.5,
     # which has problems installing via choco.
     # choco install wixtoolset --yes

@@ -69,8 +69,8 @@ elseif (NOT MISSING_INTERNAL_POCO_LIBRARY)
     )
 
     if (WIN32)
-        list (APPEND Poco_Foundation_LIBRARY Iphlpapi)
-        list (APPEND Poco_Net_LIBRARY Ws2_32)
+        list (APPEND Poco_Foundation_LIBRARY iphlpapi)
+        list (APPEND Poco_Net_LIBRARY ws2_32)
     endif ()
 
     if (USE_SSL)
