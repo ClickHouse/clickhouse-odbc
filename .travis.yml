@@ -195,7 +195,7 @@ matrix:
             - unixodbc-bin
             - unixodbc-dev
 
-    - name: "Windows Server version 1803 - MDAC - Debug - x64 - MSVC (Visual Studio 2017) - MSBuild"
+    - name: "Windows Server 1803 - MDAC - Debug - x64 - MSVC (Visual Studio 2017) - MSBuild"
       os: windows
       language: bash
       env:
@@ -208,7 +208,7 @@ matrix:
         - CMAKE_CONFIGURE_EXTRA_ARGS="-A x64 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
         - VCVARSALL_ARGS=x64
 
-    - name: "Windows Server version 1803 - MDAC - Release - x64 - MSVC (Visual Studio 2017) - MSBuild"
+    - name: "Windows Server 1803 - MDAC - Release - x64 - MSVC (Visual Studio 2017) - MSBuild"
       os: windows
       language: bash
       env:
@@ -221,12 +221,12 @@ matrix:
         - CMAKE_CONFIGURE_EXTRA_ARGS="-A x64 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
         - VCVARSALL_ARGS=x64
 
-    - name: "Windows Server version 1803 - MDAC - RelWithDepInfo - x64 - MSVC (Visual Studio 2017) - MSBuild"
+    - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x64 - MSVC (Visual Studio 2017) - MSBuild"
       os: windows
       language: bash
       env:
         - ODBC_DRIVER_MANAGER=MDAC
-        - BUILD_TYPE=RelWithDepInfo
+        - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
         - TESTING=yes
@@ -234,7 +234,7 @@ matrix:
         - CMAKE_CONFIGURE_EXTRA_ARGS="-A x64 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
         - VCVARSALL_ARGS=x64
 
-    - name: "Windows Server version 1803 - MDAC - Debug - x86 - MSVC (Visual Studio 2017) - MSBuild"
+    - name: "Windows Server 1803 - MDAC - Debug - x86 - MSVC (Visual Studio 2017) - MSBuild"
       os: windows
       language: bash
       env:
@@ -247,7 +247,7 @@ matrix:
         - CMAKE_CONFIGURE_EXTRA_ARGS="-A Win32 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
         - VCVARSALL_ARGS=x86
 
-    - name: "Windows Server version 1803 - MDAC - Release - x86 - MSVC (Visual Studio 2017) - MSBuild"
+    - name: "Windows Server 1803 - MDAC - Release - x86 - MSVC (Visual Studio 2017) - MSBuild"
       os: windows
       language: bash
       env:
@@ -260,12 +260,12 @@ matrix:
         - CMAKE_CONFIGURE_EXTRA_ARGS="-A Win32 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
         - VCVARSALL_ARGS=x86
 
-    - name: "Windows Server version 1803 - MDAC - RelWithDepInfo - x86 - MSVC (Visual Studio 2017) - MSBuild"
+    - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x86 - MSVC (Visual Studio 2017) - MSBuild"
       os: windows
       language: bash
       env:
         - ODBC_DRIVER_MANAGER=MDAC
-        - BUILD_TYPE=RelWithDepInfo
+        - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
         - TESTING=yes
