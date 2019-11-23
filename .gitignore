@@ -1,17 +1,5 @@
 /build
 /build_*
 /build-*
-
 CMakeFiles/
-Makefile
 CMakeCache.txt
-
-*.db
-*.pdb
-*.opendb
-*.lib
-*.dll
-*.obj
-*.aps
-*.user
-*.sdf

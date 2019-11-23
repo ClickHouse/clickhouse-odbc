@@ -1,0 +1,244 @@
+{
+    "configurations": [
+        {
+            "name": "vs2019-x64-Debug",
+            "generator": "Visual Studio 16 2019 Win64",
+            "configurationType": "Debug",
+            "inheritEnvironments": [
+                "msvc_x64_x64"
+            ],
+            "buildRoot": "${projectDir}\\build-win-${name}",
+            "installRoot": "${projectDir}\\build-win-${name}\\prefix",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "variables": [
+                {
+                    "name": "CLICKHOUSE_ODBC_TEST",
+                    "value": "true",
+                    "type": "BOOL"
+                }
+            ]
+        },
+        {
+            "name": "vs2019-x64-Release",
+            "generator": "Visual Studio 16 2019 Win64",
+            "configurationType": "Release",
+            "buildRoot": "${projectDir}\\build-win-${name}",
+            "installRoot": "${projectDir}\\build-win-${name}\\prefix",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "msvc_x64_x64"
+            ],
+            "variables": [
+                {
+                    "name": "CLICKHOUSE_ODBC_TEST",
+                    "value": "true",
+                    "type": "BOOL"
+                }
+            ]
+        },
+        {
+            "name": "vs2019-x64-RelWithDebInfo",
+            "generator": "Visual Studio 16 2019 Win64",
+            "configurationType": "RelWithDebInfo",
+            "buildRoot": "${projectDir}\\build-win-${name}\\build",
+            "installRoot": "${projectDir}\\build-win-${name}\\prefix",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "msvc_x64_x64"
+            ],
+            "variables": [
+                {
+                    "name": "CLICKHOUSE_ODBC_TEST",
+                    "value": "true",
+                    "type": "BOOL"
+                }
+            ]
+        },
+        {
+            "name": "vs2019-x86-Debug",
+            "generator": "Visual Studio 16 2019",
+            "configurationType": "Debug",
+            "buildRoot": "${projectDir}\\build-win-${name}",
+            "installRoot": "${projectDir}\\build-win-${name}\\prefix",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "msvc_x86"
+            ],
+            "variables": [
+                {
+                    "name": "CLICKHOUSE_ODBC_TEST",
+                    "value": "true",
+                    "type": "BOOL"
+                }
+            ]
+        },
+        {
+            "name": "vs2019-x86-Release",
+            "generator": "Visual Studio 16 2019",
+            "configurationType": "Release",
+            "buildRoot": "${projectDir}\\build-win-${name}",
+            "installRoot": "${projectDir}\\build-win-${name}\\prefix",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "msvc_x86"
+            ],
+            "variables": [
+                {
+                    "name": "CLICKHOUSE_ODBC_TEST",
+                    "value": "true",
+                    "type": "BOOL"
+                }
+            ]
+        },
+        {
+            "name": "vs2019-x86-RelWithDebInfo",
+            "generator": "Visual Studio 16 2019",
+            "configurationType": "RelWithDebInfo",
+            "buildRoot": "${projectDir}\\build-win-${name}\\build",
+            "installRoot": "${projectDir}\\build-win-${name}\\prefix",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "msvc_x86"
+            ],
+            "variables": [
+                {
+                    "name": "CLICKHOUSE_ODBC_TEST",
+                    "value": "true",
+                    "type": "BOOL"
+                }
+            ]
+        },
+        {
+            "name": "vs2017-x64-Debug",
+            "generator": "Visual Studio 15 2017 Win64",
+            "configurationType": "Debug",
+            "buildRoot": "${projectDir}\\build-win-${name}",
+            "installRoot": "${projectDir}\\build-win-${name}\\prefix",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "msvc_x64_x64"
+            ],
+            "variables": [
+                {
+                    "name": "CLICKHOUSE_ODBC_TEST",
+                    "value": "true",
+                    "type": "BOOL"
+                }
+            ]
+        },
+        {
+            "name": "vs2017-x64-Release",
+            "generator": "Visual Studio 15 2017 Win64",
+            "configurationType": "Release",
+            "buildRoot": "${projectDir}\\build-win-${name}",
+            "installRoot": "${projectDir}\\build-win-${name}\\prefix",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "msvc_x64_x64"
+            ],
+            "variables": [
+                {
+                    "name": "CLICKHOUSE_ODBC_TEST",
+                    "value": "true",
+                    "type": "BOOL"
+                }
+            ]
+        },
+        {
+            "name": "vs2017-x64-RelWithDebInfo",
+            "generator": "Visual Studio 15 2017 Win64",
+            "configurationType": "RelWithDebInfo",
+            "buildRoot": "${projectDir}\\build-win-${name}\\build",
+            "installRoot": "${projectDir}\\build-win-${name}\\prefix",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "msvc_x64_x64"
+            ],
+            "variables": [
+                {
+                    "name": "CLICKHOUSE_ODBC_TEST",
+                    "value": "true",
+                    "type": "BOOL"
+                }
+            ]
+        },
+        {
+            "name": "vs2017-x86-Debug",
+            "generator": "Visual Studio 15 2017",
+            "configurationType": "Debug",
+            "buildRoot": "${projectDir}\\build-win-${name}",
+            "installRoot": "${projectDir}\\build-win-${name}\\prefix",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "msvc_x86"
+            ],
+            "variables": [
+                {
+                    "name": "CLICKHOUSE_ODBC_TEST",
+                    "value": "true",
+                    "type": "BOOL"
+                }
+            ]
+        },
+        {
+            "name": "vs2017-x86-Release",
+            "generator": "Visual Studio 15 2017",
+            "configurationType": "Release",
+            "buildRoot": "${projectDir}\\build-win-${name}",
+            "installRoot": "${projectDir}\\build-win-${name}\\prefix",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "msvc_x86"
+            ],
+            "variables": [
+                {
+                    "name": "CLICKHOUSE_ODBC_TEST",
+                    "value": "true",
+                    "type": "BOOL"
+                }
+            ]
+        },
+        {
+            "name": "vs2017-x86-RelWithDebInfo",
+            "generator": "Visual Studio 15 2017",
+            "configurationType": "RelWithDebInfo",
+            "buildRoot": "${projectDir}\\build-win-${name}\\build",
+            "installRoot": "${projectDir}\\build-win-${name}\\prefix",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [
+                "msvc_x86"
+            ],
+            "variables": [
+                {
+                    "name": "CLICKHOUSE_ODBC_TEST",
+                    "value": "true",
+                    "type": "BOOL"
+                }
+            ]
+        }
+    ]
+}
