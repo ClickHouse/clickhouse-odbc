@@ -142,7 +142,7 @@ matrix:
             - unixodbc-bin
             - unixodbc-dev
 
-    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles
+    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
       os: linux
       dist: bionic
       compiler: clang
