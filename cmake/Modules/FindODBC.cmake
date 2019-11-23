@@ -6,15 +6,14 @@ endif ()
 # Consults (if present, some of) the following vars:
 #     ODBC_IMPL
 #
-#     ODBC_IMPL_DIR
+#     ODBC_DIR
 #     ODBC_<IMPL>_DIR
 #
 #     ODBC_CONFIG
 #     ODBC_<IMPL>_CONFIG
 #
 # Defines the following targets:
-#     ODBC::ClientAPI
-#     ODBC::DriverAPI
+#     ODBC::API
 #
 # Defines (some of) the following vars:
 #     ODBC_FOUND
@@ -22,32 +21,17 @@ endif ()
 #
 #     ODBC_IMPL
 #
-#     ODBC_CONFIG
-#     ODBC_<IMPL>_CONFIG
+#     ODBC_DEFINES
+#     ODBC_INCLUDE_DIRS
+#     ODBC_COMPILER_FLAGS
+#     ODBC_LINKER_FLAGS
+#     ODBC_LIBRARIES
 #
-#     ODBC_CLIENT_DEFINES
-#     ODBC_CLIENT_INCLUDE_DIRS
-#     ODBC_CLIENT_COMPILER_FLAGS
-#     ODBC_CLIENT_LINKER_FLAGS
-#     ODBC_CLIENT_LIBRARIES
-#
-#     ODBC_<IMPL>_CLIENT_DEFINES
-#     ODBC_<IMPL>_CLIENT_INCLUDE_DIRS
-#     ODBC_<IMPL>_CLIENT_COMPILER_FLAGS
-#     ODBC_<IMPL>_CLIENT_LINKER_FLAGS
-#     ODBC_<IMPL>_CLIENT_LIBRARIES
-#
-#     ODBC_DRIVER_DEFINES
-#     ODBC_DRIVER_INCLUDE_DIRS
-#     ODBC_DRIVER_COMPILER_FLAGS
-#     ODBC_DRIVER_LINKER_FLAGS
-#     ODBC_DRIVER_LIBRARIES
-#
-#     ODBC_<IMPL>_DRIVER_DEFINES
-#     ODBC_<IMPL>_DRIVER_INCLUDE_DIRS
-#     ODBC_<IMPL>_DRIVER_COMPILER_FLAGS
-#     ODBC_<IMPL>_DRIVER_LINKER_FLAGS
-#     ODBC_<IMPL>_DRIVER_LIBRARIES
+#     ODBC_<IMPL>_DEFINES
+#     ODBC_<IMPL>_INCLUDE_DIRS
+#     ODBC_<IMPL>_COMPILER_FLAGS
+#     ODBC_<IMPL>_LINKER_FLAGS
+#     ODBC_<IMPL>_LIBRARIES
 #
 
 if (WIN32)
@@ -75,18 +59,18 @@ endif ()
 foreach (_impl ${_impls_to_try})
     string (TOUPPER "${_impl}" _impl_uc)
 
-    if (ODBC_IMPL_DIR AND NOT ODBC_${_impl_uc}_DIR)
-        set (ODBC_${_impl_uc}_DIR "${ODBC_IMPL_DIR}")
+    if (ODBC_DIR AND NOT ODBC_${_impl_uc}_DIR)
+        set (ODBC_${_impl_uc}_DIR "${ODBC_DIR}")
         set (_unset_dir TRUE)
     endif ()
-    
+
     if (ODBC_CONFIG AND NOT ODBC_${_impl_uc}_CONFIG)
         set (ODBC_${_impl_uc}_CONFIG "${ODBC_CONFIG}")
         set (_unset_config TRUE)
     endif ()
 
     find_package (${_impl})
-    
+
     if (ODBC_${_impl_uc}_FOUND OR NOT ODBC_IMPL)
         set (ODBC_IMPL "${_impl}")
     endif ()
@@ -106,59 +90,35 @@ foreach (_impl ${_impls_to_try})
     endif ()
 endforeach ()
 
+unset (_impl)
 unset (_unset_config)
 unset (_unset_dir)
-unset (_impl)
-unset (_impl_uc)
 unset (_impls_to_try)
 
+string (TOUPPER "${ODBC_IMPL}" _impl_uc)
+
 include (FindPackageHandleStandardArgs)
-find_package_handle_standard_args (ODBC REQUIRED_VARS ODBC_${ODBC_IMPL}_FOUND)
+find_package_handle_standard_args (ODBC REQUIRED_VARS ODBC_${_impl_uc}_FOUND)
 
 if (ODBC_FOUND)
     message (STATUS "Using ODBC: ${ODBC_IMPL}")
 
-    string (TOUPPER "${ODBC_IMPL}" _impl_uc)
-
-    if (ODBC_${_impl_uc}_CONFIG AND NOT ODBC_CONFIG)
-        set (ODBC_CONFIG "${ODBC_${_impl_uc}_CONFIG}")
-    endif ()
-
-    if (NOT "${ODBC_CONFIG}" STREQUAL "")
-        message (STATUS "\tODBC_CONFIG=${ODBC_CONFIG}")
-    endif ()
-
-    mark_as_advanced (ODBC_CONFIG)
-
-    foreach (_api CLIENT DRIVER)
-        foreach (_comp DEFINES INCLUDE_DIRS COMPILER_FLAGS LIBRARIES LINKER_FLAGS)
-            set (ODBC_${_api}_${_comp} "${ODBC_${_impl_uc}_${_api}_${_comp}}")
-            mark_as_advanced (ODBC_${_api}_${_comp})
-            message (STATUS "\tODBC_${_api}_${_comp}=${ODBC_${_api}_${_comp}}")
-        endforeach ()
+    foreach (_comp DEFINES INCLUDE_DIRS COMPILER_FLAGS LIBRARIES LINKER_FLAGS)
+        set (ODBC_${_comp} "${ODBC_${_impl_uc}_${_comp}}")
+        mark_as_advanced (ODBC_${_comp})
+        message (STATUS "\tODBC_${_comp}=${ODBC_${_comp}}")
     endforeach ()
 
-    unset (_impl_uc)
-
-    add_library (ODBC::ClientAPI INTERFACE IMPORTED)
-    target_compile_definitions (ODBC::ClientAPI INTERFACE ${ODBC_CLIENT_DEFINES})
-    target_include_directories (ODBC::ClientAPI INTERFACE ${ODBC_CLIENT_INCLUDE_DIRS})
-    target_compile_options (ODBC::ClientAPI INTERFACE ${ODBC_CLIENT_COMPILER_FLAGS})
+    add_library (ODBC::API INTERFACE IMPORTED)
+    target_compile_definitions (ODBC::API INTERFACE ${ODBC_DEFINES})
+    target_include_directories (ODBC::API INTERFACE ${ODBC_INCLUDE_DIRS})
+    target_compile_options (ODBC::API INTERFACE ${ODBC_COMPILER_FLAGS})
     if (CMAKE_VERSION VERSION_LESS "3.13.5")
-        target_link_libraries (ODBC::ClientAPI INTERFACE ${ODBC_CLIENT_LINKER_FLAGS})
+        target_link_libraries (ODBC::API INTERFACE ${ODBC_LINKER_FLAGS})
     else ()
-        target_link_options (ODBC::ClientAPI INTERFACE ${ODBC_CLIENT_LINKER_FLAGS})
+        target_link_options (ODBC::API INTERFACE ${ODBC_LINKER_FLAGS})
     endif ()
-    target_link_libraries (ODBC::ClientAPI INTERFACE ${ODBC_CLIENT_LIBRARIES})
-
-    add_library (ODBC::DriverAPI INTERFACE IMPORTED)
-    target_compile_definitions (ODBC::DriverAPI INTERFACE ${ODBC_DRIVER_DEFINES})
-    target_include_directories (ODBC::DriverAPI INTERFACE ${ODBC_DRIVER_INCLUDE_DIRS})
-    target_compile_options (ODBC::DriverAPI INTERFACE ${ODBC_DRIVER_COMPILER_FLAGS})
-    if (CMAKE_VERSION VERSION_LESS "3.13.5")
-        target_link_libraries (ODBC::DriverAPI INTERFACE ${ODBC_DRIVER_LINKER_FLAGS})
-    else ()
-        target_link_options (ODBC::DriverAPI INTERFACE ${ODBC_DRIVER_LINKER_FLAGS})
-    endif ()
-    target_link_libraries (ODBC::DriverAPI INTERFACE ${ODBC_DRIVER_LIBRARIES})
+    target_link_libraries (ODBC::API INTERFACE ${ODBC_LIBRARIES})
 endif ()
+
+unset (_impl_uc)

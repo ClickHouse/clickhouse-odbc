@@ -8,7 +8,7 @@ if (CLICKHOUSE_ODBC_TEST)
         set (NANODBC_DISABLE_INSTALL 1 CACHE INTERNAL "")
         set (NANODBC_ENABLE_UNICODE 0 CACHE INTERNAL "")
         add_subdirectory (nanodbc)
-        set_target_properties(${NANOODBC_LIBRARY} PROPERTIES INTERFACE_LINK_LIBRARIES ODBC::ClientAPI)
+        set_target_properties(${NANOODBC_LIBRARY} PROPERTIES INTERFACE_LINK_LIBRARIES ODBC::API)
     endif ()
 endif ()
 

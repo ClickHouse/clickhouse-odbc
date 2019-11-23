@@ -122,7 +122,7 @@ target_link_libraries(${libname}-impl
     PUBLIC ${Poco_Net_LIBRARY}
     PUBLIC ${Poco_Foundation_LIBRARY}
     PUBLIC ${Poco_Util_LIBRARY}
-    PUBLIC ODBC::DriverAPI
+    PUBLIC ODBC::API
     PUBLIC Threads::Threads
 )
 
