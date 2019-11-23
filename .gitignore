@@ -1,5 +1,8 @@
 /build
 /build_*
 /build-*
+
+.vs/
+
 CMakeFiles/
 CMakeCache.txt
