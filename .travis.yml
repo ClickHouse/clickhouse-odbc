@@ -18,30 +18,30 @@ env:
 matrix:
   include:
 
-    # - name: "Ubuntu 18.04 - UnixODBC - GCC - Debug"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: gcc
-    #   env:
-    #     - CC=gcc
-    #     - CXX=g++
-    #     - ODBC_DRIVER_MANAGER=unixodbc
-    #     - BUILD_TYPE=Debug
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
-    #   addons:
-    #     apt:
-    #       packages:
-    #         - gcc
-    #         - g++
-    #         - unixodbc
-    #         - unixodbc-bin
-    #         - unixodbc-dev
+    - name: "Ubuntu 18.04 - UnixODBC - x86_64 - Debug - GCC (default) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_DRIVER_MANAGER=UnixODBC
+        - BUILD_TYPE=Debug
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - gcc
+            - g++
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
     # - name: "Ubuntu 18.04 - UnixODBC - GCC - RelWithDebInfo"
     #   os: linux
@@ -50,7 +50,7 @@ matrix:
     #   env:
     #     - CC=gcc
     #     - CXX=g++
-    #     - ODBC_DRIVER_MANAGER=unixodbc
+    #     - ODBC_DRIVER_MANAGER=UnixODBC
     #     - BUILD_TYPE=RelWithDebInfo
     #     - EXTERNAL_THIRD_PARTY=no
     #     - PACKAGING=yes
@@ -75,7 +75,7 @@ matrix:
     #   env:
     #     - CC=gcc
     #     - CXX=g++
-    #     - ODBC_DRIVER_MANAGER=unixodbc
+    #     - ODBC_DRIVER_MANAGER=UnixODBC
     #     - BUILD_TYPE=Release
     #     - EXTERNAL_THIRD_PARTY=no
     #     - PACKAGING=yes
@@ -100,7 +100,7 @@ matrix:
     # #   env:
     # #     - CC=gcc
     # #     - CXX=g++
-    # #     - ODBC_DRIVER_MANAGER=iodbc
+    # #     - ODBC_DRIVER_MANAGER=iODBC
     # #     - BUILD_TYPE=RelWithDebInfo
     # #     - EXTERNAL_THIRD_PARTY=no
     # #     - PACKAGING=yes
@@ -125,7 +125,7 @@ matrix:
     #   env:
     #     - CC=clang
     #     - CXX=clang++
-    #     - ODBC_DRIVER_MANAGER=unixodbc
+    #     - ODBC_DRIVER_MANAGER=UnixODBC
     #     - BUILD_TYPE=RelWithDebInfo
     #     - EXTERNAL_THIRD_PARTY=no
     #     - PACKAGING=yes
@@ -149,7 +149,7 @@ matrix:
     # #   env:
     # #     - CC=clang
     # #     - CXX=clang++
-    # #     - ODBC_DRIVER_MANAGER=iodbc
+    # #     - ODBC_DRIVER_MANAGER=iODBC
     # #     - BUILD_TYPE=RelWithDebInfo
     # #     - EXTERNAL_THIRD_PARTY=no
     # #     - PACKAGING=yes
@@ -173,7 +173,7 @@ matrix:
     #   env:
     #     - CC=gcc-8
     #     - CXX=g++-8
-    #     - ODBC_DRIVER_MANAGER=unixodbc
+    #     - ODBC_DRIVER_MANAGER=UnixODBC
     #     - BUILD_TYPE=RelWithDebInfo
     #     - EXTERNAL_THIRD_PARTY=no
     #     - PACKAGING=yes
@@ -198,7 +198,7 @@ matrix:
     # #   env:
     # #     - CC=gcc-8
     # #     - CXX=g++-8
-    # #     - ODBC_DRIVER_MANAGER=iodbc
+    # #     - ODBC_DRIVER_MANAGER=iODBC
     # #     - BUILD_TYPE=RelWithDebInfo
     # #     - EXTERNAL_THIRD_PARTY=no
     # #     - PACKAGING=yes
@@ -223,7 +223,7 @@ matrix:
     # #   env:
     # #     - CC=gcc
     # #     - CXX=g++
-    # #     - ODBC_DRIVER_MANAGER=unixodbc
+    # #     - ODBC_DRIVER_MANAGER=UnixODBC
     # #     - BUILD_TYPE=RelWithDebInfo
     # #     - EXTERNAL_THIRD_PARTY=yes
     # #     - PACKAGING=yes
@@ -245,10 +245,11 @@ matrix:
     # #         - unixodbc-bin
     # #         - unixodbc-dev
 
-    - name: "Windows - MDAC - MSVC (Visual Studio 2017) - x64 - Debug"
+    - name: "Windows - MDAC - x64 - Debug - MSVC (Visual Studio 2017) - MSBuild"
       os: windows
       language: bash
       env:
+        - ODBC_DRIVER_MANAGER=MDAC
         - BUILD_TYPE=Debug
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
@@ -257,28 +258,28 @@ matrix:
         - CMAKE_CONFIGURE_EXTRA_ARGS="-A x64 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
         - VCVARSALL_ARGS=x64
 
-    # - name: "macOS 10.14 - iODBC - AppleClang (Xcode 11.2) - RelWithDebInfo"
-    #   os: osx
-    #   osx_image: xcode11.2
-    #   compiler: clang
-    #   env:
-    #     - ODBC_DRIVER_MANAGER=iodbc
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #   addons:
-    #     homebrew:
-    #       packages:
-    #         - libiodbc
+    - name: "macOS 10.14 - iODBC - x86_64 - RelWithDebInfo - AppleClang (Xcode 11.2) - Unix Makefiles"
+      os: osx
+      osx_image: xcode11.2
+      compiler: clang
+      env:
+        - ODBC_DRIVER_MANAGER=iODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+      addons:
+        homebrew:
+          packages:
+            - libiodbc
 
     # - name: "macOS 10.14 - UnixODBC - AppleClang (Xcode 11.2) - RelWithDebInfo"
     #   os: osx
     #   osx_image: xcode11.2
     #   compiler: clang
     #   env:
-    #     - ODBC_DRIVER_MANAGER=unixodbc
+    #     - ODBC_DRIVER_MANAGER=UnixODBC
     #     - BUILD_TYPE=RelWithDebInfo
     #     - EXTERNAL_THIRD_PARTY=no
     #     - PACKAGING=yes
@@ -294,7 +295,7 @@ matrix:
     #   osx_image: xcode11.2
     #   compiler: clang
     #   env:
-    #     - ODBC_DRIVER_MANAGER=iodbc
+    #     - ODBC_DRIVER_MANAGER=iODBC
     #     - BUILD_TYPE=RelWithDebInfo
     #     - EXTERNAL_THIRD_PARTY=yes
     #     - PACKAGING=yes
@@ -325,8 +326,8 @@ install: |-
   elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     brew install cmake perl python@2
     PERL_MM_USE_DEFAULT=1 cpan -T DBD::ODBC
-    if [[ "$ODBC_DRIVER_MANAGER" == "iodbc" ]]; then
-      # It looks like older version of pyodbc works with iodbc out of the box on macOS:
+    if [[ "$ODBC_DRIVER_MANAGER" == "iODBC" ]]; then
+      # It looks like older version of pyodbc works with iODBC out of the box on macOS:
       # https://github.com/mkleehammer/pyodbc/commit/aa178bfd25afd6fb90c77d054c1bcf0a6aa54411
       pip install --user pyodbc==3.0.7
     else
@@ -378,7 +379,7 @@ install: |-
       export ODBCSYSINI=$RUN_DIR
       export ODBCINSTINI=.odbcinst.ini
       export ODBCINI=$ODBCSYSINI/.odbc.ini
-      if [[ "$ODBC_DRIVER_MANAGER" == "iodbc" ]]; then
+      if [[ "$ODBC_DRIVER_MANAGER" == "iODBC" ]]; then
         # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
         export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
       fi
@@ -436,10 +437,8 @@ install: |-
   if [[ "$EXTERNAL_THIRD_PARTY" == "yes" ]]; then
     CMAKE_CONFIGURE_ARGS="-DUNBUNDLED=1 $CMAKE_CONFIGURE_ARGS"
   fi
-  if [[ "$ODBC_DRIVER_MANAGER" == "unixodbc" ]]; then
-    CMAKE_CONFIGURE_ARGS="-DODBC_IMPL=UnixODBC $CMAKE_CONFIGURE_ARGS"
-  elif [[ "$ODBC_DRIVER_MANAGER" == "iodbc" ]]; then
-    CMAKE_CONFIGURE_ARGS="-DODBC_IMPL=iODBC $CMAKE_CONFIGURE_ARGS"
+  if [[ -n "${ODBC_DRIVER_MANAGER}" ]]; then
+    CMAKE_CONFIGURE_ARGS="-DODBC_IMPL=${ODBC_DRIVER_MANAGER} $CMAKE_CONFIGURE_ARGS"
   fi
   cd $BUILD_DIR
   if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then

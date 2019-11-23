@@ -10,7 +10,7 @@
             "buildRoot": "${projectDir}\\build-win-${name}",
             "installRoot": "${projectDir}\\build-win-${name}\\prefix",
             "cmakeCommandArgs": "",
-            "buildCommandArgs": "-v",
+            "buildCommandArgs": "-v:d",
             "ctestCommandArgs": "",
             "variables": [
                 {
@@ -27,7 +27,7 @@
             "buildRoot": "${projectDir}\\build-win-${name}",
             "installRoot": "${projectDir}\\build-win-${name}\\prefix",
             "cmakeCommandArgs": "",
-            "buildCommandArgs": "-v",
+            "buildCommandArgs": "-v:d",
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x64_x64"
@@ -44,10 +44,10 @@
             "name": "vs2019-x64-RelWithDebInfo",
             "generator": "Visual Studio 16 2019 Win64",
             "configurationType": "RelWithDebInfo",
-            "buildRoot": "${projectDir}\\build-win-${name}\\build",
+            "buildRoot": "${projectDir}\\build-win-${name}",
             "installRoot": "${projectDir}\\build-win-${name}\\prefix",
             "cmakeCommandArgs": "",
-            "buildCommandArgs": "-v",
+            "buildCommandArgs": "-v:d",
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x64_x64"
@@ -67,7 +67,7 @@
             "buildRoot": "${projectDir}\\build-win-${name}",
             "installRoot": "${projectDir}\\build-win-${name}\\prefix",
             "cmakeCommandArgs": "",
-            "buildCommandArgs": "-v",
+            "buildCommandArgs": "-v:d",
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x86"
@@ -87,7 +87,7 @@
             "buildRoot": "${projectDir}\\build-win-${name}",
             "installRoot": "${projectDir}\\build-win-${name}\\prefix",
             "cmakeCommandArgs": "",
-            "buildCommandArgs": "-v",
+            "buildCommandArgs": "-v:d",
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x86"
@@ -104,10 +104,10 @@
             "name": "vs2019-x86-RelWithDebInfo",
             "generator": "Visual Studio 16 2019",
             "configurationType": "RelWithDebInfo",
-            "buildRoot": "${projectDir}\\build-win-${name}\\build",
+            "buildRoot": "${projectDir}\\build-win-${name}",
             "installRoot": "${projectDir}\\build-win-${name}\\prefix",
             "cmakeCommandArgs": "",
-            "buildCommandArgs": "-v",
+            "buildCommandArgs": "-v:d",
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x86"
@@ -127,7 +127,7 @@
             "buildRoot": "${projectDir}\\build-win-${name}",
             "installRoot": "${projectDir}\\build-win-${name}\\prefix",
             "cmakeCommandArgs": "",
-            "buildCommandArgs": "-v",
+            "buildCommandArgs": "-v:d",
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x64_x64"
@@ -147,7 +147,7 @@
             "buildRoot": "${projectDir}\\build-win-${name}",
             "installRoot": "${projectDir}\\build-win-${name}\\prefix",
             "cmakeCommandArgs": "",
-            "buildCommandArgs": "-v",
+            "buildCommandArgs": "-v:d",
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x64_x64"
@@ -164,10 +164,10 @@
             "name": "vs2017-x64-RelWithDebInfo",
             "generator": "Visual Studio 15 2017 Win64",
             "configurationType": "RelWithDebInfo",
-            "buildRoot": "${projectDir}\\build-win-${name}\\build",
+            "buildRoot": "${projectDir}\\build-win-${name}",
             "installRoot": "${projectDir}\\build-win-${name}\\prefix",
             "cmakeCommandArgs": "",
-            "buildCommandArgs": "-v",
+            "buildCommandArgs": "-v:d",
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x64_x64"
@@ -187,7 +187,7 @@
             "buildRoot": "${projectDir}\\build-win-${name}",
             "installRoot": "${projectDir}\\build-win-${name}\\prefix",
             "cmakeCommandArgs": "",
-            "buildCommandArgs": "-v",
+            "buildCommandArgs": "-v:d",
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x86"
@@ -207,7 +207,7 @@
             "buildRoot": "${projectDir}\\build-win-${name}",
             "installRoot": "${projectDir}\\build-win-${name}\\prefix",
             "cmakeCommandArgs": "",
-            "buildCommandArgs": "-v",
+            "buildCommandArgs": "-v:d",
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x86"
@@ -224,10 +224,10 @@
             "name": "vs2017-x86-RelWithDebInfo",
             "generator": "Visual Studio 15 2017",
             "configurationType": "RelWithDebInfo",
-            "buildRoot": "${projectDir}\\build-win-${name}\\build",
+            "buildRoot": "${projectDir}\\build-win-${name}",
             "installRoot": "${projectDir}\\build-win-${name}\\prefix",
             "cmakeCommandArgs": "",
-            "buildCommandArgs": "-v",
+            "buildCommandArgs": "-v:d",
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x86"
