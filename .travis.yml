@@ -321,7 +321,8 @@ matrix:
           packages:
             - openssl
             - poco
-            - gtest
+            # - gtest
+            - https://gist.github.com/traceon/413fceabe2227035d4ef4ca3118ea61e/raw/gtest.rb
             - libiodbc
 
 before_install: |-
