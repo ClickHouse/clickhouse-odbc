@@ -93,79 +93,6 @@ matrix:
             - unixodbc-bin
             - unixodbc-dev
 
-    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
-      os: linux
-      dist: bionic
-      compiler: gcc
-      env:
-        - CC=gcc
-        - CXX=g++
-        - ODBC_DRIVER_MANAGER=iODBC
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - gcc
-            - g++
-            - iodbc
-            - libiodbc2
-            - libiodbc2-dev
-
-    - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
-      os: linux
-      dist: bionic
-      compiler: clang
-      env:
-        - CC=clang
-        - CXX=clang++
-        - ODBC_DRIVER_MANAGER=UnixODBC
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - clang
-            - unixodbc
-            - unixodbc-bin
-            - unixodbc-dev
-
-    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
-      os: linux
-      dist: bionic
-      compiler: clang
-      env:
-        - CC=clang
-        - CXX=clang++
-        - ODBC_DRIVER_MANAGER=iODBC
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - clang
-            - iodbc
-            - libiodbc2
-            - libiodbc2-dev
-
     - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - System third-party libs - x86_64 - GCC (system) - Unix Makefiles"
       os: linux
       dist: bionic
@@ -195,31 +122,78 @@ matrix:
             - unixodbc-bin
             - unixodbc-dev
 
-    - name: "Windows Server 1803 - MDAC - Debug - x64 - MSVC (Visual Studio 2017) - MSBuild"
-      os: windows
-      language: bash
+    - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: clang
       env:
-        - ODBC_DRIVER_MANAGER=MDAC
-        - BUILD_TYPE=Debug
+        - CC=clang
+        - CXX=clang++
+        - ODBC_DRIVER_MANAGER=UnixODBC
+        - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
         - TESTING=yes
-        - STANDALONE_TESTS_ONLY=yes
-        - CMAKE_CONFIGURE_EXTRA_ARGS="-A x64 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
-        - VCVARSALL_ARGS=x64
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - clang
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-    - name: "Windows Server 1803 - MDAC - Release - x64 - MSVC (Visual Studio 2017) - MSBuild"
-      os: windows
-      language: bash
+    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
       env:
-        - ODBC_DRIVER_MANAGER=MDAC
-        - BUILD_TYPE=Release
+        - CC=gcc
+        - CXX=g++
+        - ODBC_DRIVER_MANAGER=iODBC
+        - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
         - TESTING=yes
-        - STANDALONE_TESTS_ONLY=yes
-        - CMAKE_CONFIGURE_EXTRA_ARGS="-A x64 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
-        - VCVARSALL_ARGS=x64
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - gcc
+            - g++
+            - iodbc
+            - libiodbc2
+            - libiodbc2-dev
+
+    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: clang
+      env:
+        - CC=clang
+        - CXX=clang++
+        - ODBC_DRIVER_MANAGER=iODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - clang
+            - iodbc
+            - libiodbc2
+            - libiodbc2-dev
 
     - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x64 - MSVC (Visual Studio 2017) - MSBuild"
       os: windows
@@ -233,32 +207,6 @@ matrix:
         - STANDALONE_TESTS_ONLY=yes
         - CMAKE_CONFIGURE_EXTRA_ARGS="-A x64 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
         - VCVARSALL_ARGS=x64
-
-    - name: "Windows Server 1803 - MDAC - Debug - x86 - MSVC (Visual Studio 2017) - MSBuild"
-      os: windows
-      language: bash
-      env:
-        - ODBC_DRIVER_MANAGER=MDAC
-        - BUILD_TYPE=Debug
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=yes
-        - CMAKE_CONFIGURE_EXTRA_ARGS="-A Win32 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
-        - VCVARSALL_ARGS=x86
-
-    - name: "Windows Server 1803 - MDAC - Release - x86 - MSVC (Visual Studio 2017) - MSBuild"
-      os: windows
-      language: bash
-      env:
-        - ODBC_DRIVER_MANAGER=MDAC
-        - BUILD_TYPE=Release
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=yes
-        - CMAKE_CONFIGURE_EXTRA_ARGS="-A Win32 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
-        - VCVARSALL_ARGS=x86
 
     - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x86 - MSVC (Visual Studio 2017) - MSBuild"
       os: windows
@@ -289,22 +237,6 @@ matrix:
           packages:
             - libiodbc
 
-    - name: "macOS 10.14 - UnixODBC - RelWithDebInfo - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
-      os: osx
-      osx_image: xcode11.2
-      compiler: clang
-      env:
-        - ODBC_DRIVER_MANAGER=UnixODBC
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-      addons:
-        homebrew:
-          packages:
-            - unixodbc
-
     - name: "macOS 10.14 - iODBC - RelWithDebInfo - System third-party libs - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
       os: osx
       osx_image: xcode11.2
@@ -324,6 +256,22 @@ matrix:
             # - gtest
             - https://gist.github.com/traceon/413fceabe2227035d4ef4ca3118ea61e/raw/gtest.rb
             - libiodbc
+
+    - name: "macOS 10.14 - UnixODBC - RelWithDebInfo - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
+      os: osx
+      osx_image: xcode11.2
+      compiler: clang
+      env:
+        - ODBC_DRIVER_MANAGER=UnixODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+      addons:
+        homebrew:
+          packages:
+            - unixodbc
 
 before_install: |-
   set -Eeo pipefail
