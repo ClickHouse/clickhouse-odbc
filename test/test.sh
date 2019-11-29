@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
-set -o pipefail
+set -Eeo pipefail
 
 # this test requires running clickhouse server and configured ~/.odbc.ini
 # cp -n /usr/share/doc/clickhouse-odbc/examples/odbc.ini ~/.odbc.ini
