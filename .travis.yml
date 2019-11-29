@@ -146,54 +146,54 @@ matrix:
             - unixodbc-bin
             - unixodbc-dev
 
-    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
-      os: linux
-      dist: bionic
-      compiler: gcc
-      env:
-        - CC=gcc
-        - CXX=g++
-        - ODBC_DRIVER_MANAGER=iODBC
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - gcc
-            - g++
-            - iodbc
-            - libiodbc2
-            - libiodbc2-dev
+    # - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
+    #   os: linux
+    #   dist: bionic
+    #   compiler: gcc
+    #   env:
+    #     - CC=gcc
+    #     - CXX=g++
+    #     - ODBC_DRIVER_MANAGER=iODBC
+    #     - BUILD_TYPE=RelWithDebInfo
+    #     - EXTERNAL_THIRD_PARTY=no
+    #     - PACKAGING=yes
+    #     - TESTING=yes
+    #     - STANDALONE_TESTS_ONLY=no
+    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+    #   services:
+    #     - docker
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - gcc
+    #         - g++
+    #         - iodbc
+    #         - libiodbc2
+    #         - libiodbc2-dev
 
-    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
-      os: linux
-      dist: bionic
-      compiler: clang
-      env:
-        - CC=clang
-        - CXX=clang++
-        - ODBC_DRIVER_MANAGER=iODBC
-        - BUILD_TYPE=RelWithDebInfo
-        - EXTERNAL_THIRD_PARTY=no
-        - PACKAGING=yes
-        - TESTING=yes
-        - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-      services:
-        - docker
-      addons:
-        apt:
-          packages:
-            - clang
-            - iodbc
-            - libiodbc2
-            - libiodbc2-dev
+    # - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
+    #   os: linux
+    #   dist: bionic
+    #   compiler: clang
+    #   env:
+    #     - CC=clang
+    #     - CXX=clang++
+    #     - ODBC_DRIVER_MANAGER=iODBC
+    #     - BUILD_TYPE=RelWithDebInfo
+    #     - EXTERNAL_THIRD_PARTY=no
+    #     - PACKAGING=yes
+    #     - TESTING=yes
+    #     - STANDALONE_TESTS_ONLY=no
+    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+    #   services:
+    #     - docker
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - clang
+    #         - iodbc
+    #         - libiodbc2
+    #         - libiodbc2-dev
 
     - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x64 - MSVC (Visual Studio 2017) - MSBuild"
       os: windows

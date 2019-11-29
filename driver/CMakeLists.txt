@@ -1,9 +1,10 @@
 function(declare_odbc_lib_targets libname UNICODE)
 
+unset(WORKAROUND_TRIM_TRAILING_NULL)
+
 if (UNICODE)
     set(DRIVER_PREFIX Unicode)
     set(WIDECHAR_SUFFIX w)
-    unset(WORKAROUND_TRIM_TRAILING_NULL)
 else ()
     set(DRIVER_PREFIX ANSI)
     set(WIDECHAR_SUFFIX)

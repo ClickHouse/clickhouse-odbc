@@ -34,7 +34,6 @@ protected:
         ODBC_CALL_ON_ENV_THROW(henv, SQLSetEnvAttr(henv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER*)SQL_OV_ODBC3, 0));
 
         ODBC_CALL_ON_ENV_THROW(henv, SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc));
-        ODBC_CALL_ON_DBC_THROW(hdbc, SQLSetConnectAttr(hdbc, SQL_LOGIN_TIMEOUT, (SQLPOINTER)5, 0));
 
         const auto dsn = fromUTF8<SQLTCHAR>(TestEnvironment::getInstance().getDSN());
         auto * dsn_wptr = const_cast<SQLTCHAR * >(dsn.c_str());
