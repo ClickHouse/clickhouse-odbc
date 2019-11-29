@@ -1,7 +1,7 @@
 [submodule "contrib/poco"]
 	path = contrib/poco
 	url = https://github.com/pocoproject/poco.git
-	branch = poco-1.9.4
+	branch = master
 [submodule "contrib/ssl"]
 	path = contrib/ssl
 	url = https://github.com/ClickHouse-Extras/ssl.git
@@ -9,4 +9,8 @@
 [submodule "contrib/nanodbc"]
 	path = contrib/nanodbc
 	url = https://github.com/nanodbc/nanodbc.git
+	branch = master
+[submodule "contrib/googletest"]
+	path = contrib/googletest
+	url = https://github.com/google/googletest.git
 	branch = master

@@ -1,5 +1,21 @@
 if (CLICKHOUSE_ODBC_TEST)
-    add_subdirectory (gtest)
+    set (BUILD_GMOCK ON CACHE BOOL "")
+    set (INSTALL_GTEST OFF CACHE BOOL "")
+
+    add_subdirectory (googletest)
+
+    mark_as_advanced(BUILD_GMOCK)
+    mark_as_advanced(INSTALL_GTEST)
+
+    set_target_properties(gtest PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+    set_target_properties(gtest_main PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+    set_target_properties(gmock PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+    set_target_properties(gmock_main PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+
+    set_target_properties(gtest PROPERTIES FOLDER contrib)
+    set_target_properties(gtest_main PROPERTIES FOLDER contrib)
+    set_target_properties(gmock PROPERTIES FOLDER contrib)
+    set_target_properties(gmock_main PROPERTIES FOLDER contrib)
 
     if (USE_INTERNAL_NANOODBC_LIBRARY)
         set (NANODBC_DISABLE_EXAMPLES 1 CACHE INTERNAL "")

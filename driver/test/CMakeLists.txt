@@ -12,7 +12,7 @@ function(declare_odbc_test_targets libname UNICODE)
 
     target_link_libraries(${libname}-ut
         PRIVATE ${libname}-impl
-        PRIVATE gtest-lib
+        PRIVATE gtest
     )
 
     add_test(NAME ${libname}-ut COMMAND ${libname}-ut)
@@ -60,7 +60,7 @@ function(declare_odbc_test_targets libname UNICODE)
     target_link_libraries(${libname}-client-it
         PRIVATE ODBC::API
         PRIVATE ${Poco_Foundation_LIBRARY}
-        PRIVATE gtest-lib
+        PRIVATE gtest
         PRIVATE ${CMAKE_DL_LIBS}
         PRIVATE Threads::Threads
     )

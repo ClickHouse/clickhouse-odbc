@@ -253,8 +253,6 @@ matrix:
           packages:
             - openssl
             - poco
-            # - gtest
-            - https://gist.github.com/traceon/413fceabe2227035d4ef4ca3118ea61e/raw/gtest.rb
             - libiodbc
 
     - name: "macOS 10.14 - UnixODBC - RelWithDebInfo - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
