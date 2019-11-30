@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <unordered_map>
 
+#include <cctype>
+
 namespace {
 
 #define DECLARE(NAME) \
@@ -43,13 +45,14 @@ static Token::Type LookupIdent(const std::string & ident) {
     }
     return Token::IDENT;
 }
-}
 
 std::string to_upper(const StringView & str) {
     std::string ret(str.data(), str.size());
-    std::transform(ret.begin(), ret.end(), ret.begin(), ::toupper);
+    std::transform(ret.begin(), ret.end(), ret.begin(), std::toupper);
     return ret;
 }
+
+} // namespace
 
 Lexer::Lexer(const StringView text) : text_(text), cur_(text.data()), end_(text.data() + text.size()), emit_space_(false) {}
 

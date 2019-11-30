@@ -88,7 +88,7 @@ TEST_P(Strings_##CharType, Fill){             \
     );                                        \
 }                                             \
                                               \
-INSTANTIATE_TEST_CASE_P(                      \
+INSTANTIATE_TEST_SUITE_P(                     \
     BufferFilling,                            \
     Strings_##CharType,                       \
     ::testing::Combine(                       \

@@ -47,7 +47,7 @@ TEST_P(StringPongGUIDSymmetric,     Compare) { compare<DataType>(GetParam(), Get
 TEST_P(StringPongNumericSymmetric,  Compare) { compare<DataType>(GetParam(), GetParam()); }
 TEST_P(StringPongNumericAsymmetric, Compare) { compare<DataType>(std::get<0>(GetParam()), std::get<1>(GetParam())); }
 
-INSTANTIATE_TEST_CASE_P(TypeConversion, StringPongGUIDSymmetric,
+INSTANTIATE_TEST_SUITE_P(TypeConversion, StringPongGUIDSymmetric,
     ::testing::Values(
         "00000000-0000-0000-0000-000000000000",
         "01020304-0506-0708-090A-0B0C0D0E0F00",
@@ -56,7 +56,7 @@ INSTANTIATE_TEST_CASE_P(TypeConversion, StringPongGUIDSymmetric,
     )
 );
 
-INSTANTIATE_TEST_CASE_P(TypeConversion, StringPongNumericSymmetric,
+INSTANTIATE_TEST_SUITE_P(TypeConversion, StringPongNumericSymmetric,
     ::testing::Values(
         "0",
         "12345",
@@ -84,7 +84,7 @@ INSTANTIATE_TEST_CASE_P(TypeConversion, StringPongNumericSymmetric,
     )
 );
 
-INSTANTIATE_TEST_CASE_P(TypeConversion, StringPongNumericAsymmetric,
+INSTANTIATE_TEST_SUITE_P(TypeConversion, StringPongNumericAsymmetric,
     ::testing::ValuesIn(std::initializer_list<std::tuple<std::string, std::string>>{
         { "0.", "0" },
         { "-0.", "0" },
