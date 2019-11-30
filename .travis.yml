@@ -350,8 +350,10 @@ install: |-
 
       cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
   [ODBC]
-  Trace     = yes
+  Trace     = 1
   TraceFile = ${RUN_DIR}/odbc-driver-manager-trace.log
+  Debug     = 1
+  DebugFile = ${RUN_DIR}/odbc-driver-manager-debug.log
 
   [ODBC Drivers]
   clickhouse_driver   = Installed
@@ -370,8 +372,10 @@ install: |-
 
       cat > $ODBCSYSINI/.odbc.ini <<-EOF
   [ODBC]
-  Trace     = yes
+  Trace     = 1
   TraceFile = ${RUN_DIR}/odbc-driver-manager-trace.log
+  Debug     = 1
+  DebugFile = ${RUN_DIR}/odbc-driver-manager-debug.log
 
   [ODBC Data Sources]
   clickhouse_localhost   = clickhouse_driver

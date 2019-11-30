@@ -27,6 +27,9 @@ namespace {
             }
         } while (rc == SQL_SUCCESS);
 
+        if (result.empty() && rc == SQL_INVALID_HANDLE)
+            result = "Invalid handle";
+
         return result;
     }
 
