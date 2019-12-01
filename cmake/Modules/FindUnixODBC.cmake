@@ -66,18 +66,21 @@ elseif (ODBC_UNIXODBC_DIR)
     find_program (_config
         NAMES "odbc_config"
         PATHS "${ODBC_UNIXODBC_DIR}"
+        PATH_SUFFIXES "bin"
         NO_DEFAULT_PATH
     )
 
     find_path (_pc_dir
         NAMES "odbc.pc"
         PATHS "${ODBC_UNIXODBC_DIR}"
+        PATH_SUFFIXES "lib/pkgconfig"
         NO_DEFAULT_PATH
     )
 
     find_path (_pc_dir_inst
         NAMES "odbcinst.pc"
         PATHS "${ODBC_UNIXODBC_DIR}"
+        PATH_SUFFIXES "lib/pkgconfig"
         NO_DEFAULT_PATH
     )
 
@@ -215,6 +218,7 @@ if (NOT ODBC_UNIXODBC_INCLUDE_DIRS)
             find_path (_path
                 NAMES "${_file}"
                 PATHS "${ODBC_UNIXODBC_DIR}"
+                PATH_SUFFIXES "include"
                 NO_DEFAULT_PATH
             )
         else ()
@@ -240,6 +244,7 @@ if (NOT ODBC_UNIXODBC_LIBRARIES)
             find_library (_path
                 NAMES "${_file}"
                 PATHS "${ODBC_UNIXODBC_DIR}"
+                PATH_SUFFIXES "lib"
                 NO_DEFAULT_PATH
             )
         else ()

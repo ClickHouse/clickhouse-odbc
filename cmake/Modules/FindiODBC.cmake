@@ -60,12 +60,14 @@ elseif (ODBC_IODBC_DIR)
     find_program (_config
         NAMES "iodbc-config"
         PATHS "${ODBC_IODBC_DIR}"
+        PATH_SUFFIXES "bin"
         NO_DEFAULT_PATH
     )
 
     find_path (_pc_dir
         NAMES "libiodbc.pc"
         PATHS "${ODBC_IODBC_DIR}"
+        PATH_SUFFIXES "lib/pkgconfig"
         NO_DEFAULT_PATH
     )
 else ()
@@ -149,6 +151,7 @@ if (NOT ODBC_IODBC_INCLUDE_DIRS)
             find_path (_path
                 NAMES "${_file}"
                 PATHS "${ODBC_IODBC_DIR}"
+                PATH_SUFFIXES "include"
                 NO_DEFAULT_PATH
             )
         else ()
@@ -174,6 +177,7 @@ if (NOT ODBC_IODBC_LIBRARIES)
             find_library (_path
                 NAMES "${_file}"
                 PATHS "${ODBC_IODBC_DIR}"
+                PATH_SUFFIXES "lib"
                 NO_DEFAULT_PATH
             )
         else ()
@@ -214,9 +218,7 @@ unset (_file CACHE)
 unset (_file)
 
 if (UNIX)
-    include (cmake/find_ltdl.cmake)
     list (APPEND ODBC_IODBC_LIBRARIES dl)
-    list (APPEND ODBC_IODBC_LIBRARIES "${LTDL_LIBRARY}")
 endif ()
 
 if (ODBC_IODBC_DEFINES)
