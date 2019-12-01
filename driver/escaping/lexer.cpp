@@ -48,7 +48,7 @@ static Token::Type LookupIdent(const std::string & ident) {
 
 std::string to_upper(const StringView & str) {
     std::string ret(str.data(), str.size());
-    std::transform(ret.begin(), ret.end(), ret.begin(), std::toupper);
+    std::transform(ret.begin(), ret.end(), ret.begin(), ::toupper);
     return ret;
 }
 
