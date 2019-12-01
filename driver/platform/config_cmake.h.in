@@ -14,3 +14,4 @@
 #cmakedefine01 USE_DEBUG_17
 
 #cmakedefine WORKAROUND_TRIM_TRAILING_NULL
+#cmakedefine WORKAROUND_DEFINE_SQLBindParam
