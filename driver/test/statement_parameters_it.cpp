@@ -283,7 +283,8 @@ protected:
         SQLLEN param_ind = 0;
 
         char * param_ptr = reinterpret_cast<char *>(param);
-        std::strncpy(param_ptr, initial_str.c_str(), lengthof(param));
+        ASSERT_LT(initial_str.size(), lengthof(param));
+        std::strncpy(param_ptr, initial_str.c_str(), lengthof(param) - 1);
 
         // We need this to autodetect actual precision and scale of the value in initial_str.
         auto param_typed = value_manip::to<SQL_NUMERIC_STRUCT>::template from<std::string>(initial_str);
