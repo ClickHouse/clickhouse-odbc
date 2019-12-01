@@ -1,4 +1,10 @@
 function(declare_odbc_test_targets libname UNICODE)
+    if (UNICODE)
+        set(WIDECHAR_SUFFIX w)
+    else ()
+        set(WIDECHAR_SUFFIX)
+    endif ()
+
     add_executable(${libname}-ut
         gtest_main.cpp
         gtest_env.h
@@ -100,10 +106,15 @@ function(declare_odbc_test_targets libname UNICODE)
 
         add_executable(${libname}-${nanoname}-it
             nano_it.cpp
+            ${PROJECT_BINARY_DIR}/driver/platform/config_cmake${WIDECHAR_SUFFIX}.h
         )
 
         target_link_libraries(${libname}-${nanoname}-it
             PRIVATE ${NANOODBC_LIBRARY}
+        )
+
+        target_include_directories(${libname}-${nanoname}-it
+            PRIVATE ${PROJECT_BINARY_DIR} # for driver/platform/config_cmake${WIDECHAR_SUFFIX}.h
         )
 
         if (UNICODE)

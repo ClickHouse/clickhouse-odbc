@@ -1,3 +1,9 @@
+#if defined(UNICODE)
+#    include "driver/platform/config_cmakew.h"
+#else
+#    include "driver/platform/config_cmake.h"
+#endif
+
 #include <nanodbc/nanodbc.h>
 
 #include <algorithm>
