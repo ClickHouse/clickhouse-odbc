@@ -1522,7 +1522,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetFunctions)(HDBC connection_handle, SQL
 #define SET_EXISTS(x) Supported[(x) >> 4] |= (1 << ((x)&0xF))
 // #define CLR_EXISTS(x) Supported[(x) >> 4] &= ~(1 << ((x) & 0xF))
 
-    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) -> SQLRETURN {
+    auto func = [&] (Connection & connection) -> SQLRETURN {
         if (FunctionId == SQL_API_ODBC3_ALL_FUNCTIONS) {
             memset(Supported, 0, sizeof(Supported[0]) * SQL_API_ODBC3_ALL_FUNCTIONS_SIZE);
 
@@ -1610,10 +1610,12 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetFunctions)(HDBC connection_handle, SQL
         }
 
         return SQL_ERROR;
-    });
+    };
 
 #undef SET_EXISTS
 // #undef CLR_EXISTS
+
+    return CALL_WITH_HANDLE(connection_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLParamData)(HSTMT StatementHandle, PTR * Value) {
