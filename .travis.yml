@@ -18,208 +18,208 @@ env:
 matrix:
   include:
 
-    # - name: "Ubuntu 18.04 - UnixODBC - Debug - x86_64 - GCC (system) - Unix Makefiles"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: gcc
-    #   env:
-    #     - CC=gcc
-    #     - CXX=g++
-    #     - ODBC_DRIVER_MANAGER=UnixODBC
-    #     - BUILD_TYPE=Debug
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
-    #   addons:
-    #     apt:
-    #       packages:
-    #         - gcc
-    #         - g++
-    #         - unixodbc
-    #         - unixodbc-bin
-    #         - unixodbc-dev
+    - name: "Ubuntu 18.04 - UnixODBC - Debug - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_DRIVER_MANAGER=UnixODBC
+        - BUILD_TYPE=Debug
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - gcc
+            - g++
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - UnixODBC - Release - x86_64 - GCC (system) - Unix Makefiles"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: gcc
-    #   env:
-    #     - CC=gcc
-    #     - CXX=g++
-    #     - ODBC_DRIVER_MANAGER=UnixODBC
-    #     - BUILD_TYPE=Release
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
-    #   addons:
-    #     apt:
-    #       packages:
-    #         - gcc
-    #         - g++
-    #         - unixodbc
-    #         - unixodbc-bin
-    #         - unixodbc-dev
+    - name: "Ubuntu 18.04 - UnixODBC - Release - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_DRIVER_MANAGER=UnixODBC
+        - BUILD_TYPE=Release
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - gcc
+            - g++
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: gcc
-    #   env:
-    #     - CC=gcc
-    #     - CXX=g++
-    #     - ODBC_DRIVER_MANAGER=UnixODBC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
-    #   addons:
-    #     apt:
-    #       packages:
-    #         - gcc
-    #         - g++
-    #         - unixodbc
-    #         - unixodbc-bin
-    #         - unixodbc-dev
+    - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_DRIVER_MANAGER=UnixODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - gcc
+            - g++
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - System third-party libs - x86_64 - GCC (system) - Unix Makefiles"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: gcc
-    #   env:
-    #     - CC=gcc
-    #     - CXX=g++
-    #     - ODBC_DRIVER_MANAGER=UnixODBC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=yes
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
-    #   addons:
-    #     apt:
-    #       packages:
-    #         - gcc
-    #         - g++
-    #         - openssl
-    #         - libssl-dev
-    #         - libpoco-dev
-    #         - googletest
-    #         - unixodbc
-    #         - unixodbc-bin
-    #         - unixodbc-dev
+    - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - System third-party libs - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_DRIVER_MANAGER=UnixODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=yes
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - gcc
+            - g++
+            - openssl
+            - libssl-dev
+            - libpoco-dev
+            - googletest
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: clang
-    #   env:
-    #     - CC=clang
-    #     - CXX=clang++
-    #     - ODBC_DRIVER_MANAGER=UnixODBC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
-    #   addons:
-    #     apt:
-    #       packages:
-    #         - clang
-    #         - unixodbc
-    #         - unixodbc-bin
-    #         - unixodbc-dev
+    - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: clang
+      env:
+        - CC=clang
+        - CXX=clang++
+        - ODBC_DRIVER_MANAGER=UnixODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - clang
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-    # # - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
-    # #   os: linux
-    # #   dist: bionic
-    # #   compiler: gcc
-    # #   env:
-    # #     - CC=gcc
-    # #     - CXX=g++
-    # #     - ODBC_DRIVER_MANAGER=iODBC
-    # #     - BUILD_TYPE=RelWithDebInfo
-    # #     - EXTERNAL_THIRD_PARTY=no
-    # #     - PACKAGING=yes
-    # #     - TESTING=yes
-    # #     - STANDALONE_TESTS_ONLY=no
-    # #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    # #   services:
-    # #     - docker
-    # #   addons:
-    # #     apt:
-    # #       packages:
-    # #         - gcc
-    # #         - g++
-    # #         - iodbc
-    # #         - libiodbc2
-    # #         - libiodbc2-dev
+    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_DRIVER_MANAGER=iODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - gcc
+            - g++
+            - iodbc
+            - libiodbc2
+            - libiodbc2-dev
 
-    # # - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
-    # #   os: linux
-    # #   dist: bionic
-    # #   compiler: clang
-    # #   env:
-    # #     - CC=clang
-    # #     - CXX=clang++
-    # #     - ODBC_DRIVER_MANAGER=iODBC
-    # #     - BUILD_TYPE=RelWithDebInfo
-    # #     - EXTERNAL_THIRD_PARTY=no
-    # #     - PACKAGING=yes
-    # #     - TESTING=yes
-    # #     - STANDALONE_TESTS_ONLY=no
-    # #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    # #   services:
-    # #     - docker
-    # #   addons:
-    # #     apt:
-    # #       packages:
-    # #         - clang
-    # #         - iodbc
-    # #         - libiodbc2
-    # #         - libiodbc2-dev
+    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: clang
+      env:
+        - CC=clang
+        - CXX=clang++
+        - ODBC_DRIVER_MANAGER=iODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - clang
+            - iodbc
+            - libiodbc2
+            - libiodbc2-dev
 
-    # - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x64 - MSVC (Visual Studio 2017) - MSBuild"
-    #   os: windows
-    #   language: shell
-    #   env:
-    #     - ODBC_DRIVER_MANAGER=MDAC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=yes
-    #     - CMAKE_CONFIGURE_EXTRA_ARGS="-A x64 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
-    #     - VCVARSALL_ARGS=x64
+    - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x64 - MSVC (Visual Studio 2017) - MSBuild"
+      os: windows
+      language: shell
+      env:
+        - ODBC_DRIVER_MANAGER=MDAC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=yes
+        - CMAKE_CONFIGURE_EXTRA_ARGS="-A x64 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
+        - VCVARSALL_ARGS=x64
 
-    # - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x86 - MSVC (Visual Studio 2017) - MSBuild"
-    #   os: windows
-    #   language: shell
-    #   env:
-    #     - ODBC_DRIVER_MANAGER=MDAC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=yes
-    #     - CMAKE_CONFIGURE_EXTRA_ARGS="-A Win32 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
-    #     - VCVARSALL_ARGS=x86
+    - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x86 - MSVC (Visual Studio 2017) - MSBuild"
+      os: windows
+      language: shell
+      env:
+        - ODBC_DRIVER_MANAGER=MDAC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=yes
+        - CMAKE_CONFIGURE_EXTRA_ARGS="-A Win32 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
+        - VCVARSALL_ARGS=x86
 
     - name: "macOS 10.14 - iODBC - RelWithDebInfo - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
       os: osx
