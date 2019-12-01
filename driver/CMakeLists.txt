@@ -2,6 +2,7 @@ function(declare_odbc_lib_targets libname UNICODE)
 
 unset(WORKAROUND_TRIM_TRAILING_NULL)
 unset(WORKAROUND_DEFINE_SQLBindParam)
+unset(WORKAROUND_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
 
 if (UNICODE)
     set(DRIVER_PREFIX Unicode)
@@ -17,6 +18,7 @@ endif ()
 
 if ("${ODBC_IMPL}" STREQUAL "iODBC")
     set(WORKAROUND_DEFINE_SQLBindParam 1)
+    set(WORKAROUND_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS 1)
 endif ()
 
 message (STATUS "${libname}: ${DRIVER_PREFIX}")
@@ -28,6 +30,7 @@ configure_file (
 
 unset(WORKAROUND_TRIM_TRAILING_NULL)
 unset(WORKAROUND_DEFINE_SQLBindParam)
+unset(WORKAROUND_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
 
 # In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
 add_library(${libname}-impl STATIC
