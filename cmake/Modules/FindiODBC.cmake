@@ -19,7 +19,7 @@ endif ()
 #
 
 if (ODBC_IODBC_DIR AND ODBC_IODBC_CONFIG)
-    message (FATAL_ERROR "Only one of ODBC_IODBC_DIR and ODBC_IODBC_CONFIG can be specified at the same time")
+    message (FATAL_ERROR "Only one of ODBC_IODBC_DIR and ODBC_IODBC_CONFIG can be specified at the same time.")
 endif ()
 
 set(ODBC_IODBC_DEFINES)

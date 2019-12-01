@@ -19,7 +19,7 @@ endif ()
 #
 
 if (ODBC_UNIXODBC_DIR AND ODBC_UNIXODBC_CONFIG)
-    message (FATAL_ERROR "Only one of ODBC_UNIXODBC_DIR and ODBC_UNIXODBC_CONFIG can be specified at the same time")
+    message (FATAL_ERROR "Only one of ODBC_UNIXODBC_DIR and ODBC_UNIXODBC_CONFIG can be specified at the same time.")
 endif ()
 
 set(ODBC_UNIXODBC_DEFINES)

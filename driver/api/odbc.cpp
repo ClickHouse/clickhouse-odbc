@@ -1529,6 +1529,9 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetFunctions)(HDBC connection_handle, SQL
             SET_EXISTS(SQL_API_SQLALLOCHANDLE);
             SET_EXISTS(SQL_API_SQLBINDCOL);
             SET_EXISTS(SQL_API_SQLBINDPARAMETER);
+#if defined(WORKAROUND_DEFINE_SQLBindParam)
+            SET_EXISTS(SQL_API_SQLBINDPARAM);
+#endif
             //SET_EXISTS(SQL_API_SQLBROWSECONNECT);
             //SET_EXISTS(SQL_API_SQLBULKOPERATIONS);
             //SET_EXISTS(SQL_API_SQLCANCEL);
@@ -1792,6 +1795,33 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindParameter)(
         StrLen_or_IndPtr
     );
 }
+
+#if defined(WORKAROUND_DEFINE_SQLBindParam)
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindParam)(
+    SQLHSTMT        StatementHandle,
+    SQLUSMALLINT    ParameterNumber,
+    SQLSMALLINT     ValueType,
+    SQLSMALLINT     ParameterType,
+    SQLULEN         ColumnSize,
+    SQLSMALLINT     DecimalDigits,
+    SQLPOINTER      ParameterValuePtr,
+    SQLLEN *        StrLen_or_IndPtr
+) {
+    LOG(__FUNCTION__);
+    return impl::BindParameter(
+        StatementHandle,
+        ParameterNumber,
+        SQL_PARAM_INPUT,
+        ValueType,
+        ParameterType,
+        ColumnSize,
+        DecimalDigits,
+        ParameterValuePtr,
+        SQL_MAX_OPTION_STRING_LENGTH,
+        StrLen_or_IndPtr
+    );
+}
+#endif
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBulkOperations)(
     SQLHSTMT         StatementHandle,
