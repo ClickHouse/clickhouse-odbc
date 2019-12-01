@@ -1529,7 +1529,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetFunctions)(HDBC connection_handle, SQL
             SET_EXISTS(SQL_API_SQLALLOCHANDLE);
             SET_EXISTS(SQL_API_SQLBINDCOL);
             SET_EXISTS(SQL_API_SQLBINDPARAMETER);
-#if defined(WORKAROUND_DEFINE_SQLBindParam)
+#if defined(WORKAROUND_ENABLE_DEFINE_SQLBindParam)
             SET_EXISTS(SQL_API_SQLBINDPARAM);
 #endif
             //SET_EXISTS(SQL_API_SQLBROWSECONNECT);
@@ -1796,7 +1796,12 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindParameter)(
     );
 }
 
-#if defined(WORKAROUND_DEFINE_SQLBindParam)
+// Workaround for iODBC: when driver is in ODBCv3 mode, iODBC still probes for SQLBindParam() even though SQLBindParameter() is found.
+// It finds SQLBindParam(), but the actual functions pointer points to an fallback implementation of the Driver Manager itself (due to symbol resolution logic).
+// Moreover, the code still calls SQLBindParam() instead of SQLBindParameter(), causing invalid handle error due to masked handler.
+// TODO: review and report an error. Even if there is a problem in linkage, the login behind iODBC still seems to be faulty.
+// See SQLBindParameter_Internal() function defined in https://github.com/openlink/iODBC/blob/master/iodbc/prepare.c
+#if defined(WORKAROUND_ENABLE_DEFINE_SQLBindParam)
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindParam)(
     SQLHSTMT        StatementHandle,
     SQLUSMALLINT    ParameterNumber,

@@ -13,6 +13,7 @@
 #cmakedefine01 USE_SSL
 #cmakedefine01 USE_DEBUG_17
 
-#cmakedefine WORKAROUND_TRIM_TRAILING_NULL
-#cmakedefine WORKAROUND_DEFINE_SQLBindParam
-#cmakedefine WORKAROUND_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS
+// See the usage of each workaround in the code, for comments.
+#cmakedefine WORKAROUND_ENABLE_TRIM_TRAILING_NULL
+#cmakedefine WORKAROUND_ENABLE_DEFINE_SQLBindParam
+#cmakedefine WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS
