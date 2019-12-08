@@ -1,6 +1,10 @@
 #pragma once
 
+#include "driver/utils/utils.h"
+
 #include <string>
+
+using key_value_map_t = std::map<std::string, std::string, UTF8CaseInsensitiveCompare>;
 
 /**
  * Structure to hold all the connection attributes for a specific
@@ -31,5 +35,8 @@ struct ConnInfo {
     std::string caLocation;
 };
 
-void getDSNinfo(ConnInfo * ci, bool overwrite);
+bool DSNExists(Environment & env, const std::string & target_dsn);
+void readDSNinfo(ConnInfo * ci, bool overwrite);
 void writeDSNinfo(const ConnInfo * ci);
+key_value_map_t readDSNInfo(const std::string & dsn);
+key_value_map_t readConnectionString(const std::string & connection_string);

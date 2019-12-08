@@ -2,7 +2,6 @@
 
 #include "driver/platform/platform.h"
 #include "driver/utils/unicode_conv.h"
-#include "driver/utils/string_ref.h"
 #include "driver/type_info.h"
 #include "driver/exception.h"
 
@@ -14,6 +13,7 @@
 
 #include <Poco/NumberParser.h>
 #include <Poco/String.h>
+#include <Poco/UTF8String.h>
 
 #ifdef _win_
 #   include <processthreadsapi.h>
@@ -111,9 +111,22 @@ inline void hexPrint(std::ostream &stream, const std::basic_string<CharT, Traits
 
 inline bool isYes(std::string str) {
     Poco::trimInPlace(str);
-    Poco::toLowerInPlace(str);
+    Poco::UTF8::toLowerInPlace(str);
+
     bool flag = false;
     return (Poco::NumberParser::tryParseBool(str, flag) ? flag : false);
+}
+
+inline bool isYesOrNo(std::string str) {
+    Poco::trimInPlace(str);
+    Poco::UTF8::toLowerInPlace(str);
+
+    int flag_num = -1;
+    if (Poco::NumberParser::tryParse(str, flag_num))
+        return (flag_num == 0 || flag_num == 1);
+
+    bool flag = false;
+    return Poco::NumberParser::tryParseBool(str, flag);
 }
 
 inline auto tryStripParamPrefix(std::string param_name) {
@@ -122,36 +135,11 @@ inline auto tryStripParamPrefix(std::string param_name) {
     return param_name;
 }
 
-/// Parse a string of the form `key1=value1;key2=value2` ... TODO Parsing values in curly brackets.
-inline const char * nextKeyValuePair(const char * data, const char * end, StringRef & out_key, StringRef & out_value) {
-    if (data >= end)
-        return nullptr;
-
-    const char * key_begin = data;
-    const char * key_end = reinterpret_cast<const char *>(memchr(key_begin, '=', end - key_begin));
-    if (!key_end)
-        return nullptr;
-
-    const char * value_begin = key_end + 1;
-    const char * value_end;
-    if (value_begin >= end)
-        value_end = value_begin;
-    else {
-        value_end = reinterpret_cast<const char *>(memchr(value_begin, ';', end - value_begin));
-        if (!value_end)
-            value_end = end;
+struct UTF8CaseInsensitiveCompare {
+    bool operator() (const std::string & lhs, const std::string & rhs) const {
+        return Poco::UTF8::icompare(lhs, rhs) < 0;
     }
-
-    out_key.data = key_begin;
-    out_key.size = key_end - key_begin;
-
-    out_value.data = value_begin;
-    out_value.size = value_end - value_begin;
-
-    if (value_end < end && *value_end == ';')
-        return value_end + 1;
-    return value_end;
-}
+};
 
 // Directly write raw bytes to the buffer, respecting its size.
 // All lengths are in bytes. If 'out_value_max_length == 0',

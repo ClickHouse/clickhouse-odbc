@@ -46,7 +46,6 @@ add_library(${libname}-impl STATIC
     utils/read_helpers.h
     utils/type_parser.h
     utils/scope_guard.h
-    utils/string_ref.h
 
     config/config.h
     config/ini_defines.h

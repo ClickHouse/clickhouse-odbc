@@ -1,6 +1,4 @@
 #include "driver/utils/utils.h"
-#include "driver/utils/string_ref.h"
-#include "driver/config/config.h"
 #include "driver/config/ini_defines.h"
 #include "driver/connection.h"
 #include "driver/descriptor.h"
@@ -23,9 +21,9 @@
 
 std::once_flag ssl_init_once;
 
+#if USE_SSL
 void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::string & certificateFile, const std::string & caLocation) {
 // http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
-#if USE_SSL
     Poco::Net::initializeSSL();
     Poco::SharedPtr<Poco::Net::InvalidCertificateHandler> ptrHandler;
     if (ssl_strict)
@@ -46,58 +44,61 @@ void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::str
 #    endif
     );
     Poco::Net::SSLManager::instance().initializeClient(0, ptrHandler, ptrContext);
-#endif
 }
-
+#endif
 
 Connection::Connection(Environment & environment)
     : ChildType(environment)
 {
+    resetConfiguration();
 }
 
-std::string Connection::connectionString() const {
-    std::string ret;
-    ret += "DSN=" + data_source + ";";
-    ret += "DATABASE=" + database + ";";
-    ret += "PROTO=" + proto + ";";
-    ret += "SERVER=" + server + ";";
-    ret += "PORT=" + std::to_string(port) + ";";
-    ret += "UID=" + user + ";";
-    if (!password.empty()) {
-        ret += "PWD=" + password + ";";
+void Connection::connect(const std::string & connection_string) {
+    if (session && session->connected())
+        throw SqlException("Connection name in use", "08002");
+
+    const auto cs_fields = readConnectionString(connection_string);
+
+    const auto driver_cs_it = cs_fields.find(INI_DRIVER);
+    const auto dsn_cs_it = cs_fields.find(INI_DSN);
+    const auto filedsn_cs_it = cs_fields.find(INI_FILEDSN);
+    const auto savefile_cs_it = cs_fields.find(INI_SAVEFILE);
+
+    if (filedsn_cs_it != cs_fields.end())
+        throw SqlException("Optional feature not implemented", "HYC00");
+
+    if (savefile_cs_it != cs_fields.end())
+        throw SqlException("Optional feature not implemented", "HYC00");
+
+    key_value_map_t dsn_fields;
+
+    // DRIVER and DSN won't exist in the map at the same time, readConnectionString() will take care of that.
+    if (driver_cs_it == cs_fields.end()) {
+        if (dsn_cs_it != cs_fields.end() && !dsn_cs_it->second.empty() && DSNExists(getParent(), dsn_cs_it->second))
+            dsn_fields = readDSNInfo(dsn_cs_it->second);
+        else
+            dsn_fields = readDSNInfo("DEFAULT");
     }
-    return ret;
-}
 
-const std::string & Connection::getDatabase() const {
-    return database;
-}
-
-void Connection::setDatabase(const std::string & db) {
-    database = db;
-}
-
-void Connection::init() {
-    loadConfiguration();
-    setDefaults();
-
-    if (user.find(':') != std::string::npos)
-        throw std::runtime_error("Username couldn't contain ':' (colon) symbol.");
+    resetConfiguration();
+    setConfiguration(cs_fields, dsn_fields);
 
     LOG("Creating session with " << proto << "://" << server << ":" << port);
 
 #if USE_SSL
-    bool is_ssl = proto == "https";
-
-    if (is_ssl)
+    const auto is_ssl = (Poco::UTF8::icompare(proto, "https") == 0);
+    if (is_ssl) {
+        const auto ssl_strict = (Poco::UTF8::icompare(sslmode, "require") == 0);
         std::call_once(ssl_init_once, SSLInit, ssl_strict, privateKeyFile, certificateFile, caLocation);
+    }
 #endif
 
     session = std::unique_ptr<Poco::Net::HTTPClientSession>(
 #if USE_SSL
         is_ssl ? new Poco::Net::HTTPSClientSession :
 #endif
-               new Poco::Net::HTTPClientSession);
+        new Poco::Net::HTTPClientSession
+    );
 
     session->setHost(server);
     session->setPort(port);
@@ -106,175 +107,269 @@ void Connection::init() {
     session->setKeepAliveTimeout(Poco::Timespan(86400, 0));
 }
 
-void Connection::init(const std::string & dsn_,
-    const uint16_t port_,
-    const std::string & user_,
-    const std::string & password_,
-    const std::string & database_) {
-    if (session && session->connected())
-        throw std::runtime_error("Already connected.");
-
-    data_source = dsn_;
-
-    if (port_)
-        port = port_;
-    if (!user_.empty())
-        user = user_;
-    if (!password_.empty())
-        password = password_;
-    if (!database_.empty())
-        database = database_;
-
-    init();
+void Connection::resetConfiguration() {
+    data_source.clear();
+    url.clear();
+    proto.clear();
+    server.clear();
+    port = 0;
+    path.clear();
+    user.clear();
+    password.clear();
+    database.clear();
+    timeout = 0;
+    connection_timeout = 0;
+    stringmaxlength = 0;
+    sslmode.clear();
+    privateKeyFile.clear();
+    certificateFile.clear();
+    caLocation.clear();
 }
 
-void Connection::init(const std::string & connection_string) {
-    /// connection_string - string of the form `DSN=ClickHouse;UID=default;PWD=password`
+void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_value_map_t & dsn_fields) {
+    // Returns tuple of bools: ("recognized key", "valid value", "value overwritten").
+    auto set_config_value = [&] (const std::string & key, const std::string & value, bool overwrite) {
+        bool recognized_key = false;
+        bool valid_value = false;
+        bool value_overwritten = false;
 
-    const char * pos = connection_string.data();
-    const char * end = pos + connection_string.size();
+        if (Poco::UTF8::icompare(key, INI_DSN) == 0) {
+            recognized_key = true;
+            valid_value = true;
+            if (valid_value && (overwrite || data_source.empty())) {
+                data_source = value;
+                value_overwritten = true;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_URL) == 0) {
+            recognized_key = true;
+            valid_value = true;
+            if (valid_value && (overwrite || url.empty())) {
+                url = value;
+                value_overwritten = true;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_PROTO) == 0) {
+            recognized_key = true;
+            valid_value = (
+                Poco::UTF8::icompare(value, "http") == 0 ||
+                Poco::UTF8::icompare(value, "https") == 0
+            );
+            if (valid_value && (overwrite || proto.empty())) {
+                proto = value;
+                value_overwritten = true;
+            }
+        }
+        else if (
+            Poco::UTF8::icompare(key, INI_SERVER) == 0 ||
+            Poco::UTF8::icompare(key, INI_HOST) == 0
+        ) {
+            recognized_key = true;
+            valid_value = true;
+            if (valid_value && (overwrite || server.empty())) {
+                server = value;
+                value_overwritten = true;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_PORT) == 0) {
+            recognized_key = true;
+            unsigned int typed_value = 0;
+            valid_value = (
+                !value.empty() &&
+                Poco::NumberParser::tryParseUnsigned(value, typed_value) &&
+                typed_value > 0 &&
+                typed_value <= std::numeric_limits<decltype(port)>::max()
+            );
+            if (valid_value && (overwrite || port == 0)) {
+                port = typed_value;
+                value_overwritten = true;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_PATH) == 0) {
+            recognized_key = true;
+            valid_value = true;
+            if (valid_value && (overwrite || path.empty())) {
+                path = value;
+                value_overwritten = true;
+            }
+        }
+        else if (
+            Poco::UTF8::icompare(key, INI_UID) == 0 ||
+            Poco::UTF8::icompare(key, INI_USERNAME) == 0
+        ) {
+            recognized_key = true;
+            valid_value = (value.find(':') == std::string::npos);
+            if (valid_value && (overwrite || user.empty())) {
+                user = value;
+                value_overwritten = true;
+            }
+        }
+        else if (
+            Poco::UTF8::icompare(key, INI_PWD) == 0 ||
+            Poco::UTF8::icompare(key, INI_PASSWORD) == 0
+        ) {
+            recognized_key = true;
+            valid_value = true;
+            if (valid_value && (overwrite || password.empty())) {
+                password = value;
+                value_overwritten = true;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_DATABASE) == 0) {
+            recognized_key = true;
+            valid_value = true;
+            if (valid_value && (overwrite || database.empty())) {
+                database = value;
+                value_overwritten = true;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_TIMEOUT) == 0) {
+            recognized_key = true;
+            unsigned int typed_value = 0;
+            valid_value = (
+                !value.empty() &&
+                Poco::NumberParser::tryParseUnsigned(value, typed_value) &&
+                typed_value <= std::numeric_limits<decltype(timeout)>::max()
+            );
+            if (valid_value && (overwrite || timeout == 0)) {
+                timeout = typed_value;
+                value_overwritten = true;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_STRINGMAXLENGTH) == 0) {
+            recognized_key = true;
+            unsigned int typed_value = 0;
+            valid_value = (
+                !value.empty() &&
+                Poco::NumberParser::tryParseUnsigned(value, typed_value) &&
+                typed_value > 0 &&
+                typed_value <= std::numeric_limits<decltype(stringmaxlength)>::max()
+            );
+            if (valid_value && (overwrite || stringmaxlength == 0)) {
+                stringmaxlength = typed_value;
+                value_overwritten = true;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_SSLMODE) == 0) {
+            recognized_key = true;
+            valid_value = (
+                Poco::UTF8::icompare(value, "allow") == 0 ||
+                Poco::UTF8::icompare(value, "prefer") == 0 ||
+                Poco::UTF8::icompare(value, "require") == 0
+            );
+            if (valid_value && (overwrite || sslmode.empty())) {
+                sslmode = value;
+                value_overwritten = true;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_PRIVATEKEYFILE) == 0) {
+            recognized_key = true;
+            valid_value = true;
+            if (valid_value && (overwrite || privateKeyFile.empty())) {
+                privateKeyFile = value;
+                value_overwritten = true;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_CERTIFICATEFILE) == 0) {
+            recognized_key = true;
+            valid_value = true;
+            if (valid_value && (overwrite || certificateFile.empty())) {
+                certificateFile = value;
+                value_overwritten = true;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_CALOCATION) == 0) {
+            recognized_key = true;
+            valid_value = true;
+            if (valid_value && (overwrite || caLocation.empty())) {
+                caLocation = value;
+                value_overwritten = true;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_DRIVERLOGFILE) == 0) {
+            recognized_key = true;
+            valid_value = true;
+            if (valid_value && (overwrite || !getDriver().hasAttr(CH_SQL_ATTR_DRIVERLOGFILE))) {
+                getDriver().setAttr(CH_SQL_ATTR_DRIVERLOGFILE, value);
+                value_overwritten = true;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_DRIVERLOG) == 0) {
+            recognized_key = true;
+            valid_value = isYesOrNo(value);
+            if (valid_value && (overwrite || !getDriver().hasAttr(CH_SQL_ATTR_DRIVERLOG))) {
+                getDriver().setAttr(CH_SQL_ATTR_DRIVERLOG, (isYes(value) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
+                value_overwritten = true;
+            }
+        }
 
-    StringRef current_key;
-    StringRef current_value;
+        return std::make_tuple(recognized_key, valid_value, value_overwritten);
+    };
 
-    while ((pos = nextKeyValuePair(pos, end, current_key, current_value))) {
-        auto key_lower = current_key.toString();
-        std::transform(key_lower.begin(), key_lower.end(), key_lower.begin(), ::tolower);
-        LOG("Parse DSN: key=" << key_lower << " value=" << current_value.toString());
-        if (key_lower == "uid")
-            user = current_value.toString();
-        else if (key_lower == "pwd")
-            password = current_value.toString();
-        else if (key_lower == "proto")
-            proto = current_value.toString();
-        else if (key_lower == "sslmode" && (current_value == "allow" || current_value == "prefer" || current_value == "require")) {
-            proto = "https";
-            if (current_value == "require")
-                ssl_strict = true;
-        } else if (key_lower == "url")
-            url = current_value.toString();
-        else if (key_lower == "host" || key_lower == "server")
-            server = current_value.toString();
-        else if (key_lower == "port") {
-            int int_val = 0;
-            if (Poco::NumberParser::tryParse(current_value.toString(), int_val))
-                port = int_val;
-            else {
-                throw std::runtime_error("Cannot parse port number.");
+    for (auto & field : cs_fields) {
+        auto res = set_config_value(field.first, field.second, true);
+
+        if (std::get<0>(res)) {
+            if (std::get<1>(res)) {
+                LOG("Connection string attribute" << (std::get<2>(res) ? "" : " (unused)") << ": " << field.first << " = " << field.second);
             }
-        } else if (key_lower == "database")
-            database = current_value.toString();
-        else if (key_lower == "timeout") {
-            int int_val = 0;
-            if (Poco::NumberParser::tryParse(current_value.toString(), int_val))
-                connection_timeout = timeout = int_val;
             else {
-                throw std::runtime_error("Cannot parse timeout.");
+                throw std::runtime_error("bad value '" + field.second + "' for connection string attribute '" + field.first + "'");
             }
-        } else if (key_lower == "stringmaxlength") {
-            int int_val = 0;
-            if (Poco::NumberParser::tryParse(current_value.toString(), int_val))
-                stringmaxlength = int_val;
-            else {
-                throw std::runtime_error("Cannot parse stringmaxlength.");
-            }
-        } else if (key_lower == "dsn")
-            data_source = current_value.toString();
-        else if (key_lower == "privatekeyfile")
-            privateKeyFile = current_value.toString();
-        else if (key_lower == "certificatefile")
-            certificateFile = current_value.toString();
-        else if (key_lower == "calocation")
-            caLocation = current_value.toString();
+        }
+        else {
+            LOG("Connection string: unknown attribute '" << field.first << "'");
+        }
     }
 
-    init();
-}
+    for (auto & field : dsn_fields) {
+        auto res = set_config_value(field.first, field.second, false);
 
-void Connection::loadConfiguration() {
+        if (std::get<0>(res)) {
+            if (std::get<1>(res)) {
+                LOG("DSN attribute" << (std::get<2>(res) ? "" : " (unused, overriden by the connection string)") << ": " << field.first << " = " << field.second);
+            }
+            else {
+                throw std::runtime_error("bad value '" + field.second + "' for DSN attribute '" + field.first + "'");
+            }
+        }
+        else {
+            LOG("DSN: unknown attribute '" << field.first << "'");
+        }
+    }
+
     if (data_source.empty())
         data_source = INI_DSN_DEFAULT;
 
-    ConnInfo ci;
-    ci.dsn = data_source;
-    getDSNinfo(&ci, true);
-
-    if (!ci.driverlogfile.empty())
-        getDriver().setAttr(CH_SQL_ATTR_DRIVERLOGFILE, ci.driverlogfile);
-
-    if (!ci.driverlog.empty())
-        getDriver().setAttr(CH_SQL_ATTR_DRIVERLOG, (isYes(ci.driverlog) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
-
-    if (url.empty())
-        url = ci.url;
-
-    if (port == 0) {
-        if (!ci.port.empty()) {
-            int tmp = 0;
-            if (!Poco::NumberParser::tryParse(ci.port, tmp))
-                throw std::runtime_error(("Cannot parse port number [" + ci.port + "].").c_str());
-            port = tmp;
-        }
-    }
-
-    if (timeout == 0) {
-        if (!ci.timeout.empty()) {
-            if (!Poco::NumberParser::tryParse(ci.timeout, timeout))
-                throw std::runtime_error("Cannot parse connection timeout value [" + ci.timeout + "].");
-            connection_timeout = timeout;
-        }
-    }
-
-    if (stringmaxlength == 0) {
-        if (!ci.stringmaxlength.empty()) {
-            if (!Poco::NumberParser::tryParse(ci.stringmaxlength, stringmaxlength))
-                throw std::runtime_error("Cannot parse stringmaxlength value [" + ci.stringmaxlength + "].");
-        }
-    }
-
-    if (server.empty())
-        server = ci.server;
-
-    if (user.empty())
-        user = ci.username;
-
-    if (password.empty())
-        password = ci.password;
-
-    if (database.empty())
-        database = ci.database;
-
-    if (proto.empty() && (ci.sslmode == "require" || ci.sslmode == "prefer" || ci.sslmode == "allow" || port == 8443))
-        proto = "https";
-
-    if (ci.sslmode == "require")
-        ssl_strict = true;
-
-    if (privateKeyFile.empty())
-        privateKeyFile = ci.privateKeyFile;
-
-    if (certificateFile.empty())
-        certificateFile = ci.certificateFile;
-
-    if (caLocation.empty())
-        caLocation = ci.caLocation;
-}
-
-void Connection::setDefaults() {
-    if (data_source.empty())
-        data_source = INI_DSN_DEFAULT;
     if (!url.empty()) {
         Poco::URI uri(url);
+
         if (proto.empty())
             proto = uri.getScheme();
+
+        const auto & user_info = uri.getUserInfo();
+        const auto index = user_info.find(':');
+        if (index != std::string::npos) {
+            if (password.empty())
+                password = user_info.substr(index + 1);
+
+            if (user.empty())
+                user = user_info.substr(0, index);
+        }
+
         if (server.empty())
             server = uri.getHost();
+
         if (port == 0) {
-            // TODO(dakovalkov): This doesn't work when you explicitly set 80 for http and 443 for https.
+            // TODO(dakovalkov): This doesn't work when you explicitly set 80 for http and 443 for https due to Poco's getPort() behavior.
             const auto tmp_port = uri.getPort();
-            if ((proto == "https" && tmp_port != 443) || (proto == "http" && tmp_port != 80))
+            if (
+                (Poco::UTF8::icompare(proto, "https") == 0 && tmp_port != 443) ||
+                (Poco::UTF8::icompare(proto, "http") == 0 && tmp_port != 80)
+            )
                 port = tmp_port;
         }
+
         if (path.empty())
             path = uri.getPath();
 
@@ -283,37 +378,41 @@ void Connection::setDefaults() {
                 database = parameter.second;
             }
         }
-
-        auto user_info = uri.getUserInfo();
-        auto index = user_info.find(':');
-        if (index != std::string::npos) {
-            if (password.empty())
-                password = user_info.substr(index + 1);
-            if (user.empty())
-                user = user_info.substr(0, index);
-        }
     }
 
-    if (proto.empty())
-        proto = (port == 8443 ? "https" : "http");
-    if (server.empty())
-        server = "localhost";
-    if (port == 0)
-        port = (proto == "https" ? 8443 : 8123);
-    if (path.empty())
-        path = "query";
-    if (path[0] != '/')
-        path = "/" + path;
-    if (stringmaxlength == 0)
-        stringmaxlength = TypeInfo::string_max_size;
+    if (proto.empty()) {
+        if (!sslmode.empty() || port == 443 || port == 8443)
+            proto = "https";
+        else
+            proto = "http";
+    }
+
     if (user.empty())
         user = "default";
+
+    if (server.empty())
+        server = "localhost";
+
+    if (port == 0)
+        port = (Poco::UTF8::icompare(proto, "https") == 0 ? 8443 : 8123);
+
+    if (path.empty())
+        path = "query";
+
+    if (path[0] != '/')
+        path = "/" + path;
+
     if (database.empty())
         database = "default";
+
     if (timeout == 0)
         timeout = 30;
+
     if (connection_timeout == 0)
         connection_timeout = timeout;
+
+    if (stringmaxlength == 0)
+        stringmaxlength = TypeInfo::string_max_size;
 }
 
 std::string Connection::buildCredentialsString() const {

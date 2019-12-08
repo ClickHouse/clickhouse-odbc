@@ -73,7 +73,7 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
         }
     }
     if (!setDatabase) {
-        uri.addQueryParameter("database", connection.getDatabase());
+        uri.addQueryParameter("database", connection.database);
     }
     if (!setDefaultFormat) {
         uri.addQueryParameter("default_format", "ODBCDriver2");
