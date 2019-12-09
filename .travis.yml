@@ -211,6 +211,7 @@ script:
     Driver        = clickhouse_driver
     Description   = ClickHouse DSN (ANSI, localhost)
     Url           = http://${CLICKHOUSE_SERVER_IP}
+    SSLMode       = allow
     Timeout       = 30
     DriverLog     = yes
     DriverLogFile = /tmp/clickhouse-odbc-driver.log
@@ -219,6 +220,7 @@ script:
     Driver        = clickhouse_driver_w
     Description   = ClickHouse DSN (Unicode, localhost)
     Url           = http://${CLICKHOUSE_SERVER_IP}
+    SSLMode       = allow
     Timeout       = 30
     DriverLog     = yes
     DriverLogFile = /tmp/clickhouse-odbc-driver-w.log
