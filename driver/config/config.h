@@ -35,7 +35,6 @@ struct ConnInfo {
     std::string caLocation;
 };
 
-bool DSNExists(Environment & env, const std::string & target_dsn);
 void readDSNinfo(ConnInfo * ci, bool overwrite);
 void writeDSNinfo(const ConnInfo * ci);
 key_value_map_t readDSNInfo(const std::string & dsn);

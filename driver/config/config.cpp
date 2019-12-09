@@ -11,61 +11,6 @@
 
 #include <cstring>
 
-bool DSNExists(Environment & env, const std::string & target_dsn) {
-    // First, rewind to the end.
-    while (true) {
-        const auto rc = SQLDataSources(
-            env.getHandle(),
-            SQL_FETCH_NEXT,
-            nullptr,
-            MAX_DSN_VALUE_LEN,
-            nullptr,
-            nullptr,
-            MAX_DSN_VALUE_LEN,
-            nullptr
-        );
-
-        if (rc == SQL_NO_DATA)
-            break;
-
-        if (!SQL_SUCCEEDED(rc))
-            throw std::runtime_error("failed to iterate over defined data sources");
-    }
-
-    // Now, rewind from the start to the end, comparing each next DSN to the target.
-    while (true) {
-        std::basic_string<SQLTCHAR> dsn(MAX_DSN_VALUE_LEN, SQLTCHAR{});
-        SQLSMALLINT dsn_len = 0;
-
-        const auto rc = SQLDataSources(
-            env.getHandle(),
-            SQL_FETCH_NEXT,
-            const_cast<SQLTCHAR *>(dsn.data()),
-            dsn.size(),
-            &dsn_len,
-            nullptr,
-            MAX_DSN_VALUE_LEN,
-            nullptr
-        );
-
-        if (rc == SQL_NO_DATA)
-            break;
-
-        if (!SQL_SUCCEEDED(rc))
-            throw std::runtime_error("failed to iterate over defined data sources");
-
-        if (dsn_len < 0 || dsn_len >= dsn.size())
-            throw std::runtime_error("failed to extract data source name");
-
-        dsn.resize(dsn_len);
-
-        if (Poco::UTF8::icompare(target_dsn, toUTF8(dsn)) == 0)
-            return true;
-    }
-
-    return false;
-}
-
 void readDSNinfo(ConnInfo * ci, bool overwrite) {
     std::basic_string<CharTypeLPCTSTR> dsn;
     std::basic_string<CharTypeLPCTSTR> config_file;
@@ -158,14 +103,30 @@ void writeDSNinfo(const ConnInfo * ci) {
 key_value_map_t readConnectionString(const std::string & connection_string) {
     key_value_map_t fields;
 
-    std::string cs = connection_string + ';';
+    std::string cs = connection_string;
 
-    const auto extract_key_name = [] (std::string & str) {
+    const auto consume_space = [] (std::string & str) {
+        std::size_t num = 0;
+        while (!str.empty() && std::isspace(str[num])) {
+            ++num;
+        }
+        str.erase(0, num);
+        return num;
+    };
+
+    const auto consume_semi_colons = [] (std::string & str) {
+        std::size_t num = 0;
+        while (!str.empty() && str[num] == ';') {
+            ++num;
+        }
+        str.erase(0, num);
+        return num;
+    };
+
+    const auto extract_key_name = [&consume_space, &consume_semi_colons] (std::string & str) {
         std::string key;
 
-        while (!str.empty() && (std::isspace(str.front()) || str.front() == ';')) {
-            str.erase(0, 1);
-        }
+        while (consume_space(str) || consume_semi_colons(str));
 
         bool equal_met = false;
 
@@ -203,12 +164,10 @@ key_value_map_t readConnectionString(const std::string & connection_string) {
         return key;
     };
 
-    const auto extract_key_value = [] (std::string & str) {
+    const auto extract_key_value = [&consume_space, &consume_semi_colons] (std::string & str) {
         std::string value;
 
-        while (!str.empty() && std::isspace(str.front())) {
-            str.erase(0, 1);
-        }
+        while (consume_space(str));
 
         bool stop_at_closing_brace = false;
         bool stopped_at_closing_brace = false;
@@ -226,7 +185,6 @@ key_value_map_t readConnectionString(const std::string & connection_string) {
             }
             else if (!stop_at_closing_brace && str.front() == ';') {
                 stopped_at_closing_brace = false;
-                str.erase(0, 1);
                 break;
             }
             else {
@@ -244,6 +202,18 @@ key_value_map_t readConnectionString(const std::string & connection_string) {
                 value.pop_back();
             }
         }
+
+        std::size_t consumed = 0;
+        std::size_t consumed_semi_colons = 0;
+
+        do {
+            consumed = consume_semi_colons(str);
+            consumed_semi_colons += consumed;
+            consumed += consume_space(str);
+        } while (consumed > 0);
+
+        if (consumed_semi_colons == 0 && !str.empty())
+            throw std::runtime_error("';' expected");
 
         return value;
     };
@@ -325,17 +295,7 @@ key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
 
         if (fields.find(key_utf8) != fields.end()) {
             LOG("Repeating key " << key_utf8 << " in DSN " << dsn_utf8 << ", ignoring, the first met value will be used");
-            break;
-        }
-
-        if (
-            Poco::UTF8::icompare(key_utf8, INI_DSN) == 0 ||
-            Poco::UTF8::icompare(key_utf8, INI_DRIVER) == 0 ||
-            Poco::UTF8::icompare(key_utf8, INI_FILEDSN) == 0 ||
-            Poco::UTF8::icompare(key_utf8, INI_SAVEFILE) == 0
-        ) {
-            LOG("Unexpected key " << key_utf8 << " in DSN " << dsn_utf8 << ", ignoring");
-            break;
+            continue;
         }
 
         std::basic_string<CharTypeLPCTSTR> value(MAX_DSN_VALUE_LEN, CharTypeLPCTSTR{});

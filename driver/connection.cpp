@@ -57,7 +57,7 @@ void Connection::connect(const std::string & connection_string) {
     if (session && session->connected())
         throw SqlException("Connection name in use", "08002");
 
-    const auto cs_fields = readConnectionString(connection_string);
+    auto cs_fields = readConnectionString(connection_string);
 
     const auto driver_cs_it = cs_fields.find(INI_DRIVER);
     const auto dsn_cs_it = cs_fields.find(INI_DSN);
@@ -72,12 +72,39 @@ void Connection::connect(const std::string & connection_string) {
 
     key_value_map_t dsn_fields;
 
-    // DRIVER and DSN won't exist in the map at the same time, readConnectionString() will take care of that.
+    // DRIVER and DSN won't exist in the field map at the same time, readConnectionString() will take care of that.
     if (driver_cs_it == cs_fields.end()) {
-        if (dsn_cs_it != cs_fields.end() && !dsn_cs_it->second.empty() && DSNExists(getParent(), dsn_cs_it->second))
-            dsn_fields = readDSNInfo(dsn_cs_it->second);
-        else
-            dsn_fields = readDSNInfo("DEFAULT");
+        std::string dsn;
+
+        if (dsn_cs_it != cs_fields.end())
+            dsn = dsn_cs_it->second;
+
+        dsn_fields = readDSNInfo(dsn);
+
+        // Remove common but unused keys, if any.
+        dsn_fields.erase(INI_DRIVER);
+        dsn_fields.erase(INI_DESC);
+
+        // Report and remove totally unexpected keys, if any.
+
+        if (dsn_fields.find(INI_DSN) != dsn_fields.end()) {
+            LOG("Unexpected key " << INI_DSN << " in DSN, ignoring");
+            dsn_fields.erase(INI_DSN);
+        }
+
+        if (dsn_fields.find(INI_FILEDSN) != dsn_fields.end()) {
+            LOG("Unexpected key " << INI_FILEDSN << " in DSN, ignoring");
+            dsn_fields.erase(INI_FILEDSN);
+        }
+
+        if (dsn_fields.find(INI_SAVEFILE) != dsn_fields.end()) {
+            LOG("Unexpected key " << INI_SAVEFILE << " in DSN, ignoring");
+            dsn_fields.erase(INI_SAVEFILE);
+        }
+    }
+    else {
+        // Remove common but unused key.
+        cs_fields.erase(driver_cs_it);
     }
 
     resetConfiguration();
@@ -307,34 +334,44 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
     };
 
     for (auto & field : cs_fields) {
-        auto res = set_config_value(field.first, field.second, true);
+        const auto & key = field.first;
+        const auto & value = field.second;
+        const auto res = set_config_value(key, value, true);
+        const auto & recognized_key = std::get<0>(res);
+        const auto & valid_value = std::get<1>(res);
+        const auto & value_overwritten = std::get<2>(res);
 
-        if (std::get<0>(res)) {
-            if (std::get<1>(res)) {
-                LOG("Connection string attribute" << (std::get<2>(res) ? "" : " (unused)") << ": " << field.first << " = " << field.second);
+        if (recognized_key) {
+            if (valid_value) {
+                LOG("Connection string attribute" << (value_overwritten ? "" : " (unused)") << ": " << key << " = " << value);
             }
             else {
-                throw std::runtime_error("bad value '" + field.second + "' for connection string attribute '" + field.first + "'");
+                throw std::runtime_error("bad value '" + value + "' for connection string attribute '" + key + "'");
             }
         }
         else {
-            LOG("Connection string: unknown attribute '" << field.first << "'");
+            LOG("Connection string: unknown attribute '" << key << "'");
         }
     }
 
     for (auto & field : dsn_fields) {
-        auto res = set_config_value(field.first, field.second, false);
+        const auto & key = field.first;
+        const auto & value = field.second;
+        const auto res = set_config_value(key, value, false);
+        const auto & recognized_key = std::get<0>(res);
+        const auto & valid_value = std::get<1>(res);
+        const auto & value_overwritten = std::get<2>(res);
 
-        if (std::get<0>(res)) {
-            if (std::get<1>(res)) {
-                LOG("DSN attribute" << (std::get<2>(res) ? "" : " (unused, overriden by the connection string)") << ": " << field.first << " = " << field.second);
+        if (recognized_key) {
+            if (valid_value) {
+                LOG("DSN attribute" << (value_overwritten ? "" : " (unused, overriden by the connection string)") << ": " << key << " = " << value);
             }
             else {
-                throw std::runtime_error("bad value '" + field.second + "' for DSN attribute '" + field.first + "'");
+                throw std::runtime_error("bad value '" + value + "' for DSN attribute '" + key + "'");
             }
         }
         else {
-            LOG("DSN: unknown attribute '" << field.first << "'");
+            LOG("DSN: unknown attribute '" << key << "'");
         }
     }
 
