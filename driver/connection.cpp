@@ -115,7 +115,7 @@ void Connection::connect(const std::string & connection_string) {
 #if USE_SSL
     const auto is_ssl = (Poco::UTF8::icompare(proto, "https") == 0);
     if (is_ssl) {
-        const auto ssl_strict = (Poco::UTF8::icompare(sslmode, "require") == 0);
+        const auto ssl_strict = (Poco::UTF8::icompare(sslmode, "allow") != 0);
         std::call_once(ssl_init_once, SSLInit, ssl_strict, privateKeyFile, certificateFile, caLocation);
     }
 #endif
@@ -179,6 +179,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
         else if (Poco::UTF8::icompare(key, INI_PROTO) == 0) {
             recognized_key = true;
             valid_value = (
+                value.empty() ||
                 Poco::UTF8::icompare(value, "http") == 0 ||
                 Poco::UTF8::icompare(value, "https") == 0
             );
@@ -201,12 +202,11 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
         else if (Poco::UTF8::icompare(key, INI_PORT) == 0) {
             recognized_key = true;
             unsigned int typed_value = 0;
-            valid_value = (
-                !value.empty() &&
+            valid_value = (value.empty() || (
                 Poco::NumberParser::tryParseUnsigned(value, typed_value) &&
                 typed_value > 0 &&
                 typed_value <= std::numeric_limits<decltype(port)>::max()
-            );
+            ));
             if (valid_value && (overwrite || port == 0)) {
                 port = typed_value;
                 value_overwritten = true;
@@ -253,11 +253,10 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
         else if (Poco::UTF8::icompare(key, INI_TIMEOUT) == 0) {
             recognized_key = true;
             unsigned int typed_value = 0;
-            valid_value = (
-                !value.empty() &&
+            valid_value = (value.empty() || (
                 Poco::NumberParser::tryParseUnsigned(value, typed_value) &&
                 typed_value <= std::numeric_limits<decltype(timeout)>::max()
-            );
+            ));
             if (valid_value && (overwrite || timeout == 0)) {
                 timeout = typed_value;
                 value_overwritten = true;
@@ -266,12 +265,11 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
         else if (Poco::UTF8::icompare(key, INI_STRINGMAXLENGTH) == 0) {
             recognized_key = true;
             unsigned int typed_value = 0;
-            valid_value = (
-                !value.empty() &&
+            valid_value = (value.empty() || (
                 Poco::NumberParser::tryParseUnsigned(value, typed_value) &&
                 typed_value > 0 &&
                 typed_value <= std::numeric_limits<decltype(stringmaxlength)>::max()
-            );
+            ));
             if (valid_value && (overwrite || stringmaxlength == 0)) {
                 stringmaxlength = typed_value;
                 value_overwritten = true;
@@ -280,6 +278,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
         else if (Poco::UTF8::icompare(key, INI_SSLMODE) == 0) {
             recognized_key = true;
             valid_value = (
+                value.empty() ||
                 Poco::UTF8::icompare(value, "allow") == 0 ||
                 Poco::UTF8::icompare(value, "prefer") == 0 ||
                 Poco::UTF8::icompare(value, "require") == 0
@@ -323,7 +322,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
         }
         else if (Poco::UTF8::icompare(key, INI_DRIVERLOG) == 0) {
             recognized_key = true;
-            valid_value = isYesOrNo(value);
+            valid_value = (value.empty() || isYesOrNo(value));
             if (valid_value && (overwrite || !getDriver().hasAttr(CH_SQL_ATTR_DRIVERLOG))) {
                 getDriver().setAttr(CH_SQL_ATTR_DRIVERLOG, (isYes(value) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
                 value_overwritten = true;
