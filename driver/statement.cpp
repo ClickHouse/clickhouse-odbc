@@ -63,6 +63,12 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
 
     Poco::URI uri(connection.url);
 
+    if (connection.port != 0)
+        uri.setPort(connection.port);
+
+    if (!connection.server.empty())
+        uri.setHost(connection.server);
+
     bool setDatabase = false;
     bool setDefaultFormat = false;
     for (const auto& parameter : uri.getQueryParameters()) {

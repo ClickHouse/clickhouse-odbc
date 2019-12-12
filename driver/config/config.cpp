@@ -245,7 +245,7 @@ key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
 
     std::basic_string<CharTypeLPCTSTR> dsn;
     std::basic_string<CharTypeLPCTSTR> config_file;
-    std::basic_string<CharTypeLPCTSTR> default_value; // leave this empty
+    const std::basic_string<CharTypeLPCTSTR> default_value = fromUTF8<CharTypeLPCTSTR>("__default__"); // Assuming, __default__ will never be used as a value for any key.
     std::list<std::basic_string<CharTypeLPCTSTR>> keys;
 
     fromUTF8(dsn_utf8, dsn);
@@ -269,7 +269,7 @@ key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
 
         if (read >= keys_all.size())
             throw std::runtime_error("SQLGetPrivateProfileString failed to extract the entire key list of DSN " + dsn_utf8);
-        
+
         keys_all.resize(read);
 
         std::basic_string<CharTypeLPCTSTR> key;
@@ -288,6 +288,49 @@ key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
         if (!key.empty())
             keys.push_back(key);
     }
+
+// BEGIN WORKAROUND: some versions of UnixODBC instead of returning all keys return only the first one,
+// so here we make sure that all known keys will aslo be tried.
+    for (const auto & known_key :
+        {
+            INI_FILEDSN,
+            INI_SAVEFILE,
+            INI_DSN,
+            INI_DRIVER,
+            INI_DESC,
+            INI_URL,
+            INI_PROTO,
+            INI_SERVER,
+            INI_HOST,
+            INI_PORT,
+            INI_PATH,
+            INI_UID,
+            INI_USERNAME,
+            INI_PWD,
+            INI_PASSWORD,
+            INI_TIMEOUT,
+            INI_SSLMODE,
+            INI_DATABASE,
+            INI_READONLY,
+            INI_STRINGMAXLENGTH,
+            INI_PRIVATEKEYFILE,
+            INI_CERTIFICATEFILE,
+            INI_CALOCATION,
+            INI_DRIVERLOG,
+            INI_DRIVERLOGFILE
+        }
+    ) {
+        if (
+            std::find_if(
+                keys.begin(),
+                keys.end(),
+                [&] (const auto & key) { return (Poco::UTF8::icompare(known_key, toUTF8(key)) == 0); }
+            ) == keys.end()
+        ) {
+            keys.push_back(fromUTF8<CharTypeLPCTSTR>(known_key));
+        }
+    }
+// END WORKAROUND
 
     // Read values of each key.
     for (const auto key : keys) {
@@ -317,7 +360,8 @@ key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
 
         value.resize(read);
 
-        fields[key_utf8] = toUTF8(value);
+        if (value != default_value)
+            fields[key_utf8] = toUTF8(value);
     }
 
     return fields;
