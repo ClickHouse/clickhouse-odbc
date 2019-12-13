@@ -26,7 +26,7 @@ protected:
 
 TEST_P(ParseToMap, Compare) { parse_and_compare(std::get<0>(GetParam()), std::get<1>(GetParam())); }
 
-INSTANTIATE_TEST_CASE_P(ConnectionString, ParseToMap,
+INSTANTIATE_TEST_SUITE_P(ConnectionString, ParseToMap,
     ::testing::ValuesIn(std::initializer_list<std::tuple<std::string, key_value_map_t>>{
         { "", { } },
         { " ", { } },
