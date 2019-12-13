@@ -356,15 +356,15 @@ install: |-
   DebugFile = ${RUN_DIR}/odbc-driver-manager-debug.log
 
   [ODBC Drivers]
-  clickhouse_driver   = Installed
-  clickhouse_driver_w = Installed
+  ClickHouse ODBC Driver (ANSI)    = Installed
+  ClickHouse ODBC Driver (Unicode) = Installed
 
-  [clickhouse_driver]
+  [ClickHouse ODBC Driver (ANSI)]
   Driver     = ${ODBC_DRIVER_PATH}
   Setup      = ${ODBC_DRIVER_PATH}
   UsageCount = 1
 
-  [clickhouse_driver_w]
+  [ClickHouse ODBC Driver (Unicode)]
   Driver     = ${ODBC_DRIVERW_PATH}
   Setup      = ${ODBC_DRIVERW_PATH}
   UsageCount = 1
@@ -378,19 +378,19 @@ install: |-
   DebugFile = ${RUN_DIR}/odbc-driver-manager-debug.log
 
   [ODBC Data Sources]
-  clickhouse_localhost   = clickhouse_driver
-  clickhouse_localhost_w = clickhouse_driver_w
+  ClickHouse DSN (ANSI)    = ClickHouse ODBC Driver (ANSI)
+  ClickHouse DSN (Unicode) = ClickHouse ODBC Driver (Unicode)
 
-  [clickhouse_localhost]
-  Driver        = clickhouse_driver
-  Description   = ClickHouse DSN (ANSI, localhost)
+  [ClickHouse DSN (ANSI)]
+  Driver        = ClickHouse ODBC Driver (ANSI)
+  Description   = Test DSN for ClickHouse ODBC Driver (ANSI)
   Url           = http://${CLICKHOUSE_SERVER_IP}
   DriverLog     = yes
   DriverLogFile = ${RUN_DIR}/clickhouse-odbc-driver.log
 
-  [clickhouse_localhost_w]
-  Driver        = clickhouse_driver_w
-  Description   = ClickHouse DSN (Unicode, localhost)
+  [ClickHouse DSN (Unicode)]
+  Driver        = ClickHouse ODBC Driver (Unicode)
+  Description   = Test DSN for ClickHouse ODBC Driver (Unicode)
   Url           = http://${CLICKHOUSE_SERVER_IP}
   DriverLog     = yes
   DriverLogFile = ${RUN_DIR}/clickhouse-odbc-driver-w.log
@@ -399,7 +399,7 @@ install: |-
   fi
 
 .configure: &configure |-
-  CMAKE_CONFIGURE_ARGS="-DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w $CMAKE_CONFIGURE_EXTRA_ARGS"
+  CMAKE_CONFIGURE_ARGS="-DTEST_DSN=\\"ClickHouse DSN (ANSI)\\" -DTEST_DSN_W=\\"ClickHouse DSN (Unicode)\\" $CMAKE_CONFIGURE_EXTRA_ARGS"
   if [[ "$EXTERNAL_THIRD_PARTY" == "yes" ]]; then
     CMAKE_CONFIGURE_ARGS="-DUNBUNDLED=1 $CMAKE_CONFIGURE_ARGS"
   fi
