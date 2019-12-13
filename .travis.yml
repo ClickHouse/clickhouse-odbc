@@ -399,7 +399,7 @@ install: |-
   fi
 
 .configure: &configure |-
-  CMAKE_CONFIGURE_ARGS="-DTEST_DSN=\\"ClickHouse DSN (ANSI)\\" -DTEST_DSN_W=\\"ClickHouse DSN (Unicode)\\" $CMAKE_CONFIGURE_EXTRA_ARGS"
+  CMAKE_CONFIGURE_ARGS="-DTEST_DSN='ClickHouse DSN (ANSI)' -DTEST_DSN_W='ClickHouse DSN (Unicode)' $CMAKE_CONFIGURE_EXTRA_ARGS"
   if [[ "$EXTERNAL_THIRD_PARTY" == "yes" ]]; then
     CMAKE_CONFIGURE_ARGS="-DUNBUNDLED=1 $CMAKE_CONFIGURE_ARGS"
   fi
