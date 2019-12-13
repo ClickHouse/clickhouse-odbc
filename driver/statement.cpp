@@ -63,6 +63,12 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
 
     Poco::URI uri(connection.url);
 
+    if (connection.port != 0)
+        uri.setPort(connection.port);
+
+    if (!connection.server.empty())
+        uri.setHost(connection.server);
+
     bool setDatabase = false;
     bool setDefaultFormat = false;
     for (const auto& parameter : uri.getQueryParameters()) {
@@ -73,7 +79,7 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
         }
     }
     if (!setDatabase) {
-        uri.addQueryParameter("database", connection.getDatabase());
+        uri.addQueryParameter("database", connection.database);
     }
     if (!setDefaultFormat) {
         uri.addQueryParameter("default_format", "ODBCDriver2");

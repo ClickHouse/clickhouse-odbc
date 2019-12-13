@@ -70,7 +70,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
             CASE_STRING(SQL_DATA_SOURCE_NAME, connection.data_source)
             CASE_STRING(SQL_CATALOG_TERM, "catalog")
             CASE_STRING(SQL_COLLATION_SEQ, "UTF-8")
-            CASE_STRING(SQL_DATABASE_NAME, connection.getDatabase())
+            CASE_STRING(SQL_DATABASE_NAME, connection.database)
             CASE_STRING(SQL_KEYWORDS, "")
             CASE_STRING(SQL_PROCEDURE_TERM, "stored procedure")
             CASE_STRING(SQL_CATALOG_NAME_SEPARATOR, ".")
