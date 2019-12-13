@@ -100,6 +100,20 @@ void writeDSNinfo(const ConnInfo * ci) {
 #undef WRITE_CONFIG
 }
 
+// Parses connection string in a form of "key1=value1;key2={value 2};..." into a key->value map.
+// Expects a syntax of connection string as defined in:
+//     https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqldriverconnect-function?view=sqlallproducts-allversions#comments
+//     (however understands somewhat relaxed and more generic version of that syntax)
+// In short:
+//     - any syntactically correct key is allowed at this point, semantic filltering is done elsewhere
+//     - keys cannot be empty
+//     - keys are case-insensitive
+//     - '=' in the key itself should be written as '==' (whithout space in between)
+//     - whitespace aroung keys and values is trimmed
+//     - values can be enclosed in '{' and '}', in which case the whitespace at the beginning and/or
+//       at the end of the value, as well as ';' characters anywhere in the value, will be preserved as-is
+//     - if key is met multiple times, the first value will be used
+//     - some special cases that modify the value visibility behavior for some well-known keys are defined (see the link above)
 key_value_map_t readConnectionString(const std::string & connection_string) {
     key_value_map_t fields;
 
@@ -238,6 +252,11 @@ key_value_map_t readConnectionString(const std::string & connection_string) {
     return fields;
 }
 
+// Extracts configuration info from a DSN entry into a key->value map.
+// Note, that for duplicate keys in the DSN, the first value is used.
+// This function does its best on detecting and reporting such duplicates in the log.
+// Due to the nature of the ODBC API, a special value of '__default__' has to be reserved by this function,
+// and used in such a manner, that if some key has it, that key will be treated as non-existent.
 key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
     key_value_map_t fields;
 
