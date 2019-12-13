@@ -222,16 +222,14 @@ key_value_map_t readConnectionString(const std::string & connection_string) {
         const auto key = extract_key_name(cs);
         const auto value = extract_key_value(cs);
 
-        const auto key_upper = Poco::UTF8::toUpper(key);
-
         if (
             fields.find(key) != fields.end() ||
-            (key_upper == INI_DSN && fields.find(INI_FILEDSN) != fields.end()) ||
-            (key_upper == INI_FILEDSN && fields.find(INI_DSN) != fields.end()) ||
-            (key_upper == INI_DSN && fields.find(INI_DRIVER) != fields.end()) ||
-            (key_upper == INI_DRIVER && fields.find(INI_DSN) != fields.end())
+            (Poco::UTF8::icompare(key, INI_DSN) == 0 && fields.find(INI_FILEDSN) != fields.end()) ||
+            (Poco::UTF8::icompare(key, INI_FILEDSN) == 0 && fields.find(INI_DSN) != fields.end()) ||
+            (Poco::UTF8::icompare(key, INI_DSN) == 0 && fields.find(INI_DRIVER) != fields.end()) ||
+            (Poco::UTF8::icompare(key, INI_DRIVER) == 0 && fields.find(INI_DSN) != fields.end())
         ) {
-            break; // These doesn't override each other: the first one met is used.
+            continue; // These doesn't override each other: the first one met is used.
         }
 
         fields[key] = value;
