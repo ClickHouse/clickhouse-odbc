@@ -219,7 +219,7 @@ inline INT_PTR ConfigDlgProc_(
 
             SetWindowLongPtr(hdlg, DWLP_USER, lParam);
             CenterDialog(hdlg); /* Center dialog */
-            getDSNinfo(&ci, false);
+            readDSNinfo(&ci, false);
 
             std::basic_string<CharTypeLPCTSTR> value;
 

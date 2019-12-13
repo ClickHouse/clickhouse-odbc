@@ -97,7 +97,7 @@ SQLRETURN SetConnectAttr(
             }
 
             case SQL_ATTR_CURRENT_CATALOG:
-                connection.setDatabase(toUTF8((SQLTCHAR *)value, value_length / sizeof(SQLTCHAR)));
+                connection.database = toUTF8((SQLTCHAR *)value, value_length / sizeof(SQLTCHAR));
                 return SQL_SUCCESS;
 
             case SQL_ATTR_ANSI_APP:
@@ -177,7 +177,7 @@ SQLRETURN GetConnectAttr(
 
             case SQL_ATTR_CURRENT_CATALOG:
                 return fillOutputString<SQLTCHAR>(
-                    connection.getDatabase(),
+                    connection.database,
                     out_value, out_value_max_length, out_value_length, true
                 );
 

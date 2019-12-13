@@ -17,7 +17,7 @@ public:
     explicit Environment(Driver & driver);
 
     // Leave unimplemented for general case.
-    template <typename T> T& allocateChild();
+    template <typename T> T & allocateChild();
     template <typename T> void deallocateChild(SQLHANDLE) noexcept;
 
     const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs = "") const;

@@ -2,6 +2,7 @@
 
 #include "driver/driver.h"
 #include "driver/environment.h"
+#include "driver/config/config.h"
 
 #include <Poco/Net/HTTPClientSession.h>
 
@@ -18,24 +19,25 @@ class Connection
 private:
     using ChildType = Child<Environment, Connection>;
 
-public:
+public: // Configuration fields.
     std::string data_source;
     std::string url;
     std::string proto;
-    std::string server;
-    std::string path;
     std::string user;
     std::string password;
-    uint16_t port = 0;
-    int timeout = 0;
-    int connection_timeout = 0;
-    int32_t stringmaxlength = 0;
-    bool ssl_strict = false;
-
+    std::string server;
+    std::uint16_t port = 0;
+    std::string path;
+    std::string database;
+    std::uint32_t timeout = 0;
+    std::uint32_t connection_timeout = 0;
+    std::int32_t stringmaxlength = 0;
+    std::string sslmode;
     std::string privateKeyFile;
     std::string certificateFile;
     std::string caLocation;
 
+public:
     std::string useragent;
 
     std::unique_ptr<Poco::Net::HTTPClientSession> session;
@@ -45,24 +47,7 @@ public:
 public:
     explicit Connection(Environment & environment);
 
-    /// Returns the completed connection string.
-    std::string connectionString() const;
-
-    /// Returns database associated with the current connection.
-    const std::string & getDatabase() const;
-
-    /// Sets database to the current connection;
-    void setDatabase(const std::string & db);
-
-    void init();
-
-    void init(const std::string & dsn_,
-        const uint16_t port_,
-        const std::string & user_,
-        const std::string & password_,
-        const std::string & database_);
-
-    void init(const std::string & connection_string);
+    void connect(const std::string & connection_string);
 
     // Return a Base64 encoded string of "user:password".
     std::string buildCredentialsString() const;
@@ -85,18 +70,20 @@ public:
     void initAsDescRec(DescriptorRecord & rec, SQLINTEGER desc_role); // ARD, APD, IRD, IPD
 
     // Leave unimplemented for general case.
-    template <typename T> T& allocateChild();
+    template <typename T> T & allocateChild();
     template <typename T> void deallocateChild(SQLHANDLE) noexcept;
 
 private:
-    /// Load uninitialized fields from odbc.ini
-    void loadConfiguration();
+    // Reset all configuration fields to their default/unintialized values.
+    void resetConfiguration();
 
-    /// Sets uninitialized fields to their default values.
-    void setDefaults();
+    // Set configuration fields to:
+    //     a) values from connection string, or
+    //     b) values from DSN, if unintialized, or
+    //     c) values deduced from values of other fields, if unintialized.
+    void setConfiguration(const key_value_map_t & cs_fields, const key_value_map_t & dsn_fields);
 
 private:
-    std::string database;
     std::unordered_map<SQLHANDLE, std::shared_ptr<Descriptor>> descriptors;
     std::unordered_map<SQLHANDLE, std::shared_ptr<Statement>> statements;
 };

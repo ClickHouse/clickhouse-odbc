@@ -1,6 +1,5 @@
 #include "driver/utils/utils.h"
 #include "driver/utils/scope_guard.h"
-#include "driver/utils/string_ref.h"
 #include "driver/utils/type_parser.h"
 #include "driver/attributes.h"
 #include "driver/diagnostics.h"
@@ -796,45 +795,51 @@ SQLRETURN Fetch(
 
 extern "C" {
 
-SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLConnect)(HDBC connection_handle,
-    SQLTCHAR * dsn,
-    SQLSMALLINT dsn_size,
-    SQLTCHAR * user,
-    SQLSMALLINT user_size,
-    SQLTCHAR * password,
-    SQLSMALLINT password_size) {
-    // LOG(__FUNCTION__ << " dsn_size=" << dsn_size << " dsn=" << dsn << " user_size=" << user_size << " user=" << user << " password_size=" << password_size << " password=" << password);
-
-    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
-        const auto dsn_str = toUTF8(dsn, dsn_size);
-        const auto user_str = toUTF8(user, user_size);
-        const auto password_str = toUTF8(password, password_size);
-
-        LOG(__FUNCTION__ << " dsn=" << dsn_str << " user=" << user_str << " pwd=" << password_str);
-
-        connection.init(dsn_str, 0, user_str, password_str, "");
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLConnect)(
+    SQLHDBC        ConnectionHandle,
+    SQLTCHAR *     ServerName,
+    SQLSMALLINT    NameLength1,
+    SQLTCHAR *     UserName,
+    SQLSMALLINT    NameLength2,
+    SQLTCHAR *     Authentication,
+    SQLSMALLINT    NameLength3
+) {
+    return CALL_WITH_HANDLE(ConnectionHandle, [&](Connection & connection) {
+        std::string connection_string;
+        if (ServerName) {
+            connection_string += "DSN={";
+            connection_string += toUTF8(ServerName, NameLength1);
+            connection_string += "};";
+        }
+        if (UserName) {
+            connection_string += "UID={";
+            connection_string += toUTF8(UserName, NameLength2);
+            connection_string += "};";
+        }
+        if (Authentication) {
+            connection_string += "PWD={";
+            connection_string += toUTF8(Authentication, NameLength3);
+            connection_string += "};";
+        }
+        connection.connect(connection_string);
         return SQL_SUCCESS;
     });
 }
 
-SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDriverConnect)(HDBC connection_handle,
-    HWND unused_window,
-    SQLTCHAR FAR * connection_str_in,
-    SQLSMALLINT connection_str_in_size,
-    SQLTCHAR FAR * connection_str_out,
-    SQLSMALLINT connection_str_out_max_size,
-    SQLSMALLINT FAR * connection_str_out_size,
-    SQLUSMALLINT driver_completion) {
-    LOG(__FUNCTION__ << " connection_str_in=" << connection_str_in << " : " << connection_str_in_size
-                     << /* " connection_str_out=" << connection_str_out << */ " " << connection_str_out_max_size);
-
-    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
-        // if (connection_str_in_size > 0) hexPrint(log_stream, std::string{static_cast<const char *>(static_cast<const void *>(connection_str_in)), static_cast<size_t>(connection_str_in_size)});
-        const auto connection_str = toUTF8(connection_str_in, connection_str_in_size);
-        // LOG("connection_str=" << str);
-        connection.init(connection_str);
-        // Copy complete connection string.
-        return fillOutputString<SQLTCHAR>(connection.connectionString(), connection_str_out, connection_str_out_max_size, connection_str_out_size, false);
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDriverConnect)(
+    SQLHDBC         ConnectionHandle,
+    SQLHWND         WindowHandle,
+    SQLTCHAR *      InConnectionString,
+    SQLSMALLINT     StringLength1,
+    SQLTCHAR *      OutConnectionString,
+    SQLSMALLINT     BufferLength,
+    SQLSMALLINT *   StringLength2Ptr,
+    SQLUSMALLINT    DriverCompletion
+) {
+    return CALL_WITH_HANDLE(ConnectionHandle, [&](Connection & connection) {
+        const auto connection_string = toUTF8(InConnectionString, StringLength1);
+        connection.connect(connection_string);
+        return fillOutputString<SQLTCHAR>(connection_string, OutConnectionString, BufferLength, StringLength2Ptr, false);
     });
 }
 
@@ -1229,7 +1234,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
                      ", '' AS REMARKS"
                      " FROM system.tables"
                      " WHERE (database == '";
-            query << statement.getParent().getDatabase() << "')";
+            query << statement.getParent().database << "')";
             query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
         }
         // Get a list of databases on the current connection's server.
