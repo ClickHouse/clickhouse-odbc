@@ -232,7 +232,12 @@ key_value_map_t readConnectionString(const std::string & connection_string) {
         return value;
     };
 
-    while (!cs.empty()) {
+    while (true) {
+        while (consume_space(cs) || consume_semi_colons(cs));
+
+        if (cs.empty())
+            break;
+
         const auto key = extract_key_name(cs);
         const auto value = extract_key_value(cs);
 
