@@ -86,11 +86,11 @@ function(declare_odbc_test_targets libname UNICODE)
     endif ()
 
     if (TEST_DSN)
-        add_test(NAME ${libname}-client-it COMMAND ${libname}-client-it ${TEST_DSN})
+        add_test(NAME ${libname}-client-it COMMAND ${libname}-client-it "${TEST_DSN}")
     endif ()
 
     if (TEST_DSN_W)
-        add_test(NAME ${libname}-client-it-w COMMAND ${libname}-client-it ${TEST_DSN_W})
+        add_test(NAME ${libname}-client-it-w COMMAND ${libname}-client-it "${TEST_DSN_W}")
     endif ()
 
     if (NANOODBC_LIBRARY
@@ -126,16 +126,16 @@ function(declare_odbc_test_targets libname UNICODE)
         endif ()
 
         if (TEST_DSN)
-            add_test(NAME ${libname}-${nanoname}-it COMMAND ${libname}-${nanoname}-it DSN=${TEST_DSN})
+            add_test(NAME ${libname}-${nanoname}-it COMMAND ${libname}-${nanoname}-it DSN="${TEST_DSN}")
             if (NOT (CMAKE_BUILD_TYPE_UC STREQUAL "TSAN" OR CMAKE_BUILD_TYPE_UC STREQUAL "ASAN" OR CMAKE_BUILD_TYPE_UC STREQUAL "MSAN"))
-                #TODO: add_test(NAME "${libname}-${nanoname}-valgrind-it" COMMAND valgrind -v --leak-check=full --show-leak-kinds=all $<TARGET_FILE:${libname}-${nanoname}-it> DSN=${TEST_DSN})
+                #TODO: add_test(NAME "${libname}-${nanoname}-valgrind-it" COMMAND valgrind -v --leak-check=full --show-leak-kinds=all $<TARGET_FILE:${libname}-${nanoname}-it> DSN="${TEST_DSN}")
             endif ()
         endif ()
 
         if (TEST_DSN_W)
-            add_test(NAME ${libname}-${nanoname}-it-w COMMAND ${libname}-${nanoname}-it DSN=${TEST_DSN_W})
+            add_test(NAME ${libname}-${nanoname}-it-w COMMAND ${libname}-${nanoname}-it DSN="${TEST_DSN_W}")
             if (NOT (CMAKE_BUILD_TYPE_UC STREQUAL "TSAN" OR CMAKE_BUILD_TYPE_UC STREQUAL "ASAN" OR CMAKE_BUILD_TYPE_UC STREQUAL "MSAN"))
-                #TODO: add_test(NAME "${libname}-${nanoname}-valgrind-it-w" COMMAND valgrind -v --leak-check=full --show-leak-kinds=all $<TARGET_FILE:${libname}-${nanoname}-it> DSN=${TEST_DSN_W})
+                #TODO: add_test(NAME "${libname}-${nanoname}-valgrind-it-w" COMMAND valgrind -v --leak-check=full --show-leak-kinds=all $<TARGET_FILE:${libname}-${nanoname}-it> DSN="${TEST_DSN_W}")
             endif ()
         endif ()
         # gdb -ex "catch throw" -ex run --args ./clickhouse-odbc-nano DSN=clickhouse_localhost_system
