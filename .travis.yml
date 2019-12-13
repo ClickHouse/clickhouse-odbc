@@ -385,7 +385,6 @@ install: |-
   Driver        = clickhouse_driver
   Description   = ClickHouse DSN (ANSI, localhost)
   Url           = http://${CLICKHOUSE_SERVER_IP}
-  Timeout       = 30
   DriverLog     = yes
   DriverLogFile = ${RUN_DIR}/clickhouse-odbc-driver.log
 
@@ -393,7 +392,6 @@ install: |-
   Driver        = clickhouse_driver_w
   Description   = ClickHouse DSN (Unicode, localhost)
   Url           = http://${CLICKHOUSE_SERVER_IP}
-  Timeout       = 30
   DriverLog     = yes
   DriverLogFile = ${RUN_DIR}/clickhouse-odbc-driver-w.log
   EOF
