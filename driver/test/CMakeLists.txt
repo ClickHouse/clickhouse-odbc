@@ -8,6 +8,7 @@ function(declare_odbc_test_targets libname UNICODE)
         AttributeContainer_ut.cpp
         type_conversion_ut.cpp
         buffer_filling_ut.cpp
+        connection_string_ut.cpp
     )
 
     target_link_libraries(${libname}-ut
