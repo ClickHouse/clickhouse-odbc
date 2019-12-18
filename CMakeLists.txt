@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.9)
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 include (cmake/prevent_in_source_builds.cmake)
 
-project (clickhouse-odbc VERSION 1.1.1.20191108 LANGUAGES C CXX)
+project (clickhouse-odbc VERSION 1.1.2.20191216 LANGUAGES C CXX)
 
 set (CMAKE_C_STANDARD 11)
 #set (CMAKE_C_EXTENSIONS 0)
