@@ -406,7 +406,6 @@ install: |-
   if [[ ! -z "$ODBC_DRIVER_MANAGER" ]]; then
     CMAKE_CONFIGURE_ARGS="-DODBC_IMPL=$ODBC_DRIVER_MANAGER $CMAKE_CONFIGURE_ARGS"
   fi
-  echo $CMAKE_CONFIGURE_ARGS
   cd $BUILD_DIR
   if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
     $SOURCE_DIR/test/vcvars_enabled_bash.sh cmake $CMAKE_CONFIGURE_ARGS $SOURCE_DIR
