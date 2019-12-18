@@ -399,13 +399,14 @@ install: |-
   fi
 
 .configure: &configure |-
-  CMAKE_CONFIGURE_ARGS="-DTEST_DSN='ClickHouse DSN (ANSI)' -DTEST_DSN_W='ClickHouse DSN (Unicode)' $CMAKE_CONFIGURE_EXTRA_ARGS"
+  CMAKE_CONFIGURE_ARGS="-DTEST_DSN=\\"ClickHouse DSN (ANSI)\\" -DTEST_DSN_W=\\"ClickHouse DSN (Unicode)\\" $CMAKE_CONFIGURE_EXTRA_ARGS"
   if [[ "$EXTERNAL_THIRD_PARTY" == "yes" ]]; then
     CMAKE_CONFIGURE_ARGS="-DUNBUNDLED=1 $CMAKE_CONFIGURE_ARGS"
   fi
   if [[ ! -z "$ODBC_DRIVER_MANAGER" ]]; then
     CMAKE_CONFIGURE_ARGS="-DODBC_IMPL=$ODBC_DRIVER_MANAGER $CMAKE_CONFIGURE_ARGS"
   fi
+  echo $CMAKE_CONFIGURE_ARGS
   cd $BUILD_DIR
   if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
     $SOURCE_DIR/test/vcvars_enabled_bash.sh cmake $CMAKE_CONFIGURE_ARGS $SOURCE_DIR
