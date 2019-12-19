@@ -9,6 +9,7 @@
 #include <list>
 #include <string>
 
+#include <cctype>
 #include <cstring>
 
 void readDSNinfo(ConnInfo * ci, bool overwrite) {
@@ -121,7 +122,7 @@ key_value_map_t readConnectionString(const std::string & connection_string) {
 
     const auto consume_space = [] (std::string & str) {
         std::size_t num = 0;
-        while (!str.empty() && std::isspace(str[num])) {
+        while (!str.empty() && std::isspace(static_cast<unsigned char>(str[num]))) {
             ++num;
         }
         str.erase(0, num);
@@ -165,7 +166,7 @@ key_value_map_t readConnectionString(const std::string & connection_string) {
             }
         }
 
-        while (!key.empty() && std::isspace(key.back())) {
+        while (!key.empty() && std::isspace(static_cast<unsigned char>(key.back()))) {
             key.pop_back();
         }
 
@@ -212,7 +213,7 @@ key_value_map_t readConnectionString(const std::string & connection_string) {
                 throw std::runtime_error("'}' expected");
         }
         else {
-            while (!value.empty() && std::isspace(value.back())) {
+            while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back()))) {
                 value.pop_back();
             }
         }
