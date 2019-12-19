@@ -1,20 +1,10 @@
 root = true
 
-# Unix-style newlines with a newline ending every file
 [*]
+charset = utf-8
 end_of_line = lf
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
 insert_final_newline = true
-
-# Matches multiple files with brace expansion notation
-# Set default charset
-[*.{c,cpp,cxx,h,hpp,hxx,py,pl,sh,cmake}]
-charset = utf-8
-indent_style = space
-indent_size = 4
-trim_trailing_whitespace = true
-
-[CMakeLists.txt]
-charset = utf-8
-indent_style = space
-indent_size = 4
-trim_trailing_whitespace = true
+max_line_length = 140
