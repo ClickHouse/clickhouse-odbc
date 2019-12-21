@@ -166,6 +166,12 @@ if(NOT WIN32)
     )
 endif()
 
+install(
+    FILES packaging/clickhouse-odbc.tdc
+    DESTINATION ${CMAKE_INSTALL_DOCDIR}/config
+    COMPONENT Documentation
+)
+
 set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT RuntimeLibraries)
 include(InstallRequiredSystemLibraries)
 

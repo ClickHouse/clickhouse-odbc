@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<connection-customization class='genericodbc' enabled='true' version='2019.4'>
+    <vendor name='Yandex' />
+    <driver name='ClickHouse' />
+    <customizations>
+        <customization name='CAP_CREATE_TEMP_TABLES' value='no' />
+        <customization name='CAP_QUERY_BOOLEXPR_TO_INTEXPR' value='yes' />
+        <customization name='CAP_QUERY_GROUP_BY_ALIAS' value='no' />
+        <customization name='CAP_QUERY_GROUP_BY_DEGREE' value='no' />
+        <customization name='CAP_QUERY_JOIN_ACROSS_SCHEMAS' value='no' />
+        <customization name='CAP_QUERY_JOIN_REQUIRES_SCOPE' value='no' />
+        <customization name='CAP_QUERY_SUBQUERIES' value='yes' />
+        <customization name='CAP_QUERY_SUBQUERIES_WITH_TOP' value='yes' />
+        <customization name='CAP_QUERY_JOIN_REQUIRES_SUBQUERY' value='yes' />
+        <customization name='CAP_QUERY_JOIN_PUSH_DOWN_CONDITION_EXPRESSIONS' value='yes' />
+        <customization name='CAP_SELECT_INTO' value='no' />
+        <customization name='CAP_SELECT_TOP_INTO' value='no' />
+        <customization name='SQL_AGGREGATE_FUNCTIONS' value='127' />
+        <customization name='SQL_SQL_CONFORMANCE' value='4' />
+    </customizations>
+</connection-customization>
