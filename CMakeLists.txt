@@ -168,7 +168,7 @@ endif()
 
 install(
     FILES packaging/clickhouse-odbc.tdc
-    DESTINATION ${CMAKE_INSTALL_DOCDIR}/config
+    DESTINATION ${CMAKE_INSTALL_DOCDIR}/sample-config
     COMPONENT Documentation
 )
 
