@@ -838,8 +838,19 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDriverConnect)(
 ) {
     return CALL_WITH_HANDLE(ConnectionHandle, [&](Connection & connection) {
         const auto connection_string = toUTF8(InConnectionString, StringLength1);
+
+        auto out_buffer_length = BufferLength;
+        if (out_buffer_length <= 0) {
+            if (StringLength1 > 0)
+                out_buffer_length = StringLength1;
+            else if (StringLength1 == SQL_NTS)
+                out_buffer_length = NTSStringLength(InConnectionString) + 1; // +1 for null terminating character
+            else
+                out_buffer_length = 1024; // ...as per SQLDriverConnect() doc: "Applications should allocate at least 1,024 characters for this buffer."
+        }
+
         connection.connect(connection_string);
-        return fillOutputString<SQLTCHAR>(connection_string, OutConnectionString, BufferLength, StringLength2Ptr, false);
+        return fillOutputString<SQLTCHAR>(connection_string, OutConnectionString, out_buffer_length, StringLength2Ptr, false);
     });
 }
 
