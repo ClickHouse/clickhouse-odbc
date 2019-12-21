@@ -1520,10 +1520,15 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLBrowseConnect)(HDBC connection_ha
     return SQL_ERROR;
 }
 
-SQLRETURN SQL_API EXPORTED_FUNCTION(SQLCancel)(HSTMT StatementHandle) {
-    LOG(__FUNCTION__ << "Ignoring SQLCancel " << StatementHandle);
-    return SQL_SUCCESS;
-    //return SQL_ERROR;
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLCancel)(
+    SQLHSTMT     StatementHandle
+) {
+    auto func = [&] (Statement & statement) {
+        statement.closeCursor();
+        return SQL_SUCCESS;
+    };
+
+    return CALL_WITH_HANDLE(StatementHandle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetCursorName)(
@@ -1547,7 +1552,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetFunctions)(HDBC connection_handle, SQL
             SET_EXISTS(SQL_API_SQLBINDPARAMETER);
             //SET_EXISTS(SQL_API_SQLBROWSECONNECT);
             //SET_EXISTS(SQL_API_SQLBULKOPERATIONS);
-            //SET_EXISTS(SQL_API_SQLCANCEL);
+            SET_EXISTS(SQL_API_SQLCANCEL);
             //SET_EXISTS(SQL_API_SQLCANCELHANDLE);
             SET_EXISTS(SQL_API_SQLCLOSECURSOR);
             SET_EXISTS(SQL_API_SQLCOLATTRIBUTE);
