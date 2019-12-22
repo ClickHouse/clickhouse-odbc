@@ -8,5 +8,6 @@
         <customization name='CAP_QUERY_GROUP_BY_DEGREE' value='no' />
         <customization name='CAP_QUERY_JOIN_PUSH_DOWN_CONDITION_EXPRESSIONS' value='yes' />
         <customization name='CAP_QUERY_JOIN_REQUIRES_SUBQUERY' value='yes' />
+        <customization name='CAP_QUERY_SORT_BY_DEGREE' value='no' />
     </customizations>
 </connection-customization>
