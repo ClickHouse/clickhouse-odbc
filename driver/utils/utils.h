@@ -366,5 +366,4 @@ inline SQLRETURN fillOutputNULL(
         if (!name)                                                                                   \
             name = #NAME;                                                                            \
         LOG("GetInfo " << name << ", type: " << #TYPE << ", value: " << #VALUE << " = " << (VALUE)); \
-        return fillOutputPOD<TYPE>(VALUE, out_value,                                                 \
-            std::decay<decltype(*out_value_length)>::type{0}/* out_value_max_length */, out_value_length);
+        return fillOutputPOD<TYPE>(VALUE, out_value, out_value_length);
