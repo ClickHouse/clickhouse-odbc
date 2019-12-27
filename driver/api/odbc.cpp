@@ -1259,6 +1259,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(
         }
         // Get a list of tables matching all criteria.
         else {
+            // TODO: cast all these to Nullable(String) too.
             query << " database AS TABLE_CAT,";
             query << " '' AS TABLE_SCHEM,";
             query << " name AS TABLE_NAME,";
