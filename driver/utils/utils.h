@@ -26,6 +26,7 @@
 #include <functional>
 #include <chrono>
 #include <iomanip>
+#include <set>
 #include <sstream>
 #include <thread>
 #include <type_traits>
@@ -139,6 +140,40 @@ struct UTF8CaseInsensitiveCompare {
     bool operator() (const std::string & lhs, const std::string & rhs) const {
         return Poco::UTF8::icompare(lhs, rhs) < 0;
     }
+};
+
+inline auto parseCatalogFnVLArgs(std::string value_list) {
+    std::set<std::string> values;
+
+    const auto value_list_mod = value_list + ',';
+    std::string curr;
+    int quotes = 0;
+
+    for (auto ch : value_list_mod) {
+        if (ch == ',' && quotes % 2 == 0) {
+            Poco::trimInPlace(curr);
+//          Poco::UTF8::toUpperInPlace(curr);
+            if (curr.size() > 1 && curr.front() == '\'' && curr.back() == '\'') {
+                curr.pop_back();
+                curr.erase(0, 1);
+            }
+            values.emplace(std::move(curr));
+            quotes = 0;
+        }
+        else {
+            if (ch == '\'') {
+                if (quotes >= 2)
+                    throw std::runtime_error("Invalid syntax for catalog function value list argument: " + value_list);
+                ++quotes;
+            }
+            curr += ch;
+        }
+    }
+
+    if (!curr.empty() || quotes != 0)
+        throw std::runtime_error("Invalid syntax for catalog function value list argument: " + value_list);
+
+    return values;
 };
 
 // Directly write raw bytes to the buffer, respecting its size.

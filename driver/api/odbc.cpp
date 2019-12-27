@@ -1204,100 +1204,118 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetDiagField)(
     );
 }
 
-SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
-    SQLTCHAR * catalog_name,
-    SQLSMALLINT catalog_name_length,
-    SQLTCHAR * schema_name,
-    SQLSMALLINT schema_name_length,
-    SQLTCHAR * table_name,
-    SQLSMALLINT table_name_length,
-    SQLTCHAR * table_type,
-    SQLSMALLINT table_type_length) {
-    LOG(__FUNCTION__);
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(
+    SQLHSTMT        StatementHandle,
+    SQLTCHAR *      CatalogName,
+    SQLSMALLINT     NameLength1,
+    SQLTCHAR *      SchemaName,
+    SQLSMALLINT     NameLength2,
+    SQLTCHAR *      TableName,
+    SQLSMALLINT     NameLength3,
+    SQLTCHAR *      TableType,
+    SQLSMALLINT     NameLength4
+) {
+    auto func = [&](Statement & statement) {
+        constexpr bool null_catalog_defaults_to_connected_database = true; // TODO: review and remove this behavior?
+        const auto catalog = (CatalogName ? toUTF8(CatalogName, NameLength1) :
+            (null_catalog_defaults_to_connected_database ? statement.getParent().database : SQL_ALL_CATALOGS));
+        const auto schema = (SchemaName ? toUTF8(SchemaName, NameLength2) : SQL_ALL_SCHEMAS);
+        const auto table = (TableName ? toUTF8(TableName, NameLength3) : "%");
+        const auto table_type_list = (TableType ? toUTF8(TableType, NameLength4) : SQL_ALL_TABLE_TYPES);
 
-    // TODO (artpaul) Take statement.getMetatadaId() into account.
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        const auto catalog = toUTF8(catalog_name, catalog_name_length);
-        const auto schema = toUTF8(schema_name, schema_name_length);
-        const auto table = toUTF8(table_name, table_name_length);
-        const auto ttype = toUTF8(table_type, table_type_length);
+        // N.B.: here, an empty 'catalog', 'schema', 'table', or 'table_type_list' variable would mean, that an empty string
+        // has been supplied, not a nullptr. In case of nullptr, it would contain "%".
 
         std::stringstream query;
+        query << "SELECT";
 
-        // Get a list of all tables in all databases.
-        if (catalog_name != nullptr && catalog == SQL_ALL_CATALOGS && !schema_name && !table_name && !table_type) {
-            query << "SELECT"
-                     " database AS TABLE_CAT"
-                     ", '' AS TABLE_SCHEM"
-                     ", name AS TABLE_NAME"
-                     ", 'TABLE' AS TABLE_TYPE"
-                     ", '' AS REMARKS"
-                     " FROM system.tables"
-                     " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
+        // TODO: use actual NULLs instead of ''
+
+        // Get a list of all databases.
+        if (catalog == SQL_ALL_CATALOGS && schema.empty() && table.empty()) {
+            query << " CAST(name, 'Nullable(String)') AS TABLE_CAT,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_SCHEM,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_NAME,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_TYPE,";
+            query << " CAST(NULL, 'Nullable(String)') AS REMARKS";
+            query << " FROM system.databases";
         }
-        // Get a list of all tables in the current database.
-        else if (!catalog_name && !schema_name && !table_name && !table_type) {
-            query << "SELECT"
-                     " database AS TABLE_CAT"
-                     ", '' AS TABLE_SCHEM"
-                     ", name AS TABLE_NAME"
-                     ", 'TABLE' AS TABLE_TYPE"
-                     ", '' AS REMARKS"
-                     " FROM system.tables"
-                     " WHERE (database == '";
-            query << statement.getParent().database << "')";
-            query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
+        // Get a list of all schemas (empty list).
+        else if (catalog.empty() && schema == SQL_ALL_SCHEMAS && table.empty()) {
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_CAT,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_SCHEM,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_NAME,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_TYPE,";
+            query << " CAST(NULL, 'Nullable(String)') AS REMARKS";
+            query << " WHERE (1 == 0)";
         }
-        // Get a list of databases on the current connection's server.
-        else if (!catalog.empty() && schema_name != nullptr && schema_name_length == 0 && table_name != nullptr && table_name_length == 0) {
-            query << "SELECT"
-                     " name AS TABLE_CAT"
-                     ", '' AS TABLE_SCHEM"
-                     ", '' AS TABLE_NAME"
-                     ", '' AS TABLE_TYPE"
-                     ", '' AS REMARKS"
-                     " FROM system.databases"
-                     " WHERE (1 == 1)";
-            query << " AND TABLE_CAT LIKE '" << catalog << "'";
-            query << " ORDER BY TABLE_CAT";
-        } else {
-            query << "SELECT"
-                     " database AS TABLE_CAT"
-                     ", '' AS TABLE_SCHEM"
-                     ", name AS TABLE_NAME"
-                     ", 'TABLE' AS TABLE_TYPE"
-                     ", '' AS REMARKS"
-                     " FROM system.tables"
-                     " WHERE (1 == 1)";
+        // Get a list of all valid table types (currently, 'TABLE' only.)
+        else if (catalog.empty() && schema.empty() && table.empty() && table_type_list == SQL_ALL_TABLE_TYPES) {
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_CAT,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_SCHEM,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_NAME,";
+            query << " CAST('TABLE', 'Nullable(String)') AS TABLE_TYPE,";
+            query << " CAST(NULL, 'Nullable(String)') AS REMARKS";
+        }
+        // Get a list of tables matching all criteria.
+        else {
+            query << " database AS TABLE_CAT,";
+            query << " '' AS TABLE_SCHEM,";
+            query << " name AS TABLE_NAME,";
+            query << " 'TABLE' AS TABLE_TYPE,";
+            query << " '' AS REMARKS";
+            query << " FROM system.tables";
+            query << " WHERE (1 == 1)";
 
-            if (catalog_name && catalog_name_length)
-                query << " AND TABLE_CAT LIKE '" << catalog << "'";
-            //if (schema_name_length)
-            //    query << " AND TABLE_SCHEM LIKE '" << schema << "'";
-            if (table_name && table_name_length)
-                query << " AND TABLE_NAME LIKE '" << table << "'";
-            //if (table_type_length)
-            //    query << " AND TABLE_TYPE = '" << ttype << "'";
+            // Completely ommit the condition part of the query, if the value of SQL_ATTR_METADATA_ID is SQL_TRUE
+            // (i.e., values for the components are not patterns), and the component hasn't been supplied at all
+            // (i.e. is nullptr; note, that actual empty strings are considered "supplied".)
 
-            query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
+            const auto is_odbc_v2 = (statement.getParent().getParent().odbc_version == SQL_OV_ODBC2);
+            const auto is_pattern = (statement.getParent().getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE) != SQL_TRUE);
+            const auto like_or_eq = (is_pattern ? "LIKE" : "==");
+            const auto catalog_like_or_eq = (!is_odbc_v2 && is_pattern ? "LIKE" : "==");
+            const auto table_types = parseCatalogFnVLArgs(table_type_list);
+
+            if ((!is_odbc_v2 && is_pattern) || CatalogName) // Note, that 'catalog' variable will be set to "%" above, even if CatalogName == nullptr.
+                query << " AND TABLE_CAT " << catalog_like_or_eq << " '" << catalog << "'";
+
+            if (is_pattern || SchemaName) // Note, that 'schema' variable will be set to "%" above, even if SchemaName == nullptr.
+                query << " AND TABLE_SCHEM " << like_or_eq << " '" << schema << "'";
+
+            if (is_pattern || TableName) // Note, that 'table' variable will be set to "%" above, even if TableName == nullptr.
+                query << " AND TABLE_NAME " << like_or_eq << " '" << table << "'";
+
+            // Table type list is not affected by the value of SQL_ATTR_METADATA_ID, so we always treat it as a list of patterns.
+            if (!table_types.empty()) {
+                query << " AND (1 == 0";
+                for (const auto & table_type : table_types) {
+                    query << " OR TABLE_TYPE LIKE '" << table_type << "'";
+                }
+                query << ")";
+            }
         }
 
+        query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
         statement.executeQuery(query.str());
+
         return SQL_SUCCESS;
-    });
+    };
+
+    return CALL_WITH_HANDLE(StatementHandle, func);
 }
 
-SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
-    SQLTCHAR * catalog_name,
-    SQLSMALLINT catalog_name_length,
-    SQLTCHAR * schema_name,
-    SQLSMALLINT schema_name_length,
-    SQLTCHAR * table_name,
-    SQLSMALLINT table_name_length,
-    SQLTCHAR * column_name,
-    SQLSMALLINT column_name_length) {
-    LOG(__FUNCTION__);
-
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
+    SQLHSTMT        StatementHandle,
+    SQLTCHAR *      CatalogName,
+    SQLSMALLINT     NameLength1,
+    SQLTCHAR *      SchemaName,
+    SQLSMALLINT     NameLength2,
+    SQLTCHAR *      TableName,
+    SQLSMALLINT     NameLength3,
+    SQLTCHAR *      ColumnName,
+    SQLSMALLINT     NameLength4
+) {
     class ColumnsMutator : public IResultMutator {
     public:
         ColumnsMutator(Environment * env_) : env(env_) {}
@@ -1333,9 +1351,18 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
         Environment * const env;
     };
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        std::stringstream query;
+    auto func = [&](Statement & statement) {
+        constexpr bool null_catalog_defaults_to_connected_database = true; // TODO: review and remove this behavior?
+        const auto catalog = (CatalogName ? toUTF8(CatalogName, NameLength1) :
+            (null_catalog_defaults_to_connected_database ? statement.getParent().database : SQL_ALL_CATALOGS));
+        const auto schema = (SchemaName ? toUTF8(SchemaName, NameLength2) : SQL_ALL_SCHEMAS);
+        const auto table = (TableName ? toUTF8(TableName, NameLength3) : "%");
+        const auto column = (ColumnName ? toUTF8(ColumnName, NameLength4) : "%");
 
+        // N.B.: here, an empty 'catalog', 'schema', 'table', or 'column' variable would mean, that an empty string
+        // has been supplied, not a nullptr. In case of nullptr, it would contain "%".
+
+        std::stringstream query;
         query << "SELECT"
                  " database AS TABLE_CAT"   // 0
                  ", '' AS TABLE_SCHEM"      // 1
@@ -1358,31 +1385,32 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
                  " FROM system.columns"
                  " WHERE (1 == 1)";
 
-        std::string s;
-        s = toUTF8(catalog_name, catalog_name_length);
-        if (s.length() > 0) {
-            query << " AND TABLE_CAT LIKE '" << s << "'";
-        } else {
-            query << " AND TABLE_CAT = currentDatabase()";
-        }
+        // Completely ommit the condition part of the query, if the value of SQL_ATTR_METADATA_ID is SQL_TRUE
+        // (i.e., values for the components are not patterns), and the component hasn't been supplied at all
+        // (i.e. is nullptr; note, that actual empty strings are considered "supplied".)
 
-        s = toUTF8(schema_name, schema_name_length);
-        if (s.length() > 0)
-            query << " AND TABLE_SCHEM LIKE '" << s << "'";
+        const auto is_pattern = (statement.getParent().getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE) != SQL_TRUE);
+        const auto like_or_eq = (is_pattern ? "LIKE" : "==");
 
-        s = toUTF8(table_name, table_name_length);
-        if (s.length() > 0)
-            query << " AND TABLE_NAME LIKE '" << s << "'";
+        if (is_pattern || CatalogName) // Note, that 'catalog' variable will be set to "%" above, even if CatalogName == nullptr.
+            query << " AND TABLE_CAT " << like_or_eq << " '" << catalog << "'";
 
-        s = toUTF8(column_name, column_name_length);
-        if (s.length() > 0)
-            query << " AND COLUMN_NAME LIKE '" << s << "'";
+        if (is_pattern || SchemaName) // Note, that 'schema' variable will be set to "%" above, even if SchemaName == nullptr.
+            query << " AND TABLE_SCHEM " << like_or_eq << " '" << schema << "'";
+
+        if (is_pattern || TableName) // Note, that 'table' variable will be set to "%" above, even if TableName == nullptr.
+            query << " AND TABLE_NAME " << like_or_eq << " '" << table << "'";
+
+        if (is_pattern || ColumnName) // Note, that 'column' variable will be set to "%" above, even if ColumnName == nullptr.
+            query << " AND COLUMN_NAME " << like_or_eq << " '" << column << "'";
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
-
         statement.executeQuery(query.str(), IResultMutatorPtr(new ColumnsMutator(&statement.getParent().getParent())));
+
         return SQL_SUCCESS;
-    });
+    };
+
+    return CALL_WITH_HANDLE(StatementHandle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetTypeInfo)(
