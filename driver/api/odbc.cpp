@@ -634,7 +634,7 @@ SQLRETURN GetData(
     SQLLEN out_value_max_size,
     SQLLEN * out_value_size_or_indicator
 ) noexcept {
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
+    auto func = [&] (Statement & statement) {
         if (!statement.hasResultSet())
             throw SqlException("Column info is not available", "07009");
 
@@ -749,7 +749,9 @@ SQLRETURN GetData(
             default:
                 throw SqlException("Restricted data type attribute violation", "07006");
         }
-    });
+    };
+
+    return CALL_WITH_HANDLE(statement_handle, func);
 }
 
 SQLRETURN Fetch(
