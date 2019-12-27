@@ -883,17 +883,16 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handl
     });
 }
 
-SQLRETURN SQL_API EXPORTED_FUNCTION(SQLNumResultCols)(HSTMT statement_handle, SQLSMALLINT * column_count) {
-    LOG(__FUNCTION__);
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLNumResultCols)(
+    SQLHSTMT        StatementHandle,
+    SQLSMALLINT *   ColumnCountPtr
+) {
+    return CALL_WITH_HANDLE(StatementHandle, [&](Statement & statement) {
+        if (ColumnCountPtr) {
+            if (statement.isPrepared() && !statement.isExecuted())
+                statement.forwardExecuteQuery();
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        if (column_count) {
-            if (statement.hasResultSet()) {
-                *column_count = statement.getNumColumns();
-            }
-            else {
-                *column_count = 0;
-            }
+            *ColumnCountPtr = statement.getNumColumns();
         }
         return SQL_SUCCESS;
     });
