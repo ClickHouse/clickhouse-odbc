@@ -142,7 +142,7 @@ struct UTF8CaseInsensitiveCompare {
     }
 };
 
-inline auto parseCatalogFnVLArgs(std::string value_list) {
+inline auto parseCatalogFnVLArgs(const std::string & value_list) {
     std::set<std::string> values;
 
     const auto value_list_mod = value_list + ',';
@@ -174,7 +174,11 @@ inline auto parseCatalogFnVLArgs(std::string value_list) {
         throw std::runtime_error("Invalid syntax for catalog function value list argument: " + value_list);
 
     return values;
-};
+}
+
+inline bool isMatchAnythingCatalogFnPatternArg(const std::string & pattern) {
+    return (!pattern.empty() && pattern.find_first_not_of('%') == std::string::npos);
+}
 
 // Directly write raw bytes to the buffer, respecting its size.
 // All lengths are in bytes. If 'out_value_max_length == 0',

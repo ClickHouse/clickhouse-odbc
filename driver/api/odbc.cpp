@@ -1228,8 +1228,6 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(
         std::stringstream query;
         query << "SELECT";
 
-        // TODO: use actual NULLs instead of ''
-
         // Get a list of all databases.
         if (catalog == SQL_ALL_CATALOGS && schema.empty() && table.empty()) {
             query << " CAST(name, 'Nullable(String)') AS TABLE_CAT,";
@@ -1239,7 +1237,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(
             query << " CAST(NULL, 'Nullable(String)') AS REMARKS";
             query << " FROM system.databases";
         }
-        // Get a list of all schemas (empty list).
+        // Get a list of all schemas (currently, just an empty list).
         else if (catalog.empty() && schema == SQL_ALL_SCHEMAS && table.empty()) {
             query << " CAST(NULL, 'Nullable(String)') AS TABLE_CAT,";
             query << " CAST(NULL, 'Nullable(String)') AS TABLE_SCHEM,";
@@ -1258,12 +1256,11 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(
         }
         // Get a list of tables matching all criteria.
         else {
-            // TODO: cast all these to Nullable(String) too.
-            query << " database AS TABLE_CAT,";
-            query << " '' AS TABLE_SCHEM,";
-            query << " name AS TABLE_NAME,";
-            query << " 'TABLE' AS TABLE_TYPE,";
-            query << " '' AS REMARKS";
+            query << " CAST(database, 'Nullable(String)') AS TABLE_CAT,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_SCHEM,";
+            query << " CAST(name, 'Nullable(String)') AS TABLE_NAME,";
+            query << " CAST('TABLE', 'Nullable(String)') AS TABLE_TYPE,";
+            query << " CAST(NULL, 'Nullable(String)') AS REMARKS";
             query << " FROM system.tables";
             query << " WHERE (1 == 1)";
 
@@ -1273,26 +1270,50 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(
 
             const auto is_odbc_v2 = (statement.getParent().getParent().odbc_version == SQL_OV_ODBC2);
             const auto is_pattern = (statement.getParent().getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE) != SQL_TRUE);
-            const auto like_or_eq = (is_pattern ? "LIKE" : "==");
-            const auto catalog_like_or_eq = (!is_odbc_v2 && is_pattern ? "LIKE" : "==");
             const auto table_types = parseCatalogFnVLArgs(table_type_list);
 
-            if ((!is_odbc_v2 && is_pattern) || CatalogName) // Note, that 'catalog' variable will be set to "%" above, even if CatalogName == nullptr.
-                query << " AND TABLE_CAT " << catalog_like_or_eq << " '" << catalog << "'";
+            // TODO: Use of coalesce() is a workaround here. Review.
 
-            if (is_pattern || SchemaName) // Note, that 'schema' variable will be set to "%" above, even if SchemaName == nullptr.
-                query << " AND TABLE_SCHEM " << like_or_eq << " '" << schema << "'";
+            // Note, that 'catalog' variable will be set to "%" above (or to the connected database name), even if CatalogName == nullptr.
+            if (is_pattern && !is_odbc_v2) {
+                if (!isMatchAnythingCatalogFnPatternArg(catalog))
+                    query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') LIKE '" << catalog << "'";
+            }
+            else if (CatalogName) {
+                query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') == '" << catalog << "'";
+            }
 
-            if (is_pattern || TableName) // Note, that 'table' variable will be set to "%" above, even if TableName == nullptr.
-                query << " AND TABLE_NAME " << like_or_eq << " '" << table << "'";
+            // Note, that 'schema' variable will be set to "%" above, even if SchemaName == nullptr.
+            if (is_pattern) {
+                if (!isMatchAnythingCatalogFnPatternArg(schema))
+                    query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') LIKE '" << schema << "'";
+            }
+            else if (SchemaName) {
+                query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') == '" << schema << "'";
+            }
+
+            // Note, that 'table' variable will be set to "%" above, even if TableName == nullptr.
+            if (is_pattern) {
+                if (!isMatchAnythingCatalogFnPatternArg(table))
+                    query << " AND isNotNull(TABLE_NAME) AND coalesce(TABLE_NAME, '') LIKE '" << table << "'";
+            }
+            else if (TableName) {
+                query << " AND isNotNull(TABLE_NAME) AND coalesce(TABLE_NAME, '') == '" << table << "'";
+            }
 
             // Table type list is not affected by the value of SQL_ATTR_METADATA_ID, so we always treat it as a list of patterns.
             if (!table_types.empty()) {
-                query << " AND (1 == 0";
+                bool has_match_anything = false;
                 for (const auto & table_type : table_types) {
-                    query << " OR TABLE_TYPE LIKE '" << table_type << "'";
+                    has_match_anything = has_match_anything || isMatchAnythingCatalogFnPatternArg(table_type);
                 }
-                query << ")";
+                if (!has_match_anything) {
+                    query << " AND isNotNull(TABLE_TYPE) AND (1 == 0";
+                    for (const auto & table_type : table_types) {
+                        query << " OR coalesce(TABLE_TYPE, '') LIKE '" << table_type << "'";
+                    }
+                    query << ")";
+                }
             }
         }
 
@@ -1364,11 +1385,10 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
 
         std::stringstream query;
         query << "SELECT"
-                 " database AS TABLE_CAT"   // 0
-                 ", '' AS TABLE_SCHEM"      // 1
-                 ", table AS TABLE_NAME"    // 2
-                 ", name AS COLUMN_NAME"    // 3
-                 ", type AS DATA_TYPE"      // 4
+                 " CAST(database, 'Nullable(String)') AS TABLE_CAT" // 0
+                 ", CAST(NULL, 'Nullable(String)') AS TABLE_SCHEM"  // 1
+                 ", CAST(table, 'String') AS TABLE_NAME"            // 2
+                 ", CAST(name, 'String') AS COLUMN_NAME"            // 3
                  ", '' AS TYPE_NAME"        // 5
                  ", 0 AS COLUMN_SIZE"       // 6
                  ", 0 AS BUFFER_LENGTH"     // 7
@@ -1390,19 +1410,44 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
         // (i.e. is nullptr; note, that actual empty strings are considered "supplied".)
 
         const auto is_pattern = (statement.getParent().getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE) != SQL_TRUE);
-        const auto like_or_eq = (is_pattern ? "LIKE" : "==");
 
-        if (is_pattern || CatalogName) // Note, that 'catalog' variable will be set to "%" above, even if CatalogName == nullptr.
-            query << " AND TABLE_CAT " << like_or_eq << " '" << catalog << "'";
+        // TODO: Use of coalesce() is a workaround here. Review.
 
-        if (is_pattern || SchemaName) // Note, that 'schema' variable will be set to "%" above, even if SchemaName == nullptr.
-            query << " AND TABLE_SCHEM " << like_or_eq << " '" << schema << "'";
+        // Note, that 'catalog' variable will be set to "%" above (or to the connected database name), even if CatalogName == nullptr.
+        if (is_pattern) {
+            if (!isMatchAnythingCatalogFnPatternArg(catalog))
+                query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') LIKE '" << catalog << "'";
+        }
+        else if (CatalogName) {
+            query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') == '" << catalog << "'";
+        }
 
-        if (is_pattern || TableName) // Note, that 'table' variable will be set to "%" above, even if TableName == nullptr.
-            query << " AND TABLE_NAME " << like_or_eq << " '" << table << "'";
+        // Note, that 'schema' variable will be set to "%" above, even if SchemaName == nullptr.
+        if (is_pattern) {
+            if (!isMatchAnythingCatalogFnPatternArg(schema))
+                query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') LIKE '" << schema << "'";
+        }
+        else if (SchemaName) {
+            query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') == '" << schema << "'";
+        }
 
-        if (is_pattern || ColumnName) // Note, that 'column' variable will be set to "%" above, even if ColumnName == nullptr.
-            query << " AND COLUMN_NAME " << like_or_eq << " '" << column << "'";
+        // Note, that 'table' variable will be set to "%" above, even if TableName == nullptr.
+        if (is_pattern) {
+            if (!isMatchAnythingCatalogFnPatternArg(table))
+                query << " AND TABLE_NAME LIKE '" << table << "'";
+        }
+        else if (TableName) {
+            query << " AND TABLE_NAME == '" << table << "'";
+        }
+
+        // Note, that 'column' variable will be set to "%" above, even if ColumnName == nullptr.
+        if (is_pattern) {
+            if (!isMatchAnythingCatalogFnPatternArg(column))
+                query << " AND COLUMN_NAME LIKE '" << column << "'";
+        }
+        else if (ColumnName) {
+            query << " AND COLUMN_NAME == '" << column << "'";
+        }
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
         statement.executeQuery(query.str(), IResultMutatorPtr(new ColumnsMutator(&statement.getParent().getParent())));
