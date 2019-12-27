@@ -9,6 +9,8 @@
 #include <string>
 #include <type_traits>
 
+#include <cstring>
+
 using CharTypeLPCTSTR = std::remove_cv<std::remove_pointer<LPCTSTR>::type>::type;
 
 inline std::size_t NTSStringLength(const char * src, const std::locale& locale) {
