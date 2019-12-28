@@ -1388,7 +1388,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
         std::stringstream query;
         query << "SELECT"
                  " CAST(database, 'Nullable(String)') AS TABLE_CAT" // 0
-                 ", CAST(NULL, 'Nullable(String)') AS TABLE_SCHEM"  // 1
+                 ", CAST('', 'Nullable(String)') AS TABLE_SCHEM"    // 1
                  ", CAST(table, 'String') AS TABLE_NAME"            // 2
                  ", CAST(name, 'String') AS COLUMN_NAME"            // 3
                  ", CAST(type, 'String') AS DATA_TYPE"              // 4
