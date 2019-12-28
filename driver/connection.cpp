@@ -154,26 +154,23 @@ void Connection::resetConfiguration() {
 }
 
 void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_value_map_t & dsn_fields) {
-    // Returns tuple of bools: ("recognized key", "valid value", "value overwritten").
-    auto set_config_value = [&] (const std::string & key, const std::string & value, bool overwrite) {
+    // Returns tuple of bools: ("recognized key", "valid value").
+    auto set_config_value = [&] (const std::string & key, const std::string & value) {
         bool recognized_key = false;
         bool valid_value = false;
-        bool value_overwritten = false;
 
         if (Poco::UTF8::icompare(key, INI_DSN) == 0) {
             recognized_key = true;
             valid_value = true;
-            if (valid_value && (overwrite || data_source.empty())) {
+            if (valid_value) {
                 data_source = value;
-                value_overwritten = true;
             }
         }
         else if (Poco::UTF8::icompare(key, INI_URL) == 0) {
             recognized_key = true;
             valid_value = true;
-            if (valid_value && (overwrite || url.empty())) {
+            if (valid_value) {
                 url = value;
-                value_overwritten = true;
             }
         }
         else if (Poco::UTF8::icompare(key, INI_PROTO) == 0) {
@@ -183,9 +180,8 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
                 Poco::UTF8::icompare(value, "http") == 0 ||
                 Poco::UTF8::icompare(value, "https") == 0
             );
-            if (valid_value && (overwrite || proto.empty())) {
+            if (valid_value) {
                 proto = value;
-                value_overwritten = true;
             }
         }
         else if (
@@ -194,9 +190,8 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
         ) {
             recognized_key = true;
             valid_value = true;
-            if (valid_value && (overwrite || server.empty())) {
+            if (valid_value) {
                 server = value;
-                value_overwritten = true;
             }
         }
         else if (Poco::UTF8::icompare(key, INI_PORT) == 0) {
@@ -207,17 +202,15 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
                 typed_value > 0 &&
                 typed_value <= std::numeric_limits<decltype(port)>::max()
             ));
-            if (valid_value && (overwrite || port == 0)) {
+            if (valid_value) {
                 port = typed_value;
-                value_overwritten = true;
             }
         }
         else if (Poco::UTF8::icompare(key, INI_PATH) == 0) {
             recognized_key = true;
             valid_value = true;
-            if (valid_value && (overwrite || path.empty())) {
+            if (valid_value) {
                 path = value;
-                value_overwritten = true;
             }
         }
         else if (
@@ -226,9 +219,8 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
         ) {
             recognized_key = true;
             valid_value = (value.find(':') == std::string::npos);
-            if (valid_value && (overwrite || user.empty())) {
+            if (valid_value) {
                 user = value;
-                value_overwritten = true;
             }
         }
         else if (
@@ -237,17 +229,15 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
         ) {
             recognized_key = true;
             valid_value = true;
-            if (valid_value && (overwrite || password.empty())) {
+            if (valid_value) {
                 password = value;
-                value_overwritten = true;
             }
         }
         else if (Poco::UTF8::icompare(key, INI_DATABASE) == 0) {
             recognized_key = true;
             valid_value = true;
-            if (valid_value && (overwrite || database.empty())) {
+            if (valid_value) {
                 database = value;
-                value_overwritten = true;
             }
         }
         else if (Poco::UTF8::icompare(key, INI_TIMEOUT) == 0) {
@@ -257,9 +247,8 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
                 Poco::NumberParser::tryParseUnsigned(value, typed_value) &&
                 typed_value <= std::numeric_limits<decltype(timeout)>::max()
             ));
-            if (valid_value && (overwrite || timeout == 0)) {
+            if (valid_value) {
                 timeout = typed_value;
-                value_overwritten = true;
             }
         }
         else if (Poco::UTF8::icompare(key, INI_STRINGMAXLENGTH) == 0) {
@@ -270,9 +259,8 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
                 typed_value > 0 &&
                 typed_value <= std::numeric_limits<decltype(stringmaxlength)>::max()
             ));
-            if (valid_value && (overwrite || stringmaxlength == 0)) {
+            if (valid_value) {
                 stringmaxlength = typed_value;
-                value_overwritten = true;
             }
         }
         else if (Poco::UTF8::icompare(key, INI_SSLMODE) == 0) {
@@ -283,96 +271,95 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
                 Poco::UTF8::icompare(value, "prefer") == 0 ||
                 Poco::UTF8::icompare(value, "require") == 0
             );
-            if (valid_value && (overwrite || sslmode.empty())) {
+            if (valid_value) {
                 sslmode = value;
-                value_overwritten = true;
             }
         }
         else if (Poco::UTF8::icompare(key, INI_PRIVATEKEYFILE) == 0) {
             recognized_key = true;
             valid_value = true;
-            if (valid_value && (overwrite || privateKeyFile.empty())) {
+            if (valid_value) {
                 privateKeyFile = value;
-                value_overwritten = true;
             }
         }
         else if (Poco::UTF8::icompare(key, INI_CERTIFICATEFILE) == 0) {
             recognized_key = true;
             valid_value = true;
-            if (valid_value && (overwrite || certificateFile.empty())) {
+            if (valid_value) {
                 certificateFile = value;
-                value_overwritten = true;
             }
         }
         else if (Poco::UTF8::icompare(key, INI_CALOCATION) == 0) {
             recognized_key = true;
             valid_value = true;
-            if (valid_value && (overwrite || caLocation.empty())) {
+            if (valid_value) {
                 caLocation = value;
-                value_overwritten = true;
             }
         }
         else if (Poco::UTF8::icompare(key, INI_DRIVERLOGFILE) == 0) {
             recognized_key = true;
             valid_value = true;
-            if (valid_value && (overwrite || !getDriver().hasAttr(CH_SQL_ATTR_DRIVERLOGFILE))) {
+            if (valid_value) {
                 getDriver().setAttr(CH_SQL_ATTR_DRIVERLOGFILE, value);
-                value_overwritten = true;
             }
         }
         else if (Poco::UTF8::icompare(key, INI_DRIVERLOG) == 0) {
             recognized_key = true;
             valid_value = (value.empty() || isYesOrNo(value));
-            if (valid_value && (overwrite || !getDriver().hasAttr(CH_SQL_ATTR_DRIVERLOG))) {
+            if (valid_value) {
                 getDriver().setAttr(CH_SQL_ATTR_DRIVERLOG, (isYes(value) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
-                value_overwritten = true;
             }
         }
 
-        return std::make_tuple(recognized_key, valid_value, value_overwritten);
+        return std::make_tuple(recognized_key, valid_value);
     };
 
-    for (auto & field : cs_fields) {
-        const auto & key = field.first;
-        const auto & value = field.second;
-        const auto res = set_config_value(key, value, true);
-        const auto & recognized_key = std::get<0>(res);
-        const auto & valid_value = std::get<1>(res);
-        const auto & value_overwritten = std::get<2>(res);
-
-        if (recognized_key) {
-            if (valid_value) {
-                LOG("Connection string attribute" << (value_overwritten ? "" : " (unused)") << ": " << key << " = " << value);
-            }
-            else {
-                throw std::runtime_error("bad value '" + value + "' for connection string attribute '" + key + "'");
-            }
-        }
-        else {
-            LOG("Connection string: unknown attribute '" << key << "'");
-        }
-    }
-
+    // Set recognised attributes from the DSN. Throw on invalid value. (This will overwrite the defaults.)
     for (auto & field : dsn_fields) {
         const auto & key = field.first;
         const auto & value = field.second;
-        const auto res = set_config_value(key, value, false);
-        const auto & recognized_key = std::get<0>(res);
-        const auto & valid_value = std::get<1>(res);
-        const auto & value_overwritten = std::get<2>(res);
-
-        if (recognized_key) {
-            if (valid_value) {
-                LOG("DSN attribute" << (value_overwritten ? "" : " (unused, overriden by the connection string)") << ": " << key << " = " << value);
-            }
-            else {
-                throw std::runtime_error("bad value '" + value + "' for DSN attribute '" + key + "'");
-            }
+        
+        if (cs_fields.find(key) != cs_fields.end()) {
+            LOG("DSN: attribute '" << key << " = " << value << "' unused, overriden by the connection string");
         }
         else {
-            LOG("DSN: unknown attribute '" << key << "'");
+            const auto res = set_config_value(key, value);
+            const auto & recognized_key = std::get<0>(res);
+            const auto & valid_value = std::get<1>(res);
+
+            if (recognized_key) {
+                if (!valid_value)
+                    throw std::runtime_error("DSN: bad value '" + value + "' for attribute '" + key + "'");
+            }
+            else {
+                LOG("DSN: unknown attribute '" << key << "', ignoring");
+            }
         }
     }
+
+    // Set recognised attributes from the connection string. Throw on invalid value. (This will overwrite the defaults, and those set from the DSN.)
+    for (auto & field : cs_fields) {
+        const auto & key = field.first;
+        const auto & value = field.second;
+
+        if (dsn_fields.find(key) != dsn_fields.end()) {
+            LOG("Connection string: attribute '" << key << " = " << value << "' overrides DSN attribute with the same name");
+        }
+
+        const auto res = set_config_value(key, value);
+        const auto & recognized_key = std::get<0>(res);
+        const auto & valid_value = std::get<1>(res);
+
+        if (recognized_key) {
+            if (!valid_value)
+                throw std::runtime_error("Connection string: bad value '" + value + "' for attribute '" + key + "'");
+        }
+        else {
+            LOG("Connection string: unknown attribute '" << key << "', ignoting");
+        }
+    }
+
+    // Deduce and set all the remaining attributes that are still carrying the default/unintialized values. (This will overwrite only some of the defaults.)
 
     if (data_source.empty())
         data_source = INI_DSN_DEFAULT;
