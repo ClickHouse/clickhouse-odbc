@@ -757,7 +757,7 @@ SQLRETURN GetData(
 SQLRETURN Fetch(
     HSTMT statement_handle
 ) noexcept {
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
+    auto func = [&] (Statement & statement) -> SQLRETURN {
         auto * rows_fetched_ptr = statement.getEffectiveDescriptor(SQL_ATTR_IMP_ROW_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
 
         if (rows_fetched_ptr)
@@ -789,7 +789,9 @@ SQLRETURN Fetch(
         }
 
         return res;
-    });
+    };
+
+    return CALL_WITH_HANDLE(statement_handle, func);
 }
 
 } } // namespace impl
@@ -1021,8 +1023,9 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_hand
     SQLSMALLINT * out_type,
     SQLULEN * out_column_size,
     SQLSMALLINT * out_decimal_digits,
-    SQLSMALLINT * out_is_nullable) {
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
+    SQLSMALLINT * out_is_nullable
+) {
+    auto func = [&] (Statement & statement) {
         if (!statement.hasResultSet())
             throw SqlException("Column info is not available", "07009");
 
@@ -1049,7 +1052,9 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_hand
             *out_is_nullable = column_info.is_nullable ? SQL_NULLABLE : SQL_NO_NULLS;
 
         return fillOutputString<SQLTCHAR>(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size, false);
-    });
+    };
+
+    return CALL_WITH_HANDLE(statement_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFetch)(HSTMT statement_handle) {
@@ -1097,9 +1102,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindCol)(
     SQLLEN out_value_max_size,
     SQLLEN * out_value_size_or_indicator
 ) {
-    LOG(__FUNCTION__);
-
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
+    auto func = [&] (Statement & statement) {
         if (out_value_max_size < 0)
             throw SqlException("Invalid string or buffer length", "HY090");
 
@@ -1132,7 +1135,9 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindCol)(
         statement.bindings[column_number] = binding;
 
         return SQL_SUCCESS;
-    });
+    };
+
+    return CALL_WITH_HANDLE(statement_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLRowCount)(HSTMT statement_handle, SQLLEN * out_row_count) {
