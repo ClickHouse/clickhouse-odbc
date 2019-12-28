@@ -1385,13 +1385,15 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
         // N.B.: here, an empty 'catalog', 'schema', 'table', or 'column' variable would mean, that an empty string
         // has been supplied, not a nullptr. In case of nullptr, it would contain "%".
 
+        // TODO: review types and set NULL everything than has to be NULL.
+
         std::stringstream query;
         query << "SELECT"
-                 " CAST(database, 'Nullable(String)') AS TABLE_CAT" // 0
-                 ", CAST('', 'Nullable(String)') AS TABLE_SCHEM"    // 1
-                 ", CAST(table, 'String') AS TABLE_NAME"            // 2
-                 ", CAST(name, 'String') AS COLUMN_NAME"            // 3
-                 ", CAST(type, 'String') AS DATA_TYPE"              // 4
+                 " database AS TABLE_CAT"   // 0
+                 ", '' AS TABLE_SCHEM"      // 1
+                 ", table AS TABLE_NAME"    // 2
+                 ", name AS COLUMN_NAME"    // 3
+                 ", type AS DATA_TYPE"      // 4
                  ", '' AS TYPE_NAME"        // 5
                  ", 0 AS COLUMN_SIZE"       // 6
                  ", 0 AS BUFFER_LENGTH"     // 7
