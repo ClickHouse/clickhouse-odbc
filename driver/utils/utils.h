@@ -180,6 +180,21 @@ inline bool isMatchAnythingCatalogFnPatternArg(const std::string & pattern) {
     return (!pattern.empty() && pattern.find_first_not_of('%') == std::string::npos);
 }
 
+inline auto escapeForSQL(const std::string & literal) {
+    std::string res;
+    res.reserve(literal.size() + 10);
+    for (auto ch : literal) {
+        switch (ch) {
+            case '\\':
+            case '\'': {
+                res += '\\';
+            }
+        }
+        res += ch;
+    }
+    return res;
+}
+
 // Directly write raw bytes to the buffer, respecting its size.
 // All lengths are in bytes. If 'out_value_max_length == 0',
 // assume 'out_value' is able to hold the entire 'in_value'.

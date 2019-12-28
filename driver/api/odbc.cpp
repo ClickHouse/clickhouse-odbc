@@ -1279,28 +1279,28 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(
             // Note, that 'catalog' variable will be set to "%" above (or to the connected database name), even if CatalogName == nullptr.
             if (is_pattern && !is_odbc_v2) {
                 if (!isMatchAnythingCatalogFnPatternArg(catalog))
-                    query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') LIKE '" << catalog << "'";
+                    query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') LIKE '" << escapeForSQL(catalog) << "'";
             }
             else if (CatalogName) {
-                query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') == '" << catalog << "'";
+                query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') == '" << escapeForSQL(catalog) << "'";
             }
 
             // Note, that 'schema' variable will be set to "%" above, even if SchemaName == nullptr.
             if (is_pattern) {
                 if (!isMatchAnythingCatalogFnPatternArg(schema))
-                    query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') LIKE '" << schema << "'";
+                    query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') LIKE '" << escapeForSQL(schema) << "'";
             }
             else if (SchemaName) {
-                query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') == '" << schema << "'";
+                query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') == '" << escapeForSQL(schema) << "'";
             }
 
             // Note, that 'table' variable will be set to "%" above, even if TableName == nullptr.
             if (is_pattern) {
                 if (!isMatchAnythingCatalogFnPatternArg(table))
-                    query << " AND isNotNull(TABLE_NAME) AND coalesce(TABLE_NAME, '') LIKE '" << table << "'";
+                    query << " AND isNotNull(TABLE_NAME) AND coalesce(TABLE_NAME, '') LIKE '" << escapeForSQL(table) << "'";
             }
             else if (TableName) {
-                query << " AND isNotNull(TABLE_NAME) AND coalesce(TABLE_NAME, '') == '" << table << "'";
+                query << " AND isNotNull(TABLE_NAME) AND coalesce(TABLE_NAME, '') == '" << escapeForSQL(table) << "'";
             }
 
             // Table type list is not affected by the value of SQL_ATTR_METADATA_ID, so we always treat it as a list of patterns.
@@ -1312,7 +1312,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(
                 if (!has_match_anything) {
                     query << " AND isNotNull(TABLE_TYPE) AND (1 == 0";
                     for (const auto & table_type : table_types) {
-                        query << " OR coalesce(TABLE_TYPE, '') LIKE '" << table_type << "'";
+                        query << " OR coalesce(TABLE_TYPE, '') LIKE '" << escapeForSQL(table_type) << "'";
                     }
                     query << ")";
                 }
@@ -1421,37 +1421,37 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
         // Note, that 'catalog' variable will be set to "%" above (or to the connected database name), even if CatalogName == nullptr.
         if (is_pattern) {
             if (!isMatchAnythingCatalogFnPatternArg(catalog))
-                query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') LIKE '" << catalog << "'";
+                query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') LIKE '" << escapeForSQL(catalog) << "'";
         }
         else if (CatalogName) {
-            query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') == '" << catalog << "'";
+            query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') == '" << escapeForSQL(catalog) << "'";
         }
 
         // Note, that 'schema' variable will be set to "%" above, even if SchemaName == nullptr.
         if (is_pattern) {
             if (!isMatchAnythingCatalogFnPatternArg(schema))
-                query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') LIKE '" << schema << "'";
+                query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') LIKE '" << escapeForSQL(schema) << "'";
         }
         else if (SchemaName) {
-            query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') == '" << schema << "'";
+            query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') == '" << escapeForSQL(schema) << "'";
         }
 
         // Note, that 'table' variable will be set to "%" above, even if TableName == nullptr.
         if (is_pattern) {
             if (!isMatchAnythingCatalogFnPatternArg(table))
-                query << " AND TABLE_NAME LIKE '" << table << "'";
+                query << " AND TABLE_NAME LIKE '" << escapeForSQL(table) << "'";
         }
         else if (TableName) {
-            query << " AND TABLE_NAME == '" << table << "'";
+            query << " AND TABLE_NAME == '" << escapeForSQL(table) << "'";
         }
 
         // Note, that 'column' variable will be set to "%" above, even if ColumnName == nullptr.
         if (is_pattern) {
             if (!isMatchAnythingCatalogFnPatternArg(column))
-                query << " AND COLUMN_NAME LIKE '" << column << "'";
+                query << " AND COLUMN_NAME LIKE '" << escapeForSQL(column) << "'";
         }
         else if (ColumnName) {
-            query << " AND COLUMN_NAME == '" << column << "'";
+            query << " AND COLUMN_NAME == '" << escapeForSQL(column) << "'";
         }
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
