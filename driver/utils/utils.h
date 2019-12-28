@@ -188,6 +188,7 @@ inline auto escapeForSQL(const std::string & literal) {
             case '\\':
             case '\'': {
                 res += '\\';
+                break;
             }
         }
         res += ch;
