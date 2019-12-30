@@ -11,12 +11,12 @@ if (UNICODE)
 else ()
     set(DRIVER_PREFIX ANSI)
     set(WIDECHAR_SUFFIX)
-    if ("${ODBC_IMPL}" STREQUAL "UnixODBC")
+    if ("${ODBC_PROVIDER}" STREQUAL "UnixODBC")
         set(WORKAROUND_ENABLE_TRIM_TRAILING_NULL 1)
     endif ()
 endif ()
 
-if ("${ODBC_IMPL}" STREQUAL "iODBC")
+if ("${ODBC_PROVIDER}" STREQUAL "iODBC")
     set(WORKAROUND_ENABLE_DEFINE_SQLBindParam 1)
     set(WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS 1)
 endif ()
@@ -132,7 +132,7 @@ target_link_libraries(${libname}-impl
     PUBLIC ${Poco_Net_LIBRARY}
     PUBLIC ${Poco_Foundation_LIBRARY}
     PUBLIC ${Poco_Util_LIBRARY}
-    PUBLIC ODBC::API
+    PUBLIC ODBC::Driver
     PUBLIC Threads::Threads
 )
 

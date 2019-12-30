@@ -62,7 +62,7 @@ if (NOT BUILD_SHARED)
 endif ()
 
 include (cmake/arch.cmake)
-include(GNUInstallDirs)
+include (GNUInstallDirs)
 
 if (ARCH_FREEBSD)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")

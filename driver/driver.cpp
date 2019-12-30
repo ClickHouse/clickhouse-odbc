@@ -136,7 +136,7 @@ void Driver::writeLogSessionStart(std::ostream & stream) {
     stream << "ClickHouse ODBC Driver";
     stream << " VERSION=" << VERSION_STRING;
     stream << " SYSTEM=" << SYSTEM_STRING;
-    stream << " " << ODBC_IMPL;
+    stream << " " << ODBC_PROVIDER;
 #if defined(UNICODE)
     stream << " UNICODE";
 #else

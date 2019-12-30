@@ -25,7 +25,7 @@ jobs:
       env:
         - CC=gcc
         - CXX=g++
-        - ODBC_DRIVER_MANAGER=UnixODBC
+        - ODBC_PROVIDER=UnixODBC
         - BUILD_TYPE=Debug
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
@@ -50,7 +50,7 @@ jobs:
       env:
         - CC=gcc
         - CXX=g++
-        - ODBC_DRIVER_MANAGER=UnixODBC
+        - ODBC_PROVIDER=UnixODBC
         - BUILD_TYPE=Release
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
@@ -75,7 +75,7 @@ jobs:
       env:
         - CC=gcc
         - CXX=g++
-        - ODBC_DRIVER_MANAGER=UnixODBC
+        - ODBC_PROVIDER=UnixODBC
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
@@ -100,7 +100,7 @@ jobs:
       env:
         - CC=gcc
         - CXX=g++
-        - ODBC_DRIVER_MANAGER=UnixODBC
+        - ODBC_PROVIDER=UnixODBC
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=yes
         - PACKAGING=yes
@@ -129,7 +129,7 @@ jobs:
       env:
         - CC=clang
         - CXX=clang++
-        - ODBC_DRIVER_MANAGER=UnixODBC
+        - ODBC_PROVIDER=UnixODBC
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
@@ -153,7 +153,7 @@ jobs:
       env:
         - CC=gcc
         - CXX=g++
-        - ODBC_DRIVER_MANAGER=iODBC
+        - ODBC_PROVIDER=iODBC
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
@@ -178,7 +178,7 @@ jobs:
       env:
         - CC=clang
         - CXX=clang++
-        - ODBC_DRIVER_MANAGER=iODBC
+        - ODBC_PROVIDER=iODBC
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
@@ -199,7 +199,7 @@ jobs:
       os: windows
       language: shell
       env:
-        - ODBC_DRIVER_MANAGER=MDAC
+        - ODBC_PROVIDER=MDAC
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
@@ -212,7 +212,7 @@ jobs:
       os: windows
       language: shell
       env:
-        - ODBC_DRIVER_MANAGER=MDAC
+        - ODBC_PROVIDER=MDAC
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
@@ -226,7 +226,7 @@ jobs:
       osx_image: xcode11.2
       compiler: clang
       env:
-        - ODBC_DRIVER_MANAGER=iODBC
+        - ODBC_PROVIDER=iODBC
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
@@ -242,7 +242,7 @@ jobs:
       osx_image: xcode11.2
       compiler: clang
       env:
-        - ODBC_DRIVER_MANAGER=iODBC
+        - ODBC_PROVIDER=iODBC
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=yes
         - PACKAGING=yes
@@ -260,7 +260,7 @@ jobs:
       osx_image: xcode11.2
       compiler: clang
       env:
-        - ODBC_DRIVER_MANAGER=UnixODBC
+        - ODBC_PROVIDER=UnixODBC
         - BUILD_TYPE=RelWithDebInfo
         - EXTERNAL_THIRD_PARTY=no
         - PACKAGING=yes
@@ -290,7 +290,7 @@ install: |-
   elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     brew install cmake perl python@2
     PERL_MM_USE_DEFAULT=1 cpan -T DBD::ODBC
-    if [[ "$ODBC_DRIVER_MANAGER" == "iODBC" ]]; then
+    if [[ "$ODBC_PROVIDER" == "iODBC" ]]; then
       # It looks like older version of pyodbc works with iODBC out of the box on macOS:
       # https://github.com/mkleehammer/pyodbc/commit/aa178bfd25afd6fb90c77d054c1bcf0a6aa54411
       pip install --user pyodbc==3.0.7
@@ -343,7 +343,7 @@ install: |-
       export ODBCSYSINI=$RUN_DIR
       export ODBCINSTINI=.odbcinst.ini
       export ODBCINI=$ODBCSYSINI/.odbc.ini
-      if [[ "$ODBC_DRIVER_MANAGER" == "iODBC" ]]; then
+      if [[ "$ODBC_PROVIDER" == "iODBC" ]]; then
         # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
         export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
       fi
@@ -403,8 +403,8 @@ install: |-
   if [[ "$EXTERNAL_THIRD_PARTY" == "yes" ]]; then
     CMAKE_CONFIGURE_ARGS="-DUNBUNDLED=1 $CMAKE_CONFIGURE_ARGS"
   fi
-  if [[ ! -z "$ODBC_DRIVER_MANAGER" ]]; then
-    CMAKE_CONFIGURE_ARGS="-DODBC_IMPL=$ODBC_DRIVER_MANAGER $CMAKE_CONFIGURE_ARGS"
+  if [[ ! -z "$ODBC_PROVIDER" ]]; then
+    CMAKE_CONFIGURE_ARGS="-DODBC_PROVIDER=$ODBC_PROVIDER $CMAKE_CONFIGURE_ARGS"
   fi
   cd $BUILD_DIR
   if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
