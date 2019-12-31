@@ -142,6 +142,9 @@ struct UTF8CaseInsensitiveCompare {
     }
 };
 
+// Parses "Value List Arguments" of catalog functions.
+// Effectively, parses a comma-separated list of possibly single-quoted values
+// into a set of values. Escaping support is not supposed is such quoted values.
 inline auto parseCatalogFnVLArgs(const std::string & value_list) {
     std::set<std::string> values;
 
@@ -176,10 +179,14 @@ inline auto parseCatalogFnVLArgs(const std::string & value_list) {
     return values;
 }
 
+// Checks whether a "Pattern Value Argument" matches any string, including an empty string.
+// Effectively, checks if the string consists of 1 or more % chars only.
 inline bool isMatchAnythingCatalogFnPatternArg(const std::string & pattern) {
     return (!pattern.empty() && pattern.find_first_not_of('%') == std::string::npos);
 }
 
+// Escapes a SQL literal value for using it in a single-quoted notation in a SQL query.
+// Effectively, escapes ' and \ using \.
 inline auto escapeForSQL(const std::string & literal) {
     std::string res;
     res.reserve(literal.size() + 10);

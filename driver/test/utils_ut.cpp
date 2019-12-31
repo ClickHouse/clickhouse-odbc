@@ -38,3 +38,38 @@ INSTANTIATE_TEST_CASE_P(CatalogFnVLArgs, ParseToSet,
         { ",TA\"BLE,', ,VIE,W, ,', ' , ,VIE,W, , ' ", { "", "TA\"BLE", ", ,VIE,W, ,", " , ,VIE,W, , " } }
     })
 );
+
+TEST(Escaping, EscapeForSQL) {
+    for (const auto & pair : std::initializer_list<std::pair<std::string, std::string>>{
+        { "", "" },
+        { " ", " " },
+        { "TABLE", "TABLE" },
+        { "'", "\\'" },
+        { "\\", "\\\\" },
+        { " ' some \\x, \\' \\\\ value ' ", " \\' some \\\\x, \\\\\\' \\\\\\\\ value \\' " }
+    }) {
+        EXPECT_EQ(escapeForSQL(pair.first), pair.second);
+    }
+}
+
+TEST(CatalogFnPattern, IsMatchAnything) {
+    for (const auto & pair : std::initializer_list<std::pair<std::string, bool>>{
+        { "", false },
+        { " ", false },
+        { "_", false },
+        { " %", false },
+        { "% ", false },
+        { "%", true },
+        { "%%%%%%", true },
+        { "%_", false },
+        { "_%", false },
+        { "%_%", false },
+        { " %%%%", false },
+        { "%%%% ", false },
+        { "A%", false },
+        { "%A", false },
+        { "%A%", false }
+    }) {
+        EXPECT_EQ(isMatchAnythingCatalogFnPatternArg(pair.first), pair.second);
+    }
+}
