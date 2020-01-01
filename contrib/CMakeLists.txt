@@ -59,3 +59,5 @@ if (USE_INTERNAL_POCO_LIBRARY)
         set_target_properties(uninstall PROPERTIES FOLDER "${CMAKE_FOLDER}")
     endif ()
 endif ()
+
+unset (ODBC_CONFIG CACHE)

@@ -9,18 +9,16 @@
 #     ODBC_MDAC_APP_INCLUDE_DIRS
 #     ODBC_MDAC_APP_COMPILER_FLAGS
 #     ODBC_MDAC_APP_LINKER_FLAGS
-#     ODBC_MDAC_APP_LIBRARIES
 #
 #     ODBC_MDAC_DRIVER_DEFINES
 #     ODBC_MDAC_DRIVER_INCLUDE_DIRS
 #     ODBC_MDAC_DRIVER_COMPILER_FLAGS
 #     ODBC_MDAC_DRIVER_LINKER_FLAGS
-#     ODBC_MDAC_DRIVER_LIBRARIES
 #
 
 set (ODBC_MDAC_FOUND TRUE)
 
-foreach (_role_uc APP DRIVER)
+foreach (_role_lc APP driver)
     if (NOT WIN32)
         set (ODBC_MDAC_FOUND FALSE)
         message(WARNING "ODBC MDAC: Not available on non-Windows systems.")
@@ -30,9 +28,9 @@ foreach (_role_uc APP DRIVER)
     set (_headers sql.h;sqltypes.h;sqlucode.h;sqlext.h)
     set (_libs)
 
-    if ("${_role_uc}" STREQUAL "APP")
+    if ("${_role_lc}" STREQUAL "app")
         list (APPEND _libs odbc32)
-    elseif ("${_role_uc}" STREQUAL "DRIVER")
+    elseif ("${_role_lc}" STREQUAL "driver")
         list (APPEND _headers odbcinst.h)
         list (APPEND _libs odbccp32)
 
@@ -47,7 +45,7 @@ foreach (_role_uc APP DRIVER)
         endif ()
     endif ()
 
-    set(_found_include_dirs_${_role_uc})
+    set(_found_${_role_lc}_include_dirs)
     foreach (_file ${_headers})
         unset (_path CACHE)
         unset (_path)
@@ -65,14 +63,15 @@ foreach (_role_uc APP DRIVER)
         endif ()
 
         if (_path)
-            list (APPEND _found_include_dirs_${_role_uc} "${_path}")
+            list (APPEND _found_${_role_lc}_include_dirs "${_path}")
         else ()
             set (ODBC_MDAC_FOUND FALSE)
             message(WARNING "ODBC MDAC: Failed to locate path containing '${_file}' header file.")
         endif ()
     endforeach ()
+    list (REMOVE_DUPLICATES _found_${_role_lc}_include_dirs)
 
-    set(_found_libs_${_role_uc})
+    set(_found_${_role_lc}_linker_flags)
     foreach (_file ${_libs})
         unset (_path CACHE)
         unset (_path)
@@ -90,41 +89,44 @@ foreach (_role_uc APP DRIVER)
         endif ()
 
         if (_path)
-            list (APPEND _found_libs_${_role_uc} "${_path}")
+            list (APPEND _found_${_role_lc}_linker_flags "${_path}")
         else ()
             set (ODBC_MDAC_FOUND FALSE)
             message(WARNING "ODBC MDAC: Failed to locate '${_file}' library file.")
         endif ()
     endforeach ()
+    list (REMOVE_DUPLICATES _found_${_role_lc}_linker_flags)
 endforeach ()
 
-if (ODBC_MDAC_FOUND)
+unset (_path CACHE)
+unset (_path)
+unset (_file)
+unset (_libs)
+unset (_headers)
+
+if (ODBC_UNIXODBC_FOUND)
     foreach (_role_uc APP DRIVER)
-        foreach (_comp_uc DEFINES INCLUDE_DIRS COMPILER_FLAGS LIBRARIES LINKER_FLAGS)
-            unset (ODBC_MDAC_${_role_uc}_${_comp_uc})
-        endforeach ()
-
-        set (ODBC_MDAC_${_role_uc}_INCLUDE_DIRS ${_found_include_dirs_${_role_uc}})
-        set (ODBC_MDAC_${_role_uc}_LIBRARIES ${_found_libs_${_role_uc}})
-
-        foreach (_comp_uc DEFINES INCLUDE_DIRS COMPILER_FLAGS LIBRARIES LINKER_FLAGS)
-            if (ODBC_MDAC_${_role_uc}_${_comp_uc})
-                list (REMOVE_DUPLICATES ODBC_MDAC_${_role_uc}_${_comp_uc})
-                mark_as_advanced (ODBC_MDAC_${_role_uc}_${_comp_uc})
+        string (TOLOWER "${_role_uc}" _role_lc)
+        foreach (_comp_uc DEFINES INCLUDE_DIRS COMPILER_FLAGS LINKER_FLAGS)
+            string (TOLOWER "${_comp_uc}" _comp_lc)
+            set (ODBC_UNIXODBC_${_role_uc}_${_comp_uc})
+            if (_found_${_role_lc}_${_comp_lc})
+                set (ODBC_UNIXODBC_${_role_uc}_${_comp_uc} ${_found_${role_lc}_${_comp_lc}})
             endif ()
+            mark_as_advanced (ODBC_UNIXODBC_${_role_uc}_${_comp_uc})
         endforeach ()
     endforeach ()
 endif ()
 
-unset (_headers)
-unset (_libs)
-unset (_file)
-unset (_path CACHE)
-unset (_path)
-foreach (_role_uc APP DRIVER)
-    unset (_found_include_dirs_${_role_uc})
-    unset (_found_libs_${_role_uc})
+foreach (_role_lc app driver)
+    foreach (_comp_lc defines include_dirs compiler_flags linker_flags)
+        unset (_found_${_role_lc}_${comp_lc})
+    endforeach ()
 endforeach ()
+
+unset (_comp_lc)
+unset (_comp_uc)
+unset (_role_lc)
 unset (_role_uc)
 
 include (FindPackageHandleStandardArgs)

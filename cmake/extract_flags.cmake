@@ -4,7 +4,6 @@ macro (extract_flags
     _include_dirs_name
     _compiler_flags_name
     _linker_flags_name
-    _libraries_name
 )
     string (REPLACE " " ";" _mixed_flags "${_mixed_flags_val}")
 
@@ -13,10 +12,8 @@ macro (extract_flags
             list (APPEND ${_defines_name} "${CMAKE_MATCH_1}")
         elseif ("${_flag}" MATCHES "^-I(.*)$")
             list (APPEND ${_include_dirs_name} "${CMAKE_MATCH_1}")
-        elseif ("${_flag}" MATCHES "^-L(.*)$")
-            list (APPEND ${_linker_flags_name} "-L${CMAKE_MATCH_1}")
-        elseif ("${_flag}" MATCHES "^-l(.*)$")
-            list (APPEND ${_libraries_name} "${CMAKE_MATCH_1}")
+        elseif ("${_flag}" MATCHES "^-L(.*)$" OR "${_flag}" MATCHES "^-l(.*)$")
+            list (APPEND ${_linker_flags_name} "${_flag}")
         else ()
             list (APPEND ${_compiler_flags_name} "${_flag}")
         endif()
