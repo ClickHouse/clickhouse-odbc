@@ -288,7 +288,7 @@ install: |-
   if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     sudo apt-get install -y build-essential cmake perl libdbi-perl libdbd-odbc-perl python python-pyodbc
   elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    brew install cmake perl python@2
+    brew install --force cmake perl python@2
     PERL_MM_USE_DEFAULT=1 cpan -T DBD::ODBC
     if [[ "$ODBC_PROVIDER" == "iODBC" ]]; then
       # It looks like older version of pyodbc works with iODBC out of the box on macOS:
