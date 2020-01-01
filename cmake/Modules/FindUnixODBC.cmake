@@ -290,7 +290,7 @@ if (NOT ODBC_UNIXODBC_FOUND AND NOT ODBC_UNIXODBC_CONFIG_SCRIPT)
             endif ()
 
             if ("${_file}" STREQUAL "sql.h")
-                if (NOT EXISTS "${_path}/unixodbc_conf.h")
+                if (NOT EXISTS "${_path}/uodbc_extras.h")
                     set (ODBC_UNIXODBC_FOUND FALSE)
                     message(WARNING "ODBC UnixODBC: path containing '${_file}' header file doesn't look like an include path for UnixODBC headers. (Possible clash with iODBC installation?)")
                 else ()
