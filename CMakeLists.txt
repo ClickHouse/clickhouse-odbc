@@ -26,7 +26,7 @@ endif ()
 
 if (NOT CMAKE_CONFIGURATION_TYPES)
     set (CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}")
-endif()
+endif ()
 
 message (STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 
@@ -106,7 +106,7 @@ message (STATUS "Building for: ${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE
 add_subdirectory (contrib EXCLUDE_FROM_ALL)
 
 foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
-    set(CMAKE_${config}_POSTFIX "" CACHE STRING "" FORCE) # Don't append "d" or "md" to output lib name
+    set (CMAKE_${config}_POSTFIX "" CACHE STRING "" FORCE) # Don't append "d" or "md" to output lib name
 endforeach ()
 
 set (CMAKE_C_VISIBILITY_PRESET hidden)

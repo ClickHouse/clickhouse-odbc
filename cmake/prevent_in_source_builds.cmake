@@ -1,11 +1,11 @@
-foreach(_source_dir "${CMAKE_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+foreach (_source_dir "${CMAKE_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     if ("${_source_dir}" STREQUAL "")
         continue ()
     endif ()
 
     get_filename_component (_source_dir_realpath "${_source_dir}" REALPATH)
 
-    foreach(_binary_dir "${CMAKE_BINARY_DIR}" "${PROJECT_BINARY_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
+    foreach (_binary_dir "${CMAKE_BINARY_DIR}" "${PROJECT_BINARY_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
         if ("${_binary_dir}" STREQUAL "")
             continue ()
         endif ()
@@ -34,8 +34,8 @@ foreach(_source_dir "${CMAKE_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRE
             set (_prev_binary_dir_realpath "${_binary_dir_realpath}")
             get_filename_component (_binary_dir_realpath "${_binary_dir_realpath}" DIRECTORY)
         endwhile ()
-    endforeach()
-endforeach()
+    endforeach ()
+endforeach ()
 
 unset (_binary_dir_name)
 unset (_prev_binary_dir_realpath)

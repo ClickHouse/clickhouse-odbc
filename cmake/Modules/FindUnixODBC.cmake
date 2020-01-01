@@ -337,20 +337,6 @@ if (NOT ODBC_UNIXODBC_FOUND AND NOT ODBC_UNIXODBC_CONFIG_SCRIPT)
     unset (_headers)
 endif ()
 
-if (ODBC_UNIXODBC_FOUND)
-
-
-
-
-# ltdl
-
-
-
-
-
-
-endif ()
-
 if (ODBC_UNIXODBC_FOUND AND _odbc_prefix)
     set (ODBC_UNIXODBC_DIR "${_odbc_prefix}")
 

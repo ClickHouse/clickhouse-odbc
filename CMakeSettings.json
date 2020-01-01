@@ -4,20 +4,13 @@
             "name": "vs2019-x64-Debug",
             "generator": "Visual Studio 16 2019 Win64",
             "configurationType": "Debug",
-            "inheritEnvironments": [
-                "msvc_x64_x64"
-            ],
             "buildRoot": "${projectDir}\\build-win-${name}",
             "installRoot": "${projectDir}\\build-win-${name}\\prefix",
             "cmakeCommandArgs": "",
             "buildCommandArgs": "-v:d",
             "ctestCommandArgs": "",
-            "variables": [
-                {
-                    "name": "CLICKHOUSE_ODBC_TEST",
-                    "value": "true",
-                    "type": "BOOL"
-                }
+            "inheritEnvironments": [
+                "msvc_x64_x64"
             ]
         },
         {
@@ -31,13 +24,6 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x64_x64"
-            ],
-            "variables": [
-                {
-                    "name": "CLICKHOUSE_ODBC_TEST",
-                    "value": "true",
-                    "type": "BOOL"
-                }
             ]
         },
         {
@@ -51,13 +37,6 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x64_x64"
-            ],
-            "variables": [
-                {
-                    "name": "CLICKHOUSE_ODBC_TEST",
-                    "value": "true",
-                    "type": "BOOL"
-                }
             ]
         },
         {
@@ -71,13 +50,6 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x86"
-            ],
-            "variables": [
-                {
-                    "name": "CLICKHOUSE_ODBC_TEST",
-                    "value": "true",
-                    "type": "BOOL"
-                }
             ]
         },
         {
@@ -91,13 +63,6 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x86"
-            ],
-            "variables": [
-                {
-                    "name": "CLICKHOUSE_ODBC_TEST",
-                    "value": "true",
-                    "type": "BOOL"
-                }
             ]
         },
         {
@@ -111,13 +76,6 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x86"
-            ],
-            "variables": [
-                {
-                    "name": "CLICKHOUSE_ODBC_TEST",
-                    "value": "true",
-                    "type": "BOOL"
-                }
             ]
         },
         {
@@ -131,13 +89,6 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x64_x64"
-            ],
-            "variables": [
-                {
-                    "name": "CLICKHOUSE_ODBC_TEST",
-                    "value": "true",
-                    "type": "BOOL"
-                }
             ]
         },
         {
@@ -151,13 +102,6 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x64_x64"
-            ],
-            "variables": [
-                {
-                    "name": "CLICKHOUSE_ODBC_TEST",
-                    "value": "true",
-                    "type": "BOOL"
-                }
             ]
         },
         {
@@ -171,13 +115,6 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x64_x64"
-            ],
-            "variables": [
-                {
-                    "name": "CLICKHOUSE_ODBC_TEST",
-                    "value": "true",
-                    "type": "BOOL"
-                }
             ]
         },
         {
@@ -191,13 +128,6 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x86"
-            ],
-            "variables": [
-                {
-                    "name": "CLICKHOUSE_ODBC_TEST",
-                    "value": "true",
-                    "type": "BOOL"
-                }
             ]
         },
         {
@@ -211,13 +141,6 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x86"
-            ],
-            "variables": [
-                {
-                    "name": "CLICKHOUSE_ODBC_TEST",
-                    "value": "true",
-                    "type": "BOOL"
-                }
             ]
         },
         {
@@ -231,13 +154,6 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [
                 "msvc_x86"
-            ],
-            "variables": [
-                {
-                    "name": "CLICKHOUSE_ODBC_TEST",
-                    "value": "true",
-                    "type": "BOOL"
-                }
             ]
         }
     ]
