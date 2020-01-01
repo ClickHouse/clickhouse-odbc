@@ -40,12 +40,12 @@ endif ()
 
 set (_path_hints)
 if (APPLE AND NOT ODBC_UNIXODBC_SKIP_BREW)
-    find_program (_brew brew)
-    mark_as_advanced (_brew)
+    find_program (BREW brew)
+    mark_as_advanced (BREW)
 
-    if (_brew)
+    if (BREW)
         execute_process (
-            COMMAND ${_brew} --prefix
+            COMMAND ${BREW} --prefix
             OUTPUT_VARIABLE _path_hints
             OUTPUT_STRIP_TRAILING_WHITESPACE
         )
@@ -63,8 +63,8 @@ if (NOT ODBC_UNIXODBC_CONFIG_SCRIPT AND NOT ODBC_UNIXODBC_SKIP_PKG_CONFIG)
     unset (_odbcinst_pkg_config_dir CACHE)
     unset (_odbcinst_pkg_config_dir)
 
-    find_program (_pkg_config pkg-config)
-    mark_as_advanced (_pkg_config)
+    find_program (PKG_CONFIG pkg-config)
+    mark_as_advanced (PKG_CONFIG)
 
     if (ODBC_UNIXODBC_DIR)
         find_path (_odbc_pkg_config_dir
@@ -102,19 +102,19 @@ if (NOT ODBC_UNIXODBC_CONFIG_SCRIPT AND NOT ODBC_UNIXODBC_SKIP_PKG_CONFIG)
         endforeach ()
 
         execute_process (
-            COMMAND env PKG_CONFIG_PATH=${_odbc_pkg_config_dir} ${_pkg_config} odbc --libs
+            COMMAND env PKG_CONFIG_PATH=${_odbc_pkg_config_dir} ${PKG_CONFIG} odbc --libs
             OUTPUT_VARIABLE _libs
             OUTPUT_STRIP_TRAILING_WHITESPACE
         )
 
         execute_process (
-            COMMAND env PKG_CONFIG_PATH=${_odbc_pkg_config_dir} ${_pkg_config} odbc --cflags
+            COMMAND env PKG_CONFIG_PATH=${_odbc_pkg_config_dir} ${PKG_CONFIG} odbc --cflags
             OUTPUT_VARIABLE _cflags
             OUTPUT_STRIP_TRAILING_WHITESPACE
         )
 
         execute_process (
-            COMMAND env PKG_CONFIG_PATH=${_odbc_pkg_config_dir} ${_pkg_config} odbc --variable=ulen
+            COMMAND env PKG_CONFIG_PATH=${_odbc_pkg_config_dir} ${PKG_CONFIG} odbc --variable=ulen
             OUTPUT_VARIABLE _ulen
             OUTPUT_STRIP_TRAILING_WHITESPACE
         )
@@ -127,13 +127,13 @@ if (NOT ODBC_UNIXODBC_CONFIG_SCRIPT AND NOT ODBC_UNIXODBC_SKIP_PKG_CONFIG)
         )
 
         execute_process (
-            COMMAND env PKG_CONFIG_PATH=${_odbcinst_pkg_config_dir} ${_pkg_config} odbcinst --libs
+            COMMAND env PKG_CONFIG_PATH=${_odbcinst_pkg_config_dir} ${PKG_CONFIG} odbcinst --libs
             OUTPUT_VARIABLE _libs
             OUTPUT_STRIP_TRAILING_WHITESPACE
         )
 
         execute_process (
-            COMMAND env PKG_CONFIG_PATH=${_odbcinst_pkg_config_dir} ${_pkg_config} odbcinst --cflags
+            COMMAND env PKG_CONFIG_PATH=${_odbcinst_pkg_config_dir} ${PKG_CONFIG} odbcinst --cflags
             OUTPUT_VARIABLE _cflags
             OUTPUT_STRIP_TRAILING_WHITESPACE
         )
@@ -146,7 +146,7 @@ if (NOT ODBC_UNIXODBC_CONFIG_SCRIPT AND NOT ODBC_UNIXODBC_SKIP_PKG_CONFIG)
         )
 
         execute_process (
-            COMMAND env PKG_CONFIG_PATH=${_odbc_pkg_config_dir} ${_pkg_config} odbc --variable=prefix
+            COMMAND env PKG_CONFIG_PATH=${_odbc_pkg_config_dir} ${PKG_CONFIG} odbc --variable=prefix
             OUTPUT_VARIABLE _odbc_prefix
             OUTPUT_STRIP_TRAILING_WHITESPACE
         )
@@ -220,7 +220,7 @@ if (NOT ODBC_UNIXODBC_FOUND AND NOT ODBC_UNIXODBC_SKIP_CONFIG_SCRIPT AND _odbc_c
     # set (_found_driver_defines "${_found_app_defines}")
     # set (_found_driver_include_dirs "${_found_app_include_dirs}")
     # set (_found_driver_compiler_flags "${_found_app_compiler_flags}")
-    # set (_found_driver_linker_flags "{_found_app_linker_flags}")
+    # set (_found_driver_linker_flags "${_found_app_linker_flags}")
 
     # list (FILTER _found_app_linker_flags EXCLUDE REGEX "^-lodbcinst$")
     # if ("${_found_app_linker_flags}" STREQUAL "${_found_driver_linker_flags}")
@@ -228,7 +228,7 @@ if (NOT ODBC_UNIXODBC_FOUND AND NOT ODBC_UNIXODBC_SKIP_CONFIG_SCRIPT AND _odbc_c
     # endif ()
     # list (FILTER _found_driver_linker_flags EXCLUDE REGEX "^-lodbc$")
 
-    extract_flags ("${_libs}"
+    extract_flags ("${_cflags} ${_libs}"
         _found_driver_defines
         _found_driver_include_dirs
         _found_driver_compiler_flags
