@@ -49,6 +49,9 @@ cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_NANODBC "Prefer bundled over syst
 option (CH_ODBC_RUNTIME_LINK_STATIC "Link with compiler and language runtime statically" OFF)
 option (CH_ODBC_THIRD_PARTY_LINK_STATIC "Link with third party libraries statically" ON)
 
+set (CH_ODBC_DEFAULT_DSN_ANSI "ClickHouse DSN (ANSI)")
+set (CH_ODBC_DEFAULT_DSN_UNICODE "ClickHouse DSN (Unicode)")
+
 if (MSVC)
     # This default encoding mode will be overriden by UNICODE, in the corresponding cases.
     add_compile_definitions (SBCS _SBCS)
@@ -128,6 +131,9 @@ if (CH_ODBC_ENABLE_TESTING)
     include (CTest)
     enable_testing ()
     include (GoogleTest)
+
+    set (TEST_DSN "${CH_ODBC_DEFAULT_DSN_ANSI}")
+    set (TEST_DSN_W "${CH_ODBC_DEFAULT_DSN_UNICODE}")
 endif ()
 
 foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})

@@ -10,6 +10,9 @@
 #define SYSTEM_STRING "@CMAKE_SYSTEM@"
 #define ODBC_PROVIDER "@ODBC_PROVIDER@"
 
+#define CH_ODBC_DEFAULT_DSN_ANSI "@CH_ODBC_DEFAULT_DSN_ANSI@"
+#define CH_ODBC_DEFAULT_DSN_UNICODE "@CH_ODBC_DEFAULT_DSN_UNICODE@"
+
 #cmakedefine01 USE_SSL
 
 // See the usage of each workaround in the code, for comments.
