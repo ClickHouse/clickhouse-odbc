@@ -32,9 +32,9 @@
 #define INI_DRIVERLOGFILE   "DriverLogFile"
 
 #if defined(UNICODE)
-#   define INI_DSN_DEFAULT          CH_ODBC_DEFAULT_DSN_UNICODE
+#   define INI_DSN_DEFAULT          DSN_DEFAULT_UNICODE
 #else
-#   define INI_DSN_DEFAULT          CH_ODBC_DEFAULT_DSN_ANSI
+#   define INI_DSN_DEFAULT          DSN_DEFAULT_ANSI
 #endif
 
 #define INI_DESC_DEFAULT            ""
