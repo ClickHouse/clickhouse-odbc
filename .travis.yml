@@ -13,7 +13,7 @@ env:
     - INSTALL_DIR=$SOURCE_DIR/build/prefix
     - PACKAGE_DIR=$SOURCE_DIR/build/package
     - RUN_DIR=$SOURCE_DIR/build/run
-    - CTEST_EXTRA_ARGS="${CTEST_EXTRA_ARGS:--output-on-failure}"
+    - CTEST_EXTRA_ARGS=--output-on-failure
 
 jobs:
   include:
