@@ -1,4 +1,0 @@
-# Todo: test and fix in unicode iodbc
-set (USE_INTERNAL_NANOODBC_LIBRARY 1)
-set (NANOODBC_LIBRARY nanodbc)
-message (STATUS "Using nanoodbc: ${NANOODBC_LIBRARY} : USE_INTERNAL_NANOODBC_LIBRARY=${USE_INTERNAL_NANOODBC_LIBRARY}")

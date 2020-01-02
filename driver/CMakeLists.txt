@@ -4,6 +4,7 @@ function (declare_odbc_lib_targets libname UNICODE)
 unset (WORKAROUND_ENABLE_TRIM_TRAILING_NULL)
 unset (WORKAROUND_ENABLE_DEFINE_SQLBindParam)
 unset (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
+unset (USE_SSL)
 
 if (UNICODE)
     set (DRIVER_PREFIX Unicode)
@@ -21,6 +22,10 @@ if ("${ODBC_PROVIDER}" STREQUAL "iODBC")
     set (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS 1)
 endif ()
 
+if (CH_ODBC_ENABLE_SSL)
+    set (USE_SSL 1)
+endif()
+
 message (STATUS "${libname}: ${DRIVER_PREFIX}")
 
 configure_file (
@@ -31,6 +36,7 @@ configure_file (
 unset (WORKAROUND_ENABLE_TRIM_TRAILING_NULL)
 unset (WORKAROUND_ENABLE_DEFINE_SQLBindParam)
 unset (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
+unset (USE_SSL)
 
 # In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
 add_library (${libname}-impl STATIC
@@ -115,23 +121,20 @@ endif ()
 target_include_directories (${libname}-impl
     PUBLIC ${PROJECT_BINARY_DIR}
     PUBLIC ${PROJECT_SOURCE_DIR}
-    PUBLIC ${Poco_INCLUDE_DIRS}
 )
 
-if (USE_SSL)
+if (CH_ODBC_ENABLE_SSL)
     target_link_libraries (${libname}-impl
-        PUBLIC ${Poco_NetSSL_LIBRARY}
-        PUBLIC ${Poco_Crypto_LIBRARY}
+        PUBLIC Poco::NetSSL
     )
-    target_include_directories (${libname}-impl
-        PUBLIC ${OPENSSL_INCLUDE_DIR}
+else ()
+    target_link_libraries (${libname}-impl
+        PUBLIC Poco::Net
     )
 endif ()
 
 target_link_libraries (${libname}-impl
-    PUBLIC ${Poco_Net_LIBRARY}
-    PUBLIC ${Poco_Foundation_LIBRARY}
-    PUBLIC ${Poco_Util_LIBRARY}
+    PUBLIC Poco::Foundation
     PUBLIC ODBC::Driver
     PUBLIC Threads::Threads
 )
@@ -153,33 +156,35 @@ target_link_libraries (${libname}
     PRIVATE ${libname}-impl
 )
 
-if (MSVC)
-    install(
-        TARGETS ${libname}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        COMPONENT "${DRIVER_PREFIX}Driver"
-    )
-    install(
-        FILES $<TARGET_PDB_FILE:${libname}>
-        DESTINATION ${CMAKE_INSTALL_BINDIR}
-        COMPONENT "${DRIVER_PREFIX}DriverDebugSymbols"
-        OPTIONAL
-    )
-else()
-    install(
-        TARGETS ${libname}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        COMPONENT "${DRIVER_PREFIX}Driver"
-    )
-endif()
+if (CH_ODBC_ENABLE_INSTALL)
+    if (MSVC)
+        install (
+            TARGETS ${libname}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            COMPONENT "${DRIVER_PREFIX}Driver"
+        )
+        install (
+            FILES $<TARGET_PDB_FILE:${libname}>
+            DESTINATION ${CMAKE_INSTALL_BINDIR}
+            COMPONENT "${DRIVER_PREFIX}DriverDebugSymbols"
+            OPTIONAL
+        )
+    else ()
+        install (
+            TARGETS ${libname}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            COMPONENT "${DRIVER_PREFIX}Driver"
+        )
+    endif ()
+endif ()
 
 endfunction ()
 
 declare_odbc_lib_targets (clickhouse-odbc 0)
 declare_odbc_lib_targets (clickhouse-odbcw 1)
 
-if(CLICKHOUSE_ODBC_TEST)
-    add_subdirectory(test)
-endif()
+if (CH_ODBC_ENABLE_TESTING)
+    add_subdirectory (test)
+endif ()

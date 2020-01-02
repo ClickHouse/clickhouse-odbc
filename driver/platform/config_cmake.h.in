@@ -11,7 +11,6 @@
 #define ODBC_PROVIDER "@ODBC_PROVIDER@"
 
 #cmakedefine01 USE_SSL
-#cmakedefine01 USE_DEBUG_17
 
 // See the usage of each workaround in the code, for comments.
 #cmakedefine WORKAROUND_ENABLE_TRIM_TRAILING_NULL

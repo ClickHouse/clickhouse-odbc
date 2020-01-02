@@ -5,10 +5,8 @@
 #include "driver/type_info.h"
 #include "driver/exception.h"
 
-#ifndef NDEBUG
-#    if USE_DEBUG_17
-#        include "driver/utils/iostream_debug_helpers.h"
-#    endif
+#if !defined(NDEBUG) && __cplusplus >= 201703L
+#   include "driver/utils/iostream_debug_helpers.h"
 #endif
 
 #include <Poco/NumberParser.h>

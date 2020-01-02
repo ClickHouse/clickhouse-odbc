@@ -29,16 +29,15 @@ function (declare_odbc_test_targets libname UNICODE)
     )
 
     target_link_libraries (${libname}-load-ut
+        PRIVATE Poco::Foundation
         PRIVATE ODBC::App
-        PRIVATE ${Poco_Foundation_LIBRARY}
-        PRIVATE ${CMAKE_DL_LIBS}
         PRIVATE Threads::Threads
+        PRIVATE ${CMAKE_DL_LIBS}
     )
 
     target_include_directories (${libname}-load-ut
         PRIVATE ${PROJECT_BINARY_DIR}
         PRIVATE ${PROJECT_SOURCE_DIR}
-        PRIVATE ${Poco_INCLUDE_DIRS}
     )
 
     if (UNICODE)
@@ -66,16 +65,14 @@ function (declare_odbc_test_targets libname UNICODE)
 
     target_link_libraries (${libname}-client-it
         PRIVATE ODBC::App
-        PRIVATE ${Poco_Foundation_LIBRARY}
         PRIVATE gtest
-        PRIVATE ${CMAKE_DL_LIBS}
         PRIVATE Threads::Threads
+        PRIVATE ${CMAKE_DL_LIBS}
     )
 
     target_include_directories (${libname}-client-it
         PRIVATE ${PROJECT_BINARY_DIR}
         PRIVATE ${PROJECT_SOURCE_DIR}
-        PRIVATE ${Poco_INCLUDE_DIRS}
     )
 
     if (UNICODE)
@@ -93,7 +90,7 @@ function (declare_odbc_test_targets libname UNICODE)
         add_test (NAME ${libname}-client-it-w COMMAND ${libname}-client-it "${TEST_DSN_W}")
     endif ()
 
-    if (NANOODBC_LIBRARY
+    if (TARGET nanodbc
 #        AND (
 #            (NANODBC_ENABLE_UNICODE AND UNICODE) OR
 #            (NOT NANODBC_ENABLE_UNICODE AND NOT UNICODE)
@@ -111,7 +108,7 @@ function (declare_odbc_test_targets libname UNICODE)
         )
 
         target_link_libraries (${libname}-${nanoname}-it
-            PRIVATE ${NANOODBC_LIBRARY}
+            PRIVATE nanodbc
         )
 
         target_include_directories (${libname}-${nanoname}-it
