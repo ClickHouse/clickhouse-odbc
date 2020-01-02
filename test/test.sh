@@ -21,14 +21,13 @@ set -Eeo pipefail
 #using trap to preserve error exit code
 #trap "printf '\n\n\nLast log:\n'; tail -n200 /tmp/clickhouse-odbc.log" EXIT
 
-RUNNER=$@
-echo "Using: $RUNNER"
+echo "Using: $@"
 
 function q {
     echo "Asking [$*]"
     # DYLD_INSERT_LIBRARIES=/usr/local/opt/gcc/lib/gcc/8/libasan.5.dylib
     # export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libasan.so.5
-    echo "$*" | $RUNNER
+    echo "$*" | $@
 }
 
 q "SELECT * FROM system.build_options;"
