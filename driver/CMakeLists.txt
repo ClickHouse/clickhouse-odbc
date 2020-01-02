@@ -124,16 +124,17 @@ target_include_directories (${libname}-impl
 )
 
 if (CH_ODBC_ENABLE_SSL)
-    target_link_libraries (${libname}-impl
-        PUBLIC Poco::NetSSL
-    )
+    if (MSVC)
+        set (_poco_net Poco::NetSSLWin)
+    else ()
+        set (_poco_net Poco::NetSSL)
+    endif ()
 else ()
-    target_link_libraries (${libname}-impl
-        PUBLIC Poco::Net
-    )
+    set (_poco_net Poco::Net)
 endif ()
 
 target_link_libraries (${libname}-impl
+    PUBLIC ${_poco_net}
     PUBLIC Poco::Foundation
     PUBLIC ODBC::Driver
     PUBLIC Threads::Threads

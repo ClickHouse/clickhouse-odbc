@@ -59,6 +59,11 @@ if (CH_ODBC_PREFER_BUNDLED_POCO OR NOT Poco_FOUND)
     if (TARGET NetSSL)
         add_library(Poco::NetSSL ALIAS NetSSL)
     endif ()
+
+    if (TARGET NetSSLWin)
+        add_library(Poco::NetSSLWin ALIAS NetSSLWin)
+    endif ()
+
     add_library(Poco::Net ALIAS Net)
     add_library(Poco::Foundation ALIAS Foundation)
     add_library(Poco::Util ALIAS Util)
