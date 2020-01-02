@@ -17,9 +17,9 @@ if len(sys.argv) >= 2:
     if len(sys.argv) >= 3:
         is_wide = sys.argv[2] == 'w'
 
-print("Using DSN={" + dsn + "}")
+print("Using DSN=" + dsn)
 
-connection = pyodbc.connect('DSN={' + dsn + '};')
+connection = pyodbc.connect('DSN=' + dsn)
 try:
     connection.setencoding(str, encoding='utf-8')
     connection.setencoding(unicode, encoding='utf-8')
