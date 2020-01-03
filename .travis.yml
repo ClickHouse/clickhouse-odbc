@@ -292,7 +292,9 @@ install: |-
     brew uninstall --force --ignore-dependencies cmake perl python@2
     brew install cmake perl python@2
     PERL_MM_USE_DEFAULT=1 cpan -T DBD::ODBC
-    pip install --user pyodbc
+    if [[ "$ODBC_PROVIDER" == "UnixODBC" ]]; then
+      pip install --user pyodbc
+    fi
   elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
     export OLD_VSWHERE=yes
 
