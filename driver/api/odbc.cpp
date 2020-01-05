@@ -634,7 +634,7 @@ SQLRETURN GetData(
     SQLLEN out_value_max_size,
     SQLLEN * out_value_size_or_indicator
 ) noexcept {
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
+    auto func = [&] (Statement & statement) {
         if (!statement.hasResultSet())
             throw SqlException("Column info is not available", "07009");
 
@@ -749,13 +749,15 @@ SQLRETURN GetData(
             default:
                 throw SqlException("Restricted data type attribute violation", "07006");
         }
-    });
+    };
+
+    return CALL_WITH_HANDLE(statement_handle, func);
 }
 
 SQLRETURN Fetch(
     HSTMT statement_handle
 ) noexcept {
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
+    auto func = [&] (Statement & statement) -> SQLRETURN {
         auto * rows_fetched_ptr = statement.getEffectiveDescriptor(SQL_ATTR_IMP_ROW_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
 
         if (rows_fetched_ptr)
@@ -787,7 +789,9 @@ SQLRETURN Fetch(
         }
 
         return res;
-    });
+    };
+
+    return CALL_WITH_HANDLE(statement_handle, func);
 }
 
 } } // namespace impl
@@ -838,8 +842,19 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDriverConnect)(
 ) {
     return CALL_WITH_HANDLE(ConnectionHandle, [&](Connection & connection) {
         const auto connection_string = toUTF8(InConnectionString, StringLength1);
+
+        auto out_buffer_length = BufferLength;
+        if (out_buffer_length <= 0) {
+            if (StringLength1 > 0)
+                out_buffer_length = StringLength1;
+            else if (StringLength1 == SQL_NTS)
+                out_buffer_length = NTSStringLength(InConnectionString) + 1; // +1 for null terminating character
+            else
+                out_buffer_length = 1024; // ...as per SQLDriverConnect() doc: "Applications should allocate at least 1,024 characters for this buffer."
+        }
+
         connection.connect(connection_string);
-        return fillOutputString<SQLTCHAR>(connection_string, OutConnectionString, BufferLength, StringLength2Ptr, false);
+        return fillOutputString<SQLTCHAR>(connection_string, OutConnectionString, out_buffer_length, StringLength2Ptr, false);
     });
 }
 
@@ -872,17 +887,16 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handl
     });
 }
 
-SQLRETURN SQL_API EXPORTED_FUNCTION(SQLNumResultCols)(HSTMT statement_handle, SQLSMALLINT * column_count) {
-    LOG(__FUNCTION__);
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLNumResultCols)(
+    SQLHSTMT        StatementHandle,
+    SQLSMALLINT *   ColumnCountPtr
+) {
+    return CALL_WITH_HANDLE(StatementHandle, [&](Statement & statement) {
+        if (ColumnCountPtr) {
+            if (statement.isPrepared() && !statement.isExecuted())
+                statement.forwardExecuteQuery();
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        if (column_count) {
-            if (statement.hasResultSet()) {
-                *column_count = statement.getNumColumns();
-            }
-            else {
-                *column_count = 0;
-            }
+            *ColumnCountPtr = statement.getNumColumns();
         }
         return SQL_SUCCESS;
     });
@@ -1009,8 +1023,9 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_hand
     SQLSMALLINT * out_type,
     SQLULEN * out_column_size,
     SQLSMALLINT * out_decimal_digits,
-    SQLSMALLINT * out_is_nullable) {
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
+    SQLSMALLINT * out_is_nullable
+) {
+    auto func = [&] (Statement & statement) {
         if (!statement.hasResultSet())
             throw SqlException("Column info is not available", "07009");
 
@@ -1037,7 +1052,9 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_hand
             *out_is_nullable = column_info.is_nullable ? SQL_NULLABLE : SQL_NO_NULLS;
 
         return fillOutputString<SQLTCHAR>(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size, false);
-    });
+    };
+
+    return CALL_WITH_HANDLE(statement_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFetch)(HSTMT statement_handle) {
@@ -1085,9 +1102,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindCol)(
     SQLLEN out_value_max_size,
     SQLLEN * out_value_size_or_indicator
 ) {
-    LOG(__FUNCTION__);
-
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
+    auto func = [&] (Statement & statement) {
         if (out_value_max_size < 0)
             throw SqlException("Invalid string or buffer length", "HY090");
 
@@ -1120,7 +1135,9 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindCol)(
         statement.bindings[column_number] = binding;
 
         return SQL_SUCCESS;
-    });
+    };
+
+    return CALL_WITH_HANDLE(statement_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLRowCount)(HSTMT statement_handle, SQLLEN * out_row_count) {
@@ -1193,100 +1210,140 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetDiagField)(
     );
 }
 
-SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(HSTMT statement_handle,
-    SQLTCHAR * catalog_name,
-    SQLSMALLINT catalog_name_length,
-    SQLTCHAR * schema_name,
-    SQLSMALLINT schema_name_length,
-    SQLTCHAR * table_name,
-    SQLSMALLINT table_name_length,
-    SQLTCHAR * table_type,
-    SQLSMALLINT table_type_length) {
-    LOG(__FUNCTION__);
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(
+    SQLHSTMT        StatementHandle,
+    SQLTCHAR *      CatalogName,
+    SQLSMALLINT     NameLength1,
+    SQLTCHAR *      SchemaName,
+    SQLSMALLINT     NameLength2,
+    SQLTCHAR *      TableName,
+    SQLSMALLINT     NameLength3,
+    SQLTCHAR *      TableType,
+    SQLSMALLINT     NameLength4
+) {
+    auto func = [&](Statement & statement) {
+        constexpr bool null_catalog_defaults_to_connected_database = true; // TODO: review and remove this behavior?
+        const auto catalog = (CatalogName ? toUTF8(CatalogName, NameLength1) :
+            (null_catalog_defaults_to_connected_database ? statement.getParent().database : SQL_ALL_CATALOGS));
+        const auto schema = (SchemaName ? toUTF8(SchemaName, NameLength2) : SQL_ALL_SCHEMAS);
+        const auto table = (TableName ? toUTF8(TableName, NameLength3) : "%");
+        const auto table_type_list = (TableType ? toUTF8(TableType, NameLength4) : SQL_ALL_TABLE_TYPES);
 
-    // TODO (artpaul) Take statement.getMetatadaId() into account.
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        const auto catalog = toUTF8(catalog_name, catalog_name_length);
-        const auto schema = toUTF8(schema_name, schema_name_length);
-        const auto table = toUTF8(table_name, table_name_length);
-        const auto ttype = toUTF8(table_type, table_type_length);
+        // N.B.: here, an empty 'catalog', 'schema', 'table', or 'table_type_list' variable would mean, that an empty string
+        // has been supplied, not a nullptr. In case of nullptr, it would contain "%".
 
         std::stringstream query;
+        query << "SELECT";
 
-        // Get a list of all tables in all databases.
-        if (catalog_name != nullptr && catalog == SQL_ALL_CATALOGS && !schema_name && !table_name && !table_type) {
-            query << "SELECT"
-                     " database AS TABLE_CAT"
-                     ", '' AS TABLE_SCHEM"
-                     ", name AS TABLE_NAME"
-                     ", 'TABLE' AS TABLE_TYPE"
-                     ", '' AS REMARKS"
-                     " FROM system.tables"
-                     " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
+        // Get a list of all databases.
+        if (catalog == SQL_ALL_CATALOGS && schema.empty() && table.empty()) {
+            query << " CAST(name, 'Nullable(String)') AS TABLE_CAT,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_SCHEM,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_NAME,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_TYPE,";
+            query << " CAST(NULL, 'Nullable(String)') AS REMARKS";
+            query << " FROM system.databases";
         }
-        // Get a list of all tables in the current database.
-        else if (!catalog_name && !schema_name && !table_name && !table_type) {
-            query << "SELECT"
-                     " database AS TABLE_CAT"
-                     ", '' AS TABLE_SCHEM"
-                     ", name AS TABLE_NAME"
-                     ", 'TABLE' AS TABLE_TYPE"
-                     ", '' AS REMARKS"
-                     " FROM system.tables"
-                     " WHERE (database == '";
-            query << statement.getParent().database << "')";
-            query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
+        // Get a list of all schemas (currently, just an empty list).
+        else if (catalog.empty() && schema == SQL_ALL_SCHEMAS && table.empty()) {
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_CAT,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_SCHEM,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_NAME,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_TYPE,";
+            query << " CAST(NULL, 'Nullable(String)') AS REMARKS";
+            query << " WHERE (1 == 0)";
         }
-        // Get a list of databases on the current connection's server.
-        else if (!catalog.empty() && schema_name != nullptr && schema_name_length == 0 && table_name != nullptr && table_name_length == 0) {
-            query << "SELECT"
-                     " name AS TABLE_CAT"
-                     ", '' AS TABLE_SCHEM"
-                     ", '' AS TABLE_NAME"
-                     ", '' AS TABLE_TYPE"
-                     ", '' AS REMARKS"
-                     " FROM system.databases"
-                     " WHERE (1 == 1)";
-            query << " AND TABLE_CAT LIKE '" << catalog << "'";
-            query << " ORDER BY TABLE_CAT";
-        } else {
-            query << "SELECT"
-                     " database AS TABLE_CAT"
-                     ", '' AS TABLE_SCHEM"
-                     ", name AS TABLE_NAME"
-                     ", 'TABLE' AS TABLE_TYPE"
-                     ", '' AS REMARKS"
-                     " FROM system.tables"
-                     " WHERE (1 == 1)";
+        // Get a list of all valid table types (currently, 'TABLE' only.)
+        else if (catalog.empty() && schema.empty() && table.empty() && table_type_list == SQL_ALL_TABLE_TYPES) {
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_CAT,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_SCHEM,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_NAME,";
+            query << " CAST('TABLE', 'Nullable(String)') AS TABLE_TYPE,";
+            query << " CAST(NULL, 'Nullable(String)') AS REMARKS";
+        }
+        // Get a list of tables matching all criteria.
+        else {
+            query << " CAST(database, 'Nullable(String)') AS TABLE_CAT,";
+            query << " CAST(NULL, 'Nullable(String)') AS TABLE_SCHEM,";
+            query << " CAST(name, 'Nullable(String)') AS TABLE_NAME,";
+            query << " CAST('TABLE', 'Nullable(String)') AS TABLE_TYPE,";
+            query << " CAST(NULL, 'Nullable(String)') AS REMARKS";
+            query << " FROM system.tables";
+            query << " WHERE (1 == 1)";
 
-            if (catalog_name && catalog_name_length)
-                query << " AND TABLE_CAT LIKE '" << catalog << "'";
-            //if (schema_name_length)
-            //    query << " AND TABLE_SCHEM LIKE '" << schema << "'";
-            if (table_name && table_name_length)
-                query << " AND TABLE_NAME LIKE '" << table << "'";
-            //if (table_type_length)
-            //    query << " AND TABLE_TYPE = '" << ttype << "'";
+            // Completely ommit the condition part of the query, if the value of SQL_ATTR_METADATA_ID is SQL_TRUE
+            // (i.e., values for the components are not patterns), and the component hasn't been supplied at all
+            // (i.e. is nullptr; note, that actual empty strings are considered "supplied".)
 
-            query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
+            const auto is_odbc_v2 = (statement.getParent().getParent().odbc_version == SQL_OV_ODBC2);
+            const auto is_pattern = (statement.getParent().getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE) != SQL_TRUE);
+            const auto table_types = parseCatalogFnVLArgs(table_type_list);
+
+            // TODO: Use of coalesce() is a workaround here. Review.
+
+            // Note, that 'catalog' variable will be set to "%" above (or to the connected database name), even if CatalogName == nullptr.
+            if (is_pattern && !is_odbc_v2) {
+                if (!isMatchAnythingCatalogFnPatternArg(catalog))
+                    query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') LIKE '" << escapeForSQL(catalog) << "'";
+            }
+            else if (CatalogName) {
+                query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') == '" << escapeForSQL(catalog) << "'";
+            }
+
+            // Note, that 'schema' variable will be set to "%" above, even if SchemaName == nullptr.
+            if (is_pattern) {
+                if (!isMatchAnythingCatalogFnPatternArg(schema))
+                    query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') LIKE '" << escapeForSQL(schema) << "'";
+            }
+            else if (SchemaName) {
+                query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') == '" << escapeForSQL(schema) << "'";
+            }
+
+            // Note, that 'table' variable will be set to "%" above, even if TableName == nullptr.
+            if (is_pattern) {
+                if (!isMatchAnythingCatalogFnPatternArg(table))
+                    query << " AND isNotNull(TABLE_NAME) AND coalesce(TABLE_NAME, '') LIKE '" << escapeForSQL(table) << "'";
+            }
+            else if (TableName) {
+                query << " AND isNotNull(TABLE_NAME) AND coalesce(TABLE_NAME, '') == '" << escapeForSQL(table) << "'";
+            }
+
+            // Table type list is not affected by the value of SQL_ATTR_METADATA_ID, so we always treat it as a list of patterns.
+            if (!table_types.empty()) {
+                bool has_match_anything = false;
+                for (const auto & table_type : table_types) {
+                    has_match_anything = has_match_anything || isMatchAnythingCatalogFnPatternArg(table_type);
+                }
+                if (!has_match_anything) {
+                    query << " AND isNotNull(TABLE_TYPE) AND (1 == 0";
+                    for (const auto & table_type : table_types) {
+                        query << " OR coalesce(TABLE_TYPE, '') LIKE '" << escapeForSQL(table_type) << "'";
+                    }
+                    query << ")";
+                }
+            }
         }
 
+        query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
         statement.executeQuery(query.str());
+
         return SQL_SUCCESS;
-    });
+    };
+
+    return CALL_WITH_HANDLE(StatementHandle, func);
 }
 
-SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
-    SQLTCHAR * catalog_name,
-    SQLSMALLINT catalog_name_length,
-    SQLTCHAR * schema_name,
-    SQLSMALLINT schema_name_length,
-    SQLTCHAR * table_name,
-    SQLSMALLINT table_name_length,
-    SQLTCHAR * column_name,
-    SQLSMALLINT column_name_length) {
-    LOG(__FUNCTION__);
-
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
+    SQLHSTMT        StatementHandle,
+    SQLTCHAR *      CatalogName,
+    SQLSMALLINT     NameLength1,
+    SQLTCHAR *      SchemaName,
+    SQLSMALLINT     NameLength2,
+    SQLTCHAR *      TableName,
+    SQLSMALLINT     NameLength3,
+    SQLTCHAR *      ColumnName,
+    SQLSMALLINT     NameLength4
+) {
     class ColumnsMutator : public IResultMutator {
     public:
         ColumnsMutator(Environment * env_) : env(env_) {}
@@ -1322,9 +1379,20 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
         Environment * const env;
     };
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
-        std::stringstream query;
+    auto func = [&](Statement & statement) {
+        constexpr bool null_catalog_defaults_to_connected_database = true; // TODO: review and remove this behavior?
+        const auto catalog = (CatalogName ? toUTF8(CatalogName, NameLength1) :
+            (null_catalog_defaults_to_connected_database ? statement.getParent().database : SQL_ALL_CATALOGS));
+        const auto schema = (SchemaName ? toUTF8(SchemaName, NameLength2) : SQL_ALL_SCHEMAS);
+        const auto table = (TableName ? toUTF8(TableName, NameLength3) : "%");
+        const auto column = (ColumnName ? toUTF8(ColumnName, NameLength4) : "%");
 
+        // N.B.: here, an empty 'catalog', 'schema', 'table', or 'column' variable would mean, that an empty string
+        // has been supplied, not a nullptr. In case of nullptr, it would contain "%".
+
+        // TODO: review types and set NULL everything than has to be NULL.
+
+        std::stringstream query;
         query << "SELECT"
                  " database AS TABLE_CAT"   // 0
                  ", '' AS TABLE_SCHEM"      // 1
@@ -1347,31 +1415,57 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(HSTMT statement_handle,
                  " FROM system.columns"
                  " WHERE (1 == 1)";
 
-        std::string s;
-        s = toUTF8(catalog_name, catalog_name_length);
-        if (s.length() > 0) {
-            query << " AND TABLE_CAT LIKE '" << s << "'";
-        } else {
-            query << " AND TABLE_CAT = currentDatabase()";
+        // Completely ommit the condition part of the query, if the value of SQL_ATTR_METADATA_ID is SQL_TRUE
+        // (i.e., values for the components are not patterns), and the component hasn't been supplied at all
+        // (i.e. is nullptr; note, that actual empty strings are considered "supplied".)
+
+        const auto is_pattern = (statement.getParent().getAttrAs<SQLUINTEGER>(SQL_ATTR_METADATA_ID, SQL_FALSE) != SQL_TRUE);
+
+        // TODO: Use of coalesce() is a workaround here. Review.
+
+        // Note, that 'catalog' variable will be set to "%" above (or to the connected database name), even if CatalogName == nullptr.
+        if (is_pattern) {
+            if (!isMatchAnythingCatalogFnPatternArg(catalog))
+                query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') LIKE '" << escapeForSQL(catalog) << "'";
+        }
+        else if (CatalogName) {
+            query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') == '" << escapeForSQL(catalog) << "'";
         }
 
-        s = toUTF8(schema_name, schema_name_length);
-        if (s.length() > 0)
-            query << " AND TABLE_SCHEM LIKE '" << s << "'";
+        // Note, that 'schema' variable will be set to "%" above, even if SchemaName == nullptr.
+        if (is_pattern) {
+            if (!isMatchAnythingCatalogFnPatternArg(schema))
+                query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') LIKE '" << escapeForSQL(schema) << "'";
+        }
+        else if (SchemaName) {
+            query << " AND isNotNull(TABLE_SCHEM) AND coalesce(TABLE_SCHEM, '') == '" << escapeForSQL(schema) << "'";
+        }
 
-        s = toUTF8(table_name, table_name_length);
-        if (s.length() > 0)
-            query << " AND TABLE_NAME LIKE '" << s << "'";
+        // Note, that 'table' variable will be set to "%" above, even if TableName == nullptr.
+        if (is_pattern) {
+            if (!isMatchAnythingCatalogFnPatternArg(table))
+                query << " AND TABLE_NAME LIKE '" << escapeForSQL(table) << "'";
+        }
+        else if (TableName) {
+            query << " AND TABLE_NAME == '" << escapeForSQL(table) << "'";
+        }
 
-        s = toUTF8(column_name, column_name_length);
-        if (s.length() > 0)
-            query << " AND COLUMN_NAME LIKE '" << s << "'";
+        // Note, that 'column' variable will be set to "%" above, even if ColumnName == nullptr.
+        if (is_pattern) {
+            if (!isMatchAnythingCatalogFnPatternArg(column))
+                query << " AND COLUMN_NAME LIKE '" << escapeForSQL(column) << "'";
+        }
+        else if (ColumnName) {
+            query << " AND COLUMN_NAME == '" << escapeForSQL(column) << "'";
+        }
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
-
         statement.executeQuery(query.str(), IResultMutatorPtr(new ColumnsMutator(&statement.getParent().getParent())));
+
         return SQL_SUCCESS;
-    });
+    };
+
+    return CALL_WITH_HANDLE(StatementHandle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetTypeInfo)(
@@ -1509,10 +1603,15 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLBrowseConnect)(HDBC connection_ha
     return SQL_ERROR;
 }
 
-SQLRETURN SQL_API EXPORTED_FUNCTION(SQLCancel)(HSTMT StatementHandle) {
-    LOG(__FUNCTION__ << "Ignoring SQLCancel " << StatementHandle);
-    return SQL_SUCCESS;
-    //return SQL_ERROR;
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLCancel)(
+    SQLHSTMT     StatementHandle
+) {
+    auto func = [&] (Statement & statement) {
+        statement.closeCursor();
+        return SQL_SUCCESS;
+    };
+
+    return CALL_WITH_HANDLE(StatementHandle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetCursorName)(
@@ -1536,7 +1635,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetFunctions)(HDBC connection_handle, SQL
             SET_EXISTS(SQL_API_SQLBINDPARAMETER);
             //SET_EXISTS(SQL_API_SQLBROWSECONNECT);
             //SET_EXISTS(SQL_API_SQLBULKOPERATIONS);
-            //SET_EXISTS(SQL_API_SQLCANCEL);
+            SET_EXISTS(SQL_API_SQLCANCEL);
             //SET_EXISTS(SQL_API_SQLCANCELHANDLE);
             SET_EXISTS(SQL_API_SQLCLOSECURSOR);
             SET_EXISTS(SQL_API_SQLCOLATTRIBUTE);

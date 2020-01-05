@@ -26,6 +26,7 @@
 #include <functional>
 #include <chrono>
 #include <iomanip>
+#include <set>
 #include <sstream>
 #include <thread>
 #include <type_traits>
@@ -140,6 +141,67 @@ struct UTF8CaseInsensitiveCompare {
         return Poco::UTF8::icompare(lhs, rhs) < 0;
     }
 };
+
+// Parses "Value List Arguments" of catalog functions.
+// Effectively, parses a comma-separated list of possibly single-quoted values
+// into a set of values. Escaping support is not supposed is such quoted values.
+inline auto parseCatalogFnVLArgs(const std::string & value_list) {
+    std::set<std::string> values;
+
+    const auto value_list_mod = value_list + ',';
+    std::string curr;
+    int quotes = 0;
+
+    for (auto ch : value_list_mod) {
+        if (ch == ',' && quotes % 2 == 0) {
+            Poco::trimInPlace(curr);
+//          Poco::UTF8::toUpperInPlace(curr);
+            if (curr.size() > 1 && curr.front() == '\'' && curr.back() == '\'') {
+                curr.pop_back();
+                curr.erase(0, 1);
+            }
+            values.emplace(std::move(curr));
+            quotes = 0;
+        }
+        else {
+            if (ch == '\'') {
+                if (quotes >= 2)
+                    throw std::runtime_error("Invalid syntax for catalog function value list argument: " + value_list);
+                ++quotes;
+            }
+            curr += ch;
+        }
+    }
+
+    if (!curr.empty() || quotes != 0)
+        throw std::runtime_error("Invalid syntax for catalog function value list argument: " + value_list);
+
+    return values;
+}
+
+// Checks whether a "Pattern Value Argument" matches any string, including an empty string.
+// Effectively, checks if the string consists of 1 or more % chars only.
+inline bool isMatchAnythingCatalogFnPatternArg(const std::string & pattern) {
+    return (!pattern.empty() && pattern.find_first_not_of('%') == std::string::npos);
+}
+
+// Escapes a SQL literal value for using it in a single-quoted notation in a SQL query.
+// Effectively, escapes ' and \ using \.
+inline auto escapeForSQL(const std::string & literal) {
+    std::string res;
+    res.reserve(literal.size() + 10);
+    for (auto ch : literal) {
+        switch (ch) {
+            case '\\':
+            case '\'': {
+                res += '\\';
+                break;
+            }
+        }
+        res += ch;
+    }
+    return res;
+}
 
 // Directly write raw bytes to the buffer, respecting its size.
 // All lengths are in bytes. If 'out_value_max_length == 0',
@@ -327,5 +389,4 @@ inline SQLRETURN fillOutputNULL(
         if (!name)                                                                                   \
             name = #NAME;                                                                            \
         LOG("GetInfo " << name << ", type: " << #TYPE << ", value: " << #VALUE << " = " << (VALUE)); \
-        return fillOutputPOD<TYPE>(VALUE, out_value,                                                 \
-            std::decay<decltype(*out_value_length)>::type{0}/* out_value_max_length */, out_value_length);
+        return fillOutputPOD<TYPE>(VALUE, out_value, out_value_length);
