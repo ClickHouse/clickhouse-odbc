@@ -1,12 +1,12 @@
-# Insert the content of this file into ~/.odbc.ini or /etc/odbc.ini
+# Insert the content of this file into ~/.odbc.ini or /etc/odbc.ini files.
 
 [ODBC Data Sources]
-ClickHouseDSN_localhost = ClickHouseDriver
-ClickHouseDSNW_localhost = ClickHouseDriverW
+ClickHouse DSN (ANSI)    = ClickHouse ODBC Driver (ANSI)
+ClickHouse DSN (Unicode) = ClickHouse ODBC Driver (Unicode)
 
-[ClickHouseDSN_localhost]
-Driver = ClickHouseDriver
-Description = DSN for ClickHouse ANSI Driver (localhost)
+[ClickHouse DSN (ANSI)]
+Driver      = ClickHouse ODBC Driver (ANSI)
+Description = DSN (localhost) for ClickHouse ODBC Driver (ANSI)
 
 ### New all-in one way to specify connection with [optional] settings:
 #url = https://default:password@localhost:8443/query?database=default&max_result_bytes=4000000&buffer_size=3000000
@@ -36,7 +36,7 @@ Description = DSN for ClickHouse ANSI Driver (localhost)
 #DriverLog = yes
 #DriverLogFile = /tmp/chlickhouse-odbc-driver.log
 
-[ClickHouseDSNW_localhost]
-Driver = ClickHouseDriverW
-Description = DSN for ClickHouse Unicode Driver (localhost)
+[ClickHouse DSN (Unicode)]
+Driver      = ClickHouse ODBC Driver (Unicode)
+Description = DSN (localhost) for ClickHouse ODBC Driver (Unicode)
 # ...
