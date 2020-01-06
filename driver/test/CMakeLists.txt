@@ -9,6 +9,7 @@ function (declare_odbc_test_targets libname UNICODE)
         gtest_main.cpp
         gtest_env.h
         gtest_env.cpp
+        utils_ut.cpp
         escape_sequences_ut.cpp
         lexer_ut.cpp
         AttributeContainer_ut.cpp

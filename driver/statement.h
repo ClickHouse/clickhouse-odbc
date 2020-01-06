@@ -25,14 +25,21 @@ public:
     /// Lookup TypeInfo for given name of type.
     const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs = "") const;
 
+    bool isPrepared() const;
+
+    bool isExecuted() const;
+
     /// Prepare query for execution.
     void prepareQuery(const std::string & q);
 
-    /// Execute previously prepared query.
+    /// Execute previously prepared query, or no-op if previous execution was done using forwardExecuteQuery().
     void executeQuery(IResultMutatorPtr && mutator = IResultMutatorPtr{});
 
     /// Prepare and execute query.
     void executeQuery(const std::string & q, IResultMutatorPtr && mutator = IResultMutatorPtr {});
+
+    /// Execute previously prepared query.
+    void forwardExecuteQuery(IResultMutatorPtr && mutator = IResultMutatorPtr {});
 
     /// Indicates whether there is an result set available for reading.
     bool hasResultSet() const;
@@ -99,6 +106,9 @@ private:
     std::weak_ptr<Descriptor> explicit_ird;
     std::weak_ptr<Descriptor> explicit_ipd;
 
+    bool is_prepared = false;
+    bool is_forward_executed = false;
+    bool is_executed = false;
     std::string query;
     std::vector<ParamInfo> parameters;
 

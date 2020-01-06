@@ -63,6 +63,6 @@ INSTANTIATE_TEST_SUITE_P(ConnectionString, ParseToMap,
             { "=key2", "value" },
             { "key1=", "value" },
             { "= =", "value" }
-        } },
+        } }
     })
 );

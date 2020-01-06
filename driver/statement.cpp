@@ -33,22 +33,37 @@ void Statement::prepareQuery(const std::string & q) {
     query = q;
     processEscapeSequences();
     extractParametersinfo();
+    is_prepared = true;
+}
+
+bool Statement::isPrepared() const {
+    return is_prepared;
+}
+
+bool Statement::isExecuted() const {
+    return is_executed;
 }
 
 void Statement::executeQuery(IResultMutatorPtr && mutator) {
+    if (!is_prepared)
+        throw std::runtime_error("statement not prepared");
+
+    if (is_executed && is_forward_executed) {
+        is_forward_executed = false;
+        return;
+    }
+
     auto * param_set_processed_ptr = getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
     if (param_set_processed_ptr)
         *param_set_processed_ptr = 0;
 
     next_param_set = 0;
     requestNextPackOfResultSets(std::move(mutator));
+    is_executed = true;
 }
 
 void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
     result_set.reset();
-
-    if (query.empty())
-        return;
 
     const auto param_set_array_size = getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
     if (next_param_set >= param_set_array_size)
@@ -324,11 +339,25 @@ void Statement::executeQuery(const std::string & q, IResultMutatorPtr && mutator
     executeQuery(std::move(mutator));
 }
 
+void Statement::forwardExecuteQuery(IResultMutatorPtr && mutator) {
+    if (!is_prepared)
+        throw std::runtime_error("statement not prepared");
+
+    if (is_executed)
+        return;
+
+    executeQuery(std::move(mutator));
+    is_forward_executed = true;
+}
+
 bool Statement::hasResultSet() const {
-    return !!result_set;
+    return (isExecuted() && result_set);
 }
 
 bool Statement::advanceToNextResultSet() {
+    if (!isExecuted())
+        return false;
+
     getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, 0);
 
     IResultMutatorPtr mutator;
@@ -386,6 +415,9 @@ void Statement::closeCursor() {
 
     parameters.clear();
     query.clear();
+    is_executed = false;
+    is_forward_executed = false;
+    is_prepared = false;
 }
 
 void Statement::resetColBindings() {
