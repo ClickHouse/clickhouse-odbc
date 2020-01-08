@@ -1,4 +1,8 @@
 #
+# Finds and exposes libraries, include dirs, compiler flags, etc. for ODBC implementations (referred as "providers"),
+# as well as defines imported interface libraries that bring the required config for driver or application linkage.
+# Delegates the main job of detection to corresponding sub-Find* modules: UnixODBC, iODBC, and MDAC.
+#
 # Consults the following vars (if set):
 #     ODBC_PROVIDER - one of UnixODBC, iODBC, or MDAC
 #
