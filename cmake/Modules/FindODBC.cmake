@@ -64,14 +64,6 @@
 #     ODBC_<PROVIDER>_DRIVER_LINKER_FLAGS
 #
 
-if (WIN32)
-    set (_providers_to_try MDAC;)
-elseif (APPLE)
-    set (_providers_to_try iODBC;UnixODBC)
-else ()
-    set (_providers_to_try UnixODBC;iODBC)
-endif ()
-
 if (ODBC_PROVIDER)
     string (TOUPPER "${ODBC_PROVIDER}" _provider_uc)
     if ("${_provider_uc}" STREQUAL "MDAC")
@@ -83,6 +75,13 @@ if (ODBC_PROVIDER)
     else ()
         message (FATAL_ERROR "Unknown ODBC provider: ${ODBC_PROVIDER}")
     endif ()
+# Platform-default provides:
+elseif (WIN32)
+    set (_providers_to_try MDAC;)
+elseif (APPLE)
+    set (_providers_to_try iODBC;UnixODBC)
+else ()
+    set (_providers_to_try UnixODBC;iODBC)
 endif ()
 
 foreach (_provider ${_providers_to_try})
