@@ -300,10 +300,10 @@ inline BOOL ConfigDSN_(
 ) noexcept {
     BOOL fSuccess = FALSE;
 
-	SetupDialogData setupdlg;
+    SetupDialogData setupdlg;
     SetupDialogData * lpsetupdlg = &setupdlg;
 
-	/* Parse attribute string */
+    /* Parse attribute string */
     if (lpszAttributes)
         parseAttributes(lpszAttributes, lpsetupdlg);
 
@@ -369,7 +369,7 @@ inline BOOL ConfigDSN_(
             fSuccess = TRUE;
     }
 
-	return fSuccess;
+    return fSuccess;
 }
 
 inline BOOL ConfigDriver_(

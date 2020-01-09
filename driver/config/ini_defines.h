@@ -31,7 +31,12 @@
 #define INI_DRIVERLOG       "DriverLog"
 #define INI_DRIVERLOGFILE   "DriverLogFile"
 
-#define INI_DSN_DEFAULT             "ClickHouseDSN_localhost"
+#if defined(UNICODE)
+#   define INI_DSN_DEFAULT          DSN_DEFAULT_UNICODE
+#else
+#   define INI_DSN_DEFAULT          DSN_DEFAULT_ANSI
+#endif
+
 #define INI_DESC_DEFAULT            ""
 #define INI_URL_DEFAULT             ""
 #define INI_SERVER_DEFAULT          ""

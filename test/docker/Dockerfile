@@ -11,8 +11,7 @@ RUN apt-get update -y \
     && RUNTIME_PACKAGES="unixodbc" \
     && apt-get install -y $BUILD_PACKAGES $RUNTIME_PACKAGES
 
-RUN git clone --recursive https://github.com/yandex/clickhouse-odbc \
-    && ( cd clickhouse-odbc/contrib && git clone https://github.com/nanodbc/nanodbc )
+RUN git clone --recursive https://github.com/ClickHouse/clickhouse-odbc.git
 
 RUN mkdir -p clickhouse-odbc/build \
     && cd clickhouse-odbc/build \

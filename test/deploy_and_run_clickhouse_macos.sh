@@ -2,8 +2,7 @@
 
 # Later better native wrappers should appear...
 
-set -e
-set -o pipefail
+set -Eeo pipefail
 
 echo macOS ClickHouse binary installation
 

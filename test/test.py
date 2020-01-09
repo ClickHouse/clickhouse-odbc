@@ -19,7 +19,7 @@ if len(sys.argv) >= 2:
 
 print("Using DSN=" + dsn)
 
-connection = pyodbc.connect('DSN=' + dsn + ';')
+connection = pyodbc.connect('DSN=' + dsn)
 try:
     connection.setencoding(str, encoding='utf-8')
     connection.setencoding(unicode, encoding='utf-8')

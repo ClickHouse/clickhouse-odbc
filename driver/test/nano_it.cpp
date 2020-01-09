@@ -1,3 +1,9 @@
+#if defined(UNICODE)
+#    include "driver/platform/config_cmakew.h"
+#else
+#    include "driver/platform/config_cmake.h"
+#endif
+
 #include <nanodbc/nanodbc.h>
 
 #include <algorithm>
@@ -179,10 +185,14 @@ void run_test(nanodbc::string const & connection_string) {
         show(results);
     }
 
+    // Workaround for iODBC: Unicode column name gets processed incorrectly.
+    // TODO: review and fix this (when fixed in upstream?).
+#if !defined(WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
     {
         auto results = execute(connection, NANODBC_TEXT("SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'"));
         show(results);
     }
+#endif
 
     {
         auto results = execute(connection,

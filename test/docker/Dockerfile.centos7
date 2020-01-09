@@ -15,8 +15,7 @@ RUN yum install -y centos-release-scl  epel-release \
 RUN curl -s https://packagecloud.io/install/repositories/altinity/clickhouse/script.rpm.sh | bash \
     && yum install -y clickhouse-server clickhouse-client
 
-RUN git clone --recursive https://github.com/yandex/clickhouse-odbc \
-    && ( cd clickhouse-odbc/contrib && git clone https://github.com/nanodbc/nanodbc )
+RUN git clone --recursive https://github.com/ClickHouse/clickhouse-odbc.git
 
 RUN mkdir -p clickhouse-odbc/build \
     && cd clickhouse-odbc/build \

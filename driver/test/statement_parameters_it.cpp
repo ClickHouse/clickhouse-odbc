@@ -283,7 +283,8 @@ protected:
         SQLLEN param_ind = 0;
 
         char * param_ptr = reinterpret_cast<char *>(param);
-        std::strncpy(param_ptr, initial_str.c_str(), lengthof(param));
+        ASSERT_LT(initial_str.size(), lengthof(param));
+        std::strncpy(param_ptr, initial_str.c_str(), lengthof(param) - 1);
 
         // We need this to autodetect actual precision and scale of the value in initial_str.
         auto param_typed = value_manip::to<SQL_NUMERIC_STRUCT>::template from<std::string>(initial_str);
@@ -525,7 +526,7 @@ TEST_P(DISABLED_ParameterColumnRoundTripGUIDSymmetric, Execute) {
     execute<DataType>(GetParam(), GetParam(), type_info_for("UUID"), false/* case_sensitive */);
 }
 
-INSTANTIATE_TEST_CASE_P(TypeConversion, DISABLED_ParameterColumnRoundTripGUIDSymmetric,
+INSTANTIATE_TEST_SUITE_P(TypeConversion, DISABLED_ParameterColumnRoundTripGUIDSymmetric,
     ::testing::Values(
         "00000000-0000-0000-0000-000000000000",
         "01020304-0506-0708-090A-0B0C0D0E0F00",
@@ -541,7 +542,7 @@ TEST_P(ParameterColumnRoundTripNumericSymmetric,  Execute) {
     execute<DataType>(GetParam(), GetParam(), type_info_for("Decimal"));
 }
 
-INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripNumericSymmetric,
+INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripNumericSymmetric,
     ::testing::Values(
         "0",
         "12345",
@@ -576,7 +577,7 @@ TEST_P(ParameterColumnRoundTripNumericAsymmetric, Execute) {
     execute<DataType>(std::get<0>(GetParam()), std::get<1>(GetParam()), type_info_for("Decimal"));
 }
 
-INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripNumericAsymmetric,
+INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripNumericAsymmetric,
     ::testing::ValuesIn(std::initializer_list<std::tuple<std::string, std::string>>{
         { "0.", "0" },
         { "-0.", "0" },
@@ -595,7 +596,7 @@ TEST_P(ParameterColumnRoundTripDecimalAsStringSymmetric, Execute) {
     execute_with_decimal_as_string(GetParam(), GetParam());
 }
 
-INSTANTIATE_TEST_CASE_P(TypeConversion, ParameterColumnRoundTripDecimalAsStringSymmetric,
+INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripDecimalAsStringSymmetric,
     ::testing::Values(
         "0",
         "12345",

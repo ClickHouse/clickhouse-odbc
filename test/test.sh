@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
-set -o pipefail
+set -Eeo pipefail
 
 # this test requires running clickhouse server and configured ~/.odbc.ini
 # cp -n /usr/share/doc/clickhouse-odbc/examples/odbc.ini ~/.odbc.ini
@@ -29,7 +28,7 @@ function q {
     echo "Asking [$*]"
     # DYLD_INSERT_LIBRARIES=/usr/local/opt/gcc/lib/gcc/8/libasan.5.dylib
     # export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libasan.so.5
-    echo "$*" | $RUNNER
+    echo "$*" | eval $RUNNER
 }
 
 q "SELECT * FROM system.build_options;"

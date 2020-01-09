@@ -1626,13 +1626,16 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetFunctions)(HDBC connection_handle, SQL
 #define SET_EXISTS(x) Supported[(x) >> 4] |= (1 << ((x)&0xF))
 // #define CLR_EXISTS(x) Supported[(x) >> 4] &= ~(1 << ((x) & 0xF))
 
-    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) -> SQLRETURN {
+    auto func = [&] (Connection & connection) -> SQLRETURN {
         if (FunctionId == SQL_API_ODBC3_ALL_FUNCTIONS) {
             memset(Supported, 0, sizeof(Supported[0]) * SQL_API_ODBC3_ALL_FUNCTIONS_SIZE);
 
             SET_EXISTS(SQL_API_SQLALLOCHANDLE);
             SET_EXISTS(SQL_API_SQLBINDCOL);
             SET_EXISTS(SQL_API_SQLBINDPARAMETER);
+#if defined(WORKAROUND_ENABLE_DEFINE_SQLBindParam)
+            SET_EXISTS(SQL_API_SQLBINDPARAM);
+#endif
             //SET_EXISTS(SQL_API_SQLBROWSECONNECT);
             //SET_EXISTS(SQL_API_SQLBULKOPERATIONS);
             SET_EXISTS(SQL_API_SQLCANCEL);
@@ -1711,10 +1714,12 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetFunctions)(HDBC connection_handle, SQL
         }
 
         return SQL_ERROR;
-    });
+    };
 
 #undef SET_EXISTS
 // #undef CLR_EXISTS
+
+    return CALL_WITH_HANDLE(connection_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLParamData)(HSTMT StatementHandle, PTR * Value) {
@@ -1896,6 +1901,38 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindParameter)(
         StrLen_or_IndPtr
     );
 }
+
+// Workaround for iODBC: when driver is in ODBCv3 mode, iODBC still probes for SQLBindParam() even though SQLBindParameter() is found.
+// It finds SQLBindParam(), but the actual functions pointer points to an fallback implementation of the Driver Manager itself (due to symbol resolution logic).
+// Moreover, the code still calls SQLBindParam() instead of SQLBindParameter(), causing invalid handle error due to masked handler.
+// TODO: review and report an error. Even if there is a problem in linkage, the login behind iODBC still seems to be faulty.
+// See SQLBindParameter_Internal() function defined in https://github.com/openlink/iODBC/blob/master/iodbc/prepare.c
+#if defined(WORKAROUND_ENABLE_DEFINE_SQLBindParam)
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindParam)(
+    SQLHSTMT        StatementHandle,
+    SQLUSMALLINT    ParameterNumber,
+    SQLSMALLINT     ValueType,
+    SQLSMALLINT     ParameterType,
+    SQLULEN         ColumnSize,
+    SQLSMALLINT     DecimalDigits,
+    SQLPOINTER      ParameterValuePtr,
+    SQLLEN *        StrLen_or_IndPtr
+) {
+    LOG(__FUNCTION__);
+    return impl::BindParameter(
+        StatementHandle,
+        ParameterNumber,
+        SQL_PARAM_INPUT,
+        ValueType,
+        ParameterType,
+        ColumnSize,
+        DecimalDigits,
+        ParameterValuePtr,
+        SQL_MAX_OPTION_STRING_LENGTH,
+        StrLen_or_IndPtr
+    );
+}
+#endif
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBulkOperations)(
     SQLHSTMT         StatementHandle,

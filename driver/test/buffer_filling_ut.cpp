@@ -88,7 +88,7 @@ TEST_P(Strings_##CharType, Fill){             \
     );                                        \
 }                                             \
                                               \
-INSTANTIATE_TEST_CASE_P(                      \
+INSTANTIATE_TEST_SUITE_P(                     \
     BufferFilling,                            \
     Strings_##CharType,                       \
     ::testing::Combine(                       \
@@ -105,9 +105,11 @@ using unsigned_short = unsigned short;
 DECLARE_TEST_GROUP(char);
 DECLARE_TEST_GROUP(signed_char);
 DECLARE_TEST_GROUP(unsigned_char);
+DECLARE_TEST_GROUP(wchar_t);
+#if !defined(_MSC_VER) || _MSC_VER >= 1920
+DECLARE_TEST_GROUP(unsigned_short);
 DECLARE_TEST_GROUP(char16_t);
 DECLARE_TEST_GROUP(char32_t);
-DECLARE_TEST_GROUP(wchar_t);
-DECLARE_TEST_GROUP(unsigned_short);
+#endif
 
 #undef DECLARE_TEST_GROUP

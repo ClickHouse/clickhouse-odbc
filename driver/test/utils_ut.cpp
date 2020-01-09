@@ -24,7 +24,7 @@ protected:
 
 TEST_P(ParseToSet, Compare) { parse_and_compare(std::get<0>(GetParam()), std::get<1>(GetParam())); }
 
-INSTANTIATE_TEST_CASE_P(CatalogFnVLArgs, ParseToSet,
+INSTANTIATE_TEST_SUITE_P(CatalogFnVLArgs, ParseToSet,
     ::testing::ValuesIn(std::initializer_list<std::tuple<std::string, values_t>>{
         { "", { "" } },
         { ",", { "" } },
