@@ -54,7 +54,9 @@ protected:
     }
 
 private:
+#if !defined(_IODBCUNIX_H)
     SQLUINTEGER driver_manager_trace = SQL_OPT_TRACE_ON;
+#endif
     SQLUINTEGER driver_log = SQL_OPT_TRACE_ON;
 };
 

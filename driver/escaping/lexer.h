@@ -94,6 +94,3 @@ private:
     std::deque<Token> readed_;
     bool emit_space_;
 };
-
-/// Convers all letters to upper-case.
-std::string to_upper(const StringView & str);

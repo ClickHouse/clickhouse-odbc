@@ -43,7 +43,7 @@ class AttributeContainerT : public ::testing::Test
 
 //using MyTypes = ::testing::Types<int, std::string>;
 typedef ::testing::Types<int, std::string> MyTypes;
-TYPED_TEST_CASE(AttributeContainerT, MyTypes);
+TYPED_TEST_SUITE(AttributeContainerT, MyTypes);
 
 TYPED_TEST(AttributeContainerT, SetAttribute)
 {
@@ -52,7 +52,6 @@ TYPED_TEST(AttributeContainerT, SetAttribute)
     using OtherType = typename Param<TypeParam>::OtherType;
     const int KEY = 1;
     const TypeParam VALUE = Param<TypeParam>{}.VALUE;
-    const TypeParam OTHER_VALUE = Param<TypeParam>{}.OTHER_VALUE;
 
     AttributeContainer container;
 

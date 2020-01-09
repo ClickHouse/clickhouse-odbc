@@ -94,15 +94,6 @@
 
 #define SIZEOF_CHAR sizeof(SQLTCHAR)
 
-#if defined(_MSC_VER) && !defined(USE_SSL)
-// Enabled by default, but you can disable
-#    define USE_SSL 1
-#endif
-
-#if !defined(CMAKE_SYSTEM) && defined(_win_)
-#    define CMAKE_SYSTEM "windows"
-#endif
-
 #if defined(_MSC_VER)
      // An entry in .def file still must be added for 32-bit targets.
 #    define EXPORTED_FUNCTION(func) __pragma(comment(linker,"/export:"#func)) func

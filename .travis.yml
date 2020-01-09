@@ -1,227 +1,471 @@
 language: cpp
-dist: bionic
 
-os:
-  - linux
-  - osx
-
-compiler:
-  - gcc
-
-cache:
-  ccache: true
-
-services:
-  - docker
+git:
+  clone: true
+  submodules: true
+  depth: 1
+  quiet: false
 
 env:
   global:
-    - CLICKHOUSE_SERVER_IMAGE=yandex/clickhouse-server:19.11.8.46
+    - SOURCE_DIR=$TRAVIS_BUILD_DIR
+    - BUILD_DIR=$SOURCE_DIR/build
+    - INSTALL_DIR=$SOURCE_DIR/build/prefix
+    - PACKAGE_DIR=$SOURCE_DIR/build/package
+    - RUN_DIR=$SOURCE_DIR/build/run
+    - CTEST_EXTRA_ARGS=--output-on-failure
 
-addons:
-  apt:
-     sources: [ ubuntu-toolchain-r-test ]
-     # should install fresh libstdc++ because trusty have no <codecvt> header
-     packages: [ ninja-build, libstdc++-8-dev ]
+jobs:
+  include:
 
-matrix:
-    include:
-        # clang5 iodbc unbundled  Too old poco 1.3
-        #- os: linux
-        #  compiler: clang
-        #  env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=libiodbc2 CMAKE_FLAGS=-DUNBUNDLED=1"
-        #  addons:
-        #    apt:
-        #      sources: [ ubuntu-toolchain-r-test ]
-        #      packages: [ ninja-build, libstdc++-8-dev, libpoco-dev, iodbc, libiodbc2, libiodbc2-dev ]
-        #  git:
-        #    submodules: false
+    - name: "Ubuntu 18.04 - UnixODBC - Debug - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_PROVIDER=UnixODBC
+        - BUILD_TYPE=Debug
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - gcc
+            - g++
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-        # clang5 iodbc
-        # - os: linux
-        #   compiler: clang
-        #   env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=libiodbc2"
-        #   addons:
-        #     apt:
-        #       sources: [ ubuntu-toolchain-r-test ]
-        #       packages: [ ninja-build, libstdc++-8-dev, iodbc, libiodbc2, libiodbc2-dev ]
+    - name: "Ubuntu 18.04 - UnixODBC - Release - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_PROVIDER=UnixODBC
+        - BUILD_TYPE=Release
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - gcc
+            - g++
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-        # gcc8 iodbc
-        # - os: linux
-        #   env: MATRIX_EVAL="export CC=gcc-8 CXX=g++-8 ODBC_LIB=libiodbc2"
-        #   addons:
-        #     apt:
-        #       sources: [ ubuntu-toolchain-r-test ]
-        #       packages: [ ninja-build, gcc-8, g++-8, iodbc, libiodbc2, libiodbc2-dev ]
+    - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_PROVIDER=UnixODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - gcc
+            - g++
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-        # clang8 unixodbc
-        #- os: linux
-        #  env: MATRIX_EVAL="export CC=clang-8 CXX=clang++-8 ODBC_LIB=unixodbc-dev"
-        #  addons:
-        #    apt:
-        #      sources: [ ubuntu-toolchain-r-test, llvm-toolchain-trusty ]
-        #      packages: [ ninja-build, libstdc++-8-dev, clang, unixodbc, unixodbc-bin, unixodbc-dev, perl, libdbi-perl, libdbd-odbc-perl, python, python-pyodbc ]
+    - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - System third-party libs - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_PROVIDER=UnixODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=yes
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - gcc
+            - g++
+            - openssl
+            - libssl-dev
+            - libpoco-dev
+            - googletest
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-        # clang5 unixodbc
-        - os: linux
-          compiler: clang
-          env: MATRIX_EVAL="export CC=clang CXX=clang++ ODBC_LIB=unixodbc-dev"
-          addons:
-            apt:
-              sources: [ ubuntu-toolchain-r-test ]
-              packages: [ ninja-build, libstdc++-8-dev, clang, unixodbc, unixodbc-bin, unixodbc-dev, perl, libdbi-perl, libdbd-odbc-perl, python, python-pyodbc ]
+    - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: clang
+      env:
+        - CC=clang
+        - CXX=clang++
+        - ODBC_PROVIDER=UnixODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - clang
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-        # gcc7 unixodbc
-        - os: linux
-          env: MATRIX_EVAL="export CC=gcc-7 CXX=g++-7 ODBC_LIB=unixodbc-dev"
-          addons:
-            apt:
-              sources: [ ubuntu-toolchain-r-test ]
-              packages: [ ninja-build, gcc-7, g++-7, unixodbc, unixodbc-bin, unixodbc-dev, perl, libdbi-perl, libdbd-odbc-perl, python, python-pyodbc ]
+    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_PROVIDER=iODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - gcc
+            - g++
+            - iodbc
+            - libiodbc2
+            - libiodbc2-dev
 
-        # apple-clang iodbc unbundled
-        - os: osx
-          env: MATRIX_EVAL="export ODBC_LIB=libiodbc CMAKE_FLAGS=-DUNBUNDLED=1 HOMEBREW_PACKAGES='libiodbc poco openssl'" 
-          git:
-            submodules: false
-          # addons:
-          #   homebrew:
-          #     packages: [ ninja, libiodbc, poco, openssl ]
+    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: clang
+      env:
+        - CC=clang
+        - CXX=clang++
+        - ODBC_PROVIDER=iODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          packages:
+            - clang
+            - iodbc
+            - libiodbc2
+            - libiodbc2-dev
 
-        # apple-clang iodbc
-        - os: osx
-          env: MATRIX_EVAL="export ODBC_LIB=libiodbc HOMEBREW_PACKAGES='libiodbc'" 
-          # addons:
-          #   homebrew:
-          #     packages: [ ninja, libiodbc ]
+    - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x64 - MSVC (Visual Studio 2017) - MSBuild"
+      os: windows
+      language: shell
+      env:
+        - ODBC_PROVIDER=MDAC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=yes
+        - CMAKE_CONFIGURE_EXTRA_ARGS="-A x64 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
+        - VCVARSALL_ARGS=x64
 
-        # apple-clang unixodbc
-        - os: osx
-          env: MATRIX_EVAL="export ODBC_LIB=unixodbc HOMEBREW_PACKAGES='unixodbc perl'" 
-          # addons:
-          #   homebrew:
-          #     packages: [ ninja, unixodbc, perl ]
+    - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x86 - MSVC (Visual Studio 2017) - MSBuild"
+      os: windows
+      language: shell
+      env:
+        - ODBC_PROVIDER=MDAC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=yes
+        - CMAKE_CONFIGURE_EXTRA_ARGS="-A Win32 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
+        - VCVARSALL_ARGS=x86
 
+    - name: "macOS 10.14 - iODBC - RelWithDebInfo - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
+      os: osx
+      osx_image: xcode11.2
+      compiler: clang
+      env:
+        - ODBC_PROVIDER=iODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+      addons:
+        homebrew:
+          packages:
+            - libiodbc
 
-    exclude:
-        - os: linux
-          compiler: gcc
-        - os: osx
-          compiler: gcc
+    - name: "macOS 10.14 - iODBC - RelWithDebInfo - System third-party libs - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
+      os: osx
+      osx_image: xcode11.2
+      compiler: clang
+      env:
+        - ODBC_PROVIDER=iODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=yes
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+      addons:
+        homebrew:
+          packages:
+            - openssl
+            - poco
+            - libiodbc
 
-install:
-  - eval "${MATRIX_EVAL}"
-    # brew update is to mitigate Travis error "Error: Your Homebrew is outdated. Please run `brew update`."
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then echo "installing ninja + ${HOMEBREW_PACKAGES}"; brew install ninja ${HOMEBREW_PACKAGES}; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then echo "installing & starting ClickHouse"; ./test/deploy_and_run_clickhouse_macos.sh; fi # TODO: use native package manager when available
-  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-add-repository "deb http://archive.ubuntu.com/ubuntu bionic main universe"; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-get update -q > build.log 2>&1 || (cat build.log && exit 1); fi
-  # Need in binulils because /usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/8/../../../x86_64-linux-gnu/libodbc.a(logOpen.o): unrecognized relocation (0x2a) in section `.text'
-  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ -n "$ODBC_LIB" ]; then sudo apt-get install -y $ODBC_LIB binutils | tee build.log 2>&1 || (cat build.log && exit 1); fi
+    - name: "macOS 10.14 - UnixODBC - RelWithDebInfo - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
+      os: osx
+      osx_image: xcode11.2
+      compiler: clang
+      env:
+        - ODBC_PROVIDER=UnixODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+      addons:
+        homebrew:
+          packages:
+            - unixodbc
 
-before_script:
-  # nanodbc for more tests
-  - cd ./contrib && git clone --recursive https://github.com/nanodbc/nanodbc.git && cd ..
-  - ls -lah . ./contrib
+before_install: |-
+  set -Eeo pipefail
+  unalias cd || true
+  unset -f cd || true
 
-script:
-  - mkdir -p build
-  - cd build
-  # MS ODBC uses UCS2 for widechars (2 bytes per char)  
-  # unixODBC do the same by default (2 bytes per char), but can be switched to wchar_t (4 bytes) (SQL_WCHART_CONVERT)
-  # iODBC always use wchar_t (4 bytes)
-  # so driver compiled for iODBC will not work properly with unixODBC software
-  - |
-    if [[ "$ODBC_LIB" =~ "iodbc" ]]; then
-      CMAKE_FLAGS="-DFIND_IODBC_FIRST=1 $CMAKE_FLAGS"
-    else
-      CMAKE_FLAGS="-DFIND_UNIXODBC_FIRST=1 $CMAKE_FLAGS"
+  if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+    sudo apt-get update -q
+  elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+    cd "$(brew --repo)" && git fetch && git reset --hard origin/master && cd -
+    brew update
+  elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+    : # choco upgrade
+  fi
+
+install: |-
+  if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+    sudo apt-get install -y build-essential cmake perl libdbi-perl libdbd-odbc-perl python python-pyodbc
+  elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+    brew uninstall --force --ignore-dependencies cmake perl python@2
+    brew install cmake perl python@2
+    PERL_MM_USE_DEFAULT=1 cpan -T DBD::ODBC
+    if [[ "$ODBC_PROVIDER" == "UnixODBC" ]]; then
+      pip install --user pyodbc
     fi
-  - cmake -G Ninja -DCMAKE_CXX_COMPILER=`which $CXX` -DCMAKE_C_COMPILER=`which $CC` -DTEST_DSN=clickhouse_localhost -DTEST_DSN_W=clickhouse_localhost_w $CMAKE_FLAGS ..
-  - cmake --build . --target all
-  # unit-tests
-  - ctest -R '.*-ut.*'
-  # more complicated tests
-  - |
-    if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      # install more deps for python & perl to run more tests    
-      sudo PERL_MM_USE_DEFAULT=1 cpan -T DBD::ODBC
-      curl https://bootstrap.pypa.io/get-pip.py | sudo python
-      # it looks like that older version works with iodbc out of the box on Mac
-      # https://github.com/mkleehammer/pyodbc/commit/aa178bfd25afd6fb90c77d054c1bcf0a6aa54411
-      sudo pip install pyodbc==3.0.7
-      # In macOS, ClickHouse is installed and running as a separate process on this same system.
-      CLICKHOUSE_SERVER_IP='localhost'
-      ODBC_DRIVER_PATH=$(realpath driver/libclickhouseodbc.dylib)
-      ODBC_DRIVERW_PATH=$(realpath driver/libclickhouseodbcw.dylib)
-    else 
-      # Using absolute path to compiler to fix setup.py issue of pyodbc: unable to execute 'clang': No such file or directory
-      #- sudo CC=`which $CC` CXX=`which $CXX` pip install pyodbc -V --disable-pip-version-check
-      # To simplify things a bit, start ClickHouse server in docker
-      echo "Clickhouse image ${CLICKHOUSE_SERVER_IMAGE}";
+  elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+    export OLD_VSWHERE=yes
+
+    # TODO: use choco instead of manual download/unpack/env setting, once 3.14+ version
+    # is available, since starting from 3.14 WiX Toolset doesn't depend on .NET 3.5,
+    # which has problems installing via choco.
+    # choco install wixtoolset --yes
+    wget https://wixtoolset.org/downloads/v3.14.0.712/wix314-binaries.zip
+    powershell -Command Expand-Archive wix314-binaries.zip -DestinationPath wix314-binaries
+    export WIX="$(cd wix314-binaries && pwd -W)"
+  fi
+
+.clickhouse_start: &clickhouse_start |-
+  if [[ "$TESTING" == "yes" ]] && [[ "$STANDALONE_TESTS_ONLY" != "yes" ]]; then
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       docker pull ${CLICKHOUSE_SERVER_IMAGE}
-      CLICKHOUSE_SERVER_CONTAINER=$(docker run  -d ${CLICKHOUSE_SERVER_IMAGE})
+      CLICKHOUSE_SERVER_CONTAINER=$(docker run -d ${CLICKHOUSE_SERVER_IMAGE})
       CLICKHOUSE_SERVER_IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' ${CLICKHOUSE_SERVER_CONTAINER})
       docker ps -a
       docker stats -a --no-stream
-      ODBC_DRIVER_PATH=$(realpath driver/libclickhouseodbc.so)
-      ODBC_DRIVERW_PATH=$(realpath driver/libclickhouseodbcw.so)
+    elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      # In macOS, ClickHouse is installed and running as a separate process on this same system.
+      # TODO: use native package manager when available.
+      $SOURCE_DIR/test/deploy_and_run_clickhouse_macos.sh
+      CLICKHOUSE_SERVER_IP=localhost
     fi
-  # TODO: think about paths on windows
-  - echo "Compose ODBC config"
-  - |
-    export ODBCSYSINI=$HOME
-    export ODBCINSTINI=.odbcinst.ini
-    export ODBCINI=$ODBCSYSINI/.odbc.ini
-    if [[ "$ODBC_LIB" =~ "iodbc" ]]; then
-      # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
-      export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
+  fi
+
+.odbc_configure: &odbc_configure |-
+  if [[ "$TESTING" == "yes" ]] && [[ "$STANDALONE_TESTS_ONLY" != "yes" ]]; then
+    if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+
+      : # TODO
+
+    else
+      if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        ODBC_DRIVER_PATH=$BUILD_DIR/driver/libclickhouseodbc.so
+        ODBC_DRIVERW_PATH=$BUILD_DIR/driver/libclickhouseodbcw.so
+      elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+        ODBC_DRIVER_PATH=$BUILD_DIR/driver/libclickhouseodbc.dylib
+        ODBC_DRIVERW_PATH=$BUILD_DIR/driver/libclickhouseodbcw.dylib
+      fi
+
+      export ODBCSYSINI=$RUN_DIR
+      export ODBCINSTINI=.odbcinst.ini
+      export ODBCINI=$ODBCSYSINI/.odbc.ini
+      if [[ "$ODBC_PROVIDER" == "iODBC" ]]; then
+        # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
+        export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
+      fi
+
+      cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
+  [ODBC]
+  Trace     = 1
+  TraceFile = ${RUN_DIR}/odbc-driver-manager-trace.log
+  Debug     = 1
+  DebugFile = ${RUN_DIR}/odbc-driver-manager-debug.log
+
+  [ODBC Drivers]
+  ClickHouse ODBC Driver (ANSI)    = Installed
+  ClickHouse ODBC Driver (Unicode) = Installed
+
+  [ClickHouse ODBC Driver (ANSI)]
+  Driver     = ${ODBC_DRIVER_PATH}
+  Setup      = ${ODBC_DRIVER_PATH}
+  UsageCount = 1
+
+  [ClickHouse ODBC Driver (Unicode)]
+  Driver     = ${ODBC_DRIVERW_PATH}
+  Setup      = ${ODBC_DRIVERW_PATH}
+  UsageCount = 1
+  EOF
+
+      cat > $ODBCSYSINI/.odbc.ini <<-EOF
+  [ODBC]
+  Trace     = 1
+  TraceFile = ${RUN_DIR}/odbc-driver-manager-trace.log
+  Debug     = 1
+  DebugFile = ${RUN_DIR}/odbc-driver-manager-debug.log
+
+  [ODBC Data Sources]
+  ClickHouse DSN (ANSI)    = ClickHouse ODBC Driver (ANSI)
+  ClickHouse DSN (Unicode) = ClickHouse ODBC Driver (Unicode)
+
+  [ClickHouse DSN (ANSI)]
+  Driver        = ClickHouse ODBC Driver (ANSI)
+  Description   = Test DSN for ClickHouse ODBC Driver (ANSI)
+  Url           = http://${CLICKHOUSE_SERVER_IP}
+  DriverLog     = yes
+  DriverLogFile = ${RUN_DIR}/clickhouse-odbc-driver.log
+
+  [ClickHouse DSN (Unicode)]
+  Driver        = ClickHouse ODBC Driver (Unicode)
+  Description   = Test DSN for ClickHouse ODBC Driver (Unicode)
+  Url           = http://${CLICKHOUSE_SERVER_IP}
+  DriverLog     = yes
+  DriverLogFile = ${RUN_DIR}/clickhouse-odbc-driver-w.log
+  EOF
     fi
-    cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
-    [ODBC]
-    Trace     = yes
-    TraceFile = /tmp/odbc-driver-manager.log
+  fi
 
-    [ODBC Drivers]
-    clickhouse_driver   = Installed
-    clickhouse_driver_w = Installed
+.configure: &configure |-
+  CMAKE_CONFIGURE_ARGS="'-DTEST_DSN=ClickHouse DSN (ANSI)' '-DTEST_DSN_W=ClickHouse DSN (Unicode)' $CMAKE_CONFIGURE_EXTRA_ARGS"
+  if [[ "$EXTERNAL_THIRD_PARTY" == "yes" ]]; then
+    CMAKE_CONFIGURE_ARGS="-DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=OFF $CMAKE_CONFIGURE_ARGS"
+  fi
+  if [[ ! -z "$ODBC_PROVIDER" ]]; then
+    CMAKE_CONFIGURE_ARGS="-DODBC_PROVIDER=$ODBC_PROVIDER $CMAKE_CONFIGURE_ARGS"
+  fi
+  cd $BUILD_DIR
+  if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+    $SOURCE_DIR/test/vcvars_enabled_bash.sh cmake $CMAKE_CONFIGURE_ARGS $SOURCE_DIR
+  else
+    cmake $CMAKE_CONFIGURE_ARGS $SOURCE_DIR
+  fi
 
-    [clickhouse_driver]
-    Driver     = ${ODBC_DRIVER_PATH}
-    Setup      = ${ODBC_DRIVER_PATH}
-    UsageCount = 1
+.build: &build |-
+  CMAKE_BUILD_ARGS="--config $BUILD_TYPE $CMAKE_BUILD_EXTRA_ARGS -- $CMAKE_BUILD_NATIVE_EXTRA_ARGS"
+  cd $BUILD_DIR
+  if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+    $SOURCE_DIR/test/vcvars_enabled_bash.sh cmake --build . $CMAKE_BUILD_ARGS
+  else
+    cmake --build . $CMAKE_BUILD_ARGS
+  fi
 
-    [clickhouse_driver_w]
-    Driver     = ${ODBC_DRIVERW_PATH}
-    Setup      = ${ODBC_DRIVERW_PATH}
-    UsageCount = 1
-    EOF
-  - |
-    cat > $ODBCSYSINI/.odbc.ini <<-EOF
-    [ODBC]
-    Trace     = yes
-    TraceFile = /tmp/odbc-driver-manager.log
+.pack: &pack |-
+  if [[ "$PACKAGING" == "yes" ]]; then
+    CPACK_ARGS="-C $BUILD_TYPE $CPACK_EXTRA_ARGS"
+    cd $BUILD_DIR
+    if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+      # 'cpack' is a chocolatey tool, so we use CMake's 'package' target instead
+      CPACK_ARGS="--build . --config $BUILD_TYPE --target package -- $CPACK_EXTRA_ARGS"
+      $SOURCE_DIR/test/vcvars_enabled_bash.sh cmake $CPACK_ARGS
+    else
+      cpack $CPACK_ARGS
+    fi
+  fi
 
-    [ODBC Data Sources]
-    clickhouse_localhost   = clickhouse_driver
-    clickhouse_localhost_w = clickhouse_driver_w
+.test: &test |-
+  if [[ "$TESTING" == "yes" ]]; then
+    CTEST_ARGS="-C $BUILD_TYPE $CTEST_EXTRA_ARGS"
+    if [[ "$STANDALONE_TESTS_ONLY" == "yes" ]]; then
+      CTEST_ARGS="-R '.*-ut.*' $CTEST_ARGS"
+    fi
+    cd $BUILD_DIR
+    if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+      $SOURCE_DIR/test/vcvars_enabled_bash.sh ctest $CTEST_ARGS
+    else
+      ctest $CTEST_ARGS
+    fi
+  fi
 
-    [clickhouse_localhost]
-    Driver        = clickhouse_driver
-    Description   = ClickHouse DSN (ANSI, localhost)
-    Url           = http://${CLICKHOUSE_SERVER_IP}
-    Timeout       = 30
-    DriverLog     = yes
-    DriverLogFile = /tmp/clickhouse-odbc-driver.log
+before_script: |-
+  mkdir -p $SOURCE_DIR
+  mkdir -p $BUILD_DIR
+  mkdir -p $INSTALL_DIR
+  mkdir -p $PACKAGE_DIR
+  mkdir -p $RUN_DIR
 
-    [clickhouse_localhost_w]
-    Driver        = clickhouse_driver_w
-    Description   = ClickHouse DSN (Unicode, localhost)
-    Url           = http://${CLICKHOUSE_SERVER_IP}
-    Timeout       = 30
-    DriverLog     = yes
-    DriverLogFile = /tmp/clickhouse-odbc-driver-w.log
-    EOF
-  - echo "Staring tests..."
-  - ctest -VV
+  if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
+    SOURCE_DIR="$(cd $SOURCE_DIR && pwd -W)"
+    BUILD_DIR="$(cd $BUILD_DIR && pwd -W)"
+    INSTALL_DIR="$(cd $INSTALL_DIR && pwd -W)"
+    PACKAGE_DIR="$(cd $PACKAGE_DIR && pwd -W)"
+    RUN_DIR="$(cd $RUN_DIR && pwd -W)"
+  fi
+
+script:
+  - *clickhouse_start
+  - *odbc_configure
+  - *configure
+  - *build
+  - *pack
+  - *test

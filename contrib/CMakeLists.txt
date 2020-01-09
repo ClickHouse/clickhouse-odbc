@@ -1,38 +1,143 @@
-if (CLICKHOUSE_ODBC_TEST)
-    add_subdirectory (gtest)
-    if (USE_INTERNAL_NANOODBC_LIBRARY)
-        # git clone --recursive https://github.com/nanodbc/nanodbc.git
+get_filename_component (_current_dir_name "${CMAKE_CURRENT_LIST_DIR}" NAME)
+if (CMAKE_FOLDER)
+    set (CMAKE_FOLDER "$CMAKE_FOLDER/${_current_dir_name}")
+else ()
+    set (CMAKE_FOLDER "${_current_dir_name}")
+endif ()
+unset (_current_dir_name)
+
+if (CH_ODBC_ENABLE_SSL AND NOT MSVC)
+    if (CH_ODBC_PREFER_BUNDLED_SSL OR NOT OPENSSL_FOUND)
+        if (NOT OPENSSL_FOUND AND NOT CH_ODBC_PREFER_BUNDLED_SSL)
+            message (WARNING "SSL: unable to find system OpenSSL, falling back to using the bundled variant of SSL library")
+        endif ()
+
+        set (USE_SHARED 0)
+
+        if (XCODE)
+            set (ENABLE_ASM 0 CACHE INTERNAL "")
+        endif ()
+
+        add_subdirectory (ssl)
+
+        # Mimic FindOpenSSL for Poco to pickup.
+        set (OPENSSL_FOUND TRUE)
+        set (OPENSSL_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ssl/include")
+        set (OPENSSL_CRYPTO_LIBRARY crypto)
+        set (OPENSSL_CRYPTO_LIBRARIES ${OPENSSL_LIBS})
+        set (OPENSSL_SSL_LIBRARY ssl)
+        set (OPENSSL_SSL_LIBRARIES ${OPENSSL_LIBS})
+        set (OPENSSL_LIBRARIES ${OPENSSL_LIBS})
+    endif ()
+endif ()
+
+if (CH_ODBC_PREFER_BUNDLED_POCO OR NOT Poco_FOUND)
+    if (NOT Poco_FOUND AND NOT CH_ODBC_PREFER_BUNDLED_POCO)
+        message (WARNING "Poco: unable to find system Poco, falling back to using the bundled variant of the library")
+    endif ()
+
+    if (CH_ODBC_ENABLE_SSL AND MSVC)
+        set (ENABLE_NETSSL_WIN ON CACHE INTERNAL "")
+    endif ()
+
+    if (CH_ODBC_THIRD_PARTY_LINK_STATIC)
+        set (POCO_STATIC ON CACHE INTERNAL "")
+    endif ()
+
+    if (CH_ODBC_RUNTIME_LINK_STATIC)
+        set (POCO_MT ON CACHE INTERNAL "")
+    endif ()
+
+    set (CMAKE_MODULE_PATH_bak ${CMAKE_MODULE_PATH})
+    set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH_orig})
+
+    add_subdirectory (poco)
+
+    set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH_bak})
+    unset (CMAKE_MODULE_PATH_bak)
+
+    if (TARGET NetSSL)
+        add_library(Poco::NetSSL ALIAS NetSSL)
+    endif ()
+
+    if (TARGET NetSSLWin)
+        add_library(Poco::NetSSLWin ALIAS NetSSLWin)
+    endif ()
+
+    add_library(Poco::Net ALIAS Net)
+    add_library(Poco::Foundation ALIAS Foundation)
+    add_library(Poco::Util ALIAS Util)
+
+    # Remove pthread from linking poco's Net
+    set_property (TARGET Net PROPERTY INTERFACE_LINK_LIBRARIES "")
+    set_property (TARGET Foundation PROPERTY INTERFACE_LINK_LIBRARIES "")
+endif ()
+
+# Bug in poco https://github.com/pocoproject/poco/pull/2100 found on macos
+if (OPENSSL_FOUND)
+    if (TARGET Crypto)
+        target_include_directories (Crypto INTERFACE $<BUILD_INTERFACE:${OPENSSL_INCLUDE_DIR}>)
+    elseif (TARGET Poco::Crypto)
+        target_include_directories (Poco::Crypto INTERFACE $<BUILD_INTERFACE:${OPENSSL_INCLUDE_DIR}>)
+    endif ()
+endif()
+
+if (MSVC)
+    if (TARGET Foundation)
+        set_property(TARGET Foundation APPEND PROPERTY INTERFACE_LINK_LIBRARIES Iphlpapi)
+    elseif (TARGET Poco::Foundation)
+        set_property(TARGET Poco::Foundation APPEND PROPERTY INTERFACE_LINK_LIBRARIES Iphlpapi)
+    endif ()
+endif ()
+
+if (CH_ODBC_ENABLE_TESTING)
+    if (CH_ODBC_PREFER_BUNDLED_GOOGLETEST OR NOT GTEST_FOUND)
+        if (NOT GTEST_FOUND AND NOT CH_ODBC_PREFER_BUNDLED_GOOGLETEST)
+            message (WARNING "Google Test: unable to find system Google Test, falling back to using the bundled variant of the library")
+        endif ()
+
+        if (NOT CH_ODBC_RUNTIME_LINK_STATIC)
+            set (gtest_force_shared_crt ON CACHE INTERNAL "")
+        endif ()
+
+        set (gtest_hide_internal_symbols ON CACHE INTERNAL "")
+        set (BUILD_GMOCK   ON CACHE BOOL "")
+        set (INSTALL_GTEST OFF CACHE BOOL "")
+
+        add_subdirectory (googletest)
+
+        mark_as_advanced (BUILD_GMOCK)
+        mark_as_advanced (INSTALL_GTEST)
+
+        set_target_properties (gtest      PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+        set_target_properties (gtest_main PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+        set_target_properties (gmock      PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+        set_target_properties (gmock_main PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+    endif ()
+
+#   if (CH_ODBC_PREFER_BUNDLED_NANODBC OR NOT NANODBC_FOUND)
+#       if (NOT NANODBC_FOUND AND NOT CH_ODBC_PREFER_BUNDLED_NANODBC)
+#           message (WARNING "nanodbc: unable to find system nanodbc, falling back to using the bundled variant of the library")
+#       endif ()
+
+        # Todo: test and fix in unicode iodbc
+
         set (NANODBC_DISABLE_EXAMPLES 1 CACHE INTERNAL "")
-        set (NANODBC_DISABLE_LIBCXX 1 CACHE INTERNAL "")
-        set (NANODBC_DISABLE_TESTS 1 CACHE INTERNAL "")
-        set (NANODBC_DISABLE_INSTALL 1 CACHE INTERNAL "")
-        set (NANODBC_ENABLE_UNICODE ${UNICODE} CACHE INTERNAL "")
+        set (NANODBC_DISABLE_LIBCXX   1 CACHE INTERNAL "")
+        set (NANODBC_DISABLE_TESTS    1 CACHE INTERNAL "")
+        set (NANODBC_DISABLE_INSTALL  1 CACHE INTERNAL "")
+        set (NANODBC_ENABLE_UNICODE   0 CACHE INTERNAL "")
+
         add_subdirectory (nanodbc)
 
-        # Fix iodbc include bug
-        if (NOT MSVC)
-            set_target_properties(nanodbc PROPERTIES INCLUDE_DIRECTORIES "${ODBC_INCLUDE_DIRECTORIES};${CMAKE_CURRENT_SOURCE_DIR}/nanodbc")
-        endif ()
-        set_target_properties(nanodbc PROPERTIES INTERFACE_LINK_LIBRARIES "${ODBC_LIBRARIES}")
-    endif ()
+        set_target_properties (nanodbc PROPERTIES INTERFACE_LINK_LIBRARIES ODBC::App)
+#   endif ()
 endif ()
 
-if (USE_INTERNAL_SSL_LIBRARY)
-    set (BUILD_SHARED 0)
-    set (USE_SHARED 0)
-    add_subdirectory (ssl)
+# Some of the above may define this target.
+if (TARGET uninstall AND CMAKE_FOLDER)
+    set_target_properties (uninstall PROPERTIES FOLDER "${CMAKE_FOLDER}")
 endif ()
 
-if (USE_INTERNAL_POCO_LIBRARY)
-    set (POCO_UNBUNDLED_ZLIB 1 CACHE INTERNAL "")
-    add_subdirectory (poco)
-    if (OPENSSL_FOUND AND TARGET Crypto)
-        # Bug in poco https://github.com/pocoproject/poco/pull/2100 found on macos
-        target_include_directories(Crypto PUBLIC $<BUILD_INTERFACE:${OPENSSL_INCLUDE_DIR}>)
-    endif ()
-    if (USE_INTERNAL_POCO_LIBRARY)
-        # Remove pthread from linking poco's Net
-        set_property(TARGET Net PROPERTY INTERFACE_LINK_LIBRARIES "")
-        set_property(TARGET Foundation PROPERTY INTERFACE_LINK_LIBRARIES "")
-    endif ()
-endif ()
+# Some of the above may set a cache entry that will interfere with later reconfigurations.
+unset (ODBC_CONFIG CACHE)
