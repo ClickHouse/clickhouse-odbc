@@ -12,7 +12,7 @@ use Data::Dumper;
 $Data::Dumper::Sortkeys = 1;
 $Data::Dumper::Useqq    = 1;
 
-my $config = {DSN => $ARGV[0] || $ENV{DSN} || 'clickhouse_localhost'};
+my $config = {DSN => $ARGV[0] || $ENV{DSN} || 'ClickHouse DSN (ANSI)'};
 my $is_wide = 1 if $ARGV[1] eq 'w';
 
 say 'Data sources: ', join '; ', DBI->data_sources('dbi:ODBC:DSN=' . $config->{DSN},);

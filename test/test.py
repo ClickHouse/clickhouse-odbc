@@ -9,7 +9,7 @@
 import pyodbc
 import sys
 
-dsn = 'clickhouse_localhost'
+dsn = 'ClickHouse DSN (ANSI)'
 is_wide = False
 
 if len(sys.argv) >= 2:
