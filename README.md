@@ -56,7 +56,7 @@ Native packages will have all the dependency information so when you install the
 
 - [Run-time dependencies: Windows](#run-time-dependencies-windows)
 - [Run-time dependencies: macOS](#run-time-dependencies-macos)
-- [Building from sources: Red Hat/CentOS](#building-from-sources-red-hatcentos)
+- [Run-time dependencies: Red Hat/CentOS](#run-time-dependencies-red-hatcentos)
 - [Run-time dependencies: Debian/Ubuntu](#run-time-dependencies-debianubuntu)
 
 ## Configuration
