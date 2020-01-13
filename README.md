@@ -21,7 +21,7 @@ See [LICENSE](LICENSE) file for licensing information.
 - [Appendices](#appendices)
   - [Run-time dependencies: Windows](#run-time-dependencies-windows)
   - [Run-time dependencies: macOS](#run-time-dependencies-macos)
-  - [Run-time dependencies: Red Hat/CentOS/Fedora](#run-time-dependencies-red-hatcentosfedora)
+  - [Run-time dependencies: Red Hat/CentOS](#run-time-dependencies-red-hatcentos)
   - [Run-time dependencies: Debian/Ubuntu](#run-time-dependencies-debianubuntu)
   - [Configuration: MDAC/WDAC (Microsoft/Windows Data Access Components)](#configuration-mdacwdac-microsoftwindows-data-access-components)
   - [Configuration: UnixODBC](#configuration-unixodbc)
@@ -31,7 +31,7 @@ See [LICENSE](LICENSE) file for licensing information.
   - [Enabling driver manager tracing: iODBC](#enabling-driver-manager-tracing-iodbc)
   - [Building from sources: Windows](#building-from-sources-windows)
   - [Building from sources: macOS](#building-from-sources-macos)
-  - [Building from sources: Red Hat/CentOS/Fedora](#building-from-sources-red-hatcentosfedora)
+  - [Building from sources: Red Hat/CentOS](#building-from-sources-red-hatcentos)
   - [Building from sources: Debian/Ubuntu](#building-from-sources-debianubuntu)
 
 ## Installation
@@ -56,7 +56,7 @@ Native packages will have all the dependency information so when you install the
 
 - [Run-time dependencies: Windows](#run-time-dependencies-windows)
 - [Run-time dependencies: macOS](#run-time-dependencies-macos)
-- [Run-time dependencies: Red Hat/CentOS/Fedora](#run-time-dependencies-red-hatcentosfedora)
+- [Building from sources: Red Hat/CentOS](#building-from-sources-red-hatcentos)
 - [Run-time dependencies: Debian/Ubuntu](#run-time-dependencies-debianubuntu)
 
 ## Configuration
@@ -123,7 +123,7 @@ See the exact steps for each platform in the corresponding section below:
 
 - [Building from sources: Windows](#building-from-sources-windows)
 - [Building from sources: macOS](#building-from-sources-macos)
-- [Building from sources: Red Hat/CentOS/Fedora](#building-from-sources-red-hatcentosfedora)
+- [Building from sources: Red Hat/CentOS](#building-from-sources-red-hatcentos)
 - [Building from sources: Debian/Ubuntu](#building-from-sources-debianubuntu)
 
 The list of configuration options recognized during the CMake generation step is as follows:
@@ -174,7 +174,7 @@ Homebrew: execute the following in the terminal (assuming you have [Homebrew](ht
 brew install poco openssl unixodbc
 ```
 
-### Run-time dependencies: Red Hat/CentOS/Fedora
+### Run-time dependencies: Red Hat/CentOS
 
 #### UnixODBC <!-- omit in toc -->
 
@@ -364,7 +364,7 @@ cmake --build . -C RelWithDebInfo --target test
 cmake --open .
 ```
 
-### Building from sources: Red Hat/CentOS/Fedora
+### Building from sources: Red Hat/CentOS
 
 #### Build-time dependencies: UnixODBC <!-- omit in toc -->
 
