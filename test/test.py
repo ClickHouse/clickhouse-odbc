@@ -33,8 +33,7 @@ except BaseException:
     #connection.setdecoding(pyodbc.SQL_WMETADATA, 'utf-8')
 
 def query(q):
-    sys.stdout.write(q.encode('utf-8'))
-    print(" :")
+    print("{} :".format(q.encode('utf-8')))
     cursor = connection.cursor()
     cursor.execute(q)
     rows = cursor.fetchall()
