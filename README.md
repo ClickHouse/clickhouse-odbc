@@ -212,15 +212,56 @@ sudo apt install openssl libiodbc2
 
 ### Configuration: MDAC/WDAC (Microsoft/Windows Data Access Components)
 
-TODO
+To configure already installed drivers and DSNs, or create new DSNs, use Microsoft ODBC Data Source Administrator tool:
+
+- for 32-bit applications (and drivers) execute `%systemdrive%\Windows\SysWoW64\Odbcad32.exe`
+- for 64-bit applications (and drivers) execute `%systemdrive%\Windows\System32\Odbcad32.exe`
+
+For full description of ODBC configuration mechanism in Windows, as well as for the case when you want to learn how to manually register a driver and have a full control on configuration in general, see:
+
+- [Installing and Configuring the ODBC Software](https://docs.microsoft.com/en-us/sql/odbc/reference/install/installing-and-configuring-the-odbc-software)
+
+Note, that the keys are subject to "Registry Redirection" mechanism, with [caveats](https://support.microsoft.com/en-ae/help/942976/odbc-administrator-tool-displays-both-the-32-bit-and-the-64-bit-user-d).
+
+You can find sample configuration for this driver here (just map the keys to corresponding sections in registry):
+
+- [odbcinst.ini.sample](packaging/odbcinst.ini.sample)
+- [odbc.ini.sample](packaging/odbc.ini.sample)
 
 ### Configuration: UnixODBC
 
-TODO
+In short, usually you will end up editing `/etc/odbcinst.ini` and `/etc/odbc.ini` for system-wide driver and DSN entries, and `~/.odbcinst.ini` and `~/.odbc.ini` for user-wide driver and DSN entries.
+
+There can be exceptions to this, as these paths are configurable during the compilation of UnixODBC itself, or during the run-time via `ODBCINI`, `ODBCINSTINI`, and `ODBCSYSINI`.
+
+For more info, see:
+
+- [unixODBC without the GUI](http://www.unixodbc.org/odbcinst.html)
+- [odbcinst - An unixODBC tool for manipulating configuration files](http://manpages.ubuntu.com/manpages/cosmic/man1/odbcinst.1.html)
+- [unixODBC - An ODBC implementation for Unix](http://manpages.ubuntu.com/manpages/cosmic/man7/unixODBC.7.html) - for description of recognized run-time environment variables
+
+You can find sample configuration for this driver here:
+
+- [odbcinst.ini.sample](packaging/odbcinst.ini.sample)
+- [odbc.ini.sample](packaging/odbc.ini.sample)
 
 ### Configuration: iODBC
 
-TODO
+In short, usually you will end up editing `/etc/odbcinst.ini` and `/etc/odbc.ini` for system-wide driver and DSN entries, and `~/.odbcinst.ini` and `~/.odbc.ini` for user-wide driver and DSN entries.
+
+In macOS, if those INI files exist, they usually are symbolic or hard links to `/Library/ODBC/odbcinst.ini` and `/Library/ODBC/odbc.ini` for system-wide, and `~/Library/ODBC/odbcinst.ini` and `~/Library/ODBC/odbc.ini` for user-wide configs respectively.
+
+There can be exceptions to this, as these paths are configurable during the compilation of iODBC itself, or during the run-time via `ODBCINI` and `ODBCINSTINI`. Note, that `ODBCINSTINI` in iODBC contains the full path to the file, while for UnixODBC it is a file name, and the file itself is expected to be under `ODBCSYSINI` dir.
+
+For more info, see:
+
+- [What's an odbc.ini and what do I put in it?](http://www.iodbc.org/dataspace/doc/iodbc/wiki/iodbcWiki/FAQ#What%27s%20an%20odbc.ini%20and%20what%20do%20I%20put%20in%20it%3F)
+- [What's a libiodbc and what goes in my Driver= lines in odbc.ini?](http://www.iodbc.org/dataspace/doc/iodbc/wiki/iodbcWiki/FAQ#What%27s%20a%20libiodbc%20and%20what%20goes%20in%20my%20Driver%3D%20lines%20in%20odbc.ini%3F)
+
+You can find sample configuration for this driver here:
+
+- [odbcinst.ini.sample](packaging/odbcinst.ini.sample)
+- [odbc.ini.sample](packaging/odbc.ini.sample)
 
 ### Enabling driver manager tracing: MDAC/WDAC (Microsoft/Windows Data Access Components)
 
