@@ -264,7 +264,7 @@ All of the following commands have to be issued in Visual Studio Command Prompt:
 Clone the repo with submodules:
 
 ```sh
-git clone --recurse-submodules git@github.com:ClickHouse/clickhouse-odbc.git
+git clone --recursive git@github.com:ClickHouse/clickhouse-odbc.git
 ```
 
 Enter the cloned source tree, create a temporary build folder, and generate the solution and project files in it:
@@ -329,7 +329,7 @@ brew install git cmake make poco openssl unixodbc
 Clone the repo with submodules:
 
 ```sh
-git clone --recurse-submodules git@github.com:ClickHouse/clickhouse-odbc.git
+git clone --recursive git@github.com:ClickHouse/clickhouse-odbc.git
 ```
 
 Enter the cloned source tree, create a temporary build folder, and generate a Makefile for the project in it:
@@ -399,7 +399,7 @@ scl enable devtoolset-8 -- bash
 Clone the repo with submodules:
 
 ```sh
-git clone --recurse-submodules git@github.com:ClickHouse/clickhouse-odbc.git
+git clone --recursive git@github.com:ClickHouse/clickhouse-odbc.git
 ```
 
 Enter the cloned source tree, create a temporary build folder, and generate a Makefile for the project in it:
@@ -452,7 +452,7 @@ Assuming, that the system `cc` and `c++` are pointing to the compilers that sati
 Clone the repo with submodules:
 
 ```sh
-git clone --recurse-submodules git@github.com:ClickHouse/clickhouse-odbc.git
+git clone --recursive git@github.com:ClickHouse/clickhouse-odbc.git
 ```
 
 Enter the cloned source tree, create a temporary build folder, and generate a Makefile for the project in it:
