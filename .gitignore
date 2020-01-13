@@ -6,3 +6,6 @@
 
 CMakeFiles/
 CMakeCache.txt
+
+__pycache__/
+*.py[cod]
