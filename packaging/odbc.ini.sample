@@ -9,32 +9,32 @@ Driver      = ClickHouse ODBC Driver (ANSI)
 Description = DSN (localhost) for ClickHouse ODBC Driver (ANSI)
 
 ### New all-in one way to specify connection with [optional] settings:
-#url = https://default:password@localhost:8443/query?database=default&max_result_bytes=4000000&buffer_size=3000000
+# Url = https://default:password@localhost:8443/query?database=default&max_result_bytes=4000000&buffer_size=3000000
 
-# ...or minimal (will connect to port 8443 if https:// or 8123 if http:// ):
-#url = https://localhost
+# ...or minimal (will connect to port 8443 if protocol is "https://" or 8123 if it is "http://"):
+# Url = https://localhost
 
 ### Old way:
-#server = localhost
-#database = default
-#uid = default
-#pwd = password
-#port = 8123
-#proto = http
+# Server = localhost
+# Database = default
+# UID = default
+# PWD = password
+# Port = 8123
+# Proto = http
 
 # Timeout for http queries to ClickHouse server (default is 30 seconds)
-#timeout=60
+# Timeout=60
 
-# sslmode:
+# SSLMode:
 #   allow   - ignore self-signed and bad certificates
 #   require - check certificates (and fail connection if something wrong)
-#sslmode = require
-#privatekeyfile =
-#certificatefile =
-#calocation =
+# SSLMode = require
+# PrivateKeyFile =
+# CertificateFile =
+# CALocation =
 
-#DriverLog = yes
-#DriverLogFile = /tmp/chlickhouse-odbc-driver.log
+# DriverLog = yes
+# DriverLogFile = /tmp/chlickhouse-odbc-driver.log
 
 [ClickHouse DSN (Unicode)]
 Driver      = ClickHouse ODBC Driver (Unicode)
