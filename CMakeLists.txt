@@ -4,7 +4,7 @@ set (CMAKE_MODULE_PATH_orig ${CMAKE_MODULE_PATH})
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 include (cmake/prevent_in_source_builds.cmake)
 
-project (clickhouse-odbc VERSION 1.1.2.20191216 LANGUAGES C CXX)
+project (clickhouse-odbc VERSION 1.1.3.20200115 LANGUAGES C CXX)
 
 set (CMAKE_C_STANDARD 11)
 #set (CMAKE_C_EXTENSIONS 0)
