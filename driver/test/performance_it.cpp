@@ -60,10 +60,8 @@ private:
     SQLUINTEGER driver_log = SQL_OPT_TRACE_ON;
 };
 
-#ifdef NDEBUG
-
-TEST_F(PerformanceTest, Basic) {
-    const std::size_t total_rows_expected = 1000000;
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(Basic)) {
+    const std::size_t total_rows_expected = 1'000'000;
     const std::string query_orig = "SELECT CAST('some not very long text', 'String') as col1, CAST('12345', 'Int') as col2, CAST('12.345', 'Float32') as col3, CAST('-123.456789012345678', 'Float64') as col4 FROM numbers(" + std::to_string(total_rows_expected) + ")";
 
     std::cout << "Executing query:\n\t" << query_orig << std::endl;
@@ -157,8 +155,6 @@ TEST_F(PerformanceTest, Basic) {
     const auto end = std::chrono::system_clock::now();
     const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     std::stringstream str;
-    str << std::fixed << std::setprecision(9) << static_cast<double>(elapsed.count()) / static_cast<double>(1000'000'000);
+    str << std::fixed << std::setprecision(9) << static_cast<double>(elapsed.count()) / static_cast<double>(1'000'000'000);
     std::cout << "Executed in:\n\t" << str.str() << " seconds" << std::endl;
 }
-
-#endif

@@ -4,6 +4,12 @@
 #include "driver/type_info.h"
 #include "driver/utils/unicode_conv.h"
 
+#ifdef NDEBUG
+#   define ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(test) test
+#else
+#   define ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(test) DISABLED_##test
+#endif
+
 namespace {
 
     inline std::string extract_diagnostics(SQLHANDLE handle, SQLSMALLINT type) {
