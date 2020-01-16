@@ -4,6 +4,7 @@
 #include "driver/test/client_test_base.h"
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include <chrono>
 #include <iostream>

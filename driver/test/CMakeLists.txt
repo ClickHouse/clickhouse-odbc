@@ -67,6 +67,7 @@ function (declare_odbc_test_targets libname UNICODE)
     target_link_libraries (${libname}-client-it
         PRIVATE ODBC::App
         PRIVATE gtest
+        PRIVATE gmock
         PRIVATE Threads::Threads
         PRIVATE ${CMAKE_DL_LIBS}
     )
