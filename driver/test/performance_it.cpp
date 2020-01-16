@@ -60,7 +60,7 @@ private:
     SQLUINTEGER driver_log = SQL_OPT_TRACE_ON;
 };
 
-TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(Basic)) {
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(GetDataBasic)) {
     constexpr std::size_t total_rows_expected = 1'000'000;
     const std::string query_orig = "SELECT CAST('some not very long text', 'String') as col1, CAST('12345', 'Int') as col2, CAST('12.345', 'Float32') as col3, CAST('-123.456789012345678', 'Float64') as col4 FROM numbers(" + std::to_string(total_rows_expected) + ")";
 
