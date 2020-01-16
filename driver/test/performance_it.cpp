@@ -62,7 +62,7 @@ private:
 };
 
 // API call that doesn't reach the driver, i.e., this is effectively (somewhat incomplete) Driver Manager overhead, just for the reference.
-TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(L0APICallOverhead)) {
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(UnimplementedAPICallOverhead)) {
     constexpr std::size_t call_count = 1'000'000;
     const auto tstr = fromUTF8<SQLTCHAR>("");
     auto * tstr_wptr = const_cast<SQLTCHAR * >(tstr.c_str());
