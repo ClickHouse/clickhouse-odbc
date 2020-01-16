@@ -61,7 +61,7 @@ private:
 };
 
 TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(Basic)) {
-    const std::size_t total_rows_expected = 1'000'000;
+    constexpr std::size_t total_rows_expected = 1'000'000;
     const std::string query_orig = "SELECT CAST('some not very long text', 'String') as col1, CAST('12345', 'Int') as col2, CAST('12.345', 'Float32') as col3, CAST('-123.456789012345678', 'Float64') as col4 FROM numbers(" + std::to_string(total_rows_expected) + ")";
 
     std::cout << "Executing query:\n\t" << query_orig << std::endl;
@@ -69,12 +69,12 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(Basic)) {
     const auto query = fromUTF8<SQLTCHAR>(query_orig);
     auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
 
-    const auto start = std::chrono::system_clock::now();
-
-    std::size_t total_rows = 0;
-
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+    START_MEASURING_TIME();
+
+    std::size_t total_rows = 0;
 
     while (true) {
         SQLRETURN rc = SQLFetch(hstmt);
@@ -152,9 +152,5 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(Basic)) {
 
     ASSERT_EQ(total_rows, total_rows_expected);
 
-    const auto end = std::chrono::system_clock::now();
-    const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-    std::stringstream str;
-    str << std::fixed << std::setprecision(9) << static_cast<double>(elapsed.count()) / static_cast<double>(1'000'000'000);
-    std::cout << "Executed in:\n\t" << str.str() << " seconds" << std::endl;
+    STOP_MEASURING_TIME_AND_REPORT();
 }
