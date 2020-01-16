@@ -9,6 +9,7 @@ function (declare_odbc_test_targets libname UNICODE)
         gtest_main.cpp
         gtest_env.h
         gtest_env.cpp
+        common_utils.h
         utils_ut.cpp
         escape_sequences_ut.cpp
         lexer_ut.cpp
@@ -55,6 +56,7 @@ function (declare_odbc_test_targets libname UNICODE)
         gtest_main.cpp
         gtest_env.h
         gtest_env.cpp
+        common_utils.h
         client_utils.h
         client_test_base.h
         ${PROJECT_SOURCE_DIR}/driver/type_info.cpp

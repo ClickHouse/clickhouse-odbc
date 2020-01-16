@@ -6,11 +6,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include <chrono>
-#include <iostream>
-#include <string>
-#include <sstream>
-
 #include <cstring>
 
 class PerformanceTest
