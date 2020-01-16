@@ -1,5 +1,4 @@
 #include "driver/platform/platform.h"
-#include "driver/test/gtest_env.h"
 #include "driver/test/client_utils.h"
 #include "driver/test/client_test_base.h"
 
