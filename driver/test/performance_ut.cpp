@@ -28,3 +28,15 @@ protected:
 private:
     SQLUINTEGER driver_log = SQL_OPT_TRACE_ON;
 };
+
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL)) {
+    constexpr std::size_t call_count = 1'000'000'000;
+
+    START_MEASURING_TIME();
+
+    for (std::size_t i = 0; i < call_count; ++i) {
+        CALL([] () { return SQL_SUCCESS; });
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT();
+}
