@@ -61,6 +61,36 @@ private:
     SQLUINTEGER driver_log = SQL_OPT_TRACE_ON;
 };
 
+// API call that doesn't reach the driver, i.e., this is effectively (somewhat incomplete) Driver Manager overhead, just for the reference.
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(L0APICallOverhead)) {
+    constexpr std::size_t call_count = 1'000'000;
+    const auto tstr = fromUTF8<SQLTCHAR>("");
+    auto * tstr_wptr = const_cast<SQLTCHAR * >(tstr.c_str());
+
+    // Verify that SQLStatistics() is not implemented. Change to something else when implemented.
+    {
+        const auto rc = SQLStatistics(hstmt, tstr_wptr, 0, tstr_wptr, 0, tstr_wptr, 0, SQL_INDEX_ALL, SQL_ENSURE);
+        if (rc != SQL_ERROR) {
+            throw std::runtime_error(
+                "SQLStatistics return code: " + std::to_string(rc) +
+                ", expected SQL_ERROR (" + std::to_string(SQL_ERROR) +
+                ") - a function that is not implemented by the driver"
+            );
+        }
+
+        const auto diag_str = extract_diagnostics(hstmt, SQL_HANDLE_STMT);
+        ASSERT_THAT(diag_str, testing::HasSubstr("Driver does not support this function"));
+    }
+
+    START_MEASURING_TIME();
+
+    for (std::size_t i = 0; i < call_count; ++i) {
+        SQLStatistics(hstmt, tstr_wptr, 0, tstr_wptr, 0, tstr_wptr, 0, SQL_INDEX_ALL, SQL_ENSURE);
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT();
+}
+
 TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(GetDataBasic)) {
     constexpr std::size_t total_rows_expected = 1'000'000;
     const std::string query_orig = "SELECT CAST('some not very long text', 'String') as col1, CAST('12345', 'Int') as col2, CAST('12.345', 'Float32') as col3, CAST('-123.456789012345678', 'Float64') as col4 FROM numbers(" + std::to_string(total_rows_expected) + ")";
