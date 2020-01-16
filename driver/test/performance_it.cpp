@@ -91,6 +91,33 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(UnimplementedAPICallOve
     STOP_MEASURING_TIME_AND_REPORT();
 }
 
+// API call that involves the driver, triggers handle dispatch and diag reset, but does no real work.
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(NoOpAPICallOverhead)) {
+    constexpr std::size_t call_count = 1'000'000;
+
+    // Verify that several consequent SQLNumResultCols() calls  on an executed statement, without destination buffer, return SQL_SUCCESS.
+    {
+        const auto query = fromUTF8<SQLTCHAR>("SELECT 1");
+        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLNumResultCols(hstmt, nullptr));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLNumResultCols(hstmt, nullptr));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLNumResultCols(hstmt, nullptr));
+    }
+
+    START_MEASURING_TIME();
+
+    for (std::size_t i = 0; i < call_count; ++i) {
+        SQLNumResultCols(hstmt, nullptr);
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT();
+    START_MEASURING_TIME();
+
+    STOP_MEASURING_TIME_AND_REPORT();
+}
+
 TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(GetDataBasic)) {
     constexpr std::size_t total_rows_expected = 1'000'000;
     const std::string query_orig = "SELECT CAST('some not very long text', 'String') as col1, CAST('12345', 'Int') as col2, CAST('12.345', 'Float32') as col3, CAST('-123.456789012345678', 'Float64') as col4 FROM numbers(" + std::to_string(total_rows_expected) + ")";
