@@ -62,6 +62,13 @@ if (ARCH_FREEBSD)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
 endif ()
 
+foreach (config Release RelWithDebInfo)
+    foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+        set (var "${lang}_${config}")
+        set (${var} "${${var}} -DNDEBUG")
+    endforeach ()
+endforeach ()
+
 if (CH_ODBC_RUNTIME_LINK_STATIC)
     if (MSVC)
         foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
