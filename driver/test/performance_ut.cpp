@@ -1,5 +1,9 @@
 #include "driver/platform/platform.h"
+#include "driver/api/impl/impl.h"
 #include "driver/driver.h"
+#include "driver/environment.h"
+#include "driver/connection.h"
+#include "driver/statement.h"
 #include "driver/test/common_utils.h"
 
 #include <gtest/gtest.h>
@@ -30,12 +34,136 @@ private:
 };
 
 TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL)) {
-    constexpr std::size_t call_count = 1'000'000'000;
+    constexpr std::size_t call_count = 100'000'000;
 
     START_MEASURING_TIME();
 
     for (std::size_t i = 0; i < call_count; ++i) {
         CALL([] () { return SQL_SUCCESS; });
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT();
+}
+
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL_WITH_HANDLE)) {
+    constexpr std::size_t call_count = 100'000'000;
+
+    SQLHENV henv = 0;
+    SQLHDBC hdbc = 0;
+    SQLHSTMT hstmt = 0;
+
+    {
+        const auto rc = impl::allocEnv(&henv);
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    {
+        const auto rc = impl::allocConnect(henv, &hdbc);
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    {
+        const auto rc = impl::allocStmt(hdbc, &hstmt);
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    START_MEASURING_TIME();
+    
+    for (std::size_t i = 0; i < call_count; ++i) {
+        CALL_WITH_HANDLE(hstmt, [] (Connection & connection) { return SQL_SUCCESS; });
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT();
+}
+
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL_WITH_HANDLE_SKIP_DIAG)) {
+    constexpr std::size_t call_count = 100'000'000;
+
+    SQLHENV henv = 0;
+    SQLHDBC hdbc = 0;
+    SQLHSTMT hstmt = 0;
+
+    {
+        const auto rc = impl::allocEnv(&henv);
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    {
+        const auto rc = impl::allocConnect(henv, &hdbc);
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    {
+        const auto rc = impl::allocStmt(hdbc, &hstmt);
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    START_MEASURING_TIME();
+    
+    for (std::size_t i = 0; i < call_count; ++i) {
+        CALL_WITH_HANDLE_SKIP_DIAG(hstmt, [] (Connection & connection) { return SQL_SUCCESS; });
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT();
+}
+
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL_WITH_TYPED_HANDLE)) {
+    constexpr std::size_t call_count = 100'000'000;
+
+    SQLHENV henv = 0;
+    SQLHDBC hdbc = 0;
+    SQLHSTMT hstmt = 0;
+
+    {
+        const auto rc = impl::allocEnv(&henv);
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    {
+        const auto rc = impl::allocConnect(henv, &hdbc);
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    {
+        const auto rc = impl::allocStmt(hdbc, &hstmt);
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    START_MEASURING_TIME();
+    
+    for (std::size_t i = 0; i < call_count; ++i) {
+        CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, hstmt, [] (Connection & connection) { return SQL_SUCCESS; });
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT();
+}
+
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL_WITH_TYPED_HANDLE_SKIP_DIAG)) {
+    constexpr std::size_t call_count = 100'000'000;
+
+    SQLHENV henv = 0;
+    SQLHDBC hdbc = 0;
+    SQLHSTMT hstmt = 0;
+
+    {
+        const auto rc = impl::allocEnv(&henv);
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    {
+        const auto rc = impl::allocConnect(henv, &hdbc);
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    {
+        const auto rc = impl::allocStmt(hdbc, &hstmt);
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    START_MEASURING_TIME();
+    
+    for (std::size_t i = 0; i < call_count; ++i) {
+        CALL_WITH_TYPED_HANDLE_SKIP_DIAG(SQL_HANDLE_STMT, hstmt, [] (Connection & connection) { return SQL_SUCCESS; });
     }
 
     STOP_MEASURING_TIME_AND_REPORT();

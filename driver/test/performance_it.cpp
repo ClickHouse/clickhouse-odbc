@@ -75,7 +75,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(UnimplementedAPICallOve
         // TODO: fix this, the following extra check works reliably only on UnixODBC with matching encoding versions of driver and app.
 /*
         const auto diag_str = extract_diagnostics(hstmt, SQL_HANDLE_STMT);
-        ASSERT_THAT(diag_str, testing::HasSubstr("Driver does not support this function"));
+        ASSERT_THAT(diag_str, ::testing::HasSubstr("Driver does not support this function"));
 */
     }
 

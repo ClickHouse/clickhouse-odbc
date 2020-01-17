@@ -48,6 +48,8 @@ add_library (${libname}-impl STATIC
     escaping/escape_sequences.cpp
     escaping/lexer.cpp
 
+    api/impl/impl.cpp
+
     attributes.cpp
     connection.cpp
     descriptor.cpp
@@ -78,6 +80,8 @@ add_library (${libname}-impl STATIC
     escaping/lexer.h
     escaping/lexer_declare.h
     escaping/function_declare.h
+
+    api/impl/impl.h
 
     attributes.h
     connection.h
@@ -142,7 +146,6 @@ target_link_libraries (${libname}-impl
 
 add_library (${libname} SHARED
     api/odbc.cpp
-    api/impl/handles.cpp
     api/impl/attr.cpp
     api/impl/info.cpp
 

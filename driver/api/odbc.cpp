@@ -1,3 +1,4 @@
+#include "driver/api/impl.h"
 #include "driver/utils/utils.h"
 #include "driver/utils/scope_guard.h"
 #include "driver/utils/type_parser.h"
@@ -798,6 +799,64 @@ SQLRETURN Fetch(
 
 
 extern "C" {
+
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLAllocHandle)(SQLSMALLINT handle_type, SQLHANDLE input_handle, SQLHANDLE * output_handle) {
+    LOG(__FUNCTION__ << " handle_type=" << handle_type << " input_handle=" << input_handle);
+
+    switch (handle_type) {
+        case SQL_HANDLE_ENV:
+            return impl::allocEnv((SQLHENV *)output_handle);
+        case SQL_HANDLE_DBC:
+            return impl::allocConnect((SQLHENV)input_handle, (SQLHDBC *)output_handle);
+        case SQL_HANDLE_STMT:
+            return impl::allocStmt((SQLHDBC)input_handle, (SQLHSTMT *)output_handle);
+        case SQL_HANDLE_DESC:
+            return impl::allocDesc((SQLHDBC)input_handle, (SQLHDESC *)output_handle);
+        default:
+            LOG("AllocHandle: Unknown handleType=" << handle_type);
+            return SQL_ERROR;
+    }
+}
+
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFreeHandle)(SQLSMALLINT handleType, SQLHANDLE handle) {
+    LOG(__FUNCTION__ << " handleType=" << handleType << " handle=" << handle);
+
+    switch (handleType) {
+        case SQL_HANDLE_ENV:
+        case SQL_HANDLE_DBC:
+        case SQL_HANDLE_STMT:
+        case SQL_HANDLE_DESC:
+            return impl::freeHandle(handle);
+        default:
+            LOG("FreeHandle: Unknown handleType=" << handleType);
+            return SQL_ERROR;
+    }
+}
+
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFreeStmt)(HSTMT statement_handle, SQLUSMALLINT option) {
+    LOG(__FUNCTION__ << " option=" << option);
+
+    return CALL_WITH_HANDLE(statement_handle, [&] (Statement & statement) -> SQLRETURN {
+        switch (option) {
+            case SQL_CLOSE: /// Close the cursor, ignore the remaining results. If there is no cursor, then noop.
+                statement.closeCursor();
+                return SQL_SUCCESS;
+
+            case SQL_DROP:
+                return impl::freeHandle(statement_handle);
+
+            case SQL_UNBIND:
+                statement.resetColBindings();
+                return SQL_SUCCESS;
+
+            case SQL_RESET_PARAMS:
+                statement.resetParamBindings();
+                return SQL_SUCCESS;
+        }
+
+        return SQL_ERROR;
+    });
+}
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLConnect)(
     SQLHDBC        ConnectionHandle,
