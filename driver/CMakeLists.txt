@@ -146,9 +146,6 @@ target_link_libraries (${libname}-impl
 
 add_library (${libname} SHARED
     api/odbc.cpp
-    api/impl/attr.cpp
-    api/impl/info.cpp
-
     ${WIN_SOURCES}
 )
 

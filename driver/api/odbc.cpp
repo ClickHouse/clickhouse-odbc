@@ -1,4 +1,5 @@
-#include "driver/api/impl.h"
+#include "driver/platform/platform.h"
+#include "driver/api/impl/impl.h"
 #include "driver/utils/utils.h"
 #include "driver/utils/scope_guard.h"
 #include "driver/utils/type_parser.h"
@@ -12,6 +13,7 @@
 #include "driver/result_set.h"
 
 #include <Poco/Net/HTTPClientSession.h>
+#include <Poco/NumberFormatter.h>
 
 #include <iostream>
 #include <locale>
@@ -30,773 +32,6 @@
   * to be out of extern "C" section, so that C++ features like generic lambdas, templates, are allowed,
   * for example, by MSVC.
   */
-
-namespace { namespace impl {
-
-SQLRETURN GetDiagRec(
-    SQLSMALLINT handle_type,
-    SQLHANDLE handle,
-    SQLSMALLINT record_number,
-    SQLTCHAR * out_sqlstate,
-    SQLINTEGER * out_native_error_code,
-    SQLTCHAR * out_message,
-    SQLSMALLINT out_message_max_size,
-    SQLSMALLINT * out_message_size
-) noexcept {
-    auto func = [&] (auto & object) -> SQLRETURN {
-        if (record_number < 1 || out_message_max_size < 0)
-            return SQL_ERROR;
-
-        if (record_number > object.getDiagStatusCount())
-            return SQL_NO_DATA;
-
-        const auto & record = object.getDiagStatus(record_number);
-
-        if (out_sqlstate) {
-            std::size_t size = 6;
-            std::size_t written = 0;
-            fillOutputString<SQLTCHAR>(record.template getAttrAs<std::string>(SQL_DIAG_SQLSTATE), out_sqlstate, size, &written, false);
-        }
-
-        if (out_native_error_code != nullptr) {
-            *out_native_error_code = record.template getAttrAs<SQLINTEGER>(SQL_DIAG_NATIVE);
-        }
-
-        return fillOutputString<SQLTCHAR>(record.template getAttrAs<std::string>(SQL_DIAG_MESSAGE_TEXT), out_message, out_message_max_size, out_message_size, false);
-    };
-
-    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, func);
-}
-
-SQLRETURN GetDiagField(
-    SQLSMALLINT handle_type,
-    SQLHANDLE handle,
-    SQLSMALLINT record_number,
-    SQLSMALLINT field_id,
-    SQLPOINTER out_message,
-    SQLSMALLINT out_message_max_size,
-    SQLSMALLINT * out_message_size
-) noexcept {
-    auto func = [&] (auto & object) -> SQLRETURN {
-        // Exit with error if the requested field is relevant only to statements.
-        if (getObjectHandleType<decltype(object)>() != SQL_HANDLE_STMT) {
-            switch (field_id) {
-                case SQL_DIAG_CURSOR_ROW_COUNT:
-                case SQL_DIAG_DYNAMIC_FUNCTION:
-                case SQL_DIAG_DYNAMIC_FUNCTION_CODE:
-                case SQL_DIAG_ROW_COUNT:
-                    return SQL_ERROR;
-            }
-        }
-
-        // Ignore (adjust) record_number if the requested field is relevant only to the header.
-        switch (field_id) {
-            case SQL_DIAG_CURSOR_ROW_COUNT:
-            case SQL_DIAG_DYNAMIC_FUNCTION:
-            case SQL_DIAG_DYNAMIC_FUNCTION_CODE:
-            case SQL_DIAG_NUMBER:
-            case SQL_DIAG_RETURNCODE:
-            case SQL_DIAG_ROW_COUNT:
-                record_number = 0;
-                break;
-        }
-
-        if (record_number < 0)
-            return SQL_ERROR;
-
-        if (record_number > 0 && record_number > object.getDiagStatusCount())
-            return SQL_NO_DATA;
-
-        const auto & record = object.getDiagStatus(record_number);
-
-        switch (field_id) {
-
-#define CASE_ATTR_NUM(NAME, TYPE) \
-    case NAME: \
-        return fillOutputPOD(record.template getAttrAs<TYPE>(NAME), out_message, out_message_size);
-
-#define CASE_ATTR_STR(NAME) \
-    case NAME: \
-        return fillOutputString<SQLTCHAR>(record.template getAttrAs<std::string>(NAME), out_message, out_message_max_size, out_message_size, true);
-
-            CASE_ATTR_NUM(SQL_DIAG_CURSOR_ROW_COUNT, SQLLEN);
-            CASE_ATTR_STR(SQL_DIAG_DYNAMIC_FUNCTION);
-            CASE_ATTR_NUM(SQL_DIAG_DYNAMIC_FUNCTION_CODE, SQLINTEGER);
-            CASE_ATTR_NUM(SQL_DIAG_NUMBER, SQLINTEGER);
-            CASE_ATTR_NUM(SQL_DIAG_RETURNCODE, SQLRETURN);
-            CASE_ATTR_NUM(SQL_DIAG_ROW_COUNT, SQLLEN);
-
-            CASE_ATTR_STR(SQL_DIAG_CLASS_ORIGIN);
-            CASE_ATTR_NUM(SQL_DIAG_COLUMN_NUMBER, SQLINTEGER);
-            CASE_ATTR_STR(SQL_DIAG_CONNECTION_NAME);
-            CASE_ATTR_STR(SQL_DIAG_MESSAGE_TEXT);
-            CASE_ATTR_NUM(SQL_DIAG_NATIVE, SQLINTEGER);
-            CASE_ATTR_NUM(SQL_DIAG_ROW_NUMBER, SQLLEN);
-            CASE_ATTR_STR(SQL_DIAG_SERVER_NAME);
-            CASE_ATTR_STR(SQL_DIAG_SQLSTATE);
-            CASE_ATTR_STR(SQL_DIAG_SUBCLASS_ORIGIN);
-
-#undef CASE_ATTR_NUM
-#undef CASE_ATTR_STR
-
-        }
-
-        return SQL_ERROR;
-    };
-
-    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, func);
-}
-
-SQLRETURN BindParameter(
-    SQLHSTMT        handle,
-    SQLUSMALLINT    parameter_number,
-    SQLSMALLINT     input_output_type,
-    SQLSMALLINT     value_type,
-    SQLSMALLINT     parameter_type,
-    SQLULEN         column_size,
-    SQLSMALLINT     decimal_digits,
-    SQLPOINTER      parameter_value_ptr,
-    SQLLEN          buffer_length,
-    SQLLEN *        StrLen_or_IndPtr
-) noexcept {
-    auto func = [&] (Statement & statement) {
-        auto & apd_desc = statement.getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC);
-        auto & ipd_desc = statement.getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC);
-
-        const auto apd_record_count = apd_desc.getRecordCount();
-        const auto ipd_record_count = ipd_desc.getRecordCount();
-
-        auto & apd_record = apd_desc.getRecord(parameter_number, SQL_ATTR_APP_PARAM_DESC);
-        auto & ipd_record = ipd_desc.getRecord(parameter_number, SQL_ATTR_IMP_PARAM_DESC);
-
-        try {
-            ipd_record.setAttr(SQL_DESC_PARAMETER_TYPE, input_output_type);
-
-            // These two will trigger automatic (re)setting of SQL_DESC_TYPE and SQL_DESC_DATETIME_INTERVAL_CODE,
-            // and resetting of SQL_DESC_DATA_PTR.
-            apd_record.setAttr(SQL_DESC_CONCISE_TYPE,
-                (value_type == SQL_C_DEFAULT ? convertSQLTypeToCType(parameter_type) : value_type)
-            );
-            ipd_record.setAttr(SQL_DESC_CONCISE_TYPE, parameter_type);
-
-            switch (parameter_type) {
-                case SQL_CHAR:
-                case SQL_WCHAR:
-                case SQL_VARCHAR:
-                case SQL_WVARCHAR:
-                case SQL_LONGVARCHAR:
-                case SQL_WLONGVARCHAR:
-                case SQL_BINARY:
-                case SQL_VARBINARY:
-                case SQL_LONGVARBINARY:
-                case SQL_TYPE_DATE:
-                case SQL_TYPE_TIME:
-                case SQL_TYPE_TIMESTAMP:
-                case SQL_INTERVAL_MONTH:
-                case SQL_INTERVAL_YEAR:
-                case SQL_INTERVAL_YEAR_TO_MONTH:
-                case SQL_INTERVAL_DAY:
-                case SQL_INTERVAL_HOUR:
-                case SQL_INTERVAL_MINUTE:
-                case SQL_INTERVAL_SECOND:
-                case SQL_INTERVAL_DAY_TO_HOUR:
-                case SQL_INTERVAL_DAY_TO_MINUTE:
-                case SQL_INTERVAL_DAY_TO_SECOND:
-                case SQL_INTERVAL_HOUR_TO_MINUTE:
-                case SQL_INTERVAL_HOUR_TO_SECOND:
-                case SQL_INTERVAL_MINUTE_TO_SECOND:
-                    ipd_record.setAttr(SQL_DESC_LENGTH, column_size);
-                    break;
-
-                case SQL_DECIMAL:
-                case SQL_NUMERIC:
-                case SQL_FLOAT:
-                case SQL_REAL:
-                case SQL_DOUBLE:
-                    ipd_record.setAttr(SQL_DESC_PRECISION, column_size);
-                    break;
-            }
-
-            switch (parameter_type) {
-                case SQL_TYPE_TIME:
-                case SQL_TYPE_TIMESTAMP:
-                case SQL_INTERVAL_SECOND:
-                case SQL_INTERVAL_DAY_TO_SECOND:
-                case SQL_INTERVAL_HOUR_TO_SECOND:
-                case SQL_INTERVAL_MINUTE_TO_SECOND:
-                    ipd_record.setAttr(SQL_DESC_PRECISION, decimal_digits);
-                    break;
-
-                case SQL_NUMERIC:
-                case SQL_DECIMAL:
-                    ipd_record.setAttr(SQL_DESC_SCALE, decimal_digits);
-                    break;
-            }
-
-            apd_record.setAttr(SQL_DESC_OCTET_LENGTH, buffer_length);
-            apd_record.setAttr(SQL_DESC_OCTET_LENGTH_PTR, StrLen_or_IndPtr);
-            apd_record.setAttr(SQL_DESC_INDICATOR_PTR, StrLen_or_IndPtr);
-            apd_record.setAttr(SQL_DESC_DATA_PTR, parameter_value_ptr);
-        }
-        catch (...) {
-            apd_desc.setAttr(SQL_DESC_COUNT, apd_record_count);
-            ipd_desc.setAttr(SQL_DESC_COUNT, ipd_record_count);
-
-            throw;
-        }
-
-        return SQL_SUCCESS;
-    };
-
-    return CALL_WITH_HANDLE(handle, func);
-}
-
-SQLRETURN NumParams(
-    SQLHSTMT        handle,
-    SQLSMALLINT *   out_parameter_count
-) noexcept {
-    auto func = [&] (Statement & statement) {
-        auto & ipd_desc = statement.getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC);
-        const auto ipd_record_count = ipd_desc.getRecordCount();
-
-        *out_parameter_count = ipd_record_count; // TODO: ...or statement.parameters.size()?
-
-        return SQL_SUCCESS;
-    };
-
-    return CALL_WITH_HANDLE(handle, func);
-}
-
-SQLRETURN DescribeParam(
-    SQLHSTMT        handle,
-    SQLUSMALLINT    parameter_number,
-    SQLSMALLINT *   out_data_type_ptr,
-    SQLULEN *       out_parameter_size_ptr,
-    SQLSMALLINT *   out_decimal_digits_ptr,
-    SQLSMALLINT *   out_nullable_ptr
-) noexcept {
-    auto func = [&] (Statement & statement) {
-        auto & ipd_desc = statement.getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC);
-
-        if (parameter_number < 0 || parameter_number > ipd_desc.getRecordCount())
-            throw SqlException("Invalid descriptor index", "07009");
-
-        auto & ipd_record = ipd_desc.getRecord(parameter_number, SQL_ATTR_IMP_PARAM_DESC);
-
-        *out_data_type_ptr = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE);
-        *out_nullable_ptr = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_NULLABLE, SQL_NULLABLE_UNKNOWN);
-
-        if (ipd_record.hasColumnSize())
-            *out_parameter_size_ptr = ipd_record.getColumnSize();
-
-        if (ipd_record.hasDecimalDigits())
-            *out_decimal_digits_ptr = ipd_record.getDecimalDigits();
-
-        return SQL_SUCCESS;
-    };
-
-    return CALL_WITH_HANDLE(handle, func);
-}
-
-SQLRETURN GetDescField(
-    SQLHDESC        DescriptorHandle,
-    SQLSMALLINT     RecNumber,
-    SQLSMALLINT     FieldIdentifier,
-    SQLPOINTER      ValuePtr,
-    SQLINTEGER      BufferLength,
-    SQLINTEGER *    StringLengthPtr
-) noexcept {
-    auto func = [&] (Descriptor & descriptor) -> SQLRETURN {
-
-        // Process header fields first, withour running cheecks on record number.
-        switch (FieldIdentifier) {
-
-#define CASE_FIELD_NUM(NAME, TYPE) \
-            case NAME: return fillOutputPOD<TYPE>(descriptor.getAttrAs<TYPE>(NAME), ValuePtr, StringLengthPtr);
-
-#define CASE_FIELD_NUM_DEF(NAME, TYPE, DEFAULT) \
-            case NAME: return fillOutputPOD<TYPE>(descriptor.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, StringLengthPtr);
-
-            CASE_FIELD_NUM     ( SQL_DESC_ALLOC_TYPE,         SQLSMALLINT                       );
-            CASE_FIELD_NUM_DEF ( SQL_DESC_ARRAY_SIZE,         SQLULEN,       1                  );
-            CASE_FIELD_NUM     ( SQL_DESC_ARRAY_STATUS_PTR,   SQLUSMALLINT *                    );
-            CASE_FIELD_NUM     ( SQL_DESC_BIND_OFFSET_PTR,    SQLLEN *                          );
-            CASE_FIELD_NUM_DEF ( SQL_DESC_BIND_TYPE,          SQLUINTEGER,   SQL_BIND_BY_COLUMN );
-            CASE_FIELD_NUM     ( SQL_DESC_COUNT,              SQLSMALLINT                       );
-            CASE_FIELD_NUM     ( SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *                         );
-                
-#undef CASE_FIELD_NUM_DEF
-#undef CASE_FIELD_NUM
-
-        }
-
-        if (RecNumber < 0)
-            throw SqlException("Invalid descriptor index", "07009");
-
-        if (RecNumber > descriptor.getRecordCount())
-            return SQL_NO_DATA;
-
-        auto & record = descriptor.getRecord(RecNumber, SQL_ATTR_APP_ROW_DESC); // TODO: descriptor type?
-
-        switch (FieldIdentifier) {
-
-#define CASE_FIELD_NUM(NAME, TYPE) \
-            case NAME: return fillOutputPOD<TYPE>(record.getAttrAs<TYPE>(NAME), ValuePtr, StringLengthPtr);
-
-#define CASE_FIELD_NUM_DEF(NAME, TYPE, DEFAULT) \
-            case NAME: return fillOutputPOD<TYPE>(record.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, StringLengthPtr);
-
-#define CASE_FIELD_STR(NAME) \
-            case NAME: return fillOutputString<SQLTCHAR>(record.getAttrAs<std::string>(NAME), ValuePtr, BufferLength, StringLengthPtr, true);
-
-            CASE_FIELD_NUM     ( SQL_DESC_AUTO_UNIQUE_VALUE,           SQLINTEGER                              );
-            CASE_FIELD_STR     ( SQL_DESC_BASE_COLUMN_NAME                                                     );
-            CASE_FIELD_STR     ( SQL_DESC_BASE_TABLE_NAME                                                      );
-            CASE_FIELD_NUM     ( SQL_DESC_CASE_SENSITIVE,              SQLINTEGER                              );
-            CASE_FIELD_STR     ( SQL_DESC_CATALOG_NAME                                                         );
-            CASE_FIELD_NUM     ( SQL_DESC_CONCISE_TYPE,                SQLSMALLINT                             );
-            CASE_FIELD_NUM     ( SQL_DESC_DATA_PTR,                    SQLPOINTER                              );
-            CASE_FIELD_NUM     ( SQL_DESC_DATETIME_INTERVAL_CODE,      SQLSMALLINT                             );
-            CASE_FIELD_NUM     ( SQL_DESC_DATETIME_INTERVAL_PRECISION, SQLINTEGER                              );
-            CASE_FIELD_NUM     ( SQL_DESC_DISPLAY_SIZE,                SQLINTEGER                              );
-            CASE_FIELD_NUM     ( SQL_DESC_FIXED_PREC_SCALE,            SQLSMALLINT                             );
-            CASE_FIELD_NUM     ( SQL_DESC_INDICATOR_PTR,               SQLLEN *                                );
-            CASE_FIELD_STR     ( SQL_DESC_LABEL                                                                );
-            CASE_FIELD_NUM     ( SQL_DESC_LENGTH,                      SQLULEN                                 );
-            CASE_FIELD_STR     ( SQL_DESC_LITERAL_PREFIX                                                       );
-            CASE_FIELD_STR     ( SQL_DESC_LITERAL_SUFFIX                                                       );
-            CASE_FIELD_STR     ( SQL_DESC_LOCAL_TYPE_NAME                                                      );
-            CASE_FIELD_STR     ( SQL_DESC_NAME                                                                 );
-            CASE_FIELD_NUM     ( SQL_DESC_NULLABLE,                    SQLSMALLINT                             );
-            CASE_FIELD_NUM     ( SQL_DESC_NUM_PREC_RADIX,              SQLINTEGER                              );
-            CASE_FIELD_NUM     ( SQL_DESC_OCTET_LENGTH,                SQLLEN                                  );
-            CASE_FIELD_NUM     ( SQL_DESC_OCTET_LENGTH_PTR,            SQLLEN *                                );
-            CASE_FIELD_NUM     ( SQL_DESC_PARAMETER_TYPE,              SQLSMALLINT                             );
-            CASE_FIELD_NUM     ( SQL_DESC_PRECISION,                   SQLSMALLINT                             );
-            CASE_FIELD_NUM     ( SQL_DESC_ROWVER,                      SQLSMALLINT                             );
-            CASE_FIELD_NUM     ( SQL_DESC_SCALE,                       SQLSMALLINT                             );
-            CASE_FIELD_STR     ( SQL_DESC_SCHEMA_NAME                                                          );
-            CASE_FIELD_NUM_DEF ( SQL_DESC_SEARCHABLE,                  SQLSMALLINT, SQL_PRED_SEARCHABLE        );
-            CASE_FIELD_STR     ( SQL_DESC_TABLE_NAME                                                           );
-            CASE_FIELD_NUM     ( SQL_DESC_TYPE,                        SQLSMALLINT                             );
-            CASE_FIELD_STR     ( SQL_DESC_TYPE_NAME                                                            );
-            CASE_FIELD_NUM     ( SQL_DESC_UNNAMED,                     SQLSMALLINT                             );
-            CASE_FIELD_NUM     ( SQL_DESC_UNSIGNED,                    SQLSMALLINT                             );
-            CASE_FIELD_NUM_DEF ( SQL_DESC_UPDATABLE,                   SQLSMALLINT, SQL_ATTR_READWRITE_UNKNOWN );
-
-#undef CASE_FIELD_STR
-#undef CASE_FIELD_NUM_DEF
-#undef CASE_FIELD_NUM
-
-        }
-
-        return SQL_SUCCESS;
-    };
-
-    return CALL_WITH_HANDLE(DescriptorHandle, func);
-}
-
-SQLRETURN GetDescRec(
-    SQLHDESC        DescriptorHandle,
-    SQLSMALLINT     RecNumber,
-    SQLTCHAR *      Name,
-    SQLSMALLINT     BufferLength,
-    SQLSMALLINT *   StringLengthPtr,
-    SQLSMALLINT *   TypePtr,
-    SQLSMALLINT *   SubTypePtr,
-    SQLLEN *        LengthPtr,
-    SQLSMALLINT *   PrecisionPtr,
-    SQLSMALLINT *   ScalePtr,
-    SQLSMALLINT *   NullablePtr
-) noexcept {
-    auto func = [&] (Descriptor & descriptor) -> SQLRETURN {
-        if (RecNumber < 0)
-            throw SqlException("Invalid descriptor index", "07009");
-        
-        if (RecNumber > descriptor.getRecordCount())
-            return SQL_NO_DATA;
-
-        auto & record = descriptor.getRecord(RecNumber, SQL_ATTR_APP_ROW_DESC); // TODO: descriptor type?
-
-        auto has_type = record.hasAttrInteger(SQL_DESC_TYPE);
-        auto type = record.getAttrAs<SQLSMALLINT>(SQL_DESC_TYPE);
-
-        if (TypePtr && has_type)
-            *TypePtr = type;
-
-        if (SubTypePtr && has_type && isVerboseType(type) && record.hasAttrInteger(SQL_DESC_DATETIME_INTERVAL_CODE))
-            *SubTypePtr = record.getAttrAs<SQLSMALLINT>(SQL_DESC_DATETIME_INTERVAL_CODE);
-
-        if (LengthPtr && record.hasAttrInteger(SQL_DESC_OCTET_LENGTH))
-            *LengthPtr = record.getAttrAs<SQLLEN>(SQL_DESC_OCTET_LENGTH);
-
-        if (PrecisionPtr && record.hasAttrInteger(SQL_DESC_PRECISION))
-            *PrecisionPtr = record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION);
-
-        if (ScalePtr && record.hasAttrInteger(SQL_DESC_SCALE))
-            *ScalePtr = record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE);
-
-        if (NullablePtr && record.hasAttrInteger(SQL_DESC_NULLABLE))
-            *NullablePtr = record.getAttrAs<SQLSMALLINT>(SQL_DESC_NULLABLE);
-
-        return fillOutputString<SQLTCHAR>(record.getAttrAs<std::string>(SQL_DESC_NAME), Name, BufferLength, StringLengthPtr, false);
-    };
-
-    return CALL_WITH_HANDLE(DescriptorHandle, func);
-}
-
-SQLRETURN SetDescField(
-    SQLHDESC      DescriptorHandle,
-    SQLSMALLINT   RecNumber,
-    SQLSMALLINT   FieldIdentifier,
-    SQLPOINTER    ValuePtr,
-    SQLINTEGER    BufferLength
-) noexcept {
-    auto func = [&] (Descriptor & descriptor) -> SQLRETURN {
-
-        // Process header fields first, withour running cheecks on record number.
-        switch (FieldIdentifier) {
-
-#define CASE_FIELD_NUM(NAME, TYPE) \
-            case NAME: { descriptor.setAttr(NAME, (TYPE)(reinterpret_cast<std::uintptr_t>(ValuePtr))); return SQL_SUCCESS; }
-
-            CASE_FIELD_NUM ( SQL_DESC_ALLOC_TYPE,         SQLSMALLINT    );
-            CASE_FIELD_NUM ( SQL_DESC_ARRAY_SIZE,         SQLULEN        );
-            CASE_FIELD_NUM ( SQL_DESC_ARRAY_STATUS_PTR,   SQLUSMALLINT * );
-            CASE_FIELD_NUM ( SQL_DESC_BIND_OFFSET_PTR,    SQLLEN *       );
-            CASE_FIELD_NUM ( SQL_DESC_BIND_TYPE,          SQLUINTEGER    );
-            CASE_FIELD_NUM ( SQL_DESC_COUNT,              SQLSMALLINT    );
-            CASE_FIELD_NUM ( SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *      );
-
-#undef CASE_FIELD_NUM
-
-        }
-
-        if (RecNumber < 0)
-            throw SqlException("Invalid descriptor index", "07009");
-
-        auto & record = descriptor.getRecord(RecNumber, SQL_ATTR_APP_ROW_DESC); // TODO: descriptor type?
-
-        switch (FieldIdentifier) {
-
-#define CASE_FIELD_NUM(NAME, TYPE) \
-            case NAME: { record.setAttr(NAME, (TYPE)(reinterpret_cast<std::uintptr_t>(ValuePtr))); return SQL_SUCCESS; }
-
-#define CASE_FIELD_STR(NAME) \
-            case NAME: { \
-                std::string value; \
-                if (ValuePtr) { \
-                    if (BufferLength > 0) \
-                        value = std::string{static_cast<char *>(ValuePtr), static_cast<std::string::size_type>(BufferLength)}; \
-                    else if (BufferLength == SQL_NTS) \
-                        value = std::string{static_cast<char *>(ValuePtr)}; \
-                } \
-                record.setAttr(NAME, value); \
-                return SQL_SUCCESS; \
-            }
-
-            CASE_FIELD_NUM ( SQL_DESC_AUTO_UNIQUE_VALUE,           SQLINTEGER  );
-            CASE_FIELD_STR ( SQL_DESC_BASE_COLUMN_NAME                         );
-            CASE_FIELD_STR ( SQL_DESC_BASE_TABLE_NAME                          );
-            CASE_FIELD_NUM ( SQL_DESC_CASE_SENSITIVE,              SQLINTEGER  );
-            CASE_FIELD_STR ( SQL_DESC_CATALOG_NAME                             );
-            CASE_FIELD_NUM ( SQL_DESC_CONCISE_TYPE,                SQLSMALLINT );
-            CASE_FIELD_NUM ( SQL_DESC_DATA_PTR,                    SQLPOINTER  );
-            CASE_FIELD_NUM ( SQL_DESC_DATETIME_INTERVAL_CODE,      SQLSMALLINT );
-            CASE_FIELD_NUM ( SQL_DESC_DATETIME_INTERVAL_PRECISION, SQLINTEGER  );
-            CASE_FIELD_NUM ( SQL_DESC_DISPLAY_SIZE,                SQLINTEGER  );
-            CASE_FIELD_NUM ( SQL_DESC_FIXED_PREC_SCALE,            SQLSMALLINT );
-            CASE_FIELD_NUM ( SQL_DESC_INDICATOR_PTR,               SQLLEN *    );
-            CASE_FIELD_STR ( SQL_DESC_LABEL                                    );
-            CASE_FIELD_NUM ( SQL_DESC_LENGTH,                      SQLULEN     );
-            CASE_FIELD_STR ( SQL_DESC_LITERAL_PREFIX                           );
-            CASE_FIELD_STR ( SQL_DESC_LITERAL_SUFFIX                           );
-            CASE_FIELD_STR ( SQL_DESC_LOCAL_TYPE_NAME                          );
-            CASE_FIELD_STR ( SQL_DESC_NAME                                     );
-            CASE_FIELD_NUM ( SQL_DESC_NULLABLE,                    SQLSMALLINT );
-            CASE_FIELD_NUM ( SQL_DESC_NUM_PREC_RADIX,              SQLINTEGER  );
-            CASE_FIELD_NUM ( SQL_DESC_OCTET_LENGTH,                SQLLEN      );
-            CASE_FIELD_NUM ( SQL_DESC_OCTET_LENGTH_PTR,            SQLLEN *    );
-            CASE_FIELD_NUM ( SQL_DESC_PARAMETER_TYPE,              SQLSMALLINT );
-            CASE_FIELD_NUM ( SQL_DESC_PRECISION,                   SQLSMALLINT );
-            CASE_FIELD_NUM ( SQL_DESC_ROWVER,                      SQLSMALLINT );
-            CASE_FIELD_NUM ( SQL_DESC_SCALE,                       SQLSMALLINT );
-            CASE_FIELD_STR ( SQL_DESC_SCHEMA_NAME                              );
-            CASE_FIELD_NUM ( SQL_DESC_SEARCHABLE,                  SQLSMALLINT );
-            CASE_FIELD_STR ( SQL_DESC_TABLE_NAME                               );
-            CASE_FIELD_NUM ( SQL_DESC_TYPE,                        SQLSMALLINT );
-            CASE_FIELD_STR ( SQL_DESC_TYPE_NAME                                );
-            CASE_FIELD_NUM ( SQL_DESC_UNNAMED,                     SQLSMALLINT );
-            CASE_FIELD_NUM ( SQL_DESC_UNSIGNED,                    SQLSMALLINT );
-            CASE_FIELD_NUM ( SQL_DESC_UPDATABLE,                   SQLSMALLINT );
-
-#undef CASE_FIELD_STR
-#undef CASE_FIELD_NUM
-
-        }
-
-        return SQL_SUCCESS;
-    };
-
-    return CALL_WITH_HANDLE(DescriptorHandle, func);
-}
-
-SQLRETURN SetDescRec(
-    SQLHDESC      DescriptorHandle,
-    SQLSMALLINT   RecNumber,
-    SQLSMALLINT   Type,
-    SQLSMALLINT   SubType,
-    SQLLEN        Length,
-    SQLSMALLINT   Precision,
-    SQLSMALLINT   Scale,
-    SQLPOINTER    DataPtr,
-    SQLLEN *      StringLengthPtr,
-    SQLLEN *      IndicatorPtr
-) noexcept {
-    auto func = [&] (Descriptor & descriptor) {
-        auto & record = descriptor.getRecord(RecNumber, SQL_ATTR_APP_ROW_DESC); // TODO: descriptor type?
-
-        record.setAttr(SQL_DESC_TYPE, Type);
-
-        if (isVerboseType(Type))
-            record.setAttr(SQL_DESC_DATETIME_INTERVAL_CODE, SubType);
-
-        record.setAttr(SQL_DESC_OCTET_LENGTH, Length);
-        record.setAttr(SQL_DESC_PRECISION, Precision);
-        record.setAttr(SQL_DESC_SCALE, Scale);
-        record.setAttr(SQL_DESC_OCTET_LENGTH_PTR, StringLengthPtr);
-        record.setAttr(SQL_DESC_INDICATOR_PTR, IndicatorPtr);
-        record.setAttr(SQL_DESC_DATA_PTR, DataPtr);
-
-        return SQL_SUCCESS;
-    };
-
-    return CALL_WITH_HANDLE(DescriptorHandle, func);
-}
-
-SQLRETURN CopyDesc(
-    SQLHDESC     SourceDescHandle,
-    SQLHDESC     TargetDescHandle
-) noexcept {
-    auto func = [&] (Descriptor & target) {
-        // We don't want to modify the diagnostics info of the source descriptor,
-        // but we want to forward it to the target descriptor context unchanged,
-        // so we are going to intercept exceptions and process them outside
-        // the target descriptor dispatch closure.
-        std::exception_ptr ex;
-
-        auto func = [&] (Descriptor & source) {
-            try {
-                target = source;
-
-                return SQL_SUCCESS;
-            }
-            catch (...) {
-                ex = std::current_exception();
-            }
-
-            return SQL_ERROR;
-        };
-
-        auto rc = CALL_WITH_HANDLE_SKIP_DIAG(SourceDescHandle, func);
-
-        if (ex)
-            std::rethrow_exception(ex);
-
-        if (rc == SQL_INVALID_HANDLE)
-            throw SqlException("Invalid attribute value", "HY024");
-
-        return rc;
-    };
-
-    return CALL_WITH_HANDLE(TargetDescHandle, func);
-}
-
-SQLRETURN EndTran(
-    SQLSMALLINT     handle_type,
-    SQLHANDLE       handle,
-    SQLSMALLINT     completion_type
-) noexcept {
-    auto func = [&] (auto & object) {
-
-        // TODO: implement.
-
-        return SQL_SUCCESS;
-    };
-
-    return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, func);
-}
-
-SQLRETURN GetData(
-    HSTMT statement_handle,
-    SQLUSMALLINT column_or_param_number,
-    SQLSMALLINT target_type,
-    PTR out_value,
-    SQLLEN out_value_max_size,
-    SQLLEN * out_value_size_or_indicator
-) noexcept {
-    auto func = [&] (Statement & statement) {
-        if (!statement.hasResultSet())
-            throw SqlException("Column info is not available", "07009");
-
-        if (column_or_param_number < 1 || column_or_param_number > statement.getNumColumns())
-            throw SqlException("Column number " + std::to_string(column_or_param_number) + " is out of range: 1.." +
-                std::to_string(statement.getNumColumns()), "07009");
-
-        if (!statement.hasCurrentRow())
-            throw SqlException("Invalid cursor state", "24000");
-
-        const auto column_idx = column_or_param_number - 1;
-
-        const Field & field = statement.getCurrentRow().data[column_idx];
-
-        LOG("column: " << column_idx << ", target_type: " << target_type << ", out_value_max_size: " << out_value_max_size
-                       << " null=" << field.is_null << " data=" << field.data);
-
-
-        // TODO: revisit the code, use descriptors for all cases.
-
-        
-        SQLINTEGER desc_type = SQL_ATTR_APP_ROW_DESC;
-
-//      if (target_type == SQL_APD_TYPE) {
-//          desc_type = SQL_ATTR_APP_PARAM_DESC;
-//          throw SqlException("Unable to read parameter data using SQLGetData");
-//      }
-
-        if (
-            target_type == SQL_ARD_TYPE ||
-//          target_type == SQL_APD_TYPE ||
-            target_type == SQL_C_DEFAULT
-        ) {
-            auto & desc = statement.getEffectiveDescriptor(desc_type);
-            auto & record = desc.getRecord(column_or_param_number, desc_type);
-
-            target_type = record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
-        }
-
-        if (field.is_null)
-            return fillOutputNULL(out_value, out_value_max_size, out_value_size_or_indicator);
-
-        switch (target_type) {
-            case SQL_C_BINARY:
-                return fillOutputBuffer(field.data.data(), field.data.size(), out_value, out_value_max_size, out_value_size_or_indicator);
-
-            case SQL_C_CHAR:
-                return fillOutputString<SQLCHAR>(field.data, out_value, out_value_max_size, out_value_size_or_indicator, true);
-
-            case SQL_C_WCHAR:
-                return fillOutputString<SQLWCHAR>(field.data, out_value, out_value_max_size, out_value_size_or_indicator, true);
-
-            case SQL_C_TINYINT:
-            case SQL_C_STINYINT:
-                return fillOutputPOD<SQLSCHAR>(field.getInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_UTINYINT:
-            case SQL_C_BIT:
-                return fillOutputPOD<SQLCHAR>(field.getUInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_SHORT:
-            case SQL_C_SSHORT:
-                return fillOutputPOD<SQLSMALLINT>(field.getInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_USHORT:
-                return fillOutputPOD<SQLUSMALLINT>(field.getUInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_LONG:
-            case SQL_C_SLONG:
-                return fillOutputPOD<SQLINTEGER>(field.getInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_ULONG:
-                return fillOutputPOD<SQLUINTEGER>(field.getUInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_SBIGINT:
-                return fillOutputPOD<SQLBIGINT>(field.getInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_UBIGINT:
-                return fillOutputPOD<SQLUBIGINT>(field.getUInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_FLOAT:
-                return fillOutputPOD<SQLREAL>(field.getFloat(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_DOUBLE:
-                return fillOutputPOD<SQLDOUBLE>(field.getDouble(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_GUID:
-                return fillOutputPOD<SQLGUID>(field.getGUID(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_NUMERIC: {
-                auto & desc = statement.getEffectiveDescriptor(desc_type);
-                auto & record = desc.getRecord(column_or_param_number, desc_type);
-
-                const std::int16_t precision = record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION, 38);
-                const std::int16_t scale = record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
-
-                return fillOutputPOD<SQL_NUMERIC_STRUCT>(field.getNumeric(precision, scale), out_value, out_value_size_or_indicator);
-            }
-
-            case SQL_C_DATE:
-            case SQL_C_TYPE_DATE:
-                return fillOutputPOD<SQL_DATE_STRUCT>(field.getDate(), out_value, out_value_size_or_indicator);
-
-//          case SQL_C_TIME:
-//          case SQL_C_TYPE_TIME:
-//              return fillOutputPOD<SQL_TIME_STRUCT>(field.getTime(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_TIMESTAMP:
-            case SQL_C_TYPE_TIMESTAMP:
-                return fillOutputPOD<SQL_TIMESTAMP_STRUCT>(field.getDateTime(), out_value, out_value_size_or_indicator);
-
-            default:
-                throw SqlException("Restricted data type attribute violation", "07006");
-        }
-    };
-
-    return CALL_WITH_HANDLE(statement_handle, func);
-}
-
-SQLRETURN Fetch(
-    HSTMT statement_handle
-) noexcept {
-    auto func = [&] (Statement & statement) -> SQLRETURN {
-        auto * rows_fetched_ptr = statement.getEffectiveDescriptor(SQL_ATTR_IMP_ROW_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
-
-        if (rows_fetched_ptr)
-            *rows_fetched_ptr = 0;
-
-        if (!statement.hasResultSet())
-            return SQL_NO_DATA;
-
-        if (!statement.advanceToNextRow())
-            return SQL_NO_DATA;
-
-        if (rows_fetched_ptr)
-            *rows_fetched_ptr = 1;
-
-        auto res = SQL_SUCCESS;
-
-        for (auto & col_num_binding : statement.bindings) {
-            auto code = impl::GetData(statement_handle,
-                col_num_binding.first,
-                col_num_binding.second.c_type,
-                col_num_binding.second.value,
-                col_num_binding.second.value_max_size,
-                col_num_binding.second.value_size/* or .indicator */);
-
-            if (code == SQL_SUCCESS_WITH_INFO)
-                res = code;
-            else if (code != SQL_SUCCESS)
-                return code;
-        }
-
-        return res;
-    };
-
-    return CALL_WITH_HANDLE(statement_handle, func);
-}
-
-} } // namespace impl
-
 
 extern "C" {
 
@@ -856,6 +91,343 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFreeStmt)(HSTMT statement_handle, SQLUSMA
 
         return SQL_ERROR;
     });
+}
+
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
+    SQLHDBC         connection_handle,
+    SQLUSMALLINT    info_type,
+    SQLPOINTER      out_value,
+    SQLSMALLINT     out_value_max_length,
+    SQLSMALLINT *   out_value_length
+) {
+    LOG("GetInfo with info_type: " << info_type << ", out_value_max_length: " << out_value_max_length);
+
+    /** How are all these values selected?
+      * Part of them provides true information about the capabilities of the DBMS.
+      * But in most cases, the possibilities are declared "in reserve" to see,
+      * what requests will be sent and what any software will do, meaning these features.
+      */
+
+    auto func = [&](Connection & connection) -> SQLRETURN {
+        const char * name = nullptr;
+
+        constexpr auto mask_common_CONVERT_dest =
+#ifdef SQL_CVT_GUID
+            SQL_CVT_GUID |
+#endif
+            SQL_CVT_CHAR | SQL_CVT_VARCHAR | SQL_CVT_LONGVARCHAR |
+            SQL_CVT_WCHAR | SQL_CVT_WVARCHAR | SQL_CVT_WLONGVARCHAR |
+            SQL_CVT_BINARY | SQL_CVT_VARBINARY | SQL_CVT_LONGVARBINARY |
+            SQL_CVT_BIT | SQL_CVT_TINYINT | SQL_CVT_SMALLINT | SQL_CVT_INTEGER | SQL_CVT_BIGINT |
+            SQL_CVT_DECIMAL | SQL_CVT_NUMERIC | SQL_CVT_DOUBLE | SQL_CVT_FLOAT | SQL_CVT_REAL |
+            SQL_CVT_DATE | SQL_CVT_TIME | SQL_CVT_TIMESTAMP | SQL_CVT_INTERVAL_YEAR_MONTH | SQL_CVT_INTERVAL_DAY_TIME
+        ;
+
+        switch (info_type) {
+
+#define CASE_STRING(NAME, VALUE) \
+            case NAME:           \
+                return fillOutputString<SQLTCHAR>(VALUE, out_value, out_value_max_length, out_value_length, true);
+
+            CASE_STRING(SQL_DRIVER_VER, VERSION_STRING)
+            CASE_STRING(SQL_DRIVER_ODBC_VER, "03.80")
+            CASE_STRING(SQL_DM_VER, "03.80.0000.0000")
+            CASE_STRING(SQL_DRIVER_NAME, DRIVER_FILE_NAME)
+            CASE_STRING(SQL_DBMS_NAME, "ClickHouse")
+            CASE_STRING(SQL_DBMS_VER, "01.00.0000")
+            CASE_STRING(SQL_SERVER_NAME, connection.server)
+            CASE_STRING(SQL_DATA_SOURCE_NAME, connection.data_source)
+            CASE_STRING(SQL_CATALOG_TERM, "catalog")
+            CASE_STRING(SQL_COLLATION_SEQ, "UTF-8")
+            CASE_STRING(SQL_DATABASE_NAME, connection.database)
+            CASE_STRING(SQL_KEYWORDS, "")
+            CASE_STRING(SQL_PROCEDURE_TERM, "stored procedure")
+            CASE_STRING(SQL_CATALOG_NAME_SEPARATOR, ".")
+            CASE_STRING(SQL_IDENTIFIER_QUOTE_CHAR, "`")
+            CASE_STRING(SQL_SEARCH_PATTERN_ESCAPE, "\\")
+            CASE_STRING(SQL_SCHEMA_TERM, "schema")
+            CASE_STRING(SQL_TABLE_TERM, "table")
+            CASE_STRING(SQL_SPECIAL_CHARACTERS, "")
+            CASE_STRING(SQL_USER_NAME, connection.user)
+            CASE_STRING(SQL_XOPEN_CLI_YEAR, "2015")
+
+            CASE_FALLTHROUGH(SQL_DATA_SOURCE_READ_ONLY)
+            CASE_FALLTHROUGH(SQL_ACCESSIBLE_PROCEDURES)
+            CASE_FALLTHROUGH(SQL_ACCESSIBLE_TABLES)
+            CASE_FALLTHROUGH(SQL_CATALOG_NAME)
+            CASE_FALLTHROUGH(SQL_EXPRESSIONS_IN_ORDERBY)
+            CASE_FALLTHROUGH(SQL_LIKE_ESCAPE_CLAUSE)
+            CASE_FALLTHROUGH(SQL_MULTIPLE_ACTIVE_TXN)
+            CASE_FALLTHROUGH(SQL_OUTER_JOINS)
+            CASE_STRING(SQL_COLUMN_ALIAS, "Y")
+
+            CASE_FALLTHROUGH(SQL_ORDER_BY_COLUMNS_IN_SELECT)
+            CASE_FALLTHROUGH(SQL_INTEGRITY)
+            CASE_FALLTHROUGH(SQL_MAX_ROW_SIZE_INCLUDES_LONG)
+            CASE_FALLTHROUGH(SQL_MULT_RESULT_SETS)
+            CASE_FALLTHROUGH(SQL_NEED_LONG_DATA_LEN)
+            CASE_FALLTHROUGH(SQL_PROCEDURES)
+            CASE_FALLTHROUGH(SQL_ROW_UPDATES)
+            CASE_STRING(SQL_DESCRIBE_PARAMETER, "N")
+
+            /// UINTEGER single values
+            CASE_NUM(SQL_ODBC_INTERFACE_CONFORMANCE, SQLUINTEGER, SQL_OIC_CORE)
+            CASE_NUM(SQL_ASYNC_MODE, SQLUINTEGER, SQL_AM_NONE)
+#if defined(SQL_ASYNC_NOTIFICATION)
+            CASE_NUM(SQL_ASYNC_NOTIFICATION, SQLUINTEGER, SQL_ASYNC_NOTIFICATION_NOT_CAPABLE)
+#endif
+            CASE_NUM(SQL_DEFAULT_TXN_ISOLATION, SQLUINTEGER, SQL_TXN_SERIALIZABLE)
+#if defined(SQL_DRIVER_AWARE_POOLING_CAPABLE)
+            CASE_NUM(SQL_DRIVER_AWARE_POOLING_SUPPORTED, SQLUINTEGER, SQL_DRIVER_AWARE_POOLING_CAPABLE)
+#endif
+            CASE_NUM(SQL_PARAM_ARRAY_ROW_COUNTS, SQLUINTEGER, SQL_PARC_BATCH)
+            CASE_NUM(SQL_PARAM_ARRAY_SELECTS, SQLUINTEGER, SQL_PAS_BATCH)
+            CASE_NUM(SQL_SQL_CONFORMANCE, SQLUINTEGER, SQL_SC_SQL92_ENTRY)
+
+            /// USMALLINT single values
+            CASE_NUM(SQL_ODBC_API_CONFORMANCE, SQLSMALLINT, SQL_OAC_LEVEL1);
+            CASE_NUM(SQL_ODBC_SQL_CONFORMANCE, SQLSMALLINT, SQL_OSC_CORE);
+            CASE_NUM(SQL_GROUP_BY, SQLUSMALLINT, SQL_GB_GROUP_BY_CONTAINS_SELECT)
+            CASE_NUM(SQL_CATALOG_LOCATION, SQLUSMALLINT, SQL_CL_START)
+            CASE_NUM(SQL_FILE_USAGE, SQLUSMALLINT, SQL_FILE_NOT_SUPPORTED)
+            CASE_NUM(SQL_IDENTIFIER_CASE, SQLUSMALLINT, SQL_IC_SENSITIVE)
+            CASE_NUM(SQL_QUOTED_IDENTIFIER_CASE, SQLUSMALLINT, SQL_IC_SENSITIVE)
+            CASE_NUM(SQL_CONCAT_NULL_BEHAVIOR, SQLUSMALLINT, SQL_CB_NULL)
+            CASE_NUM(SQL_CORRELATION_NAME, SQLUSMALLINT, SQL_CN_ANY)
+            CASE_FALLTHROUGH(SQL_CURSOR_COMMIT_BEHAVIOR)
+            CASE_NUM(SQL_CURSOR_ROLLBACK_BEHAVIOR, SQLUSMALLINT, SQL_CB_PRESERVE)
+            CASE_NUM(SQL_CURSOR_SENSITIVITY, SQLUSMALLINT, SQL_INSENSITIVE)
+            CASE_NUM(SQL_NON_NULLABLE_COLUMNS, SQLUSMALLINT, SQL_NNC_NON_NULL)
+            CASE_NUM(SQL_NULL_COLLATION, SQLUSMALLINT, SQL_NC_END)
+            CASE_NUM(SQL_TXN_CAPABLE, SQLUSMALLINT, SQL_TC_NONE)
+
+            /// UINTEGER non-empty bitmasks
+            CASE_NUM(SQL_CATALOG_USAGE, SQLUINTEGER, SQL_CU_DML_STATEMENTS | SQL_CU_TABLE_DEFINITION)
+            CASE_NUM(SQL_AGGREGATE_FUNCTIONS,
+                SQLUINTEGER,
+                SQL_AF_ALL | SQL_AF_AVG | SQL_AF_COUNT | SQL_AF_DISTINCT | SQL_AF_MAX | SQL_AF_MIN | SQL_AF_SUM)
+            CASE_NUM(SQL_ALTER_TABLE,
+                SQLUINTEGER,
+                SQL_AT_ADD_COLUMN_DEFAULT | SQL_AT_ADD_COLUMN_SINGLE | SQL_AT_DROP_COLUMN_DEFAULT | SQL_AT_SET_COLUMN_DEFAULT)
+            CASE_NUM(SQL_CONVERT_FUNCTIONS, SQLUINTEGER, /*SQL_FN_CVT_CAST |*/ SQL_FN_CVT_CONVERT)
+            CASE_NUM(SQL_CREATE_TABLE, SQLUINTEGER, SQL_CT_CREATE_TABLE)
+            CASE_NUM(SQL_CREATE_VIEW, SQLUINTEGER, SQL_CV_CREATE_VIEW)
+            CASE_NUM(SQL_DROP_TABLE, SQLUINTEGER, SQL_DT_DROP_TABLE)
+            CASE_NUM(SQL_DROP_VIEW, SQLUINTEGER, SQL_DV_DROP_VIEW)
+            CASE_NUM(SQL_DATETIME_LITERALS, SQLUINTEGER, SQL_DL_SQL92_DATE | SQL_DL_SQL92_TIMESTAMP)
+            CASE_NUM(SQL_GETDATA_EXTENSIONS, SQLUINTEGER, SQL_GD_ANY_COLUMN | SQL_GD_ANY_ORDER | SQL_GD_BOUND)
+            CASE_NUM(SQL_INDEX_KEYWORDS, SQLUINTEGER, SQL_IK_NONE)
+            CASE_NUM(SQL_INSERT_STATEMENT, SQLUINTEGER, SQL_IS_INSERT_LITERALS | SQL_IS_INSERT_SEARCHED)
+            CASE_NUM(SQL_SCROLL_OPTIONS, SQLUINTEGER, SQL_SO_FORWARD_ONLY)
+            CASE_NUM(SQL_SQL92_DATETIME_FUNCTIONS, SQLUINTEGER, SQL_SDF_CURRENT_DATE | SQL_SDF_CURRENT_TIME | SQL_SDF_CURRENT_TIMESTAMP)
+
+#if defined(SQL_CONVERT_GUID)
+            CASE_FALLTHROUGH(SQL_CONVERT_GUID)
+#endif
+            CASE_FALLTHROUGH(SQL_CONVERT_CHAR)
+            CASE_FALLTHROUGH(SQL_CONVERT_VARCHAR)
+            CASE_FALLTHROUGH(SQL_CONVERT_LONGVARCHAR)
+            CASE_FALLTHROUGH(SQL_CONVERT_WCHAR)
+            CASE_FALLTHROUGH(SQL_CONVERT_WVARCHAR)
+            CASE_FALLTHROUGH(SQL_CONVERT_WLONGVARCHAR)
+            CASE_FALLTHROUGH(SQL_CONVERT_BINARY)
+            CASE_FALLTHROUGH(SQL_CONVERT_VARBINARY)
+            CASE_FALLTHROUGH(SQL_CONVERT_LONGVARBINARY)
+            CASE_FALLTHROUGH(SQL_CONVERT_BIT)
+            CASE_FALLTHROUGH(SQL_CONVERT_TINYINT)
+            CASE_FALLTHROUGH(SQL_CONVERT_SMALLINT)
+            CASE_FALLTHROUGH(SQL_CONVERT_INTEGER)
+            CASE_FALLTHROUGH(SQL_CONVERT_BIGINT)
+            CASE_FALLTHROUGH(SQL_CONVERT_DECIMAL)
+            CASE_FALLTHROUGH(SQL_CONVERT_NUMERIC)
+            CASE_FALLTHROUGH(SQL_CONVERT_DOUBLE)
+            CASE_FALLTHROUGH(SQL_CONVERT_FLOAT)
+            CASE_FALLTHROUGH(SQL_CONVERT_REAL)
+            CASE_FALLTHROUGH(SQL_CONVERT_DATE)
+            CASE_FALLTHROUGH(SQL_CONVERT_TIME)
+            CASE_FALLTHROUGH(SQL_CONVERT_TIMESTAMP)
+            CASE_FALLTHROUGH(SQL_CONVERT_INTERVAL_YEAR_MONTH)
+            CASE_NUM(SQL_CONVERT_INTERVAL_DAY_TIME, SQLUINTEGER, mask_common_CONVERT_dest)
+
+            CASE_NUM(SQL_NUMERIC_FUNCTIONS,
+                SQLUINTEGER,
+                SQL_FN_NUM_ABS | SQL_FN_NUM_ACOS | SQL_FN_NUM_ASIN | SQL_FN_NUM_ATAN | SQL_FN_NUM_ATAN2 | SQL_FN_NUM_CEILING
+                    | SQL_FN_NUM_COS | SQL_FN_NUM_COT | SQL_FN_NUM_DEGREES | SQL_FN_NUM_EXP | SQL_FN_NUM_FLOOR | SQL_FN_NUM_LOG
+                    | SQL_FN_NUM_LOG10 | SQL_FN_NUM_MOD | SQL_FN_NUM_PI | SQL_FN_NUM_POWER | SQL_FN_NUM_RADIANS | SQL_FN_NUM_RAND
+                    | SQL_FN_NUM_ROUND | SQL_FN_NUM_SIGN | SQL_FN_NUM_SIN | SQL_FN_NUM_SQRT | SQL_FN_NUM_TAN | SQL_FN_NUM_TRUNCATE)
+
+            CASE_NUM(SQL_OJ_CAPABILITIES,
+                SQLUINTEGER,
+                SQL_OJ_LEFT | SQL_OJ_RIGHT | SQL_OJ_INNER | SQL_OJ_FULL | SQL_OJ_NESTED | SQL_OJ_NOT_ORDERED | SQL_OJ_ALL_COMPARISON_OPS)
+
+            CASE_NUM(SQL_SQL92_NUMERIC_VALUE_FUNCTIONS,
+                SQLUINTEGER,
+                SQL_SNVF_BIT_LENGTH | SQL_SNVF_CHAR_LENGTH | SQL_SNVF_CHARACTER_LENGTH | SQL_SNVF_EXTRACT | SQL_SNVF_OCTET_LENGTH
+                    | SQL_SNVF_POSITION)
+
+            CASE_NUM(SQL_SQL92_PREDICATES,
+                SQLUINTEGER,
+                SQL_SP_BETWEEN | SQL_SP_COMPARISON | SQL_SP_EXISTS | SQL_SP_IN | SQL_SP_ISNOTNULL | SQL_SP_ISNULL | SQL_SP_LIKE
+                    | SQL_SP_MATCH_FULL | SQL_SP_MATCH_PARTIAL | SQL_SP_MATCH_UNIQUE_FULL | SQL_SP_MATCH_UNIQUE_PARTIAL | SQL_SP_OVERLAPS
+                    | SQL_SP_QUANTIFIED_COMPARISON | SQL_SP_UNIQUE)
+
+            CASE_NUM(SQL_SQL92_RELATIONAL_JOIN_OPERATORS,
+                SQLUINTEGER,
+                /*SQL_SRJO_CORRESPONDING_CLAUSE |*/ SQL_SRJO_CROSS_JOIN | /*SQL_SRJO_EXCEPT_JOIN |*/ SQL_SRJO_FULL_OUTER_JOIN
+                    | SQL_SRJO_INNER_JOIN | /*SQL_SRJO_INTERSECT_JOIN |*/
+                    SQL_SRJO_LEFT_OUTER_JOIN | /*SQL_SRJO_NATURAL_JOIN |*/ SQL_SRJO_RIGHT_OUTER_JOIN /*| SQL_SRJO_UNION_JOIN*/)
+
+            CASE_NUM(SQL_SQL92_ROW_VALUE_CONSTRUCTOR,
+                SQLUINTEGER,
+                SQL_SRVC_VALUE_EXPRESSION | SQL_SRVC_NULL | SQL_SRVC_DEFAULT | SQL_SRVC_ROW_SUBQUERY)
+
+            CASE_NUM(SQL_SQL92_STRING_FUNCTIONS,
+                SQLUINTEGER,
+                SQL_SSF_CONVERT | SQL_SSF_LOWER | SQL_SSF_UPPER | SQL_SSF_SUBSTRING | SQL_SSF_TRANSLATE | SQL_SSF_TRIM_BOTH
+                    | SQL_SSF_TRIM_LEADING | SQL_SSF_TRIM_TRAILING)
+
+            CASE_NUM(SQL_SQL92_VALUE_EXPRESSIONS, SQLUINTEGER, SQL_SVE_CASE | SQL_SVE_CAST | SQL_SVE_COALESCE | SQL_SVE_NULLIF)
+
+            CASE_NUM(SQL_STANDARD_CLI_CONFORMANCE, SQLUINTEGER, SQL_SCC_XOPEN_CLI_VERSION1 | SQL_SCC_ISO92_CLI)
+
+            CASE_NUM(SQL_STRING_FUNCTIONS,
+                SQLUINTEGER,
+                SQL_FN_STR_ASCII | SQL_FN_STR_BIT_LENGTH | SQL_FN_STR_CHAR | SQL_FN_STR_CHAR_LENGTH | SQL_FN_STR_CHARACTER_LENGTH
+                    | SQL_FN_STR_CONCAT | SQL_FN_STR_DIFFERENCE | SQL_FN_STR_INSERT | SQL_FN_STR_LCASE | SQL_FN_STR_LEFT | SQL_FN_STR_LENGTH
+                    | SQL_FN_STR_LOCATE | SQL_FN_STR_LTRIM | SQL_FN_STR_OCTET_LENGTH | SQL_FN_STR_POSITION | SQL_FN_STR_REPEAT
+                    | SQL_FN_STR_REPLACE | SQL_FN_STR_RIGHT | SQL_FN_STR_RTRIM | SQL_FN_STR_SOUNDEX | SQL_FN_STR_SPACE
+                    | SQL_FN_STR_SUBSTRING | SQL_FN_STR_UCASE)
+
+            CASE_NUM(SQL_SUBQUERIES,
+                SQLUINTEGER,
+                /*SQL_SQ_CORRELATED_SUBQUERIES |*/ SQL_SQ_COMPARISON | SQL_SQ_EXISTS | SQL_SQ_IN | SQL_SQ_QUANTIFIED)
+
+            CASE_NUM(SQL_TIMEDATE_ADD_INTERVALS,
+                SQLUINTEGER,
+                SQL_FN_TSI_FRAC_SECOND | SQL_FN_TSI_SECOND | SQL_FN_TSI_MINUTE | SQL_FN_TSI_HOUR | SQL_FN_TSI_DAY | SQL_FN_TSI_WEEK
+                    | SQL_FN_TSI_MONTH | SQL_FN_TSI_QUARTER | SQL_FN_TSI_YEAR)
+
+            CASE_NUM(SQL_TIMEDATE_DIFF_INTERVALS,
+                SQLUINTEGER,
+                SQL_FN_TSI_FRAC_SECOND | SQL_FN_TSI_SECOND | SQL_FN_TSI_MINUTE | SQL_FN_TSI_HOUR | SQL_FN_TSI_DAY | SQL_FN_TSI_WEEK
+                    | SQL_FN_TSI_MONTH | SQL_FN_TSI_QUARTER | SQL_FN_TSI_YEAR)
+
+            CASE_NUM(SQL_TIMEDATE_FUNCTIONS,
+                SQLUINTEGER,
+                SQL_FN_TD_CURRENT_DATE | SQL_FN_TD_CURRENT_TIME | SQL_FN_TD_CURRENT_TIMESTAMP | SQL_FN_TD_CURDATE | SQL_FN_TD_CURTIME
+                    | SQL_FN_TD_DAYNAME | SQL_FN_TD_DAYOFMONTH | SQL_FN_TD_DAYOFWEEK | SQL_FN_TD_DAYOFYEAR | SQL_FN_TD_EXTRACT
+                    | SQL_FN_TD_HOUR | SQL_FN_TD_MINUTE | SQL_FN_TD_MONTH | SQL_FN_TD_MONTHNAME | SQL_FN_TD_NOW | SQL_FN_TD_QUARTER
+                    | SQL_FN_TD_SECOND | SQL_FN_TD_TIMESTAMPADD | SQL_FN_TD_TIMESTAMPDIFF | SQL_FN_TD_WEEK | SQL_FN_TD_YEAR)
+
+            CASE_NUM(SQL_TXN_ISOLATION_OPTION, SQLUINTEGER, SQL_TXN_SERIALIZABLE)
+
+            CASE_NUM(SQL_UNION, SQLUINTEGER, SQL_U_UNION | SQL_U_UNION_ALL)
+
+            /// UINTEGER empty bitmasks
+            CASE_FALLTHROUGH(SQL_ALTER_DOMAIN)
+            CASE_FALLTHROUGH(SQL_BATCH_ROW_COUNT)
+            CASE_FALLTHROUGH(SQL_BATCH_SUPPORT)
+            CASE_FALLTHROUGH(SQL_BOOKMARK_PERSISTENCE)
+            CASE_FALLTHROUGH(SQL_CREATE_ASSERTION)
+            CASE_FALLTHROUGH(SQL_CREATE_CHARACTER_SET)
+            CASE_FALLTHROUGH(SQL_CREATE_COLLATION)
+            CASE_FALLTHROUGH(SQL_CREATE_DOMAIN)
+            CASE_FALLTHROUGH(SQL_CREATE_SCHEMA)
+            CASE_FALLTHROUGH(SQL_CREATE_TRANSLATION)
+            CASE_FALLTHROUGH(SQL_DROP_ASSERTION)
+            CASE_FALLTHROUGH(SQL_DROP_CHARACTER_SET)
+            CASE_FALLTHROUGH(SQL_DROP_COLLATION)
+            CASE_FALLTHROUGH(SQL_DROP_DOMAIN)
+            CASE_FALLTHROUGH(SQL_DROP_SCHEMA)
+            CASE_FALLTHROUGH(SQL_DROP_TRANSLATION)
+            CASE_FALLTHROUGH(SQL_DYNAMIC_CURSOR_ATTRIBUTES1)
+            CASE_FALLTHROUGH(SQL_DYNAMIC_CURSOR_ATTRIBUTES2)
+            CASE_FALLTHROUGH(SQL_FORWARD_ONLY_CURSOR_ATTRIBUTES1)
+            CASE_FALLTHROUGH(SQL_FORWARD_ONLY_CURSOR_ATTRIBUTES2)
+            CASE_FALLTHROUGH(SQL_KEYSET_CURSOR_ATTRIBUTES1)
+            CASE_FALLTHROUGH(SQL_KEYSET_CURSOR_ATTRIBUTES2)
+            CASE_FALLTHROUGH(SQL_STATIC_CURSOR_ATTRIBUTES1)
+            CASE_FALLTHROUGH(SQL_STATIC_CURSOR_ATTRIBUTES2)
+            CASE_FALLTHROUGH(SQL_INFO_SCHEMA_VIEWS)
+            CASE_FALLTHROUGH(SQL_POS_OPERATIONS)
+            CASE_FALLTHROUGH(SQL_SCHEMA_USAGE)
+            CASE_FALLTHROUGH(SQL_SYSTEM_FUNCTIONS)
+            CASE_FALLTHROUGH(SQL_SQL92_FOREIGN_KEY_DELETE_RULE)
+            CASE_FALLTHROUGH(SQL_SQL92_FOREIGN_KEY_UPDATE_RULE)
+            CASE_FALLTHROUGH(SQL_SQL92_GRANT)
+            CASE_FALLTHROUGH(SQL_SQL92_REVOKE)
+            CASE_FALLTHROUGH(SQL_STATIC_SENSITIVITY)
+            CASE_FALLTHROUGH(SQL_LOCK_TYPES)
+            CASE_FALLTHROUGH(SQL_SCROLL_CONCURRENCY)
+            CASE_NUM(SQL_DDL_INDEX, SQLUINTEGER, 0)
+
+            /// Limits on the maximum number, USMALLINT.
+            CASE_FALLTHROUGH(SQL_ACTIVE_ENVIRONMENTS)
+            CASE_FALLTHROUGH(SQL_MAX_COLUMNS_IN_GROUP_BY)
+            CASE_FALLTHROUGH(SQL_MAX_COLUMNS_IN_INDEX)
+            CASE_FALLTHROUGH(SQL_MAX_COLUMNS_IN_ORDER_BY)
+            CASE_FALLTHROUGH(SQL_MAX_COLUMNS_IN_SELECT)
+            CASE_FALLTHROUGH(SQL_MAX_COLUMNS_IN_TABLE)
+            CASE_FALLTHROUGH(SQL_MAX_CONCURRENT_ACTIVITIES)
+            CASE_FALLTHROUGH(SQL_MAX_DRIVER_CONNECTIONS)
+            CASE_FALLTHROUGH(SQL_MAX_IDENTIFIER_LEN)
+            CASE_FALLTHROUGH(SQL_MAX_PROCEDURE_NAME_LEN)
+            CASE_FALLTHROUGH(SQL_MAX_TABLES_IN_SELECT)
+            CASE_FALLTHROUGH(SQL_MAX_USER_NAME_LEN)
+            CASE_FALLTHROUGH(SQL_MAX_COLUMN_NAME_LEN)
+            CASE_FALLTHROUGH(SQL_MAX_CURSOR_NAME_LEN)
+            CASE_FALLTHROUGH(SQL_MAX_SCHEMA_NAME_LEN)
+            CASE_FALLTHROUGH(SQL_MAX_TABLE_NAME_LEN)
+            CASE_NUM(SQL_MAX_CATALOG_NAME_LEN, SQLUSMALLINT, 0)
+
+            /// Limitations on the maximum number, UINTEGER.
+            CASE_FALLTHROUGH(SQL_MAX_ROW_SIZE)
+            CASE_FALLTHROUGH(SQL_MAX_STATEMENT_LEN)
+            CASE_FALLTHROUGH(SQL_MAX_BINARY_LITERAL_LEN)
+            CASE_FALLTHROUGH(SQL_MAX_CHAR_LITERAL_LEN)
+            CASE_FALLTHROUGH(SQL_MAX_INDEX_SIZE)
+            CASE_NUM(SQL_MAX_ASYNC_CONCURRENT_STATEMENTS, SQLUINTEGER, 0)
+
+#if defined(SQL_ASYNC_DBC_FUNCTIONS)
+            CASE_NUM(SQL_ASYNC_DBC_FUNCTIONS, SQLUINTEGER, 0)
+#endif
+
+            default:
+                throw std::runtime_error("Unsupported info type: " + std::to_string(info_type));
+
+#undef CASE_STRING
+
+        }
+    };
+
+    return CALL_WITH_HANDLE(connection_handle, func);
+}
+
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLSetEnvAttr)(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+    return impl::SetEnvAttr(handle, attribute, value, value_length);
+}
+
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLSetConnectAttr)(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+    return impl::SetConnectAttr(handle, attribute, value, value_length);
+}
+
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLSetStmtAttr)(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
+    return impl::SetStmtAttr(handle, attribute, value, value_length);
+}
+
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetEnvAttr)(
+    SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
+    return impl::GetEnvAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
+}
+
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetConnectAttr)(
+    SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
+    return impl::GetConnectAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
+}
+
+SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetStmtAttr)(
+    SQLHSTMT handle, SQLINTEGER attribute, SQLPOINTER out_value, SQLINTEGER out_value_max_length, SQLINTEGER * out_value_length) {
+    return impl::GetStmtAttr(handle, attribute, out_value, out_value_max_length, out_value_length);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLConnect)(

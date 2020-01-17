@@ -109,6 +109,24 @@
 #    define EXPORTED_FUNCTION_MAYBE_W(func) EXPORTED_FUNCTION(func)
 #endif
 
+#if (ODBCVER >= 0x0380)
+#    define SQL_DRIVER_AWARE_POOLING_CAPABLE 0x00000001L
+#endif /* ODBCVER >= 0x0300 */
+
+#define SQL_DRIVER_AWARE_POOLING_SUPPORTED 10024
+
+#if (ODBCVER >= 0x0380)
+#    define SQL_ASYNC_NOTIFICATION 10025
+// Possible values for SQL_ASYNC_NOTIFICATION
+#    define SQL_ASYNC_NOTIFICATION_NOT_CAPABLE 0x00000000L
+#    define SQL_ASYNC_NOTIFICATION_CAPABLE 0x00000001L
+#endif // ODBCVER >= 0x0380
+
+#if defined(UNICODE)
+#    define DRIVER_FILE_NAME "CLICKHOUSEODBCW.DLL"
+#else
+#    define DRIVER_FILE_NAME "CLICKHOUSEODBC.DLL"
+#endif
 
 // Custom attributes and other macros that mimic and extend standard ODBC API specs.
 
