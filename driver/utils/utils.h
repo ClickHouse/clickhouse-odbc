@@ -5,7 +5,7 @@
 #include "driver/type_info.h"
 #include "driver/exception.h"
 
-#if !defined(NDEBUG) && __cplusplus >= 201703L
+#if !defined(NDEBUG)
 #   include "driver/utils/iostream_debug_helpers.h"
 #endif
 
@@ -31,33 +31,6 @@
 #include <vector>
 
 #include <cstring>
-
-#if __cplusplus >= 201703L
-
-using std::is_invocable;
-using std::is_invocable_r;
-
-#else
-
-template <typename F, typename... Args>
-struct is_invocable :
-    std::is_constructible<
-        std::function<void(Args...)>,
-        std::reference_wrapper<typename std::remove_reference<F>::type>
-    >
-{
-};
-
-template <typename R, typename F, typename... Args>
-struct is_invocable_r
-    : public std::is_constructible<
-        std::function<R(Args...)>,
-        std::reference_wrapper<typename std::remove_reference<F>::type>
-    >
-{
-};
-
-#endif
 
 class Environment;
 class Connection;
