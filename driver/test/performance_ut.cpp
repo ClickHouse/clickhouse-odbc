@@ -70,7 +70,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL_WITH_
     START_MEASURING_TIME();
     
     for (std::size_t i = 0; i < call_count; ++i) {
-        CALL_WITH_HANDLE(hstmt, [] (Connection & connection) { return SQL_SUCCESS; });
+        CALL_WITH_HANDLE(hstmt, [] (Statement & statement) { return SQL_SUCCESS; });
     }
 
     STOP_MEASURING_TIME_AND_REPORT();
@@ -101,7 +101,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL_WITH_
     START_MEASURING_TIME();
     
     for (std::size_t i = 0; i < call_count; ++i) {
-        CALL_WITH_HANDLE_SKIP_DIAG(hstmt, [] (Connection & connection) { return SQL_SUCCESS; });
+        CALL_WITH_HANDLE_SKIP_DIAG(hstmt, [] (Statement & statement) { return SQL_SUCCESS; });
     }
 
     STOP_MEASURING_TIME_AND_REPORT();
@@ -132,7 +132,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL_WITH_
     START_MEASURING_TIME();
     
     for (std::size_t i = 0; i < call_count; ++i) {
-        CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, hstmt, [] (Connection & connection) { return SQL_SUCCESS; });
+        CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, hstmt, [] (Statement & statement) { return SQL_SUCCESS; });
     }
 
     STOP_MEASURING_TIME_AND_REPORT();
@@ -163,7 +163,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL_WITH_
     START_MEASURING_TIME();
     
     for (std::size_t i = 0; i < call_count; ++i) {
-        CALL_WITH_TYPED_HANDLE_SKIP_DIAG(SQL_HANDLE_STMT, hstmt, [] (Connection & connection) { return SQL_SUCCESS; });
+        CALL_WITH_TYPED_HANDLE_SKIP_DIAG(SQL_HANDLE_STMT, hstmt, [] (Statement & statement) { return SQL_SUCCESS; });
     }
 
     STOP_MEASURING_TIME_AND_REPORT();
