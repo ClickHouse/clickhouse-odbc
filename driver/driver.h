@@ -230,45 +230,69 @@ inline SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLIN
         else {
             const auto it = descendants.find(handle);
             if (it != descendants.end()) {
-                return std::visit([&] (auto & descendant_ref) noexcept -> SQLRETURN {
+                const auto func = [&] (auto & descendant_ref) noexcept -> SQLRETURN {
                     auto & descendant = descendant_ref.get();
-                    using DescendantType = std::decay_t<decltype(descendant)>;
 
-                    if (
-                        handle_type == 0 ||
-                        handle_type == getObjectHandleType<DescendantType>()
-                    ) {
-                        try {
-                            return doCall(callable, descendant, skip_diag);
-                        }
-                        catch (const SqlException & ex) {
-                            LOG(ex.getSQLState() << " (" << ex.what() << ")" << "[rc: " << ex.getReturnCode() << "]");
-                            if (!skip_diag)
-                                descendant.fillDiag(ex.getReturnCode(), ex.getSQLState(), ex.what(), 1);
-                            return ex.getReturnCode();
-                        }
-                        catch (const Poco::Exception & ex) {
-                            LOG("HY000 (" << ex.displayText() << ")");
-                            if (!skip_diag)
-                                descendant.fillDiag(SQL_ERROR, "HY000", ex.displayText(), 1);
-                            return SQL_ERROR;
-                        }
-                        catch (const std::exception & ex) {
-                            LOG("HY000 (" << ex.what() << ")");
-                            if (!skip_diag)
-                                descendant.fillDiag(SQL_ERROR, "HY000", ex.what(), 1);
-                            return SQL_ERROR;
-                        }
-                        catch (...) {
-                            LOG("HY000 (Unknown exception)");
-                            if (!skip_diag)
-                                descendant.fillDiag(SQL_ERROR, "HY000", "Unknown exception", 2);
-                            return SQL_ERROR;
-                        }
+                    // The actual type of 'descendant' is checked against the requested [non-0] 'handle_type' before calling this.
+
+                    try {
+                        return doCall(callable, descendant, skip_diag);
+                    }
+                    catch (const SqlException & ex) {
+                        LOG(ex.getSQLState() << " (" << ex.what() << ")" << "[rc: " << ex.getReturnCode() << "]");
+                        if (!skip_diag)
+                            descendant.fillDiag(ex.getReturnCode(), ex.getSQLState(), ex.what(), 1);
+                        return ex.getReturnCode();
+                    }
+                    catch (const Poco::Exception & ex) {
+                        LOG("HY000 (" << ex.displayText() << ")");
+                        if (!skip_diag)
+                            descendant.fillDiag(SQL_ERROR, "HY000", ex.displayText(), 1);
+                        return SQL_ERROR;
+                    }
+                    catch (const std::exception & ex) {
+                        LOG("HY000 (" << ex.what() << ")");
+                        if (!skip_diag)
+                            descendant.fillDiag(SQL_ERROR, "HY000", ex.what(), 1);
+                        return SQL_ERROR;
+                    }
+                    catch (...) {
+                        LOG("HY000 (Unknown exception)");
+                        if (!skip_diag)
+                            descendant.fillDiag(SQL_ERROR, "HY000", "Unknown exception", 2);
+                        return SQL_ERROR;
+                    }
+                };
+
+                switch (handle_type) {
+                    case 0: {
+                        return std::visit(func, it->second);
                     }
 
-                    return SQL_INVALID_HANDLE;
-                }, it->second);
+                    // Shortcut visitation using std::get_if<>() when 'handle_type' is not 0.
+                    // This yields slightly better results with the current compilers optimization capabilities.
+
+                    case getObjectHandleType<Statement>(): {
+                        if (auto * descendant_ref_ptr = std::get_if<std::reference_wrapper<Statement>>(&it->second))
+                            return func(*descendant_ref_ptr);
+                        break;
+                    }
+                    case getObjectHandleType<Descriptor>(): {
+                        if (auto * descendant_ref_ptr = std::get_if<std::reference_wrapper<Descriptor>>(&it->second))
+                            return func(*descendant_ref_ptr);
+                        break;
+                    }
+                    case getObjectHandleType<Connection>(): {
+                        if (auto * descendant_ref_ptr = std::get_if<std::reference_wrapper<Connection>>(&it->second))
+                            return func(*descendant_ref_ptr);
+                        break;
+                    }
+                    case getObjectHandleType<Environment>(): {
+                        if (auto * descendant_ref_ptr = std::get_if<std::reference_wrapper<Environment>>(&it->second))
+                            return func(*descendant_ref_ptr);
+                        break;
+                    }
+                }
             }
         }
     }
