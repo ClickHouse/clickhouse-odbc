@@ -28,7 +28,7 @@ SQLRETURN allocConnect(
     SQLHENV environment_handle,
     SQLHDBC * out_connection_handle
 ) noexcept {
-    return CALL_WITH_HANDLE(environment_handle, [&] (Environment & environment) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_ENV, environment_handle, [&] (Environment & environment) {
         if (nullptr == out_connection_handle)
             return SQL_INVALID_HANDLE;
 
@@ -41,7 +41,7 @@ SQLRETURN allocStmt(
     SQLHDBC connection_handle,
     SQLHSTMT * out_statement_handle
 ) noexcept {
-    return CALL_WITH_HANDLE(connection_handle, [&] (Connection & connection) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, connection_handle, [&] (Connection & connection) {
         if (nullptr == out_statement_handle)
             return SQL_INVALID_HANDLE;
 
@@ -54,7 +54,7 @@ SQLRETURN allocDesc(
     SQLHDBC connection_handle,
     SQLHDESC * out_descriptor_handle
 ) noexcept {
-    return CALL_WITH_HANDLE(connection_handle, [&] (Connection & connection) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, connection_handle, [&] (Connection & connection) {
         if (nullptr == out_descriptor_handle)
             return SQL_INVALID_HANDLE;
 
@@ -118,7 +118,7 @@ SQLRETURN SetEnvAttr(
         }
     };
 
-    return CALL_WITH_HANDLE(environment_handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_ENV, environment_handle, func);
 }
 
 SQLRETURN GetEnvAttr(
@@ -145,7 +145,7 @@ SQLRETURN GetEnvAttr(
         }
     };
 
-    return CALL_WITH_HANDLE(environment_handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_ENV, environment_handle, func);
 }
 
 SQLRETURN SetConnectAttr(
@@ -226,7 +226,7 @@ SQLRETURN SetConnectAttr(
         }
     };
 
-    return CALL_WITH_HANDLE(connection_handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, connection_handle, func);
 }
 
 SQLRETURN GetConnectAttr(
@@ -292,7 +292,7 @@ SQLRETURN GetConnectAttr(
         return SQL_SUCCESS;
     };
 
-    return CALL_WITH_HANDLE(connection_handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, connection_handle, func);
 }
 
 namespace  {
@@ -342,7 +342,7 @@ namespace  {
             return SQL_ERROR;
         };
 
-        auto rc = CALL_WITH_HANDLE_SKIP_DIAG(descriptor_handle, func);
+        auto rc = CALL_WITH_TYPED_HANDLE_SKIP_DIAG(SQL_HANDLE_DESC, descriptor_handle, func);
 
         if (ex)
             std::rethrow_exception(ex);
@@ -432,7 +432,7 @@ SQLRETURN SetStmtAttr(
         }
     };
 
-    return CALL_WITH_HANDLE(statement_handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
 }
 
 SQLRETURN GetStmtAttr(
@@ -516,7 +516,7 @@ SQLRETURN GetStmtAttr(
         return SQL_SUCCESS;
     };
 
-    return CALL_WITH_HANDLE(statement_handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
 }
 
 SQLRETURN GetDiagRec(
@@ -734,7 +734,7 @@ SQLRETURN BindParameter(
         return SQL_SUCCESS;
     };
 
-    return CALL_WITH_HANDLE(handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, handle, func);
 }
 
 SQLRETURN NumParams(
@@ -750,7 +750,7 @@ SQLRETURN NumParams(
         return SQL_SUCCESS;
     };
 
-    return CALL_WITH_HANDLE(handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, handle, func);
 }
 
 SQLRETURN DescribeParam(
@@ -781,7 +781,7 @@ SQLRETURN DescribeParam(
         return SQL_SUCCESS;
     };
 
-    return CALL_WITH_HANDLE(handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, handle, func);
 }
 
 SQLRETURN GetDescField(
@@ -879,7 +879,7 @@ SQLRETURN GetDescField(
         return SQL_SUCCESS;
     };
 
-    return CALL_WITH_HANDLE(DescriptorHandle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DESC, DescriptorHandle, func);
 }
 
 SQLRETURN GetDescRec(
@@ -928,7 +928,7 @@ SQLRETURN GetDescRec(
         return fillOutputString<SQLTCHAR>(record.getAttrAs<std::string>(SQL_DESC_NAME), Name, BufferLength, StringLengthPtr, false);
     };
 
-    return CALL_WITH_HANDLE(DescriptorHandle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DESC, DescriptorHandle, func);
 }
 
 SQLRETURN SetDescField(
@@ -1024,7 +1024,7 @@ SQLRETURN SetDescField(
         return SQL_SUCCESS;
     };
 
-    return CALL_WITH_HANDLE(DescriptorHandle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DESC, DescriptorHandle, func);
 }
 
 SQLRETURN SetDescRec(
@@ -1057,7 +1057,7 @@ SQLRETURN SetDescRec(
         return SQL_SUCCESS;
     };
 
-    return CALL_WITH_HANDLE(DescriptorHandle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DESC, DescriptorHandle, func);
 }
 
 SQLRETURN CopyDesc(
@@ -1084,7 +1084,7 @@ SQLRETURN CopyDesc(
             return SQL_ERROR;
         };
 
-        auto rc = CALL_WITH_HANDLE_SKIP_DIAG(SourceDescHandle, func);
+        auto rc = CALL_WITH_TYPED_HANDLE_SKIP_DIAG(SQL_HANDLE_DESC, SourceDescHandle, func);
 
         if (ex)
             std::rethrow_exception(ex);
@@ -1095,7 +1095,7 @@ SQLRETURN CopyDesc(
         return rc;
     };
 
-    return CALL_WITH_HANDLE(TargetDescHandle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DESC, TargetDescHandle, func);
 }
 
 SQLRETURN EndTran(
@@ -1238,7 +1238,7 @@ SQLRETURN GetData(
         }
     };
 
-    return CALL_WITH_HANDLE(statement_handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
 }
 
 SQLRETURN Fetch(
@@ -1278,7 +1278,7 @@ SQLRETURN Fetch(
         return res;
     };
 
-    return CALL_WITH_HANDLE(statement_handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
 }
 
 } // namespace impl

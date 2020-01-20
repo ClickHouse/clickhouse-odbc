@@ -71,7 +71,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFreeHandle)(SQLSMALLINT handleType, SQLHA
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFreeStmt)(HSTMT statement_handle, SQLUSMALLINT option) {
     LOG(__FUNCTION__ << " option=" << option);
 
-    return CALL_WITH_HANDLE(statement_handle, [&] (Statement & statement) -> SQLRETURN {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, [&] (Statement & statement) -> SQLRETURN {
         switch (option) {
             case SQL_CLOSE: /// Close the cursor, ignore the remaining results. If there is no cursor, then noop.
                 statement.closeCursor();
@@ -400,7 +400,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
         }
     };
 
-    return CALL_WITH_HANDLE(connection_handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, connection_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLSetEnvAttr)(SQLHENV handle, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER value_length) {
@@ -439,7 +439,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLConnect)(
     SQLTCHAR *     Authentication,
     SQLSMALLINT    NameLength3
 ) {
-    return CALL_WITH_HANDLE(ConnectionHandle, [&](Connection & connection) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, ConnectionHandle, [&](Connection & connection) {
         std::string connection_string;
         if (ServerName) {
             connection_string += "DSN={";
@@ -471,7 +471,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDriverConnect)(
     SQLSMALLINT *   StringLength2Ptr,
     SQLUSMALLINT    DriverCompletion
 ) {
-    return CALL_WITH_HANDLE(ConnectionHandle, [&](Connection & connection) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, ConnectionHandle, [&](Connection & connection) {
         const auto connection_string = toUTF8(InConnectionString, StringLength1);
 
         auto out_buffer_length = BufferLength;
@@ -492,7 +492,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDriverConnect)(
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size) {
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, [&](Statement & statement) {
         const auto query = toUTF8(statement_text, statement_text_size);
         statement.prepareQuery(query);
         return SQL_SUCCESS;
@@ -502,7 +502,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLPrepare)(HSTMT statement_handle, 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLExecute)(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, [&](Statement & statement) {
         statement.executeQuery();
         return SQL_SUCCESS;
     });
@@ -511,7 +511,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLExecute)(HSTMT statement_handle) {
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLExecDirect)(HSTMT statement_handle, SQLTCHAR * statement_text, SQLINTEGER statement_text_size) {
     LOG(__FUNCTION__ << " statement_text_size=" << statement_text_size << " statement_text=" << statement_text);
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, [&](Statement & statement) {
         const auto query = toUTF8(statement_text, statement_text_size);
         statement.executeQuery(query);
         return SQL_SUCCESS;
@@ -522,7 +522,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLNumResultCols)(
     SQLHSTMT        StatementHandle,
     SQLSMALLINT *   ColumnCountPtr
 ) {
-    return CALL_WITH_HANDLE(StatementHandle, [&](Statement & statement) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, StatementHandle, [&](Statement & statement) {
         if (ColumnCountPtr) {
             if (statement.isPrepared() && !statement.isExecuted())
                 statement.forwardExecuteQuery();
@@ -643,7 +643,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
         }
     };
 
-    return CALL_WITH_HANDLE(statement_handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_handle,
@@ -685,7 +685,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_hand
         return fillOutputString<SQLTCHAR>(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size, false);
     };
 
-    return CALL_WITH_HANDLE(statement_handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFetch)(HSTMT statement_handle) {
@@ -698,7 +698,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFetch)(HSTMT statement_handle) {
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFetchScroll)(HSTMT statement_handle, SQLSMALLINT orientation, SQLLEN offset) {
     LOG(__FUNCTION__);
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, [&](Statement & statement) -> SQLRETURN {
         if (orientation != SQL_FETCH_NEXT)
             throw SqlException("Fetch type out of range", "HY106");
 
@@ -768,13 +768,13 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindCol)(
         return SQL_SUCCESS;
     };
 
-    return CALL_WITH_HANDLE(statement_handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLRowCount)(HSTMT statement_handle, SQLLEN * out_row_count) {
     LOG(__FUNCTION__);
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, [&](Statement & statement) {
         if (out_row_count) {
             *out_row_count = statement.getDiagHeader().getAttrAs<SQLLEN>(SQL_DIAG_ROW_COUNT, 0);
             LOG("getNumRows=" << *out_row_count);
@@ -786,14 +786,14 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLRowCount)(HSTMT statement_handle, SQLLEN 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLMoreResults)(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, [&](Statement & statement) {
         return (statement.advanceToNextResultSet() ? SQL_SUCCESS : SQL_NO_DATA);
     });
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLDisconnect)(HDBC connection_handle) {
     LOG(__FUNCTION__);
-    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, connection_handle, [&](Connection & connection) {
         connection.session->reset();
         return SQL_SUCCESS;
     });
@@ -961,7 +961,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(
         return SQL_SUCCESS;
     };
 
-    return CALL_WITH_HANDLE(StatementHandle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, StatementHandle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
@@ -1096,7 +1096,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
         return SQL_SUCCESS;
     };
 
-    return CALL_WITH_HANDLE(StatementHandle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, StatementHandle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetTypeInfo)(
@@ -1105,7 +1105,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetTypeInfo)(
 ) {
     LOG(__FUNCTION__ << "(type = " << type << ")");
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, [&](Statement & statement) {
         std::stringstream query;
         query << "SELECT * FROM (";
 
@@ -1209,7 +1209,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle
     SQLINTEGER * out_query_length) {
     LOG(__FUNCTION__);
 
-    return CALL_WITH_HANDLE(connection_handle, [&](Connection & connection) {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, connection_handle, [&](Connection & connection) {
         std::string query_str = toUTF8(query, query_length);
         return fillOutputString<SQLTCHAR>(query_str, out_query, out_query_max_length, out_query_length, false);
     });
@@ -1218,7 +1218,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLCloseCursor)(HSTMT statement_handle) {
     LOG(__FUNCTION__);
 
-    return CALL_WITH_HANDLE(statement_handle, [&](Statement & statement) -> SQLRETURN {
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, [&](Statement & statement) -> SQLRETURN {
         statement.closeCursor();
         return SQL_SUCCESS;
     });
@@ -1242,7 +1242,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLCancel)(
         return SQL_SUCCESS;
     };
 
-    return CALL_WITH_HANDLE(StatementHandle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, StatementHandle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetCursorName)(
@@ -1350,7 +1350,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetFunctions)(HDBC connection_handle, SQL
 #undef SET_EXISTS
 // #undef CLR_EXISTS
 
-    return CALL_WITH_HANDLE(connection_handle, func);
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, connection_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLParamData)(HSTMT StatementHandle, PTR * Value) {
