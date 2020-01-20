@@ -81,6 +81,19 @@ inline void hexPrint(std::ostream &stream, const std::basic_string<CharT, Traits
     stream << std::dec << '\n';
 }
 
+template <typename T>
+inline T fromString(const std::string & s) {
+    T result;
+
+    std::istringstream iss(s);
+    iss >> result;
+
+    if (iss.peek() != EOF)
+        throw std::runtime_error("bad lexical cast");
+
+    return result;
+}
+
 inline bool isYes(std::string str) {
     Poco::trimInPlace(str);
     Poco::UTF8::toLowerInPlace(str);

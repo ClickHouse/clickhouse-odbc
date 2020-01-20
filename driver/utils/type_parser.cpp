@@ -1,14 +1,8 @@
 #include "driver/utils/type_parser.h"
+#include "driver/utils/utils.h"
 
 #include <sstream>
 
-template <typename T>
-static inline T fromString(const std::string & s) {
-    std::istringstream iss(s);
-    T result;
-    iss >> result;
-    return result;
-}
 static TypeAst::Meta getTypeMeta(const std::string & name) {
     if (name == "Array") {
         return TypeAst::Array;
