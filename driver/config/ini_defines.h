@@ -23,7 +23,6 @@
 #define INI_TIMEOUT         "Timeout"         /* Connection timeout */
 #define INI_SSLMODE         "SSLMode"         /* Use 'require' for https connections */
 #define INI_DATABASE        "Database"        /* Database Name */
-#define INI_READONLY        "ReadOnly"        /* Database is read only */
 #define INI_STRINGMAXLENGTH "StringMaxLength"
 #define INI_PRIVATEKEYFILE  "PrivateKeyFile"
 #define INI_CERTIFICATEFILE "CertificateFile"
@@ -46,7 +45,6 @@
 #define INI_TIMEOUT_DEFAULT         "30"
 #define INI_SSLMODE_DEFAULT         ""
 #define INI_DATABASE_DEFAULT        ""
-#define INI_READONLY_DEFAULT        ""
 #define INI_STRINGMAXLENGTH_DEFAULT "1048575"
 
 #ifdef NDEBUG
