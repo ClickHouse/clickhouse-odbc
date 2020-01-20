@@ -5,8 +5,8 @@
 
 #include <string>
 #include <unordered_map>
+#include <variant>
 
-// TODO: consider upgrading to std::variant of C++17 (or Boost), when available.
 class AttributeContainer {
 public:
     virtual ~AttributeContainer() = default;
@@ -19,8 +19,8 @@ public:
 
     template <typename T> inline T getAttrAs(int attr, const T & def = T{}) const;
 
-    template <typename T> inline T setAttrSilent(int attr, const T& value);
-    template <typename T> inline T setAttr(int attr, const T& value);
+    template <typename T> inline void setAttrSilent(int attr, const T& value);
+    template <typename T> inline void setAttr(int attr, const T& value);
 
     void resetAttr(int attr);
     void resetAttrs();
@@ -29,8 +29,7 @@ protected:
     virtual void onAttrChange(int attr);
 
 private:
-    std::unordered_map<int, std::int64_t> integers;
-    std::unordered_map<int, std::string> strings;
+    std::unordered_map<int, std::variant<std::intptr_t, std::string>> attributes;
 };
 
 template <typename T>
@@ -45,80 +44,85 @@ inline bool AttributeContainer::hasAttrAs<std::string>(int attr) const {
 
 template <typename T>
 inline T AttributeContainer::getAttrAs(int attr, const T & def) const {
-    auto it = integers.find(attr);
-    return (it == integers.end() ?
-        def : (T)(it->second));
-}
+    const auto it = attributes.find(attr);
 
-template <>
-inline std::string AttributeContainer::getAttrAs<std::string>(int attr, const std::string & def) const {
-    auto it = strings.find(attr);
-    return (it == strings.end() ?
-        def : it->second);
-}
+    if (it == attributes.end() || it->second.valueless_by_exception())
+        return def;
 
-template <typename T>
-inline T AttributeContainer::setAttrSilent(int attr, const T& value) {
-    std::int64_t old_value = 0;
-    strings.erase(attr);
-    auto it = integers.find(attr);
-    if (it == integers.end()) {
-        integers.emplace(attr, (std::int64_t)value);
-    }
-    else {
-        old_value = it->second;
-        it->second = (std::int64_t)value;
-    }
-    return (T)old_value;
-}
+    return std::visit([] (auto & value) -> T {
+        using ValueType = std::decay_t<decltype(value)>;
 
-template <>
-inline std::string AttributeContainer::setAttrSilent<std::string>(int attr, const std::string& value) {
-    std::string old_value;
-    integers.erase(attr);
-    auto it = strings.find(attr);
-    if (it == strings.end()) {
-        strings.emplace(attr, value);
-    }
-    else {
-        old_value = std::move(it->second);
-        it->second = value;
-    }
-    return old_value;
+        if constexpr (std::is_same_v<ValueType, std::string>) {
+            if constexpr (std::is_same_v<T, std::string>)
+                return value;
+            else {
+                const auto num_value = fromString<std::intptr_t>(value);
+                if constexpr (std::is_pointer_v<T>)
+                    return reinterpret_cast<T>(num_value);
+                else
+                    return static_cast<T>(num_value);
+            }
+        }
+        else {
+            if constexpr (std::is_same_v<T, std::string>)
+                return std::to_string(value);
+            else if constexpr (std::is_pointer_v<T>)
+                return reinterpret_cast<T>(value);
+            else
+                return static_cast<T>(value);
+        }
+    }, it->second);
 }
 
 template <typename T>
-inline T AttributeContainer::setAttr(int attr, const T& value) {
-    std::int64_t old_value = 0;
-    strings.erase(attr);
-    auto it = integers.find(attr);
-    if (it == integers.end()) {
-        integers.emplace(attr, (std::int64_t)value);
-        onAttrChange(attr);
-    }
-    else {
-        old_value = it->second;
-        it->second = (std::int64_t)value;
-        if (old_value != (std::int64_t)value)
-            onAttrChange(attr);
-    }
-    return (T)old_value;
+inline void AttributeContainer::setAttrSilent(int attr, const T& value) {
+    if constexpr (std::is_pointer_v<T>)
+        attributes.insert_or_assign(attr, reinterpret_cast<std::intptr_t>(value));
+    else
+        attributes.insert_or_assign(attr, value);
 }
 
-template <>
-inline std::string AttributeContainer::setAttr<std::string>(int attr, const std::string& value) {
-    std::string old_value;
-    integers.erase(attr);
-    auto it = strings.find(attr);
-    if (it == strings.end()) {
-        strings.emplace(attr, value);
+template <typename T>
+inline void AttributeContainer::setAttr(int attr, const T& value) {
+    const auto it = attributes.find(attr);
+
+    if (it == attributes.end()) {
+        if constexpr (std::is_pointer_v<T>)
+            attributes.emplace(attr, reinterpret_cast<std::intptr_t>(value));
+        else
+            attributes.emplace(attr, value);
+
         onAttrChange(attr);
     }
     else {
-        old_value = std::move(it->second);
-        it->second = value;
-        if (old_value != value)
+        const bool changed = std::visit(
+            [&new_value = value] (auto & old_value) {
+                using NewValueType = std::decay_t<decltype(new_value)>;
+                using OldValueType = std::decay_t<decltype(old_value)>;
+
+                if constexpr (std::is_same_v<OldValueType, std::string>) {
+                    if constexpr (std::is_same_v<NewValueType, std::string>)
+                        return (old_value != new_value);
+                }
+                else {
+                    if constexpr (std::is_pointer_v<NewValueType>)
+                        return (old_value != reinterpret_cast<std::intptr_t>(new_value));
+                    else if constexpr (!std::is_same_v<NewValueType, std::string>)
+                        return (old_value != static_cast<std::intptr_t>(new_value));
+                }
+
+                return true;
+            },
+            it->second
+        );
+
+        if (changed) {
+            if constexpr (std::is_pointer_v<T>)
+                it->second = reinterpret_cast<std::intptr_t>(value);
+            else
+                it->second = value;
+
             onAttrChange(attr);
+        }
     }
-    return old_value;
 }
