@@ -165,7 +165,7 @@ Descriptor::Descriptor(Connection & connection)
 
 Descriptor & Descriptor::operator= (Descriptor & other) {
     if (this != &other) {
-        const bool alloc_type_set = hasAttr(SQL_DESC_ALLOC_TYPE);
+        const bool alloc_type_set = hasAttrInteger(SQL_DESC_ALLOC_TYPE);
         const auto alloc_type = getAttrAs<SQLSMALLINT>(SQL_DESC_ALLOC_TYPE);
 
         AttributeContainer & attrs = *this;
@@ -180,7 +180,7 @@ Descriptor & Descriptor::operator= (Descriptor & other) {
             resetAttr(SQL_DESC_ALLOC_TYPE);
 
         for (auto & record : records) {
-            if (record.hasAttr(SQL_DESC_DATA_PTR))
+            if (record.hasAttrInteger(SQL_DESC_DATA_PTR))
                 record.consistencyCheck();
         }
     }
