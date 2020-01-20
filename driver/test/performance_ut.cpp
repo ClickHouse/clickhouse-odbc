@@ -52,20 +52,9 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL_WITH_
     SQLHDBC hdbc = 0;
     SQLHSTMT hstmt = 0;
 
-    {
-        const auto rc = impl::allocEnv(&henv);
-        ASSERT_EQ(rc, SQL_SUCCESS);
-    }
-
-    {
-        const auto rc = impl::allocConnect(henv, &hdbc);
-        ASSERT_EQ(rc, SQL_SUCCESS);
-    }
-
-    {
-        const auto rc = impl::allocStmt(hdbc, &hstmt);
-        ASSERT_EQ(rc, SQL_SUCCESS);
-    }
+    ASSERT_EQ(impl::allocEnv(&henv), SQL_SUCCESS);
+    ASSERT_EQ(impl::allocConnect(henv, &hdbc), SQL_SUCCESS);
+    ASSERT_EQ(impl::allocStmt(hdbc, &hstmt), SQL_SUCCESS);
 
     START_MEASURING_TIME();
     
@@ -83,20 +72,9 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL_WITH_
     SQLHDBC hdbc = 0;
     SQLHSTMT hstmt = 0;
 
-    {
-        const auto rc = impl::allocEnv(&henv);
-        ASSERT_EQ(rc, SQL_SUCCESS);
-    }
-
-    {
-        const auto rc = impl::allocConnect(henv, &hdbc);
-        ASSERT_EQ(rc, SQL_SUCCESS);
-    }
-
-    {
-        const auto rc = impl::allocStmt(hdbc, &hstmt);
-        ASSERT_EQ(rc, SQL_SUCCESS);
-    }
+    ASSERT_EQ(impl::allocEnv(&henv), SQL_SUCCESS);
+    ASSERT_EQ(impl::allocConnect(henv, &hdbc), SQL_SUCCESS);
+    ASSERT_EQ(impl::allocStmt(hdbc, &hstmt), SQL_SUCCESS);
 
     START_MEASURING_TIME();
     
@@ -114,20 +92,9 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL_WITH_
     SQLHDBC hdbc = 0;
     SQLHSTMT hstmt = 0;
 
-    {
-        const auto rc = impl::allocEnv(&henv);
-        ASSERT_EQ(rc, SQL_SUCCESS);
-    }
-
-    {
-        const auto rc = impl::allocConnect(henv, &hdbc);
-        ASSERT_EQ(rc, SQL_SUCCESS);
-    }
-
-    {
-        const auto rc = impl::allocStmt(hdbc, &hstmt);
-        ASSERT_EQ(rc, SQL_SUCCESS);
-    }
+    ASSERT_EQ(impl::allocEnv(&henv), SQL_SUCCESS);
+    ASSERT_EQ(impl::allocConnect(henv, &hdbc), SQL_SUCCESS);
+    ASSERT_EQ(impl::allocStmt(hdbc, &hstmt), SQL_SUCCESS);
 
     START_MEASURING_TIME();
     
@@ -145,20 +112,9 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(DispatchWith_CALL_WITH_
     SQLHDBC hdbc = 0;
     SQLHSTMT hstmt = 0;
 
-    {
-        const auto rc = impl::allocEnv(&henv);
-        ASSERT_EQ(rc, SQL_SUCCESS);
-    }
-
-    {
-        const auto rc = impl::allocConnect(henv, &hdbc);
-        ASSERT_EQ(rc, SQL_SUCCESS);
-    }
-
-    {
-        const auto rc = impl::allocStmt(hdbc, &hstmt);
-        ASSERT_EQ(rc, SQL_SUCCESS);
-    }
+    ASSERT_EQ(impl::allocEnv(&henv), SQL_SUCCESS);
+    ASSERT_EQ(impl::allocConnect(henv, &hdbc), SQL_SUCCESS);
+    ASSERT_EQ(impl::allocStmt(hdbc, &hstmt), SQL_SUCCESS);
 
     START_MEASURING_TIME();
     
