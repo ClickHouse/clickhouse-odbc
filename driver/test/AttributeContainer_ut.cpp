@@ -4,6 +4,24 @@
 
 #include <string>
 
+namespace util {
+
+    // Leave unimplemented for general case.
+    template <typename To, typename From>
+    inline To convertTo(From from);
+
+    template <>
+    inline int convertTo<int, std::string>(std::string from) {
+        return fromString<int>(from);
+    }
+
+    template <>
+    inline std::string convertTo<std::string, int>(int from) {
+        return std::to_string(from);
+    }
+
+} // namespace util
+
 TEST(AttributeContainer, Empty)
 {
     AttributeContainer container;
@@ -62,7 +80,7 @@ TYPED_TEST(AttributeContainerT, SetAttribute)
     EXPECT_FALSE(container.hasAttrAs<OtherType>(KEY));
 
     EXPECT_EQ(VALUE, container.getAttrAs<Type>(KEY));
-    EXPECT_EQ(OtherType{}, container.getAttrAs<OtherType>(KEY));
+    EXPECT_EQ(util::convertTo<OtherType>(VALUE), container.getAttrAs<OtherType>(KEY));
 }
 
 TYPED_TEST(AttributeContainerT, ResetAttribute)
@@ -83,7 +101,7 @@ TYPED_TEST(AttributeContainerT, ResetAttribute)
     EXPECT_FALSE(container.hasAttrAs<OtherType>(KEY));
 
     EXPECT_EQ(OTHER_VALUE, container.getAttrAs<Type>(KEY));
-    EXPECT_EQ(OtherType{}, container.getAttrAs<OtherType>(KEY));
+    EXPECT_EQ(util::convertTo<OtherType>(OTHER_VALUE), container.getAttrAs<OtherType>(KEY));
 }
 
 class AttributeContainerTrackingAttributeChange : public AttributeContainer
