@@ -1,10 +1,11 @@
 function (declare_odbc_lib_targets libname UNICODE)
 
 # See the usage of each workaround in the code, for comments.
+unset (WORKAROUND_ENABLE_SAFE_DISPATCH_ONLY)
+unset (WORKAROUND_ENABLE_SSL)
 unset (WORKAROUND_ENABLE_TRIM_TRAILING_NULL)
 unset (WORKAROUND_ENABLE_DEFINE_SQLBindParam)
 unset (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
-unset (USE_SSL)
 
 if (UNICODE)
     set (DRIVER_PREFIX Unicode)
@@ -22,8 +23,12 @@ if ("${ODBC_PROVIDER}" STREQUAL "iODBC")
     set (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS 1)
 endif ()
 
+if (CH_ODBC_ENABLE_SAFE_DISPATCH_ONLY)
+    set (WORKAROUND_ENABLE_SAFE_DISPATCH_ONLY 1)
+endif()
+
 if (CH_ODBC_ENABLE_SSL)
-    set (USE_SSL 1)
+    set (WORKAROUND_ENABLE_SSL 1)
 endif()
 
 message (STATUS "${libname}: ${DRIVER_PREFIX}")
@@ -33,10 +38,11 @@ configure_file (
     ${CMAKE_CURRENT_BINARY_DIR}/platform/config_cmake${WIDECHAR_SUFFIX}.h
 )
 
+unset (WORKAROUND_ENABLE_SAFE_DISPATCH_ONLY)
+unset (WORKAROUND_ENABLE_SSL)
 unset (WORKAROUND_ENABLE_TRIM_TRAILING_NULL)
 unset (WORKAROUND_ENABLE_DEFINE_SQLBindParam)
 unset (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
-unset (USE_SSL)
 
 # In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
 add_library (${libname}-impl STATIC

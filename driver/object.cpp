@@ -6,10 +6,12 @@ Object::Object() noexcept
 {
 }
 
+#if defined(WORKAROUND_ENABLE_SAFE_DISPATCH_ONLY)
 Object::Object(SQLHANDLE h) noexcept
     : handle(h)
 {
 }
+#endif
 
 SQLHANDLE Object::getHandle() const noexcept {
     return handle;

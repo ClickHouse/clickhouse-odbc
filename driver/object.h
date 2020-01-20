@@ -19,7 +19,11 @@ public:
     Object& operator= (Object &&) = delete;
 
     explicit Object() noexcept;
+
+#if defined(WORKAROUND_ENABLE_SAFE_DISPATCH_ONLY)
     explicit Object(SQLHANDLE h) noexcept;
+#endif
+
     virtual ~Object() = default;
 
     SQLHANDLE getHandle() const noexcept;
@@ -42,12 +46,14 @@ public:
         getDriver().registerDescendant(getSelf());
     }
 
+#if defined(WORKAROUND_ENABLE_SAFE_DISPATCH_ONLY)
     explicit Child(Parent & p, SQLHANDLE h) noexcept
         : Object(h)
         , parent(p)
     {
         getDriver().registerDescendant(getSelf());
     }
+#endif
 
     virtual ~Child() {
         getDriver().unregisterDescendant(getSelf());

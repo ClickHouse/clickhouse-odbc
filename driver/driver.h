@@ -96,7 +96,7 @@ private:
     template <typename Callable>
     static inline SQLRETURN doCall(Callable & callable,
         typename std::enable_if<
-            std::is_invocable_r<SQLRETURN, Callable>::value
+            std::is_invocable_r_v<SQLRETURN, Callable>
         >::type * = nullptr
     ) {
         return callable();
@@ -105,8 +105,8 @@ private:
     template <typename Callable>
     static inline SQLRETURN doCall(Callable & callable,
         typename std::enable_if<
-            !std::is_invocable_r<SQLRETURN, Callable>::value &&
-            std::is_invocable<Callable>::value
+            !std::is_invocable_r_v<SQLRETURN, Callable> &&
+            std::is_invocable_v<Callable>
         >::type * = nullptr
     ) {
         callable();
@@ -116,8 +116,8 @@ private:
     template <typename Callable>
     static inline SQLRETURN doCall(Callable & callable,
         typename std::enable_if<
-            !std::is_invocable_r<SQLRETURN, Callable>::value &&
-            !std::is_invocable<Callable>::value
+            !std::is_invocable_r_v<SQLRETURN, Callable> &&
+            !std::is_invocable_v<Callable>
         >::type * = nullptr
     ) {
         return SQL_INVALID_HANDLE;
@@ -126,7 +126,7 @@ private:
     template <typename Callable, typename ObjectType>
     static inline SQLRETURN doCall(Callable & callable, ObjectType & object, bool skip_diag,
         typename std::enable_if<
-            std::is_invocable_r<SQLRETURN, Callable, ObjectType &>::value
+            std::is_invocable_r_v<SQLRETURN, Callable, ObjectType &>
         >::type * = nullptr
     ) {
         SQLRETURN rc = SQL_SUCCESS;
@@ -143,8 +143,8 @@ private:
     template <typename Callable, typename ObjectType>
     static inline SQLRETURN doCall(Callable & callable, ObjectType & object, bool skip_diag,
         typename std::enable_if<
-            !std::is_invocable_r<SQLRETURN, Callable, ObjectType &>::value &&
-            std::is_invocable<Callable, ObjectType &>::value
+            !std::is_invocable_r_v<SQLRETURN, Callable, ObjectType &> &&
+            std::is_invocable_v<Callable, ObjectType &>
         >::type * = nullptr
     ) {
         SQLRETURN rc = SQL_SUCCESS;
@@ -161,8 +161,8 @@ private:
     template <typename Callable, typename ObjectType>
     static inline SQLRETURN doCall(Callable & callable, ObjectType & object, bool skip_diag,
         typename std::enable_if<
-            !std::is_invocable_r<SQLRETURN, Callable, ObjectType &>::value &&
-            !std::is_invocable<Callable, ObjectType &>::value
+            !std::is_invocable_r_v<SQLRETURN, Callable, ObjectType &> &&
+            !std::is_invocable_v<Callable, ObjectType &>
         >::type * = nullptr
     ) {
         return SQL_INVALID_HANDLE;
@@ -175,7 +175,7 @@ public:
 private:
     std::string log_file_name;
     std::ofstream log_file_stream;
-    
+
     using DescendantVariantType = std::variant<
         std::reference_wrapper<Statement>,
         std::reference_wrapper<Descriptor>,
@@ -228,42 +228,67 @@ inline SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLIN
             }
         }
         else {
+            const auto func = [&] (auto & descendant_ref) noexcept -> SQLRETURN {
+                auto & descendant = descendant_ref.get();
+
+                try {
+                    return doCall(callable, descendant, skip_diag);
+                }
+                catch (const SqlException & ex) {
+                    LOG(ex.getSQLState() << " (" << ex.what() << ")" << "[rc: " << ex.getReturnCode() << "]");
+                    if (!skip_diag)
+                        descendant.fillDiag(ex.getReturnCode(), ex.getSQLState(), ex.what(), 1);
+                    return ex.getReturnCode();
+                }
+                catch (const Poco::Exception & ex) {
+                    LOG("HY000 (" << ex.displayText() << ")");
+                    if (!skip_diag)
+                        descendant.fillDiag(SQL_ERROR, "HY000", ex.displayText(), 1);
+                    return SQL_ERROR;
+                }
+                catch (const std::exception & ex) {
+                    LOG("HY000 (" << ex.what() << ")");
+                    if (!skip_diag)
+                        descendant.fillDiag(SQL_ERROR, "HY000", ex.what(), 1);
+                    return SQL_ERROR;
+                }
+                catch (...) {
+                    LOG("HY000 (Unknown exception)");
+                    if (!skip_diag)
+                        descendant.fillDiag(SQL_ERROR, "HY000", "Unknown exception", 2);
+                    return SQL_ERROR;
+                }
+            };
+
+#if !defined(WORKAROUND_ENABLE_SAFE_DISPATCH_ONLY)
+            // If handle type is provided, and we are not in the "safe dispatch only" mode,
+            // we just directly interpret the handle as a pointer to the corresponding class.
+            switch (handle_type) {
+                case getObjectHandleType<Statement>(): {
+                    if constexpr (std::is_invocable_r_v<SQLRETURN, decltype(func), std::reference_wrapper<Statement>>)
+                        return func(std::ref(*reinterpret_cast<Statement *>(handle)));
+                    break;
+                }
+                case getObjectHandleType<Descriptor>(): {
+                    if constexpr (std::is_invocable_r_v<SQLRETURN, decltype(func), std::reference_wrapper<Descriptor>>)
+                        return func(std::ref(*reinterpret_cast<Descriptor *>(handle)));
+                    break;
+                }
+                case getObjectHandleType<Connection>(): {
+                    if constexpr (std::is_invocable_r_v<SQLRETURN, decltype(func), std::reference_wrapper<Connection>>)
+                        return func(std::ref(*reinterpret_cast<Connection *>(handle)));
+                    break;
+                }
+                case getObjectHandleType<Environment>(): {
+                    if constexpr (std::is_invocable_r_v<SQLRETURN, decltype(func), std::reference_wrapper<Environment>>)
+                        return func(std::ref(*reinterpret_cast<Environment *>(handle)));
+                    break;
+                }
+            }
+#endif
+
             const auto it = descendants.find(handle);
             if (it != descendants.end()) {
-                const auto func = [&] (auto & descendant_ref) noexcept -> SQLRETURN {
-                    auto & descendant = descendant_ref.get();
-
-                    // The actual type of 'descendant' is checked against the requested [non-0] 'handle_type' before calling this.
-
-                    try {
-                        return doCall(callable, descendant, skip_diag);
-                    }
-                    catch (const SqlException & ex) {
-                        LOG(ex.getSQLState() << " (" << ex.what() << ")" << "[rc: " << ex.getReturnCode() << "]");
-                        if (!skip_diag)
-                            descendant.fillDiag(ex.getReturnCode(), ex.getSQLState(), ex.what(), 1);
-                        return ex.getReturnCode();
-                    }
-                    catch (const Poco::Exception & ex) {
-                        LOG("HY000 (" << ex.displayText() << ")");
-                        if (!skip_diag)
-                            descendant.fillDiag(SQL_ERROR, "HY000", ex.displayText(), 1);
-                        return SQL_ERROR;
-                    }
-                    catch (const std::exception & ex) {
-                        LOG("HY000 (" << ex.what() << ")");
-                        if (!skip_diag)
-                            descendant.fillDiag(SQL_ERROR, "HY000", ex.what(), 1);
-                        return SQL_ERROR;
-                    }
-                    catch (...) {
-                        LOG("HY000 (Unknown exception)");
-                        if (!skip_diag)
-                            descendant.fillDiag(SQL_ERROR, "HY000", "Unknown exception", 2);
-                        return SQL_ERROR;
-                    }
-                };
-
                 switch (handle_type) {
                     case 0: {
                         return std::visit(func, it->second);
