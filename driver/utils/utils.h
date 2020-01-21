@@ -88,7 +88,7 @@ inline T fromString(const std::string & s) {
     std::istringstream iss(s);
     iss >> result;
 
-    if (iss.peek() != EOF || !iss)
+    if (iss.fail() || !iss.eof())
         throw std::runtime_error("bad lexical cast");
 
     return result;
