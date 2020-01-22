@@ -11,23 +11,23 @@ using key_value_map_t = std::map<std::string, std::string, UTF8CaseInsensitiveCo
  * connection (used for both registry and file, DSN and DRIVER)
  */
 struct ConnInfo {
+    std::string drivername;
     std::string dsn;
     std::string desc;
-    std::string drivername;
     std::string url;
-    std::string server;
-    std::string database;
     std::string username;
     std::string password;
+    std::string server;
     std::string port;
-    std::string sslmode;
     std::string timeout;
-    std::string stringmaxlength;
-    std::string driverlog;
-    std::string driverlogfile;
+    std::string sslmode;
     std::string privateKeyFile;
     std::string certificateFile;
     std::string caLocation;
+    std::string database;
+    std::string stringmaxlength;
+    std::string driverlog;
+    std::string driverlogfile;
 };
 
 void readDSNinfo(ConnInfo * ci, bool overwrite);

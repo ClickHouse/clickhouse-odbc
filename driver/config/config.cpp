@@ -46,10 +46,10 @@ void readDSNinfo(ConnInfo * ci, bool overwrite) {
 
     GET_CONFIG(desc,            INI_DESC,            INI_DESC_DEFAULT);
     GET_CONFIG(url,             INI_URL,             INI_URL_DEFAULT);
-    GET_CONFIG(server,          INI_SERVER,          INI_SERVER_DEFAULT);
-    GET_CONFIG(port,            INI_PORT,            INI_PORT_DEFAULT);
     GET_CONFIG(username,        INI_USERNAME,        INI_USERNAME_DEFAULT);
     GET_CONFIG(password,        INI_PASSWORD,        INI_PASSWORD_DEFAULT);
+    GET_CONFIG(server,          INI_SERVER,          INI_SERVER_DEFAULT);
+    GET_CONFIG(port,            INI_PORT,            INI_PORT_DEFAULT);
     GET_CONFIG(timeout,         INI_TIMEOUT,         INI_TIMEOUT_DEFAULT);
     GET_CONFIG(sslmode,         INI_SSLMODE,         INI_SSLMODE_DEFAULT);
     GET_CONFIG(database,        INI_DATABASE,        INI_DATABASE_DEFAULT);
@@ -85,10 +85,10 @@ void writeDSNinfo(const ConnInfo * ci) {
 
     WRITE_CONFIG(desc,            INI_DESC);
     WRITE_CONFIG(url,             INI_URL);
-    WRITE_CONFIG(server,          INI_SERVER);
-    WRITE_CONFIG(port,            INI_PORT);
     WRITE_CONFIG(username,        INI_USERNAME);
     WRITE_CONFIG(password,        INI_PASSWORD);
+    WRITE_CONFIG(server,          INI_SERVER);
+    WRITE_CONFIG(port,            INI_PORT);
     WRITE_CONFIG(timeout,         INI_TIMEOUT);
     WRITE_CONFIG(sslmode,         INI_SSLMODE);
     WRITE_CONFIG(database,        INI_DATABASE);
@@ -314,28 +314,28 @@ key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
 // so here we make sure that all known keys will aslo be tried.
     for (const auto & known_key :
         {
+            INI_DRIVER,
             INI_FILEDSN,
             INI_SAVEFILE,
             INI_DSN,
-            INI_DRIVER,
             INI_DESC,
             INI_URL,
-            INI_PROTO,
-            INI_SERVER,
-            INI_HOST,
-            INI_PORT,
-            INI_PATH,
             INI_UID,
             INI_USERNAME,
             INI_PWD,
             INI_PASSWORD,
+            INI_PROTO,
+            INI_SERVER,
+            INI_HOST,
+            INI_PORT,
             INI_TIMEOUT,
             INI_SSLMODE,
-            INI_DATABASE,
-            INI_STRINGMAXLENGTH,
             INI_PRIVATEKEYFILE,
             INI_CERTIFICATEFILE,
             INI_CALOCATION,
+            INI_PATH,
+            INI_DATABASE,
+            INI_STRINGMAXLENGTH,
             INI_DRIVERLOG,
             INI_DRIVERLOGFILE
         }
