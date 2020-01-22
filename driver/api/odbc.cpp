@@ -136,7 +136,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
             CASE_STRING(SQL_DBMS_NAME, "ClickHouse")
             CASE_STRING(SQL_DBMS_VER, "01.00.0000")
             CASE_STRING(SQL_SERVER_NAME, connection.server)
-            CASE_STRING(SQL_DATA_SOURCE_NAME, connection.data_source)
+            CASE_STRING(SQL_DATA_SOURCE_NAME, connection.dsn)
             CASE_STRING(SQL_CATALOG_TERM, "catalog")
             CASE_STRING(SQL_COLLATION_SEQ, "UTF-8")
             CASE_STRING(SQL_DATABASE_NAME, connection.database)
@@ -148,7 +148,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
             CASE_STRING(SQL_SCHEMA_TERM, "schema")
             CASE_STRING(SQL_TABLE_TERM, "table")
             CASE_STRING(SQL_SPECIAL_CHARACTERS, "")
-            CASE_STRING(SQL_USER_NAME, connection.user)
+            CASE_STRING(SQL_USER_NAME, connection.username)
             CASE_STRING(SQL_XOPEN_CLI_YEAR, "2015")
 
             CASE_FALLTHROUGH(SQL_DATA_SOURCE_READ_ONLY)
@@ -1091,7 +1091,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
         }
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
-        statement.executeQuery(query.str(), IResultMutatorPtr(new ColumnsMutator(&statement.getParent().getParent())));
+        statement.executeQuery(query.str(), std::make_unique<ColumnsMutator>(&statement.getParent().getParent()));
 
         return SQL_SUCCESS;
     };
