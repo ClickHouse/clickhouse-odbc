@@ -85,21 +85,23 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
     if (!connection.server.empty())
         uri.setHost(connection.server);
 
-    bool setDatabase = false;
-    bool setDefaultFormat = false;
+    bool database_set = false;
+    bool default_format_set = false;
+
     for (const auto& parameter : uri.getQueryParameters()) {
-        if (parameter.first == "database") {
-            setDatabase = true;
-        } else if (parameter.first == "default_format") {
-            setDefaultFormat = true;
+        if (Poco::UTF8::icompare(parameter.first, "default_format")) {
+            default_format_set = true;
+        }
+        else if (Poco::UTF8::icompare(parameter.first, "database")) {
+            database_set = true;
         }
     }
-    if (!setDatabase) {
+
+    if (!default_format_set)
+        uri.addQueryParameter("default_format", connection.default_format);
+
+    if (!database_set)
         uri.addQueryParameter("database", connection.database);
-    }
-    if (!setDefaultFormat) {
-        uri.addQueryParameter("default_format", "ODBCDriver2");
-    }
 
     const auto param_bindings = getParamsBindingInfo(next_param_set);
 
@@ -187,7 +189,12 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
         throw std::runtime_error(error_message.str());
     }
 
-    result_set.reset(new ResultSet{*in, std::move(mutator)});
+    auto format = connection.default_format;
+
+    if (response->has("X-ClickHouse-Format"))
+        format = response->get("X-ClickHouse-Format");
+
+    result_set = std::make_unique<ResultSet>(format, *in, std::move(mutator));
 
     ++next_param_set;
 }

@@ -66,7 +66,7 @@ using IResultMutatorPtr = std::unique_ptr<IResultMutator>;
 
 class ResultSet {
 public:
-    explicit ResultSet(std::istream & in_, IResultMutatorPtr && mutator_);
+    explicit ResultSet(const std::string & format, std::istream & in_, IResultMutatorPtr && mutator_);
 
     const ColumnInfo & getColumnInfo(size_t i) const;
     size_t getNumColumns() const;

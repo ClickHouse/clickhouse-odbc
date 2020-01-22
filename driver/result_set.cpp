@@ -107,7 +107,7 @@ void assignTypeInfo(const TypeAst & ast, ColumnInfo * info) {
     }
 }
 
-ResultSet::ResultSet(std::istream & in_, IResultMutatorPtr && mutator_)
+ResultSet::ResultSet(const std::string & format, std::istream & in_, IResultMutatorPtr && mutator_)
     : in(in_)
     , mutator(std::move(mutator_))
 {
