@@ -398,10 +398,10 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
             path = uri.getPath();
 
         for (const auto& parameter : uri.getQueryParameters()) {
-            if (Poco::UTF8::icompare(parameter.first, "default_format")) {
+            if (Poco::UTF8::icompare(parameter.first, "default_format") == 0) {
                 default_format = parameter.second;
             }
-            else if (Poco::UTF8::icompare(parameter.first, "database")) {
+            else if (Poco::UTF8::icompare(parameter.first, "database") == 0) {
                 database = parameter.second;
             }
         }

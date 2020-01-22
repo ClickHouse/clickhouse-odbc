@@ -89,10 +89,10 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
     bool default_format_set = false;
 
     for (const auto& parameter : uri.getQueryParameters()) {
-        if (Poco::UTF8::icompare(parameter.first, "default_format")) {
+        if (Poco::UTF8::icompare(parameter.first, "default_format") == 0) {
             default_format_set = true;
         }
-        else if (Poco::UTF8::icompare(parameter.first, "database")) {
+        else if (Poco::UTF8::icompare(parameter.first, "database") == 0) {
             database_set = true;
         }
     }
