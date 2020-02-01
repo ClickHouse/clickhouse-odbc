@@ -37,13 +37,13 @@ class Connection;
 class Descriptor;
 class Statement;
 
-template <typename T> constexpr auto & getObjectTypeName() { return "HANDLE"; }
+template <typename T> constexpr auto & getObjectTypeName(); // Leave unimplemented for general case.
 template <> constexpr auto & getObjectTypeName<Environment>() { return "ENV"; }
 template <> constexpr auto & getObjectTypeName<Connection>() { return "DBC"; }
 template <> constexpr auto & getObjectTypeName<Descriptor>() { return "DESC"; }
 template <> constexpr auto & getObjectTypeName<Statement>() { return "STMT"; }
 
-template <typename T> constexpr int getObjectHandleType() { return 0; }
+template <typename T> constexpr int getObjectHandleType(); // Leave unimplemented for general case.
 template <> constexpr int getObjectHandleType<Environment>() { return SQL_HANDLE_ENV; }
 template <> constexpr int getObjectHandleType<Connection>() { return SQL_HANDLE_DBC; }
 template <> constexpr int getObjectHandleType<Descriptor>() { return SQL_HANDLE_DESC; }
