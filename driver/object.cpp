@@ -6,7 +6,7 @@ Object::Object() noexcept
 {
 }
 
-#if defined(WORKAROUND_ENABLE_SAFE_DISPATCH_ONLY)
+#if !defined(WORKAROUND_ALLOW_UNSAFE_DISPATCH)
 Object::Object(SQLHANDLE h) noexcept
     : handle(h)
 {
