@@ -413,10 +413,11 @@ cmake --open .
 Execute the following in the terminal:
 
 ```sh
+sudo yum install epel-release
 sudo yum groupinstall "Development Tools"
 sudo yum install centos-release-scl
 sudo yum install devtoolset-8
-sudo yum install git cmake openssl-devel unixODBC-devel
+sudo yum install git cmake3 openssl-devel unixODBC-devel
 ```
 
 #### Build-time dependencies: iODBC <!-- omit in toc -->
@@ -424,10 +425,11 @@ sudo yum install git cmake openssl-devel unixODBC-devel
 Execute the following in the terminal:
 
 ```sh
+sudo yum install epel-release
 sudo yum groupinstall "Development Tools"
 sudo yum install centos-release-scl
 sudo yum install devtoolset-8
-sudo yum install git cmake openssl-devel libiodbc-devel
+sudo yum install git cmake3 openssl-devel libiodbc-devel
 ```
 
 #### Build steps <!-- omit in toc -->
@@ -453,20 +455,20 @@ cd build
 
 # Configuration options for the project can be specified in the next command in a form of '-Dopt=val'
 
-cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+cmake3 -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 ```
 
 Build the generated solution in-place:
 
 ```sh
-cmake --build . -C RelWithDebInfo
-cmake --build . -C RelWithDebInfo --target package
+cmake3 --build . -C RelWithDebInfo
+cmake3 --build . -C RelWithDebInfo --target package
 ```
 
 ...and, optionally, run tests (note, that for non-unit tests, preconfigured driver and DSN entries must exist, that point to the binaries generated in this build folder):
 
 ```sh
-cmake --build . -C RelWithDebInfo --target test
+cmake3 --build . -C RelWithDebInfo --target test
 ```
 
 ### Building from sources: Debian/Ubuntu
