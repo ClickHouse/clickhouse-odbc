@@ -499,9 +499,16 @@ SQLRETURN GetStmtAttr(
                     out_value, out_value_length
                 );
 
+            case SQL_ATTR_ROW_NUMBER: {
+                if (!statement.hasResultSet())
+                    throw SqlException("Invalid cursor state", "24000");
+
+                auto & result_set = statement.getResultSet();
+                return fillOutputPOD<SQLULEN>(result_set.getCurrentRowPosition(), out_value, out_value_length);
+            }
+
             CASE_NUM(SQL_ATTR_QUERY_TIMEOUT, SQLULEN, 0);
             CASE_NUM(SQL_ATTR_RETRIEVE_DATA, SQLULEN, SQL_RD_ON);
-            CASE_NUM(SQL_ATTR_ROW_NUMBER, SQLULEN, statement.getCurrentRowNum());
             CASE_NUM(SQL_ATTR_USE_BOOKMARKS, SQLULEN, SQL_UB_OFF);
 
             case SQL_ATTR_FETCH_BOOKMARK_PTR:
@@ -1113,172 +1120,120 @@ SQLRETURN EndTran(
     return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, func);
 }
 
-SQLRETURN GetData(
-    HSTMT statement_handle,
-    SQLUSMALLINT column_or_param_number,
-    SQLSMALLINT target_type,
-    PTR out_value,
-    SQLLEN out_value_max_size,
-    SQLLEN * out_value_size_or_indicator
-) noexcept {
-    auto func = [&] (Statement & statement) {
-        if (!statement.hasResultSet())
-            throw SqlException("Column info is not available", "07009");
-
-        if (column_or_param_number < 1 || column_or_param_number > statement.getNumColumns())
-            throw SqlException("Column number " + std::to_string(column_or_param_number) + " is out of range: 1.." +
-                std::to_string(statement.getNumColumns()), "07009");
-
-        if (!statement.hasCurrentRow())
-            throw SqlException("Invalid cursor state", "24000");
-
-        const auto column_idx = column_or_param_number - 1;
-
-        const Field & field = statement.getCurrentRow().data[column_idx];
-
-        LOG("column: " << column_idx << ", target_type: " << target_type << ", out_value_max_size: " << out_value_max_size
-                       << " null=" << field.is_null << " data=" << field.data);
+SQLRETURN fillBinding(
+    Statement & statement,
+    ResultSet & result_set,
+    std::size_t row_idx,
+    std::size_t column_idx,
+    BindingInfo binding_info
+) {
 
 
-        // TODO: revisit the code, use descriptors for all cases.
+    // TODO: revisit the code, use descriptors for all cases, add support for row sets of size > 1.
 
-        
-        SQLINTEGER desc_type = SQL_ATTR_APP_ROW_DESC;
 
-//      if (target_type == SQL_APD_TYPE) {
-//          desc_type = SQL_ATTR_APP_PARAM_DESC;
-//          throw SqlException("Unable to read parameter data using SQLGetData");
-//      }
+    SQLINTEGER desc_type = SQL_ATTR_APP_ROW_DESC;
 
-        if (
-            target_type == SQL_ARD_TYPE ||
-//          target_type == SQL_APD_TYPE ||
-            target_type == SQL_C_DEFAULT
-        ) {
-            auto & desc = statement.getEffectiveDescriptor(desc_type);
-            auto & record = desc.getRecord(column_or_param_number, desc_type);
+//  if (binding_info.c_type == SQL_APD_TYPE) {
+//      desc_type = SQL_ATTR_APP_PARAM_DESC;
+//      throw SqlException("Unable to read parameter data using SQLGetData");
+//  }
 
-            target_type = record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
-        }
+    if (
+        binding_info.c_type == SQL_ARD_TYPE ||
+//      binding_info.c_type == SQL_APD_TYPE ||
+        binding_info.c_type == SQL_C_DEFAULT
+    ) {
+        const auto column_num = column_idx + 1;
+        auto & desc = statement.getEffectiveDescriptor(desc_type);
+        auto & record = desc.getRecord(column_num, desc_type);
 
-        if (field.is_null)
-            return fillOutputNULL(out_value, out_value_max_size, out_value_size_or_indicator);
+        binding_info.c_type = record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
+    }
 
-        switch (target_type) {
-            case SQL_C_BINARY:
-                return fillOutputBuffer(field.data.data(), field.data.size(), out_value, out_value_max_size, out_value_size_or_indicator);
+    if (
+        binding_info.c_type == SQL_C_NUMERIC &&
+        binding_info.precision == 0
+    ) {
+        const auto column_num = column_idx + 1;
+        auto & desc = statement.getEffectiveDescriptor(desc_type);
+        auto & record = desc.getRecord(column_num, desc_type);
 
-            case SQL_C_CHAR:
-                return fillOutputString<SQLCHAR>(field.data, out_value, out_value_max_size, out_value_size_or_indicator, true);
+        binding_info.precision = record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION, 38);
+        binding_info.scale = record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
+    }
 
-            case SQL_C_WCHAR:
-                return fillOutputString<SQLWCHAR>(field.data, out_value, out_value_max_size, out_value_size_or_indicator, true);
-
-            case SQL_C_TINYINT:
-            case SQL_C_STINYINT:
-                return fillOutputPOD<SQLSCHAR>(field.getInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_UTINYINT:
-            case SQL_C_BIT:
-                return fillOutputPOD<SQLCHAR>(field.getUInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_SHORT:
-            case SQL_C_SSHORT:
-                return fillOutputPOD<SQLSMALLINT>(field.getInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_USHORT:
-                return fillOutputPOD<SQLUSMALLINT>(field.getUInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_LONG:
-            case SQL_C_SLONG:
-                return fillOutputPOD<SQLINTEGER>(field.getInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_ULONG:
-                return fillOutputPOD<SQLUINTEGER>(field.getUInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_SBIGINT:
-                return fillOutputPOD<SQLBIGINT>(field.getInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_UBIGINT:
-                return fillOutputPOD<SQLUBIGINT>(field.getUInt(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_FLOAT:
-                return fillOutputPOD<SQLREAL>(field.getFloat(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_DOUBLE:
-                return fillOutputPOD<SQLDOUBLE>(field.getDouble(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_GUID:
-                return fillOutputPOD<SQLGUID>(field.getGUID(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_NUMERIC: {
-                auto & desc = statement.getEffectiveDescriptor(desc_type);
-                auto & record = desc.getRecord(column_or_param_number, desc_type);
-
-                const std::int16_t precision = record.getAttrAs<SQLSMALLINT>(SQL_DESC_PRECISION, 38);
-                const std::int16_t scale = record.getAttrAs<SQLSMALLINT>(SQL_DESC_SCALE, 0);
-
-                return fillOutputPOD<SQL_NUMERIC_STRUCT>(field.getNumeric(precision, scale), out_value, out_value_size_or_indicator);
-            }
-
-            case SQL_C_DATE:
-            case SQL_C_TYPE_DATE:
-                return fillOutputPOD<SQL_DATE_STRUCT>(field.getDate(), out_value, out_value_size_or_indicator);
-
-//          case SQL_C_TIME:
-//          case SQL_C_TYPE_TIME:
-//              return fillOutputPOD<SQL_TIME_STRUCT>(field.getTime(), out_value, out_value_size_or_indicator);
-
-            case SQL_C_TIMESTAMP:
-            case SQL_C_TYPE_TIMESTAMP:
-                return fillOutputPOD<SQL_TIMESTAMP_STRUCT>(field.getDateTime(), out_value, out_value_size_or_indicator);
-
-            default:
-                throw SqlException("Restricted data type attribute violation", "07006");
-        }
-    };
-
-    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
+    return result_set.extractField(row_idx, column_idx, binding_info);
 }
 
-SQLRETURN Fetch(
-    HSTMT statement_handle
-) noexcept {
-    auto func = [&] (Statement & statement) -> SQLRETURN {
-        auto * rows_fetched_ptr = statement.getEffectiveDescriptor(SQL_ATTR_IMP_ROW_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
+SQLRETURN GetData(
+    Statement & statement,
+    SQLUSMALLINT column_or_param_number,
+    const BindingInfo & binding_info
+) {
+    if (!statement.hasResultSet())
+        throw SqlException("Column info is not available", "07005");
 
-        if (rows_fetched_ptr)
-            *rows_fetched_ptr = 0;
+    auto & result_set = statement.getResultSet();
 
-        if (!statement.hasResultSet())
-            return SQL_NO_DATA;
+    if (result_set.getCurrentRowPosition() < 1)
+        throw SqlException("Invalid cursor state", "24000");
 
-        if (!statement.advanceToNextRow())
-            return SQL_NO_DATA;
+    if (column_or_param_number < 1)
+        throw SqlException("Invalid descriptor index", "07009");
 
-        if (rows_fetched_ptr)
-            *rows_fetched_ptr = 1;
+    const auto column_idx = column_or_param_number - 1;
+    const auto row_idx = result_set.getCurrentRowPosition() - result_set.getCurrentRowSetPosition();
 
-        auto res = SQL_SUCCESS;
+    return fillBinding(statement, result_set, row_idx, column_idx, binding_info);
+}
 
+SQLRETURN FetchScroll(
+    Statement & statement,
+    SQLSMALLINT orientation,
+    SQLLEN offset
+) {
+    const auto row_set_size = statement.getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
+    auto * rows_fetched_ptr = statement.getEffectiveDescriptor(SQL_ATTR_IMP_ROW_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
+
+    if (rows_fetched_ptr)
+        *rows_fetched_ptr = 0;
+
+    if (!statement.hasResultSet())
+        return SQL_NO_DATA;
+
+    auto & result_set = statement.getResultSet();
+
+    const auto rows_fetched = result_set.fetchRowSet(orientation, offset, row_set_size);
+
+    if (rows_fetched == 0) {
+        statement.getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, result_set.getAffectedRowCount());
+        return SQL_NO_DATA;
+    }
+
+    if (rows_fetched_ptr)
+        *rows_fetched_ptr = rows_fetched;
+
+    auto res = SQL_SUCCESS;
+
+    for (std::size_t i = 0; i < rows_fetched; ++i) {
         for (auto & col_num_binding : statement.bindings) {
-            auto code = impl::GetData(statement_handle,
-                col_num_binding.first,
-                col_num_binding.second.c_type,
-                col_num_binding.second.value,
-                col_num_binding.second.value_max_size,
-                col_num_binding.second.value_size/* or .indicator */);
+            const auto code = fillBinding(
+                statement,
+                result_set,
+                i,
+                col_num_binding.first - 1,
+                col_num_binding.second
+            );
 
             if (code == SQL_SUCCESS_WITH_INFO)
                 res = code;
             else if (code != SQL_SUCCESS)
                 return code;
         }
+    }
 
-        return res;
-    };
-
-    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
+    return res;
 }
 
 } // namespace impl

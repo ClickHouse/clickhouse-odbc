@@ -1,95 +1,138 @@
 #pragma once
 
 #include "driver/platform/platform.h"
-#include "driver/utils/read_helpers.h"
+#include "driver/utils/utils.h"
 #include "driver/utils/type_parser.h"
+#include "driver/utils/type_info.h"
 
 #include <deque>
+#include <iostream>
 #include <memory>
+#include <string>
+#include <variant>
 #include <vector>
 
-class Statement;
+class ColumnInfo {
+public:
+    void assignTypeInfo(const TypeAst & ast);
+    void updateTypeId();
+
+public:
+    std::string name;
+    std::string type;
+    std::string type_without_parameters;
+    DataSourceTypeId type_without_parameters_id = DataSourceTypeId::Unknown;
+    std::size_t display_size = 0;
+    std::size_t fixed_size = 0;
+    bool is_nullable = false;
+};
 
 class Field {
 public:
-    std::string data;
-    bool is_null = false;
+    using DataType = std::variant<
+        DataSourceType< DataSourceTypeId::Date        >,
+        DataSourceType< DataSourceTypeId::DateTime    >,
+        DataSourceType< DataSourceTypeId::Decimal     >,
+        DataSourceType< DataSourceTypeId::Decimal32   >,
+        DataSourceType< DataSourceTypeId::Decimal64   >,
+        DataSourceType< DataSourceTypeId::Decimal128  >,
+        DataSourceType< DataSourceTypeId::FixedString >,
+        DataSourceType< DataSourceTypeId::Float32     >,
+        DataSourceType< DataSourceTypeId::Float64     >,
+        DataSourceType< DataSourceTypeId::Int8        >,
+        DataSourceType< DataSourceTypeId::Int16       >,
+        DataSourceType< DataSourceTypeId::Int32       >,
+        DataSourceType< DataSourceTypeId::Int64       >,
+        DataSourceType< DataSourceTypeId::Nothing     >, // ...used for storing Null.
+        DataSourceType< DataSourceTypeId::String      >,
+        DataSourceType< DataSourceTypeId::UInt8       >,
+        DataSourceType< DataSourceTypeId::UInt16      >,
+        DataSourceType< DataSourceTypeId::UInt32      >,
+        DataSourceType< DataSourceTypeId::UInt64      >,
+        DataSourceType< DataSourceTypeId::UUID        >
+    >;
 
-    uint64_t getUInt() const;
-    int64_t getInt() const;
-    float getFloat() const;
-    double getDouble() const;
+    SQLRETURN extract(BindingInfo & binding_info) const;
 
-    SQLGUID getGUID() const;
-
-    SQL_NUMERIC_STRUCT getNumeric(const std::int16_t precision, const std::int16_t scale) const;
-
-    SQL_DATE_STRUCT getDate() const;
-    SQL_TIMESTAMP_STRUCT getDateTime() const;
-
-private:
-    template <typename T>
-    void normalizeDate(T & date) const;
+public:
+    DataType data = DataSourceType<DataSourceTypeId::Nothing>{};
 };
 
 class Row {
 public:
-    Row() {}
-    Row(size_t num_columns) : data(num_columns) {}
+    SQLRETURN extractField(std::size_t column_idx, BindingInfo & binding_info) const;
 
-    std::vector<Field> data;
-
-    bool isValid() const {
-        return !data.empty();
-    }
-};
-
-struct ColumnInfo {
-    std::string name;
-    std::string type;
-    std::string type_without_parameters;
-    size_t display_size = 0;
-    size_t fixed_size = 0;
-    bool is_nullable = false;
-};
-
-class IResultMutator {
 public:
-    virtual ~IResultMutator() = default;
-
-    virtual void UpdateColumnInfo(std::vector<ColumnInfo> * columns_info) = 0;
-
-    virtual void UpdateRow(const std::vector<ColumnInfo> & columns_info, Row * row) = 0;
+    std::vector<Field> fields;
 };
 
-using IResultMutatorPtr = std::unique_ptr<IResultMutator>;
+class ResultMutator {
+public:
+    virtual ~ResultMutator() = default;
+
+    virtual void updateColumnsInfo(std::vector<ColumnInfo> & columns_info) = 0;
+    virtual void updateRow(const std::vector<ColumnInfo> & columns_info, Row & row) = 0;
+};
 
 class ResultSet {
 public:
-    explicit ResultSet(const std::string & format, std::istream & in_, IResultMutatorPtr && mutator_);
+    explicit ResultSet(std::istream & stream, std::unique_ptr<ResultMutator> && mutator);
 
-    const ColumnInfo & getColumnInfo(size_t i) const;
-    size_t getNumColumns() const;
+    virtual ~ResultSet();
 
-    bool hasCurrentRow() const;
-    const Row & getCurrentRow() const;
-    std::size_t getCurrentRowNum() const;
-    bool advanceToNextRow();
+    std::unique_ptr<ResultMutator> releaseMutator();
 
-    IResultMutatorPtr releaseMutator();
+    const ColumnInfo & getColumnInfo(std::size_t column_idx) const;
+    std::size_t getColumnCount() const;
 
-private:
-    bool endOfSet();
-    size_t prepareSomeRows(size_t max_ready_rows = 100);
+    std::size_t fetchRowSet(SQLSMALLINT orientation, SQLLEN offset, std::size_t size);
 
-private:
-    std::istream & in;
-    IResultMutatorPtr mutator;
+    std::size_t getCurrentRowSetSize() const;
+    std::size_t getCurrentRowSetPosition() const; // 1-based. 1 means the first row of the row set is the first row of the entire result set.
+    std::size_t getCurrentRowPosition() const;    // 1-based. 1 means positioned at the first row of the entire result set.
+    std::size_t getAffectedRowCount() const;
+
+    // row_idx - row index within the row set.
+    SQLRETURN extractField(std::size_t row_idx, std::size_t column_idx, BindingInfo & binding_info) const;
+
+protected:
+    void tryPrefetchRows(std::size_t size);
+    void retireRow(Row && row);
+
+    virtual bool readNextRow(Row & row) = 0;
+
+protected:
+    std::istream & raw_stream;
+    std::unique_ptr<ResultMutator> result_mutator;
     std::vector<ColumnInfo> columns_info;
-    std::deque<Row> ready_raw_rows;
-    Row current_row;
-    std::size_t current_row_num = 0;
+    std::deque<Row> row_set;
+    std::size_t row_set_position = 0; // 1-based. 1 means the first row of the row set is the first row of the entire result set.
+    std::size_t row_position = 0;     // 1-based. 1 means positioned at the first row of the entire result set.
+    std::size_t affected_row_count = 0;
+    std::deque<Row> prefetched_rows;
     bool finished = false;
+    ObjectPool<std::string> string_pool;
+    ObjectPool<Row> row_pool;
 };
 
-void assignTypeInfo(const TypeAst & ast, ColumnInfo * info);
+class ResultReader {
+protected:
+    explicit ResultReader(std::istream & stream, std::unique_ptr<ResultMutator> && mutator);
+
+public:
+    virtual ~ResultReader() = default;
+
+    bool hasResultSet() const;
+    ResultSet & getResultSet();
+
+    std::unique_ptr<ResultMutator> releaseMutator();
+
+    virtual bool advanceToNextResultSet() = 0;
+
+protected:
+    std::istream & raw_stream;
+    std::unique_ptr<ResultMutator> result_mutator;
+    std::unique_ptr<ResultSet> result_set;
+};
+
+std::unique_ptr<ResultReader> make_result_reader(const std::string & format, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator);

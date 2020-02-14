@@ -46,13 +46,16 @@ unset (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
 
 # In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
 add_library (${libname}-impl STATIC
-    utils/read_helpers.cpp
     utils/type_parser.cpp
+    utils/type_info.cpp
 
     config/config.cpp
 
     escaping/escape_sequences.cpp
     escaping/lexer.cpp
+
+    format/ODBCDriver2.cpp
+    format/RowBinaryWithNamesAndTypes.cpp
 
     api/impl/impl.cpp
 
@@ -66,7 +69,6 @@ add_library (${libname}-impl STATIC
     object.cpp
     result_set.cpp
     statement.cpp
-    type_info.cpp
 
 
     ${CMAKE_CURRENT_BINARY_DIR}/platform/config_cmake${WIDECHAR_SUFFIX}.h
@@ -75,9 +77,8 @@ add_library (${libname}-impl STATIC
     utils/utils.h
     utils/unicode_conv.h
     utils/iostream_debug_helpers.h
-    utils/read_helpers.h
     utils/type_parser.h
-    utils/scope_guard.h
+    utils/type_info.h
 
     config/config.h
     config/ini_defines.h
@@ -89,6 +90,9 @@ add_library (${libname}-impl STATIC
 
     api/impl/impl.h
 
+    format/ODBCDriver2.h
+    format/RowBinaryWithNamesAndTypes.h
+
     attributes.h
     connection.h
     descriptor.h
@@ -99,7 +103,6 @@ add_library (${libname}-impl STATIC
     object.h
     result_set.h
     statement.h
-    type_info.h
 )
 
 set (WIN_SOURCES)

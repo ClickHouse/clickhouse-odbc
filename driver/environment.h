@@ -2,7 +2,7 @@
 
 #include "driver/driver.h"
 #include "driver/diagnostics.h"
-#include "driver/type_info.h"
+#include "driver/utils/type_info.h"
 
 #include <map>
 #include <stdexcept>
@@ -20,7 +20,7 @@ public:
     template <typename T> T & allocateChild();
     template <typename T> void deallocateChild(SQLHANDLE) noexcept;
 
-    const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs = "") const;
+    const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters = "") const;
 
 public:
 #if defined(SQL_OV_ODBC3_80)

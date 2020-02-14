@@ -24,8 +24,8 @@ Statement::~Statement() {
     deallocateImplicitDescriptors();
 }
 
-const TypeInfo & Statement::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs) const {
-    return getParent().getParent().getTypeInfo(type_name, type_name_without_parametrs);
+const TypeInfo & Statement::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters) const {
+    return getParent().getParent().getTypeInfo(type_name, type_name_without_parameters);
 }
 
 void Statement::prepareQuery(const std::string & q) {
@@ -44,7 +44,7 @@ bool Statement::isExecuted() const {
     return is_executed;
 }
 
-void Statement::executeQuery(IResultMutatorPtr && mutator) {
+void Statement::executeQuery(std::unique_ptr<ResultMutator> && mutator) {
     if (!is_prepared)
         throw std::runtime_error("statement not prepared");
 
@@ -62,8 +62,8 @@ void Statement::executeQuery(IResultMutatorPtr && mutator) {
     is_executed = true;
 }
 
-void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
-    result_set.reset();
+void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mutator) {
+    result_reader.reset();
 
     const auto param_set_array_size = getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
     if (next_param_set >= param_set_array_size)
@@ -120,7 +120,7 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
             if (binding_info.value == nullptr)
                 value = "Null";
             else
-                value = readReadyDataTo<std::string>(binding_info);
+                readReadyDataTo(binding_info, value);
         }
 
         const auto param_name = getParamFinalName(i);
@@ -163,7 +163,7 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
                 connection.session->reset(); // reset keepalived connection
                 auto newLocation = response->get("Location");
                 LOG("Redirected to " << newLocation << ", redirect index=" << redirect_count + 1 << "/" << connection.redirect_limit);
-                uri = newLocation; 
+                uri = newLocation;
                 connection.session->setHost(uri.getHost());
                 connection.session->setPort(uri.getPort());
                 request.setURI(uri.getPathEtc());
@@ -189,13 +189,7 @@ void Statement::requestNextPackOfResultSets(IResultMutatorPtr && mutator) {
         throw std::runtime_error(error_message.str());
     }
 
-    auto format = connection.default_format;
-
-    if (response->has("X-ClickHouse-Format"))
-        format = response->get("X-ClickHouse-Format");
-
-    result_set = std::make_unique<ResultSet>(format, *in, std::move(mutator));
-
+    result_reader = make_result_reader(response->get("X-ClickHouse-Format", connection.default_format), *in, std::move(mutator));
     ++next_param_set;
 }
 
@@ -341,12 +335,12 @@ std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& para
     return prepared_query;
 }
 
-void Statement::executeQuery(const std::string & q, IResultMutatorPtr && mutator) {
+void Statement::executeQuery(const std::string & q, std::unique_ptr<ResultMutator> && mutator) {
     prepareQuery(q);
     executeQuery(std::move(mutator));
 }
 
-void Statement::forwardExecuteQuery(IResultMutatorPtr && mutator) {
+void Statement::forwardExecuteQuery(std::unique_ptr<ResultMutator> && mutator) {
     if (!is_prepared)
         throw std::runtime_error("statement not prepared");
 
@@ -358,65 +352,40 @@ void Statement::forwardExecuteQuery(IResultMutatorPtr && mutator) {
 }
 
 bool Statement::hasResultSet() const {
-    return (isExecuted() && result_set);
+    return (result_reader && result_reader->hasResultSet());
+}
+
+ResultSet & Statement::getResultSet() {
+    return result_reader->getResultSet();
 }
 
 bool Statement::advanceToNextResultSet() {
-    if (!isExecuted())
+    if (!is_executed)
         return false;
 
     getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, 0);
 
-    IResultMutatorPtr mutator;
+    std::unique_ptr<ResultMutator> mutator;
 
-    if (hasResultSet())
-        mutator = result_set->releaseMutator();
+    if (result_reader) {
+        if (result_reader->advanceToNextResultSet())
+            return true;
 
-    // TODO: add support of detecting next result set on the wire, when protocol allows it.
+        mutator = result_reader->releaseMutator();
+    }
 
     requestNextPackOfResultSets(std::move(mutator));
     return hasResultSet();
 }
 
-const ColumnInfo & Statement::getColumnInfo(size_t i) const {
-    return result_set->getColumnInfo(i);
-}
-
-size_t Statement::getNumColumns() const {
-    return (hasResultSet() ? result_set->getNumColumns() : 0);
-}
-
-bool Statement::hasCurrentRow() const {
-    return (hasResultSet() ? result_set->hasCurrentRow() : false);
-}
-
-const Row & Statement::getCurrentRow() const {
-    return result_set->getCurrentRow();
-}
-
-std::size_t Statement::getCurrentRowNum() const {
-    return (hasResultSet() ? result_set->getCurrentRowNum() : 0);
-}
-
-bool Statement::advanceToNextRow() {
-    bool advanced = false;
-
-    if (hasResultSet()) {
-        advanced = result_set->advanceToNextRow();
-        if (!advanced)
-            getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, result_set->getCurrentRowNum());
-    }
-
-    return advanced;
-}
-
 void Statement::closeCursor() {
     auto & connection = getParent();
-    if (connection.session && response && in)
+    if (connection.session && response && in) {
         if (!*in || in->peek() != EOF)
             connection.session->reset();
+    }
 
-    result_set.reset();
+    result_reader.reset();
     in = nullptr;
     response.reset();
 

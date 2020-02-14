@@ -8,13 +8,25 @@ Environment::Environment(Driver & driver)
 {
 }
 
-const TypeInfo & Environment::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs) const {
+const TypeInfo & Environment::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters) const {
     auto it = types_g.find(type_name);
+
     if (it == types_g.end())
-        it = types_g.find(type_name_without_parametrs);
+        it = types_g.find(type_name_without_parameters);
+
+    if (it == types_g.end()) {
+        it = types_g.find(
+            convertTypeIdToUnparametrizedCanonicalTypeName(
+                convertUnparametrizedTypeNameToTypeId(type_name_without_parameters)
+            )
+        );
+    }
+
     if (it != types_g.end())
         return it->second;
-    LOG("Unsupported type " << type_name << " : " << type_name_without_parametrs);
+
+    LOG("Unsupported type " << type_name << " : " << type_name_without_parameters);
+
     throw SqlException("Invalid SQL data type", "HY004");
 }
 

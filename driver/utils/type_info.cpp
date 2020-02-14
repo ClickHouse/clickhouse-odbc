@@ -1,4 +1,6 @@
-#include "driver/type_info.h"
+#include "driver/utils/type_info.h"
+
+#include <Poco/String.h>
 
 #include <stdexcept>
 
@@ -32,6 +34,70 @@ const std::map<std::string, TypeInfo> types_g = {
     {"LowCardinality(FixedString)",
         TypeInfo {"TEXT", true, SQL_VARCHAR, TypeInfo::string_max_size, TypeInfo::string_max_size}}, // todo: remove
 };
+
+DataSourceTypeId convertUnparametrizedTypeNameToTypeId(const std::string & type_name) {
+         if (Poco::icompare(type_name, "Date") == 0)        return DataSourceTypeId::Date;
+    else if (Poco::icompare(type_name, "DateTime") == 0)    return DataSourceTypeId::DateTime;
+    else if (Poco::icompare(type_name, "Decimal") == 0)     return DataSourceTypeId::Decimal;
+    else if (Poco::icompare(type_name, "Decimal32") == 0)   return DataSourceTypeId::Decimal32;
+    else if (Poco::icompare(type_name, "Decimal64") == 0)   return DataSourceTypeId::Decimal64;
+    else if (Poco::icompare(type_name, "Decimal128") == 0)  return DataSourceTypeId::Decimal128;
+    else if (Poco::icompare(type_name, "FixedString") == 0) return DataSourceTypeId::FixedString;
+    else if (Poco::icompare(type_name, "Float32") == 0)     return DataSourceTypeId::Float32;
+    else if (Poco::icompare(type_name, "Float64") == 0)     return DataSourceTypeId::Float64;
+    else if (Poco::icompare(type_name, "Int8") == 0)        return DataSourceTypeId::Int8;
+    else if (Poco::icompare(type_name, "Int16") == 0)       return DataSourceTypeId::Int16;
+    else if (Poco::icompare(type_name, "Int32") == 0)       return DataSourceTypeId::Int32;
+    else if (Poco::icompare(type_name, "Int64") == 0)       return DataSourceTypeId::Int64;
+    else if (Poco::icompare(type_name, "Nothing") == 0)     return DataSourceTypeId::Nothing;
+    else if (Poco::icompare(type_name, "String") == 0)      return DataSourceTypeId::String;
+    else if (Poco::icompare(type_name, "UInt8") == 0)       return DataSourceTypeId::UInt8;
+    else if (Poco::icompare(type_name, "UInt16") == 0)      return DataSourceTypeId::UInt16;
+    else if (Poco::icompare(type_name, "UInt32") == 0)      return DataSourceTypeId::UInt32;
+    else if (Poco::icompare(type_name, "UInt64") == 0)      return DataSourceTypeId::UInt64;
+    else if (Poco::icompare(type_name, "UUID") == 0)        return DataSourceTypeId::UUID;
+
+    else if (Poco::icompare(type_name, "TINYINT") == 0)     return DataSourceTypeId::Int8;
+    else if (Poco::icompare(type_name, "SMALLINT") == 0)    return DataSourceTypeId::Int16;
+    else if (Poco::icompare(type_name, "INT") == 0)         return DataSourceTypeId::Int32;
+    else if (Poco::icompare(type_name, "INTEGER") == 0)     return DataSourceTypeId::Int32;
+    else if (Poco::icompare(type_name, "BIGINT") == 0)      return DataSourceTypeId::Int64;
+    else if (Poco::icompare(type_name, "FLOAT") == 0)       return DataSourceTypeId::Float32;
+    else if (Poco::icompare(type_name, "DOUBLE") == 0)      return DataSourceTypeId::Float64;
+    else if (Poco::icompare(type_name, "TIMESTAMP") == 0)   return DataSourceTypeId::DateTime;
+    else if (Poco::icompare(type_name, "VARCHAR") == 0)     return DataSourceTypeId::String;
+    else if (Poco::icompare(type_name, "TEXT") == 0)        return DataSourceTypeId::String;
+
+    return DataSourceTypeId::Unknown;
+}
+
+std::string convertTypeIdToUnparametrizedCanonicalTypeName(DataSourceTypeId type_id) {
+    switch (type_id) {
+        case DataSourceTypeId::Date:        return "Date";
+        case DataSourceTypeId::DateTime:    return "DateTime";
+        case DataSourceTypeId::Decimal:     return "Decimal";
+        case DataSourceTypeId::Decimal32:   return "Decimal32";
+        case DataSourceTypeId::Decimal64:   return "Decimal64";
+        case DataSourceTypeId::Decimal128:  return "Decimal128";
+        case DataSourceTypeId::FixedString: return "FixedString";
+        case DataSourceTypeId::Float32:     return "Float32";
+        case DataSourceTypeId::Float64:     return "Float64";
+        case DataSourceTypeId::Int8:        return "Int8";
+        case DataSourceTypeId::Int16:       return "Int16";
+        case DataSourceTypeId::Int32:       return "Int32";
+        case DataSourceTypeId::Int64:       return "Int64";
+        case DataSourceTypeId::Nothing:     return "Nothing";
+        case DataSourceTypeId::String:      return "String";
+        case DataSourceTypeId::UInt8:       return "UInt8";
+        case DataSourceTypeId::UInt16:      return "UInt16";
+        case DataSourceTypeId::UInt32:      return "UInt32";
+        case DataSourceTypeId::UInt64:      return "UInt64";
+        case DataSourceTypeId::UUID:        return "UUID";
+
+        default:
+            throw std::runtime_error("unknown type id");
+    }
+}
 
 SQLSMALLINT convertSQLTypeToCType(SQLSMALLINT sql_type) noexcept {
     switch (sql_type) {
@@ -515,7 +581,7 @@ bool isMappedToStringDataSourceType(SQLSMALLINT sql_type, SQLSMALLINT c_type) no
         case SQL_INTERVAL_MINUTE_TO_SECOND:
             return true;
     }
-    
+
     switch (c_type) {
         case SQL_C_WCHAR:
         case SQL_C_CHAR:

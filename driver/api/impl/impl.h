@@ -1,5 +1,8 @@
 #include "driver/platform/platform.h"
 
+class Statement;
+struct BindingInfo;
+
 namespace impl {
 
     SQLRETURN allocEnv(
@@ -174,16 +177,15 @@ namespace impl {
     ) noexcept;
 
     SQLRETURN GetData(
-        HSTMT statement_handle,
+        Statement & statement,
         SQLUSMALLINT column_or_param_number,
-        SQLSMALLINT target_type,
-        PTR out_value,
-        SQLLEN out_value_max_size,
-        SQLLEN * out_value_size_or_indicator
-    ) noexcept;
+        const BindingInfo & binding_info
+    );
 
-    SQLRETURN Fetch(
-        HSTMT statement_handle
-    ) noexcept;
+    SQLRETURN FetchScroll(
+        Statement & statement,
+        SQLSMALLINT orientation,
+        SQLLEN offset
+    );
 
 } // namespace impl
