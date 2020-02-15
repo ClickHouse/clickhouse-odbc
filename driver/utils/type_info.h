@@ -610,432 +610,436 @@ namespace value_manip {
                 dest = fromString<DestinationType>(src);
             }
         };
+    };
 
-        template <>
-        struct to_value<std::string> {
-            using DestinationType = std::string;
+    template <>
+    struct from_value<std::string>::to_value<std::string> {
+        using DestinationType = std::string;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                dest = src;
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            dest = src;
+        }
+    };
+
+    template <>
+    struct from_value<std::string>::to_value<std::int64_t> {
+        using DestinationType = std::int64_t;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::size_t pos = 0;
+
+            try {
+                dest = std::stoll(src, &pos, 10);
             }
-        };
-
-        template <>
-        struct to_value<std::int64_t> {
-            using DestinationType = std::int64_t;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                std::size_t pos = 0;
-
-                try {
-                    dest = std::stoll(src, &pos, 10);
-                }
-                catch (const std::exception & e) {
-                    throw std::runtime_error("Cannot interpret '" + src + "' as signed 64-bit integer: " + e.what());
-                }
-
-                if (pos != src.size())
-                    throw std::runtime_error("Cannot interpret '" + src + "' as signed 64-bit integer: string consumed partially");
+            catch (const std::exception & e) {
+                throw std::runtime_error("Cannot interpret '" + src + "' as signed 64-bit integer: " + e.what());
             }
-        };
 
-        template <>
-        struct to_value<std::int32_t> {
-            using DestinationType = std::int32_t;
+            if (pos != src.size())
+                throw std::runtime_error("Cannot interpret '" + src + "' as signed 64-bit integer: string consumed partially");
+        }
+    };
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                std::int64_t tmp = 0;
-                to_value<std::int64_t>::convert(src, tmp);
+    template <>
+    struct from_value<std::string>::to_value<std::int32_t> {
+        using DestinationType = std::int32_t;
 
-                if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
-                    throw std::runtime_error("Cannot interpret '" + src + "' as signed 32-bit integer: value out of range");
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::int64_t tmp = 0;
+            to_value<std::int64_t>::convert(src, tmp);
 
-                dest = static_cast<std::int32_t>(tmp);
+            if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
+                throw std::runtime_error("Cannot interpret '" + src + "' as signed 32-bit integer: value out of range");
+
+            dest = static_cast<std::int32_t>(tmp);
+        }
+    };
+
+#if !defined(__GNUC__) || defined(__clang__)
+    template <>
+    struct from_value<std::string>::to_value<long> {
+        using DestinationType = long;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::int64_t tmp = 0;
+            to_value<std::int64_t>::convert(src, tmp);
+
+            if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
+                throw std::runtime_error("Cannot interpret '" + src + "' as long integer: value out of range");
+
+            dest = static_cast<long>(tmp);
+        }
+    };
+#endif
+
+    template <>
+    struct from_value<std::string>::to_value<std::int16_t> {
+        using DestinationType = std::int16_t;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::int64_t tmp = 0;
+            to_value<std::int64_t>::convert(src, tmp);
+
+            if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
+                throw std::runtime_error("Cannot interpret '" + src + "' as signed 16-bit integer: value out of range");
+
+            dest = static_cast<std::int16_t>(tmp);
+        }
+    };
+
+    template <>
+    struct from_value<std::string>::to_value<std::int8_t> {
+        using DestinationType = std::int8_t;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::int64_t tmp = 0;
+            to_value<std::int64_t>::convert(src, tmp);
+
+            if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
+                throw std::runtime_error("Cannot interpret '" + src + "' as signed 8-bit integer: value out of range");
+
+            dest = static_cast<std::int8_t>(tmp);
+        }
+    };
+
+    template <>
+    struct from_value<std::string>::to_value<std::uint64_t> {
+        using DestinationType = std::uint64_t;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::size_t pos = 0;
+
+            try {
+                dest = std::stoull(src, &pos, 10);
             }
-        };
-
-        template <>
-        struct to_value<long> {
-            using DestinationType = long;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                std::int64_t tmp = 0;
-                to_value<std::int64_t>::convert(src, tmp);
-
-                if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
-                    throw std::runtime_error("Cannot interpret '" + src + "' as long integer: value out of range");
-
-                dest = static_cast<long>(tmp);
+            catch (const std::exception & e) {
+                throw std::runtime_error("Cannot interpret '" + src + "' as unsigned 64-bit integer: " + e.what());
             }
-        };
 
-        template <>
-        struct to_value<std::int16_t> {
-            using DestinationType = std::int16_t;
+            if (pos != src.size())
+                throw std::runtime_error("Cannot interpret '" + src + "' as unsigned 64-bit integer: string consumed partially");
+        }
+    };
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                std::int64_t tmp = 0;
-                to_value<std::int64_t>::convert(src, tmp);
+    template <>
+    struct from_value<std::string>::to_value<std::uint32_t> {
+        using DestinationType = std::uint32_t;
 
-                if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
-                    throw std::runtime_error("Cannot interpret '" + src + "' as signed 16-bit integer: value out of range");
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::uint64_t tmp = 0;
+            to_value<std::uint64_t>::convert(src, tmp);
 
-                dest = static_cast<std::int16_t>(tmp);
+            if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
+                throw std::runtime_error("Cannot interpret '" + src + "' as unsigned 32-bit integer: value out of range");
+
+            dest = static_cast<std::uint32_t>(tmp);
+        }
+    };
+
+#if !defined(__GNUC__) || defined(__clang__)
+    template <>
+    struct from_value<std::string>::to_value<unsigned long> {
+        using DestinationType = unsigned long;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::uint64_t tmp = 0;
+            to_value<std::uint64_t>::convert(src, tmp);
+
+            if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
+                throw std::runtime_error("Cannot interpret '" + src + "' as unsigned long integer: value out of range");
+
+            dest = static_cast<std::uint32_t>(tmp);
+        }
+    };
+#endif
+
+    template <>
+    struct from_value<std::string>::to_value<std::uint16_t> {
+        using DestinationType = std::uint16_t;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::uint64_t tmp = 0;
+            to_value<std::uint64_t>::convert(src, tmp);
+
+            if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
+                throw std::runtime_error("Cannot interpret '" + src + "' as unsigned 16-bit integer: value out of range");
+
+            dest = static_cast<std::uint16_t>(tmp);
+        }
+    };
+
+    template <>
+    struct from_value<std::string>::to_value<std::uint8_t> {
+        using DestinationType = std::uint8_t;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::uint64_t tmp = 0;
+            to_value<std::uint64_t>::convert(src, tmp);
+
+            if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
+                throw std::runtime_error("Cannot interpret '" + src + "' as unsigned 8-bit integer: value out of range");
+
+            dest = static_cast<std::uint8_t>(tmp);
+        }
+    };
+
+    template <>
+    struct from_value<std::string>::to_value<float> {
+        using DestinationType = float;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::size_t pos = 0;
+
+            try {
+                dest = std::stof(src, &pos);
             }
-        };
-
-        template <>
-        struct to_value<std::int8_t> {
-            using DestinationType = std::int8_t;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                std::int64_t tmp = 0;
-                to_value<std::int64_t>::convert(src, tmp);
-
-                if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
-                    throw std::runtime_error("Cannot interpret '" + src + "' as signed 8-bit integer: value out of range");
-
-                dest = static_cast<std::int8_t>(tmp);
+            catch (const std::exception & e) {
+                throw std::runtime_error("Cannot interpret '" + src + "' as float: " + e.what());
             }
-        };
 
-        template <>
-        struct to_value<std::uint64_t> {
-            using DestinationType = std::uint64_t;
+            if (pos != src.size())
+                throw std::runtime_error("Cannot interpret '" + src + "' as float: string consumed partially");
+        }
+    };
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                std::size_t pos = 0;
+    template <>
+    struct from_value<std::string>::to_value<double> {
+        using DestinationType = double;
 
-                try {
-                    dest = std::stoull(src, &pos, 10);
-                }
-                catch (const std::exception & e) {
-                    throw std::runtime_error("Cannot interpret '" + src + "' as unsigned 64-bit integer: " + e.what());
-                }
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::size_t pos = 0;
 
-                if (pos != src.size())
-                    throw std::runtime_error("Cannot interpret '" + src + "' as unsigned 64-bit integer: string consumed partially");
+            try {
+                dest = std::stod(src, &pos);
             }
-        };
-
-        template <>
-        struct to_value<std::uint32_t> {
-            using DestinationType = std::uint32_t;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                std::uint64_t tmp = 0;
-                to_value<std::uint64_t>::convert(src, tmp);
-
-                if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
-                    throw std::runtime_error("Cannot interpret '" + src + "' as unsigned 32-bit integer: value out of range");
-
-                dest = static_cast<std::uint32_t>(tmp);
+            catch (const std::exception & e) {
+                throw std::runtime_error("Cannot interpret '" + src + "' as double: " + e.what());
             }
-        };
 
-        template <>
-        struct to_value<unsigned long> {
-            using DestinationType = unsigned long;
+            if (pos != src.size())
+                throw std::runtime_error("Cannot interpret '" + src + "' as double: string consumed partially");
+        }
+    };
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                std::uint64_t tmp = 0;
-                to_value<std::uint64_t>::convert(src, tmp);
+    template <>
+    struct from_value<std::string>::to_value<SQLGUID> {
+        using DestinationType = SQLGUID;
 
-                if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
-                    throw std::runtime_error("Cannot interpret '" + src + "' as unsigned long integer: value out of range");
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            unsigned int Data1 = 0;
+            unsigned int Data2 = 0;
+            unsigned int Data3 = 0;
+            unsigned int Data4[8] = { 0 };
+            char guard = '\0';
 
-                dest = static_cast<std::uint32_t>(tmp);
+            const auto read = std::sscanf(src.c_str(), "%8x-%4x-%4x-%2x%2x-%2x%2x%2x%2x%2x%2x%c",
+                &Data1, &Data2, &Data3,
+                &Data4[0], &Data4[1], &Data4[2], &Data4[3],
+                &Data4[4], &Data4[5], &Data4[6], &Data4[7],
+                &guard
+            );
+
+            if (read != 11) // All 'DataN' must be successfully read, but not the 'guard'.
+                throw std::runtime_error("Cannot interpret '" + src + "' as GUID");
+
+            dest.Data1 = Data1;
+            dest.Data2 = Data2;
+            dest.Data3 = Data3;
+            std::copy(std::begin(Data4), std::end(Data4), std::begin(dest.Data4));
+        }
+    };
+
+    template <>
+    struct from_value<std::string>::to_value<SQL_NUMERIC_STRUCT> {
+        using DestinationType = SQL_NUMERIC_STRUCT;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            convert_via_proxy<DataSourceType<DataSourceTypeId::Decimal>>(src, dest);
+        }
+    };
+
+    template <>
+    struct from_value<std::string>::to_value<SQL_DATE_STRUCT> {
+        using DestinationType = SQL_DATE_STRUCT;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            if (src.size() != 10)
+                throw std::runtime_error("Cannot interpret '" + src + "' as Date");
+
+            dest.year = (src[0] - '0') * 1000 + (src[1] - '0') * 100 + (src[2] - '0') * 10 + (src[3] - '0');
+            dest.month = (src[5] - '0') * 10 + (src[6] - '0');
+            dest.day = (src[8] - '0') * 10 + (src[9] - '0');
+
+            normalize_date(dest);
+        }
+    };
+
+    template <>
+    struct from_value<std::string>::to_value<SQL_TIME_STRUCT> {
+        using DestinationType = SQL_TIME_STRUCT;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            if constexpr (std::is_same_v<SourceType, DestinationType>) {
+                std::memcpy(&dest, &src, sizeof(dest));
             }
-        };
+            else {
+                throw std::runtime_error("conversion not supported");
 
-        template <>
-        struct to_value<std::uint16_t> {
-            using DestinationType = std::uint16_t;
+                // TODO: implement?
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                std::uint64_t tmp = 0;
-                to_value<std::uint64_t>::convert(src, tmp);
-
-                if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
-                    throw std::runtime_error("Cannot interpret '" + src + "' as unsigned 16-bit integer: value out of range");
-
-                dest = static_cast<std::uint16_t>(tmp);
             }
-        };
+        }
+    };
 
-        template <>
-        struct to_value<std::uint8_t> {
-            using DestinationType = std::uint8_t;
+    template <>
+    struct from_value<std::string>::to_value<SQL_TIMESTAMP_STRUCT> {
+        using DestinationType = SQL_TIMESTAMP_STRUCT;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                std::uint64_t tmp = 0;
-                to_value<std::uint64_t>::convert(src, tmp);
-
-                if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
-                    throw std::runtime_error("Cannot interpret '" + src + "' as unsigned 8-bit integer: value out of range");
-
-                dest = static_cast<std::uint8_t>(tmp);
-            }
-        };
-
-        template <>
-        struct to_value<float> {
-            using DestinationType = float;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                std::size_t pos = 0;
-
-                try {
-                    dest = std::stof(src, &pos);
-                }
-                catch (const std::exception & e) {
-                    throw std::runtime_error("Cannot interpret '" + src + "' as float: " + e.what());
-                }
-
-                if (pos != src.size())
-                    throw std::runtime_error("Cannot interpret '" + src + "' as float: string consumed partially");
-            }
-        };
-
-        template <>
-        struct to_value<double> {
-            using DestinationType = double;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                std::size_t pos = 0;
-
-                try {
-                    dest = std::stod(src, &pos);
-                }
-                catch (const std::exception & e) {
-                    throw std::runtime_error("Cannot interpret '" + src + "' as double: " + e.what());
-                }
-
-                if (pos != src.size())
-                    throw std::runtime_error("Cannot interpret '" + src + "' as double: string consumed partially");
-            }
-        };
-
-        template <>
-        struct to_value<SQLGUID> {
-            using DestinationType = SQLGUID;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                unsigned int Data1 = 0;
-                unsigned int Data2 = 0;
-                unsigned int Data3 = 0;
-                unsigned int Data4[8] = { 0 };
-                char guard = '\0';
-
-                const auto read = std::sscanf(src.c_str(), "%8x-%4x-%4x-%2x%2x-%2x%2x%2x%2x%2x%2x%c",
-                    &Data1, &Data2, &Data3,
-                    &Data4[0], &Data4[1], &Data4[2], &Data4[3],
-                    &Data4[4], &Data4[5], &Data4[6], &Data4[7],
-                    &guard
-                );
-
-                if (read != 11) // All 'DataN' must be successfully read, but not the 'guard'.
-                    throw std::runtime_error("Cannot interpret '" + src + "' as GUID");
-
-                dest.Data1 = Data1;
-                dest.Data2 = Data2;
-                dest.Data3 = Data3;
-                std::copy(std::begin(Data4), std::end(Data4), std::begin(dest.Data4));
-            }
-        };
-
-        template <>
-        struct to_value<SQL_NUMERIC_STRUCT> {
-            using DestinationType = SQL_NUMERIC_STRUCT;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                convert_via_proxy<DataSourceType<DataSourceTypeId::Decimal>>(src, dest);
-            }
-        };
-
-        template <>
-        struct to_value<SQL_DATE_STRUCT> {
-            using DestinationType = SQL_DATE_STRUCT;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                if (src.size() != 10)
-                    throw std::runtime_error("Cannot interpret '" + src + "' as Date");
-
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            if (src.size() == 10) {
                 dest.year = (src[0] - '0') * 1000 + (src[1] - '0') * 100 + (src[2] - '0') * 10 + (src[3] - '0');
                 dest.month = (src[5] - '0') * 10 + (src[6] - '0');
                 dest.day = (src[8] - '0') * 10 + (src[9] - '0');
-
-                normalize_date(dest);
+                dest.hour = 0;
+                dest.minute = 0;
+                dest.second = 0;
+                dest.fraction = 0;
             }
-        };
+            else if (src.size() == 19) {
+                dest.year = (src[0] - '0') * 1000 + (src[1] - '0') * 100 + (src[2] - '0') * 10 + (src[3] - '0');
+                dest.month = (src[5] - '0') * 10 + (src[6] - '0');
+                dest.day = (src[8] - '0') * 10 + (src[9] - '0');
+                dest.hour = (src[11] - '0') * 10 + (src[12] - '0');
+                dest.minute = (src[14] - '0') * 10 + (src[15] - '0');
+                dest.second = (src[17] - '0') * 10 + (src[18] - '0');
+                dest.fraction = 0;
+            }
+            else
+                throw std::runtime_error("Cannot interpret '" + src + "' as DateTime");
 
-        template <>
-        struct to_value<SQL_TIME_STRUCT> {
-            using DestinationType = SQL_TIME_STRUCT;
+            normalize_date(dest);
+        }
+    };
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                if constexpr (std::is_same_v<SourceType, DestinationType>) {
-                    std::memcpy(&dest, &src, sizeof(dest));
-                }
-                else {
-                    throw std::runtime_error("conversion not supported");
+    template <DataSourceTypeId Id>
+    struct from_value<std::string>::to_value<DataSourceType<Id>> {
+        using DestinationType = DataSourceType<Id>;
 
-                    // TODO: implement?
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            return from_value<SourceType>::template to_value<decltype(dest.value)>::convert(src, dest.value);
+        }
+    };
 
+    template <>
+    struct from_value<std::string>::to_value<DataSourceType<DataSourceTypeId::Decimal>> {
+        using DestinationType = DataSourceType<DataSourceTypeId::Decimal>;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            constexpr auto dest_value_max = (std::numeric_limits<std::decay_t<decltype(dest.value)>>::max)();
+            constexpr std::uint32_t dec_mult = 10;
+
+            std::size_t left_n = 0;
+            std::size_t right_n = 0;
+            bool sign_met = false;
+            bool dot_met = false;
+            bool dig_met = false;
+
+            dest.value = 0;
+            dest.sign = 1;
+
+            for (auto ch : src) {
+                switch (ch) {
+                    case '+':
+                    case '-': {
+                        if (sign_met || dot_met || dig_met)
+                            throw std::runtime_error("Cannot interpret '" + src + "' as Decimal/Numeric");
+
+                        if (ch == '-')
+                            dest.sign = 0;
+
+                        sign_met = true;
+                        break;
+                    }
+
+                    case '.': {
+                        if (dot_met)
+                            throw std::runtime_error("Cannot interpret '" + src + "' as Decimal/Numeric");
+
+                        dot_met = true;
+                        break;
+                    }
+
+                    case '0':
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                    case '7':
+                    case '8':
+                    case '9': {
+                        const std::uint32_t next_dec_dig = static_cast<unsigned char>(ch - '0');
+
+                        if (dest.value != 0) {
+                            if ((dest_value_max / dec_mult) < dest.value)
+                                throw std::runtime_error("Cannot interpret '" + src + "' as Decimal/Numeric: value is too big for internal representation");
+                            dest.value *= dec_mult;
+                        }
+
+                        if (next_dec_dig != 0) {
+                            if ((dest_value_max - next_dec_dig) < dest.value)
+                                throw std::runtime_error("Cannot interpret '" + src + "' as Decimal/Numeric: value is too big for internal representation");
+                            dest.value += next_dec_dig;
+                        }
+
+                        if (dot_met)
+                            ++right_n;
+                        else
+                            ++left_n;
+
+                        dig_met = true;
+                        break;
+                    }
+
+                    default:
+                        throw std::runtime_error("Cannot interpret '" + src + "' as Decimal/Numeric");
                 }
             }
-        };
 
-        template <>
-        struct to_value<SQL_TIMESTAMP_STRUCT> {
-            using DestinationType = SQL_TIMESTAMP_STRUCT;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                if (src.size() == 10) {
-                    dest.year = (src[0] - '0') * 1000 + (src[1] - '0') * 100 + (src[2] - '0') * 10 + (src[3] - '0');
-                    dest.month = (src[5] - '0') * 10 + (src[6] - '0');
-                    dest.day = (src[8] - '0') * 10 + (src[9] - '0');
-                    dest.hour = 0;
-                    dest.minute = 0;
-                    dest.second = 0;
-                    dest.fraction = 0;
-                }
-                else if (src.size() == 19) {
-                    dest.year = (src[0] - '0') * 1000 + (src[1] - '0') * 100 + (src[2] - '0') * 10 + (src[3] - '0');
-                    dest.month = (src[5] - '0') * 10 + (src[6] - '0');
-                    dest.day = (src[8] - '0') * 10 + (src[9] - '0');
-                    dest.hour = (src[11] - '0') * 10 + (src[12] - '0');
-                    dest.minute = (src[14] - '0') * 10 + (src[15] - '0');
-                    dest.second = (src[17] - '0') * 10 + (src[18] - '0');
-                    dest.fraction = 0;
-                }
-                else
-                    throw std::runtime_error("Cannot interpret '" + src + "' as DateTime");
-
-                normalize_date(dest);
-            }
-        };
-
-        template <DataSourceTypeId Id>
-        struct to_value<DataSourceType<Id>> {
-            using DestinationType = DataSourceType<Id>;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                return from_value<SourceType>::template to_value<decltype(dest.value)>::convert(src, dest.value);
-            }
-        };
-
-        template <>
-        struct to_value<DataSourceType<DataSourceTypeId::Decimal>> {
-            using DestinationType = DataSourceType<DataSourceTypeId::Decimal>;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                constexpr auto dest_value_max = (std::numeric_limits<std::decay_t<decltype(dest.value)>>::max)();
-                constexpr std::uint32_t dec_mult = 10;
-
-                std::size_t left_n = 0;
-                std::size_t right_n = 0;
-                bool sign_met = false;
-                bool dot_met = false;
-                bool dig_met = false;
-
-                dest.value = 0;
+            if (dest.value == 0)
                 dest.sign = 1;
 
-                for (auto ch : src) {
-                    switch (ch) {
-                        case '+':
-                        case '-': {
-                            if (sign_met || dot_met || dig_met)
-                                throw std::runtime_error("Cannot interpret '" + src + "' as Decimal/Numeric");
+            dest.precision = left_n + right_n;
+            dest.scale = right_n;
+        }
+    };
 
-                            if (ch == '-')
-                                dest.sign = 0;
+    template <>
+    struct from_value<std::string>::to_value<DataSourceType<DataSourceTypeId::Decimal32>> {
+        using DestinationType = DataSourceType<DataSourceTypeId::Decimal32>;
 
-                            sign_met = true;
-                            break;
-                        }
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            return to_value<DataSourceType<DataSourceTypeId::Decimal>>::convert(src, dest);
+        }
+    };
 
-                        case '.': {
-                            if (dot_met)
-                                throw std::runtime_error("Cannot interpret '" + src + "' as Decimal/Numeric");
+    template <>
+    struct from_value<std::string>::to_value<DataSourceType<DataSourceTypeId::Decimal64>> {
+        using DestinationType = DataSourceType<DataSourceTypeId::Decimal64>;
 
-                            dot_met = true;
-                            break;
-                        }
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            return to_value<DataSourceType<DataSourceTypeId::Decimal>>::convert(src, dest);
+        }
+    };
 
-                        case '0':
-                        case '1':
-                        case '2':
-                        case '3':
-                        case '4':
-                        case '5':
-                        case '6':
-                        case '7':
-                        case '8':
-                        case '9': {
-                            const std::uint32_t next_dec_dig = static_cast<unsigned char>(ch - '0');
+    template <>
+    struct from_value<std::string>::to_value<DataSourceType<DataSourceTypeId::Decimal128>> {
+        using DestinationType = DataSourceType<DataSourceTypeId::Decimal128>;
 
-                            if (dest.value != 0) {
-                                if ((dest_value_max / dec_mult) < dest.value)
-                                    throw std::runtime_error("Cannot interpret '" + src + "' as Decimal/Numeric: value is too big for internal representation");
-                                dest.value *= dec_mult;
-                            }
-
-                            if (next_dec_dig != 0) {
-                                if ((dest_value_max - next_dec_dig) < dest.value)
-                                    throw std::runtime_error("Cannot interpret '" + src + "' as Decimal/Numeric: value is too big for internal representation");
-                                dest.value += next_dec_dig;
-                            }
-
-                            if (dot_met)
-                                ++right_n;
-                            else
-                                ++left_n;
-
-                            dig_met = true;
-                            break;
-                        }
-
-                        default:
-                            throw std::runtime_error("Cannot interpret '" + src + "' as Decimal/Numeric");
-                    }
-                }
-
-                if (dest.value == 0)
-                    dest.sign = 1;
-
-                dest.precision = left_n + right_n;
-                dest.scale = right_n;
-            }
-        };
-
-        template <>
-        struct to_value<DataSourceType<DataSourceTypeId::Decimal32>> {
-            using DestinationType = DataSourceType<DataSourceTypeId::Decimal32>;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                return to_value<DataSourceType<DataSourceTypeId::Decimal>>::convert(src, dest);
-            }
-        };
-
-        template <>
-        struct to_value<DataSourceType<DataSourceTypeId::Decimal64>> {
-            using DestinationType = DataSourceType<DataSourceTypeId::Decimal64>;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                return to_value<DataSourceType<DataSourceTypeId::Decimal>>::convert(src, dest);
-            }
-        };
-
-        template <>
-        struct to_value<DataSourceType<DataSourceTypeId::Decimal128>> {
-            using DestinationType = DataSourceType<DataSourceTypeId::Decimal128>;
-
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                return to_value<DataSourceType<DataSourceTypeId::Decimal>>::convert(src, dest);
-            }
-        };
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            return to_value<DataSourceType<DataSourceTypeId::Decimal>>::convert(src, dest);
+        }
     };
 
     template <>
@@ -1053,15 +1057,15 @@ namespace value_manip {
                 }
             }
         };
+    };
 
-        template <>
-        struct to_value<std::string> {
-            using DestinationType = std::string;
+    template <>
+    struct from_value<std::int64_t>::to_value<std::string> {
+        using DestinationType = std::string;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                dest = std::to_string(src);
-            }
-        };
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            dest = std::to_string(src);
+        }
     };
 
     template <>
@@ -1081,6 +1085,7 @@ namespace value_manip {
         };
     };
 
+#if !defined(__GNUC__) || defined(__clang__)
     template <>
     struct from_value<long> {
         using SourceType = long;
@@ -1097,6 +1102,7 @@ namespace value_manip {
             }
         };
     };
+#endif
 
     template <>
     struct from_value<std::int16_t> {
@@ -1147,15 +1153,15 @@ namespace value_manip {
                 }
             }
         };
+    };
 
-        template <>
-        struct to_value<std::string> {
-            using DestinationType = std::string;
+    template <>
+    struct from_value<std::uint64_t>::to_value<std::string> {
+        using DestinationType = std::string;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                dest = std::to_string(src);
-            }
-        };
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            dest = std::to_string(src);
+        }
     };
 
     template <>
@@ -1175,6 +1181,7 @@ namespace value_manip {
         };
     };
 
+#if !defined(__GNUC__) || defined(__clang__)
     template <>
     struct from_value<unsigned long> {
         using SourceType = unsigned long;
@@ -1191,6 +1198,7 @@ namespace value_manip {
             }
         };
     };
+#endif
 
     template <>
     struct from_value<std::uint16_t> {
@@ -1241,15 +1249,15 @@ namespace value_manip {
                 }
             }
         };
+    };
 
-        template <>
-        struct to_value<std::string> {
-            using DestinationType = std::string;
+    template <>
+    struct from_value<float>::to_value<std::string> {
+        using DestinationType = std::string;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                dest = std::to_string(src);
-            }
-        };
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            dest = std::to_string(src);
+        }
     };
 
     template <>
@@ -1267,15 +1275,15 @@ namespace value_manip {
                 }
             }
         };
+    };
 
-        template <>
-        struct to_value<std::string> {
-            using DestinationType = std::string;
+    template <>
+    struct from_value<double>::to_value<std::string> {
+        using DestinationType = std::string;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                dest = std::to_string(src);
-            }
-        };
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            dest = std::to_string(src);
+        }
     };
 
     template <>
@@ -1288,15 +1296,15 @@ namespace value_manip {
                 convert_via_proxy<std::string>(src, dest);
             }
         };
+    };
 
-        template <>
-        struct to_value<std::string> {
-            using DestinationType = std::string;
+    template <>
+    struct from_value<SQLCHAR *>::to_value<std::string> {
+        using DestinationType = std::string;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                dest = toUTF8(src);
-            }
-        };
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            dest = toUTF8(src);
+        }
     };
 
     template <>
@@ -1309,15 +1317,15 @@ namespace value_manip {
                 convert_via_proxy<std::string>(src, dest);
             }
         };
+    };
 
-        template <>
-        struct to_value<std::string> {
-            using DestinationType = std::string;
+    template <>
+    struct from_value<SQLWCHAR *>::to_value<std::string> {
+        using DestinationType = std::string;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                dest = toUTF8(src);
-            }
-        };
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            dest = toUTF8(src);
+        }
     };
 
     template <>
@@ -1335,26 +1343,26 @@ namespace value_manip {
                 }
             }
         };
+    };
 
-        template <>
-        struct to_value<std::string> {
-            using DestinationType = std::string;
+    template <>
+    struct from_value<SQLGUID>::to_value<std::string> {
+        using DestinationType = std::string;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                char buf[256];
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            char buf[256];
 
-                const auto written = std::snprintf(buf, lengthof(buf), "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-                    (unsigned int)src.Data1,    (unsigned int)src.Data2,    (unsigned int)src.Data3,
-                    (unsigned int)src.Data4[0], (unsigned int)src.Data4[1], (unsigned int)src.Data4[2], (unsigned int)src.Data4[3],
-                    (unsigned int)src.Data4[4], (unsigned int)src.Data4[5], (unsigned int)src.Data4[6], (unsigned int)src.Data4[7]
-                );
+            const auto written = std::snprintf(buf, lengthof(buf), "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+                (unsigned int)src.Data1,    (unsigned int)src.Data2,    (unsigned int)src.Data3,
+                (unsigned int)src.Data4[0], (unsigned int)src.Data4[1], (unsigned int)src.Data4[2], (unsigned int)src.Data4[3],
+                (unsigned int)src.Data4[4], (unsigned int)src.Data4[5], (unsigned int)src.Data4[6], (unsigned int)src.Data4[7]
+            );
 
-                if (written < 36 || written >= lengthof(buf))
-                    buf[0] = '\0';
+            if (written < 36 || written >= lengthof(buf))
+                buf[0] = '\0';
 
-                dest = buf;
-            }
-        };
+            dest = buf;
+        }
     };
 
     template <>
@@ -1377,45 +1385,45 @@ namespace value_manip {
                 }
             }
         };
+    };
 
-        template <>
-        struct to_value<std::string> {
-            using DestinationType = std::string;
+    template <>
+    struct from_value<SQL_NUMERIC_STRUCT>::to_value<std::string> {
+        using DestinationType = std::string;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                convert_via_proxy<DataSourceType<DataSourceTypeId::Decimal>>(src, dest);
-            }
-        };
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            convert_via_proxy<DataSourceType<DataSourceTypeId::Decimal>>(src, dest);
+        }
+    };
 
-        template <>
-        struct to_value<DataSourceType<DataSourceTypeId::Decimal>> {
-            using DestinationType = DataSourceType<DataSourceTypeId::Decimal>;
+    template <>
+    struct from_value<SQL_NUMERIC_STRUCT>::to_value<DataSourceType<DataSourceTypeId::Decimal>> {
+        using DestinationType = DataSourceType<DataSourceTypeId::Decimal>;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                dest.sign = src.sign;
-                dest.precision = src.precision;
-                dest.scale = src.scale;
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            dest.sign = src.sign;
+            dest.precision = src.precision;
+            dest.scale = src.scale;
 
-                constexpr auto dest_max = (std::numeric_limits<decltype(dest.value)>::max)();
-                constexpr std::uint32_t byte_mult = 1 << 8;
+            constexpr auto dest_max = (std::numeric_limits<decltype(dest.value)>::max)();
+            constexpr std::uint32_t byte_mult = 1 << 8;
 
-                for (std::size_t i = 1; i <= lengthof(src.val); ++i) {
-                    const std::uint32_t next_byte_dig = static_cast<unsigned char>(src.val[lengthof(src.val) - i]);
+            for (std::size_t i = 1; i <= lengthof(src.val); ++i) {
+                const std::uint32_t next_byte_dig = static_cast<unsigned char>(src.val[lengthof(src.val) - i]);
 
-                    if (dest.value != 0) {
-                        if ((dest_max / byte_mult) < dest.value)
-                            throw std::runtime_error("Numeric value is too big for internal representation");
-                        dest.value *= byte_mult;
-                    }
+                if (dest.value != 0) {
+                    if ((dest_max / byte_mult) < dest.value)
+                        throw std::runtime_error("Numeric value is too big for internal representation");
+                    dest.value *= byte_mult;
+                }
 
-                    if (next_byte_dig != 0) {
-                        if ((dest_max - next_byte_dig) < dest.value)
-                            throw std::runtime_error("Numeric value is too big for internal representation");
-                        dest.value += next_byte_dig;
-                    }
+                if (next_byte_dig != 0) {
+                    if ((dest_max - next_byte_dig) < dest.value)
+                        throw std::runtime_error("Numeric value is too big for internal representation");
+                    dest.value += next_byte_dig;
                 }
             }
-        };
+        }
     };
 
     template <>
@@ -1433,21 +1441,21 @@ namespace value_manip {
                 }
             }
         };
+    };
 
-        template <>
-        struct to_value<std::string> {
-            using DestinationType = std::string;
+    template <>
+    struct from_value<SQL_DATE_STRUCT>::to_value<std::string> {
+        using DestinationType = std::string;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                char buf[256];
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            char buf[256];
 
-                const auto written = std::snprintf(buf, lengthof(buf), "%04d-%02d-%02d", (int)src.year, (int)src.month, (int)src.day);
-                if (written < 10 || written >= lengthof(buf))
-                    buf[0] = '\0';
+            const auto written = std::snprintf(buf, lengthof(buf), "%04d-%02d-%02d", (int)src.year, (int)src.month, (int)src.day);
+            if (written < 10 || written >= lengthof(buf))
+                buf[0] = '\0';
 
-                dest = buf;
-            }
-        };
+            dest = buf;
+        }
     };
 
     template <>
@@ -1465,21 +1473,21 @@ namespace value_manip {
                 }
             }
         };
+    };
 
-        template <>
-        struct to_value<std::string> {
-            using DestinationType = std::string;
+    template <>
+    struct from_value<SQL_TIME_STRUCT>::to_value<std::string> {
+        using DestinationType = std::string;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                char buf[256];
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            char buf[256];
 
-                const auto written = std::snprintf(buf, lengthof(buf), "%02d:%02d:%02d", (int)src.hour, (int)src.minute, (int)src.second);
-                if (written < 8 || written >= lengthof(buf))
-                    buf[0] = '\0';
+            const auto written = std::snprintf(buf, lengthof(buf), "%02d:%02d:%02d", (int)src.hour, (int)src.minute, (int)src.second);
+            if (written < 8 || written >= lengthof(buf))
+                buf[0] = '\0';
 
-                dest = buf;
-            }
-        };
+            dest = buf;
+        }
     };
 
     template <>
@@ -1497,31 +1505,31 @@ namespace value_manip {
                 }
             }
         };
+    };
 
-        template <>
-        struct to_value<std::string> {
-            using DestinationType = std::string;
+    template <>
+    struct from_value<SQL_TIMESTAMP_STRUCT>::to_value<std::string> {
+        using DestinationType = std::string;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                char buf[256];
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            char buf[256];
 
-                const auto written = std::snprintf(buf, lengthof(buf), "%04d-%02d-%02d %02d:%02d:%02d",
-                        (int)src.year, (int)src.month, (int)src.day,
-                        (int)src.hour, (int)src.minute, (int)src.second
-                );
+            const auto written = std::snprintf(buf, lengthof(buf), "%04d-%02d-%02d %02d:%02d:%02d",
+                    (int)src.year, (int)src.month, (int)src.day,
+                    (int)src.hour, (int)src.minute, (int)src.second
+            );
 
-                if (written < 8 || written >= lengthof(buf)) {
-                    buf[0] = '\0';
-                }
-                else if (src.fraction > 0 && src.fraction < 1000000000) {
-                    const auto written_more = std::snprintf(buf + written, lengthof(buf) - written, ".%09d", (int)src.fraction);
-                    if (written_more < 2 || written_more >= (lengthof(buf) - written))
-                        buf[written] = '\0';
-                }
-
-                dest = buf;
+            if (written < 8 || written >= lengthof(buf)) {
+                buf[0] = '\0';
             }
-        };
+            else if (src.fraction > 0 && src.fraction < 1000000000) {
+                const auto written_more = std::snprintf(buf + written, lengthof(buf) - written, ".%09d", (int)src.fraction);
+                if (written_more < 2 || written_more >= (lengthof(buf) - written))
+                    buf[written] = '\0';
+            }
+
+            dest = buf;
+        }
     };
 
     template <DataSourceTypeId Id>
@@ -1546,92 +1554,92 @@ namespace value_manip {
                 throw std::runtime_error("conversion not supported");
             }
         };
+    };
 
-        template <>
-        struct to_value<std::string> {
-            using DestinationType = std::string;
+    template <>
+    struct from_value<DataSourceType<DataSourceTypeId::Decimal>>::to_value<std::string> {
+        using DestinationType = std::string;
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
-                dest.reserve(128);
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            dest.reserve(128);
 
-                auto tmp_value = src.value;
-                constexpr std::uint32_t dec_mult = 10;
+            auto tmp_value = src.value;
+            constexpr std::uint32_t dec_mult = 10;
 
-                while (tmp_value != 0 || dest.size() < src.scale) {
-                    char next_dig = '0';
+            while (tmp_value != 0 || dest.size() < src.scale) {
+                char next_dig = '0';
 
-                    if (tmp_value != 0) {
-                        next_dig += tmp_value % dec_mult;
-                        tmp_value /= dec_mult;
-                    }
-
-                    dest.push_back(next_dig);
-
-                    if (dest.size() == src.scale)
-                        dest.push_back('.');
+                if (tmp_value != 0) {
+                    next_dig += tmp_value % dec_mult;
+                    tmp_value /= dec_mult;
                 }
 
-                if (dest.empty())
-                    dest.push_back('0');
-                else if (src.sign == 0 && src.value != 0)
-                    dest.push_back('-');
+                dest.push_back(next_dig);
 
-                std::reverse(dest.begin(), dest.end());
+                if (dest.size() == src.scale)
+                    dest.push_back('.');
             }
-        };
 
-        template <>
-        struct to_value<SQL_NUMERIC_STRUCT> {
-            using DestinationType = SQL_NUMERIC_STRUCT;
+            if (dest.empty())
+                dest.push_back('0');
+            else if (src.sign == 0 && src.value != 0)
+                dest.push_back('-');
 
-            static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::reverse(dest.begin(), dest.end());
+        }
+    };
 
-                // Using the target precision and scale from dest.
-                // If dest.precision == 0 then the src.precision and src.scale will be used.
-                // Otherwise, the requested dest.precision and dest.scale will be enforced.
+    template <>
+    struct from_value<DataSourceType<DataSourceTypeId::Decimal>>::to_value<SQL_NUMERIC_STRUCT> {
+        using DestinationType = SQL_NUMERIC_STRUCT;
 
-                if (dest.precision < 0 || dest.precision < dest.scale)
-                    throw std::runtime_error("Bad Numeric specification");
+        static inline void convert(const SourceType & src, DestinationType & dest) {
 
-                constexpr auto src_value_max = (std::numeric_limits<decltype(src.value)>::max)();
-                constexpr std::uint32_t dec_mult = 10;
-                constexpr std::uint32_t byte_mult = 1 << 8;
+            // Using the target precision and scale from dest.
+            // If dest.precision == 0 then the src.precision and src.scale will be used.
+            // Otherwise, the requested dest.precision and dest.scale will be enforced.
 
-                dest.sign = src.sign;
+            if (dest.precision < 0 || dest.precision < dest.scale)
+                throw std::runtime_error("Bad Numeric specification");
 
-                if (dest.precision == 0) {
-                    dest.precision = src.precision;
-                    dest.scale = src.scale;
-                }
+            constexpr auto src_value_max = (std::numeric_limits<decltype(src.value)>::max)();
+            constexpr std::uint32_t dec_mult = 10;
+            constexpr std::uint32_t byte_mult = 1 << 8;
 
-                auto tmp_src = src;
+            dest.sign = src.sign;
 
-                // Adjust the detected scale if needed.
-
-                while (tmp_src.scale < dest.scale) {
-                    if ((src_value_max / dec_mult) < tmp_src.value)
-                        throw std::runtime_error("Cannot fit source Numeric value into destination Numeric specification: value is too big for internal representation");
-
-                    tmp_src.value *= dec_mult;
-                    ++tmp_src.scale;
-                }
-
-                while (dest.scale < tmp_src.scale) {
-                    tmp_src.value /= dec_mult;
-                    --tmp_src.scale;
-                }
-
-                // Transfer the value.
-
-                for (std::size_t i = 0; tmp_src.value != 0; ++i) {
-                    if (i >= lengthof(dest.val) || i > dest.precision)
-                        throw std::runtime_error("Cannot fit source Numeric value into destination Numeric specification: value is too big for ODBC Numeric representation");
-
-                    dest.val[i] = static_cast<std::uint32_t>(tmp_src.value % byte_mult);
-                    tmp_src.value /= byte_mult;
-                }
+            if (dest.precision == 0) {
+                dest.precision = src.precision;
+                dest.scale = src.scale;
             }
-        };
+
+            auto tmp_src = src;
+
+            // Adjust the detected scale if needed.
+
+            while (tmp_src.scale < dest.scale) {
+                if ((src_value_max / dec_mult) < tmp_src.value)
+                    throw std::runtime_error("Cannot fit source Numeric value into destination Numeric specification: value is too big for internal representation");
+
+                tmp_src.value *= dec_mult;
+                ++tmp_src.scale;
+            }
+
+            while (dest.scale < tmp_src.scale) {
+                tmp_src.value /= dec_mult;
+                --tmp_src.scale;
+            }
+
+            // Transfer the value.
+
+            for (std::size_t i = 0; tmp_src.value != 0; ++i) {
+                if (i >= lengthof(dest.val) || i > dest.precision)
+                    throw std::runtime_error("Cannot fit source Numeric value into destination Numeric specification: value is too big for ODBC Numeric representation");
+
+                dest.val[i] = static_cast<std::uint32_t>(tmp_src.value % byte_mult);
+                tmp_src.value /= byte_mult;
+            }
+        }
     };
 
     template <>
