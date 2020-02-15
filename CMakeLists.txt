@@ -64,10 +64,18 @@ if (ARCH_FREEBSD)
 endif ()
 
 # Make sure that all optimized builds have NDEBUG macro set.
-foreach (config Release RelWithDebInfo)
+foreach (config Release RelWithDebInfo MinSizeRel)
     foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
         set (var "${lang}_${config}")
         set (${var} "${${var}} -DNDEBUG")
+    endforeach ()
+endforeach ()
+
+# Set BUILD_TYPE_* macro for each of build types.
+foreach (config Debug Release RelWithDebInfo MinSizeRel)
+    foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+        set (var "${lang}_${config}")
+        set (${var} "${${var}} -DBUILD_TYPE_${config}")
     endforeach ()
 endforeach ()
 
