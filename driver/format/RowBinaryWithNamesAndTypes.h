@@ -18,6 +18,16 @@ private:
 
     void readValue(bool & dest);
     void readValue(std::string & dest);
+    void readValue(std::string & dest, const std::uint64_t size);
+
+    template <typename T>
+    void readPOD(T & dest) {
+        constexpr auto size = sizeof(T);
+        raw_stream.read(reinterpret_cast<char *>(&dest), size);
+
+        if (raw_stream.gcount() != size)
+            throw std::runtime_error("Incomplete result received, expected size: " + std::to_string(size));
+    }
 
     void readValue(Field & dest, ColumnInfo & column_info);
 

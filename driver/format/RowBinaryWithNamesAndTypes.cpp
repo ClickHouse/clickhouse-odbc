@@ -1,5 +1,7 @@
 #include "driver/format/RowBinaryWithNamesAndTypes.h"
 
+#include <ctime>
+
 RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
     : ResultSet(stream, std::move(mutator))
 {
@@ -86,82 +88,203 @@ void RowBinaryWithNamesAndTypesResultSet::readSize(std::uint64_t & res) {
     res = tmp_res;
 }
 
-void RowBinaryWithNamesAndTypesResultSet::readValue(bool & res) {
+void RowBinaryWithNamesAndTypesResultSet::readValue(bool & dest) {
     auto byte = raw_stream.get();
 
     if (raw_stream.fail() || byte == EOF)
         throw std::runtime_error("Incomplete result received, expected size: 1");
 
-    res = (byte != 0);
+    dest = (byte != 0);
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(std::string & res) {
     std::uint64_t size = 0;
     readSize(size);
+    readValue(res, size);
+}
 
-    res.resize(size); // TODO: switch to uninitializing resize().
-    raw_stream.read(res.data(), res.size());
+void RowBinaryWithNamesAndTypesResultSet::readValue(std::string & dest, const std::uint64_t size) {
+    dest.resize(size); // TODO: switch to uninitializing resize().
+    raw_stream.read(dest.data(), dest.size());
 
-    if (raw_stream.gcount() != res.size())
+    if (raw_stream.gcount() != dest.size())
         throw std::runtime_error("Incomplete result received, expected size: " + std::to_string(size));
 }
 
-void RowBinaryWithNamesAndTypesResultSet::readValue(Field & field, ColumnInfo & column_info) {
+void RowBinaryWithNamesAndTypesResultSet::readValue(Field & dest, ColumnInfo & column_info) {
     if (column_info.is_nullable) {
         bool is_null = false;
         readValue(is_null);
 
         if (is_null) {
-            field.data = DataSourceType<DataSourceTypeId::Nothing>{};
+            dest.data = DataSourceType<DataSourceTypeId::Nothing>{};
             return;
         }
     }
 
     switch (column_info.type_without_parameters_id) {
-        case DataSourceTypeId::Date:        return readValueAs<DataSourceType< DataSourceTypeId::Date        >>(field, column_info);
-        case DataSourceTypeId::DateTime:    return readValueAs<DataSourceType< DataSourceTypeId::DateTime    >>(field, column_info);
-        case DataSourceTypeId::Decimal:     return readValueAs<DataSourceType< DataSourceTypeId::Decimal     >>(field, column_info);
-        case DataSourceTypeId::Decimal32:   return readValueAs<DataSourceType< DataSourceTypeId::Decimal32   >>(field, column_info);
-        case DataSourceTypeId::Decimal64:   return readValueAs<DataSourceType< DataSourceTypeId::Decimal64   >>(field, column_info);
-        case DataSourceTypeId::Decimal128:  return readValueAs<DataSourceType< DataSourceTypeId::Decimal128  >>(field, column_info);
-        case DataSourceTypeId::FixedString: return readValueAs<DataSourceType< DataSourceTypeId::FixedString >>(field, column_info);
-        case DataSourceTypeId::Float32:     return readValueAs<DataSourceType< DataSourceTypeId::Float32     >>(field, column_info);
-        case DataSourceTypeId::Float64:     return readValueAs<DataSourceType< DataSourceTypeId::Float64     >>(field, column_info);
-        case DataSourceTypeId::Int8:        return readValueAs<DataSourceType< DataSourceTypeId::Int8        >>(field, column_info);
-        case DataSourceTypeId::Int16:       return readValueAs<DataSourceType< DataSourceTypeId::Int16       >>(field, column_info);
-        case DataSourceTypeId::Int32:       return readValueAs<DataSourceType< DataSourceTypeId::Int32       >>(field, column_info);
-        case DataSourceTypeId::Int64:       return readValueAs<DataSourceType< DataSourceTypeId::Int64       >>(field, column_info);
-        case DataSourceTypeId::Nothing:     return readValueAs<DataSourceType< DataSourceTypeId::Nothing     >>(field, column_info);
-        case DataSourceTypeId::String:      return readValueAs<DataSourceType< DataSourceTypeId::String      >>(field, column_info);
-        case DataSourceTypeId::UInt8:       return readValueAs<DataSourceType< DataSourceTypeId::UInt8       >>(field, column_info);
-        case DataSourceTypeId::UInt16:      return readValueAs<DataSourceType< DataSourceTypeId::UInt16      >>(field, column_info);
-        case DataSourceTypeId::UInt32:      return readValueAs<DataSourceType< DataSourceTypeId::UInt32      >>(field, column_info);
-        case DataSourceTypeId::UInt64:      return readValueAs<DataSourceType< DataSourceTypeId::UInt64      >>(field, column_info);
-        case DataSourceTypeId::UUID:        return readValueAs<DataSourceType< DataSourceTypeId::UUID        >>(field, column_info);
+        case DataSourceTypeId::Date:        return readValueAs<DataSourceType< DataSourceTypeId::Date        >>(dest, column_info);
+        case DataSourceTypeId::DateTime:    return readValueAs<DataSourceType< DataSourceTypeId::DateTime    >>(dest, column_info);
+        case DataSourceTypeId::Decimal:     return readValueAs<DataSourceType< DataSourceTypeId::Decimal     >>(dest, column_info);
+        case DataSourceTypeId::Decimal32:   return readValueAs<DataSourceType< DataSourceTypeId::Decimal32   >>(dest, column_info);
+        case DataSourceTypeId::Decimal64:   return readValueAs<DataSourceType< DataSourceTypeId::Decimal64   >>(dest, column_info);
+        case DataSourceTypeId::Decimal128:  return readValueAs<DataSourceType< DataSourceTypeId::Decimal128  >>(dest, column_info);
+        case DataSourceTypeId::FixedString: return readValueAs<DataSourceType< DataSourceTypeId::FixedString >>(dest, column_info);
+        case DataSourceTypeId::Float32:     return readValueAs<DataSourceType< DataSourceTypeId::Float32     >>(dest, column_info);
+        case DataSourceTypeId::Float64:     return readValueAs<DataSourceType< DataSourceTypeId::Float64     >>(dest, column_info);
+        case DataSourceTypeId::Int8:        return readValueAs<DataSourceType< DataSourceTypeId::Int8        >>(dest, column_info);
+        case DataSourceTypeId::Int16:       return readValueAs<DataSourceType< DataSourceTypeId::Int16       >>(dest, column_info);
+        case DataSourceTypeId::Int32:       return readValueAs<DataSourceType< DataSourceTypeId::Int32       >>(dest, column_info);
+        case DataSourceTypeId::Int64:       return readValueAs<DataSourceType< DataSourceTypeId::Int64       >>(dest, column_info);
+        case DataSourceTypeId::Nothing:     return readValueAs<DataSourceType< DataSourceTypeId::Nothing     >>(dest, column_info);
+        case DataSourceTypeId::String:      return readValueAs<DataSourceType< DataSourceTypeId::String      >>(dest, column_info);
+        case DataSourceTypeId::UInt8:       return readValueAs<DataSourceType< DataSourceTypeId::UInt8       >>(dest, column_info);
+        case DataSourceTypeId::UInt16:      return readValueAs<DataSourceType< DataSourceTypeId::UInt16      >>(dest, column_info);
+        case DataSourceTypeId::UInt32:      return readValueAs<DataSourceType< DataSourceTypeId::UInt32      >>(dest, column_info);
+        case DataSourceTypeId::UInt64:      return readValueAs<DataSourceType< DataSourceTypeId::UInt64      >>(dest, column_info);
+        case DataSourceTypeId::UUID:        return readValueAs<DataSourceType< DataSourceTypeId::UUID        >>(dest, column_info);
         default:                            throw std::runtime_error("Unable to decode value of type '" + column_info.type + "'");
     }
 }
 
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::Date        > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::DateTime    > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::Decimal     > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::Decimal32   > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::Decimal64   > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::Decimal128  > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::FixedString > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::Float32     > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::Float64     > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::Int8        > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::Int16       > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::Int32       > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::Int64       > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::Nothing     > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::String      > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::UInt8       > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::UInt16      > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::UInt32      > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::UInt64      > & dest, ColumnInfo & column_info) {}
-void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType< DataSourceTypeId::UUID        > & dest, ColumnInfo & column_info) {}
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Date> & dest, ColumnInfo & column_info) {
+    std::uint16_t days_since_epoch = 0;
+    readPOD(days_since_epoch);
+
+    std::time_t time = days_since_epoch;
+    time = time * 24 * 60 * 60; // Now it's seconds since epoch.
+    const auto & tm = *std::localtime(&time);
+
+    dest.value.year = 1900 + tm.tm_year;
+    dest.value.month = 1 + tm.tm_mon;
+    dest.value.day = tm.tm_mday;
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::DateTime> & dest, ColumnInfo & column_info) {
+    std::uint32_t secs_since_epoch = 0;
+    readPOD(secs_since_epoch);
+
+    std::time_t time = secs_since_epoch;
+    const auto & tm = *std::localtime(&time);
+
+    dest.value.year = 1900 + tm.tm_year;
+    dest.value.month = 1 + tm.tm_mon;
+    dest.value.day = tm.tm_mday;
+    dest.value.hour = tm.tm_hour;
+    dest.value.minute = tm.tm_min;
+    dest.value.second = tm.tm_sec;
+    dest.value.fraction = 0;
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Decimal> & dest, ColumnInfo & column_info) {
+    if (dest.precision < 10) {
+        std::int32_t value = 0;
+        readPOD(value);
+
+        if (value < 0) {
+            dest.sign = 0;
+            dest.value = -value;
+        }
+        else {
+            dest.sign = 1;
+            dest.value = value;
+        }
+    }
+    else if (dest.precision < 19) {
+        std::int64_t value = 0;
+        readPOD(value);
+
+        if (value < 0) {
+            dest.sign = 0;
+            dest.value = -value;
+        }
+        else {
+            dest.sign = 1;
+            dest.value = value;
+        }
+    }
+    else {
+        throw std::runtime_error("Unable to decode value of type 'Decimal' that is represented by 128-bit integer");
+    }
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Decimal32> & dest, ColumnInfo & column_info) {
+    return readValue(static_cast<DataSourceType<DataSourceTypeId::Decimal> &>(dest), column_info);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Decimal64> & dest, ColumnInfo & column_info) {
+    return readValue(static_cast<DataSourceType<DataSourceTypeId::Decimal> &>(dest), column_info);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Decimal128> & dest, ColumnInfo & column_info) {
+    return readValue(static_cast<DataSourceType<DataSourceTypeId::Decimal> &>(dest), column_info);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::FixedString> & dest, ColumnInfo & column_info) {
+    if (dest.value.capacity() == 0) {
+        dest.value = string_pool.get();
+        value_manip::to_null(dest.value);
+    }
+
+    readValue(dest.value, column_info.fixed_size);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Float32> & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Float64> & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Int8> & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Int16> & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Int32> & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Int64> & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Nothing> & dest, ColumnInfo & column_info) {
+    // Do nothing.
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::String> & dest, ColumnInfo & column_info) {
+    if (dest.value.capacity() == 0) {
+        dest.value = string_pool.get();
+        value_manip::to_null(dest.value);
+    }
+
+    readValue(dest.value);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::UInt8> & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::UInt16> & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::UInt32> & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::UInt64> & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::UUID> & dest, ColumnInfo & column_info) {
+    throw std::runtime_error("Unable to decode value of type '" + column_info.type + "'");
+}
 
 RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
     : ResultReader(stream, std::move(mutator))

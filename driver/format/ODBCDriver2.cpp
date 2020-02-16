@@ -77,7 +77,7 @@ bool ODBCDriver2ResultSet::readNextRow(Row & row) {
 }
 
 void ODBCDriver2ResultSet::readSize(std::int32_t & dest) {
-    const auto size = sizeof(dest);
+    constexpr auto size = sizeof(dest);
     raw_stream.read(reinterpret_cast<char *>(&dest), size);
 
     if (raw_stream.gcount() != size)
@@ -95,7 +95,7 @@ void ODBCDriver2ResultSet::readValue(std::string & dest, bool * is_null) {
             *is_null = false;
 
         if (size > 0) {
-            raw_stream.read(&dest[0], size);
+            raw_stream.read(dest.data(), size);
 
             if (raw_stream.gcount() != size)
                 throw std::runtime_error("Incomplete result received, expected size: " + std::to_string(size));
