@@ -24,6 +24,8 @@ public:
     DataSourceTypeId type_without_parameters_id = DataSourceTypeId::Unknown;
     std::size_t display_size = 0;
     std::size_t fixed_size = 0;
+    std::size_t precision = 0;
+    std::size_t scale = 0;
     bool is_nullable = false;
 };
 

@@ -177,6 +177,9 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Decimal> & dest, ColumnInfo & column_info) {
+    dest.precision = column_info.precision;
+    dest.scale = column_info.scale;
+
     if (dest.precision < 10) {
         std::int32_t value = 0;
         readPOD(value);

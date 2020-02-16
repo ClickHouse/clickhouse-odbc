@@ -5,8 +5,55 @@
 void ColumnInfo::assignTypeInfo(const TypeAst & ast) {
     if (ast.meta == TypeAst::Terminal) {
         type_without_parameters = ast.name;
-        if (ast.elements.size() == 1)
-            fixed_size = ast.elements.front().size;
+
+        switch (convertUnparametrizedTypeNameToTypeId(type_without_parameters)) {
+            case DataSourceTypeId::Decimal: {
+                if (ast.elements.size() != 2)
+                    throw std::runtime_error("Unexpected Decimal type specification syntax");
+
+                precision = ast.elements.front().size;
+                scale = ast.elements.back().size;
+
+                break;
+            }
+
+            case DataSourceTypeId::Decimal32: {
+                if (ast.elements.size() != 1)
+                    throw std::runtime_error("Unexpected Decimal32 type specification syntax");
+
+                precision = 9;
+                scale = ast.elements.front().size;
+
+                break;
+            }
+
+            case DataSourceTypeId::Decimal64: {
+                if (ast.elements.size() != 1)
+                    throw std::runtime_error("Unexpected Decimal64 type specification syntax");
+
+                precision = 18;
+                scale = ast.elements.front().size;
+
+                break;
+            }
+
+            case DataSourceTypeId::Decimal128: {
+                if (ast.elements.size() != 1)
+                    throw std::runtime_error("Unexpected Decimal128 type specification syntax");
+
+                precision = 38;
+                scale = ast.elements.front().size;
+
+                break;
+            }
+
+            default: {
+                if (ast.elements.size() == 1)
+                    fixed_size = ast.elements.front().size;
+
+                break;
+            }
+        }
     }
     else if (ast.meta == TypeAst::Nullable) {
         is_nullable = true;
