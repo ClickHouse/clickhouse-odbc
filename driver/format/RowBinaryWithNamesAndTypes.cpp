@@ -283,7 +283,22 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::UUID> & dest, ColumnInfo & column_info) {
-    throw std::runtime_error("Unable to decode value of type '" + column_info.type + "'");
+    char buf[16];
+
+    static_assert(sizeof(dest.value) == lengthof(buf));
+
+    raw_stream.read(buf, lengthof(buf));
+
+    if (raw_stream.gcount() != lengthof(buf))
+        throw std::runtime_error("Incomplete result received, expected size: " + std::to_string(lengthof(buf)));
+
+    auto * ptr = buf;
+
+    dest.value.Data3 = *reinterpret_cast<decltype(&dest.value.Data3)>(ptr); ptr += sizeof(decltype(dest.value.Data3));
+    dest.value.Data2 = *reinterpret_cast<decltype(&dest.value.Data2)>(ptr); ptr += sizeof(decltype(dest.value.Data2));
+    dest.value.Data1 = *reinterpret_cast<decltype(&dest.value.Data1)>(ptr); ptr += sizeof(decltype(dest.value.Data1));
+
+    std::copy(ptr, ptr + lengthof(dest.value.Data4), std::make_reverse_iterator(dest.value.Data4 + lengthof(dest.value.Data4)));
 }
 
 RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
