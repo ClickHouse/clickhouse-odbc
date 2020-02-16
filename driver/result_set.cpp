@@ -200,18 +200,47 @@ void ResultSet::tryPrefetchRows(std::size_t size) {
     }
 }
 
+namespace {
+
+    // Using these instead of simple "if constexpr" to workaround VS2017 behavior.
+
+    template <typename T>
+    inline void maybe_recycle(ObjectPool<std::string> & string_pool, T & obj,
+        std::enable_if_t<
+            std::is_same_v<std::string, T>
+        >* = 0
+    ) {
+        if (obj.capacity() > 0)
+            string_pool.put(std::move(obj));
+    }
+
+    template <typename T>
+    inline void maybe_recycle(ObjectPool<std::string> & string_pool, T & obj,
+        std::enable_if_t<
+            is_string_data_source_type_v<T>
+        >* = 0
+    ) {
+        if (obj.value.capacity() > 0)
+            string_pool.put(std::move(obj.value));
+    }
+
+    template <typename T>
+    inline void maybe_recycle(ObjectPool<std::string> & string_pool, T & obj,
+        std::enable_if_t<
+            !std::is_same_v<std::string, T> &&
+            !is_string_data_source_type_v<T>
+        >* = 0
+    ) {
+        // Do nothing;
+    }
+
+} // namespace
+
 void ResultSet::retireRow(Row && row) {
     for (auto & field : row.fields) {
         if (!field.data.valueless_by_exception()) {
-            std::visit([this] (auto & value) {
-                if constexpr (std::is_same_v<std::string, std::decay_t<decltype(value)>>) {
-                    if (value.capacity() > 0)
-                        string_pool.put(std::move(value));
-                }
-                else if constexpr (is_string_data_source_type_v<std::decay_t<decltype(value)>>) {
-                    if (value.value.capacity() > 0)
-                        string_pool.put(std::move(value.value));
-                }
+            std::visit([&] (auto & value) {
+                maybe_recycle(string_pool, value);
             }, field.data);
         }
     }
