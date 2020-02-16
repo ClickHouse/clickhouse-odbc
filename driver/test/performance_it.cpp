@@ -146,7 +146,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchNoExtractMultiType
         ++total_rows;
     }
 
-    STOP_MEASURING_TIME_AND_REPORT();
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
 
     ASSERT_EQ(total_rows, total_rows_expected);
 }
@@ -242,7 +242,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchGetDataMultiType))
         ++total_rows;
     }
 
-    STOP_MEASURING_TIME_AND_REPORT();
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
 
     ASSERT_EQ(total_rows, total_rows_expected);
 }
@@ -337,7 +337,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColMultiType))
         ++total_rows;
     }
 
-    STOP_MEASURING_TIME_AND_REPORT();
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
 
     ASSERT_EQ(total_rows, total_rows_expected);
 }
@@ -390,7 +390,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColSingleType_
         ++total_rows;
     }
 
-    STOP_MEASURING_TIME_AND_REPORT();
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
 
     ASSERT_EQ(total_rows, total_rows_expected);
 }
@@ -443,7 +443,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColSingleType_
         ++total_rows;
     }
 
-    STOP_MEASURING_TIME_AND_REPORT();
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
 
     ASSERT_EQ(total_rows, total_rows_expected);
 }
@@ -496,7 +496,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColSingleType_
         ++total_rows;
     }
 
-    STOP_MEASURING_TIME_AND_REPORT();
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
 
     ASSERT_EQ(total_rows, total_rows_expected);
 }
