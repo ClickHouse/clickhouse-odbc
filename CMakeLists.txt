@@ -38,7 +38,7 @@ include(CMakeDependentOption)
 option(BUILD_TESTING "Build test targets" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
-option (CH_ODBC_ENABLE_SAFE_DISPATCH_ONLY "Do not allow unchecked handle dispatching (may slightly affect performance)" ON)
+option (CH_ODBC_ALLOW_UNSAFE_DISPATCH "Allow unchecked handle dispatching (may slightly increase performance in some scenarios)" ON)
 option (CH_ODBC_ENABLE_SSL "Enable SSL (required for utilizing https:// interface, etc.)" ON)
 option (CH_ODBC_ENABLE_INSTALL "Enable install targets (required for packaging)" ON)
 cmake_dependent_option (CH_ODBC_ENABLE_TESTING "Enable test targets" ON "BUILD_TESTING" OFF)
@@ -63,10 +63,19 @@ if (ARCH_FREEBSD)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
 endif ()
 
-foreach (config Release RelWithDebInfo)
+# Make sure that all optimized builds have NDEBUG macro set.
+foreach (config Release RelWithDebInfo MinSizeRel)
     foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
         set (var "${lang}_${config}")
         set (${var} "${${var}} -DNDEBUG")
+    endforeach ()
+endforeach ()
+
+# Set BUILD_TYPE_* macro for each of build types.
+foreach (config Debug Release RelWithDebInfo MinSizeRel)
+    foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+        set (var "${lang}_${config}")
+        set (${var} "${${var}} -DBUILD_TYPE_${config}")
     endforeach ()
 endforeach ()
 

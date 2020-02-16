@@ -85,7 +85,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(UnimplementedAPICallOve
         SQLStatistics(hstmt, tstr_wptr, 0, tstr_wptr, 0, tstr_wptr, 0, SQL_INDEX_ALL, SQL_ENSURE);
     }
 
-    STOP_MEASURING_TIME_AND_REPORT();
+    STOP_MEASURING_TIME_AND_REPORT(call_count);
 }
 
 // API call that involves the driver, triggers handle dispatch and diag reset, but does no real work.
@@ -109,7 +109,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(NoOpAPICallOverhead)) {
         SQLNumResultCols(hstmt, nullptr);
     }
 
-    STOP_MEASURING_TIME_AND_REPORT();
+    STOP_MEASURING_TIME_AND_REPORT(call_count);
 }
 
 TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchNoExtractMultiType)) {
@@ -549,7 +549,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColSingleType_
         ++total_rows;
     }
 
-    STOP_MEASURING_TIME_AND_REPORT();
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
 
     ASSERT_EQ(total_rows, total_rows_expected);
 }

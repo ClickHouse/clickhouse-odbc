@@ -20,7 +20,7 @@ public:
 
     explicit Object() noexcept;
 
-#if defined(WORKAROUND_ENABLE_SAFE_DISPATCH_ONLY)
+#if !defined(WORKAROUND_ALLOW_UNSAFE_DISPATCH)
     explicit Object(SQLHANDLE h) noexcept;
 #endif
 
@@ -46,7 +46,7 @@ public:
         getDriver().registerDescendant(getSelf());
     }
 
-#if defined(WORKAROUND_ENABLE_SAFE_DISPATCH_ONLY)
+#if !defined(WORKAROUND_ALLOW_UNSAFE_DISPATCH)
     explicit Child(Parent & p, SQLHANDLE h) noexcept
         : Object(h)
         , parent(p)

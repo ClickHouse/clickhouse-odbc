@@ -260,7 +260,7 @@ inline SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLIN
                 }
             };
 
-#if !defined(WORKAROUND_ENABLE_SAFE_DISPATCH_ONLY)
+#if defined(WORKAROUND_ALLOW_UNSAFE_DISPATCH)
             // If handle type is provided, and we are not in the "safe dispatch only" mode,
             // we just directly interpret the handle as a pointer to the corresponding class.
             switch (handle_type) {

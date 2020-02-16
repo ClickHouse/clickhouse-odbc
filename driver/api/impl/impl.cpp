@@ -572,7 +572,7 @@ SQLRETURN GetDiagField(
 ) noexcept {
     auto func = [&] (auto & object) -> SQLRETURN {
         // Exit with error if the requested field is relevant only to statements.
-        if (getObjectHandleType<decltype(object)>() != SQL_HANDLE_STMT) {
+        if (getObjectHandleType<std::decay_t<decltype(object)>>() != SQL_HANDLE_STMT) {
             switch (field_id) {
                 case SQL_DIAG_CURSOR_ROW_COUNT:
                 case SQL_DIAG_DYNAMIC_FUNCTION:
