@@ -565,6 +565,26 @@ template <> struct is_string_data_source_type<DataSourceType<DataSourceTypeId::F
 
 template <class T> inline constexpr bool is_string_data_source_type_v = is_string_data_source_type<T>::value;
 
+// Used to avoid duplicate specializations in platforms where 'std::int32_t' or 'std::int64_t' are typedef'd as 'long'.
+struct long_if_not_typedefed {
+    struct dummy {};
+    using type = std::conditional_t<
+        (std::is_same_v<long, std::int32_t> || std::is_same_v<long, std::int64_t>),
+        dummy,
+        long
+    >;
+};
+
+// Used to avoid duplicate specializations in platforms where 'std::uint32_t' or 'std::uint64_t' are typedef'd as 'unsigned long'.
+struct unsigned_long_if_not_typedefed {
+    struct dummy {};
+    using type = std::conditional_t<
+        (std::is_same_v<unsigned long, std::uint32_t> || std::is_same_v<unsigned long, std::uint64_t>),
+        dummy,
+        unsigned long
+    >;
+};
+
 namespace value_manip {
 
     template <typename T>
@@ -655,9 +675,8 @@ namespace value_manip {
         }
     };
 
-#if !defined(__GNUC__) || defined(__clang__)
     template <>
-    struct from_value<std::string>::to_value<long> {
+    struct from_value<std::string>::to_value<long_if_not_typedefed::type> {
         using DestinationType = long;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
@@ -670,7 +689,6 @@ namespace value_manip {
             dest = static_cast<long>(tmp);
         }
     };
-#endif
 
     template <>
     struct from_value<std::string>::to_value<std::int16_t> {
@@ -736,9 +754,8 @@ namespace value_manip {
         }
     };
 
-#if !defined(__GNUC__) || defined(__clang__)
     template <>
-    struct from_value<std::string>::to_value<unsigned long> {
+    struct from_value<std::string>::to_value<unsigned_long_if_not_typedefed::type> {
         using DestinationType = unsigned long;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
@@ -751,7 +768,6 @@ namespace value_manip {
             dest = static_cast<std::uint32_t>(tmp);
         }
     };
-#endif
 
     template <>
     struct from_value<std::string>::to_value<std::uint16_t> {
@@ -1085,9 +1101,8 @@ namespace value_manip {
         };
     };
 
-#if !defined(__GNUC__) || defined(__clang__)
     template <>
-    struct from_value<long> {
+    struct from_value<long_if_not_typedefed::type> {
         using SourceType = long;
 
         template <typename DestinationType>
@@ -1102,7 +1117,6 @@ namespace value_manip {
             }
         };
     };
-#endif
 
     template <>
     struct from_value<std::int16_t> {
@@ -1181,9 +1195,8 @@ namespace value_manip {
         };
     };
 
-#if !defined(__GNUC__) || defined(__clang__)
     template <>
-    struct from_value<unsigned long> {
+    struct from_value<unsigned_long_if_not_typedefed::type> {
         using SourceType = unsigned long;
 
         template <typename DestinationType>
@@ -1198,7 +1211,6 @@ namespace value_manip {
             }
         };
     };
-#endif
 
     template <>
     struct from_value<std::uint16_t> {
