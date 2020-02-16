@@ -151,12 +151,8 @@ if (CH_ODBC_ENABLE_TESTING)
     enable_testing ()
     include (GoogleTest)
 
-    if (NOT TEST_DSN)
-        set (TEST_DSN "${CH_ODBC_DEFAULT_DSN_ANSI}")
-    endif ()
-
-    if (NOT TEST_DSN_W)
-        set (TEST_DSN_W "${CH_ODBC_DEFAULT_DSN_UNICODE}")
+    if (NOT TEST_DSN_LIST)
+        set (TEST_DSN_LIST "${CH_ODBC_DEFAULT_DSN_ANSI};${CH_ODBC_DEFAULT_DSN_UNICODE}")
     endif ()
 endif ()
 
