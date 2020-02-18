@@ -12,6 +12,8 @@
 #include <variant>
 #include <vector>
 
+extern const std::string::size_type initial_string_capacity_g;
+
 class ColumnInfo {
 public:
     void assignTypeInfo(const TypeAst & ast);

@@ -2,6 +2,8 @@
 #include "driver/format/ODBCDriver2.h"
 #include "driver/format/RowBinaryWithNamesAndTypes.h"
 
+const std::string::size_type initial_string_capacity_g = std::string{}.capacity();
+
 void ColumnInfo::assignTypeInfo(const TypeAst & ast) {
     if (ast.meta == TypeAst::Terminal) {
         type_without_parameters = ast.name;
@@ -210,7 +212,7 @@ namespace {
             std::is_same_v<std::string, T>
         >* = 0
     ) {
-        if (obj.capacity() > 0)
+        if (obj.capacity() > initial_string_capacity_g)
             string_pool.put(std::move(obj));
     }
 
@@ -220,7 +222,7 @@ namespace {
             is_string_data_source_type_v<T>
         >* = 0
     ) {
-        if (obj.value.capacity() > 0)
+        if (obj.value.capacity() > initial_string_capacity_g)
             string_pool.put(std::move(obj.value));
     }
 

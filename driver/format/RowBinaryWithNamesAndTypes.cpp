@@ -241,7 +241,7 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::FixedString> & dest, ColumnInfo & column_info) {
-    if (dest.value.capacity() == 0) {
+    if (dest.value.capacity() <= initial_string_capacity_g) {
         dest.value = string_pool.get();
         value_manip::to_null(dest.value);
     }
@@ -278,7 +278,7 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::String> & dest, ColumnInfo & column_info) {
-    if (dest.value.capacity() == 0) {
+    if (dest.value.capacity() <= initial_string_capacity_g) {
         dest.value = string_pool.get();
         value_manip::to_null(dest.value);
     }

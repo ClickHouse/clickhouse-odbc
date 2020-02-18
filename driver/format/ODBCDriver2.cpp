@@ -166,7 +166,7 @@ void ODBCDriver2ResultSet::readValue(Field & dest, ColumnInfo & column_info) {
         default:                            throw std::runtime_error("Unable to decode value of type '" + column_info.type + "'");
     }
 
-    if (value.capacity() > 0)
+    if (value.capacity() > initial_string_capacity_g)
         string_pool.put(std::move(value));
 }
 
