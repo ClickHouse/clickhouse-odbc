@@ -1557,6 +1557,18 @@ namespace value_manip {
     };
 
     template <>
+    struct from_value<DataSourceType<DataSourceTypeId::Nothing>> {
+        using SourceType = DataSourceType<DataSourceTypeId::Nothing>;
+
+        template <typename DestinationType>
+        struct to_value {
+            static inline void convert(const SourceType & src, DestinationType & dest) {
+                to_null(dest);
+            }
+        };
+    };
+
+    template <>
     struct from_value<DataSourceType<DataSourceTypeId::Decimal>> {
         using SourceType = DataSourceType<DataSourceTypeId::Decimal>;
 
