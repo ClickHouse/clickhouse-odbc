@@ -72,8 +72,7 @@ class ResultMutator {
 public:
     virtual ~ResultMutator() = default;
 
-    virtual void updateColumnsInfo(std::vector<ColumnInfo> & columns_info) = 0;
-    virtual void updateRow(const std::vector<ColumnInfo> & columns_info, Row & row) = 0;
+    virtual void transformRow(const std::vector<ColumnInfo> & columns_info, Row & row) = 0;
 };
 
 class ResultSet {

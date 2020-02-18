@@ -54,9 +54,6 @@ RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(std::is
         }
     }
 
-    if (result_mutator)
-        result_mutator->updateColumnsInfo(columns_info);
-
     finished = columns_info.empty();
 
     constexpr std::size_t prefetch_at_least = 10'000;

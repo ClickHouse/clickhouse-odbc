@@ -987,35 +987,21 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
     SQLTCHAR *      ColumnName,
     SQLSMALLINT     NameLength4
 ) {
-    class ColumnsMutator : public ResultMutator {
+    class ColumnsMutator
+        : public ResultMutator
+    {
     public:
         explicit ColumnsMutator(Environment & env_)
             : env(env_)
         {
         }
 
-        void updateColumnsInfo(std::vector<ColumnInfo> & columns_info) override {
-            {
-                auto & column_info = columns_info.at(4);
-                column_info.type = "Int16";
-                column_info.type_without_parameters = "Int16";
-                column_info.updateTypeId();
-            }
-
-            // TODO: fix other types too?
-
-        }
-
-        void updateRow(const std::vector<ColumnInfo> & columns_info, Row & row) override {
+        void transformRow(const std::vector<ColumnInfo> & columns_info, Row & row) override {
             ColumnInfo tmp_column_info;
 
-            {
-                const auto type_name = std::visit([] (auto & value) {
-                    if constexpr (std::is_same_v<std::string, std::decay_t<decltype(value)>>)
-                        return value;
-                    else
-                        return std::string{};
-                }, row.fields.at(4).data);
+            std::visit([&] (auto & value) {
+                std::string type_name;
+                value_manip::from_value<std::decay_t<decltype(value)>>::template to_value<std::string>::convert(value, type_name);
 
                 TypeParser parser{type_name};
                 TypeAst ast;
@@ -1029,7 +1015,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
                 }
 
                 tmp_column_info.updateTypeId();
-            }
+            }, row.fields.at(5).data);
 
             const TypeInfo & type_info = env.getTypeInfo(tmp_column_info.type, tmp_column_info.type_without_parameters);
 
@@ -1063,8 +1049,8 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
                  ", '' AS TABLE_SCHEM"      // 1
                  ", table AS TABLE_NAME"    // 2
                  ", name AS COLUMN_NAME"    // 3
-                 ", type AS DATA_TYPE"      // 4
-                 ", '' AS TYPE_NAME"        // 5
+                 ", 0 AS DATA_TYPE"         // 4
+                 ", type AS TYPE_NAME"      // 5
                  ", 0 AS COLUMN_SIZE"       // 6
                  ", 0 AS BUFFER_LENGTH"     // 7
                  ", 0 AS DECIMAL_DIGITS"    // 8

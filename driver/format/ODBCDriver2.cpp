@@ -76,9 +76,6 @@ ODBCDriver2ResultSet::ODBCDriver2ResultSet(std::istream & stream, std::unique_pt
         }
     }
 
-    if (result_mutator)
-        result_mutator->updateColumnsInfo(columns_info);
-
     finished = columns_info.empty();
 
     constexpr std::size_t prefetch_at_least = 10'000;

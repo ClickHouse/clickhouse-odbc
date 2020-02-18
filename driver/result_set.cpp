@@ -196,7 +196,7 @@ void ResultSet::tryPrefetchRows(std::size_t size) {
         }
 
         if (result_mutator)
-            result_mutator->updateRow(columns_info, row);
+            result_mutator->transformRow(columns_info, row);
     }
 }
 
