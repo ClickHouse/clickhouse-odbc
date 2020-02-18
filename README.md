@@ -128,23 +128,24 @@ See the exact steps for each platform in the corresponding section below:
 
 The list of configuration options recognized during the CMake generation step is as follows:
 
-|                 Option                 |                      Default value                       | Description                                                        |
-| :------------------------------------: | :------------------------------------------------------: | :----------------------------------------------------------------- |
-|           `CMAKE_BUILD_TYPE`           |                     `RelWithDebInfo`                     | Build type, one of: `Debug`, `Release`, `RelWithDebInfo`           |
-|          `CH_ODBC_ENABLE_SSL`          |                           `ON`                           | Enable TLS/SSL (required for utilizing `https://` interface, etc.) |
-|        `CH_ODBC_ENABLE_INSTALL`        |                           `ON`                           | Enable install targets (required for packaging)                    |
-|        `CH_ODBC_ENABLE_TESTING`        |            inherits value of `BUILD_TESTING`             | Enable test targets                                                |
-| `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` |                           `ON`                           | Prefer bundled over system variants of third party libraries       |
-|     `CH_ODBC_PREFER_BUNDLED_POCO`      | inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` | Prefer bundled over system variants of Poco library                |
-|      `CH_ODBC_PREFER_BUNDLED_SSL`      |     inherits value of `CH_ODBC_PREFER_BUNDLED_POCO`      | Prefer bundled over system variants of TLS/SSL library             |
-|  `CH_ODBC_PREFER_BUNDLED_GOOGLETEST`   | inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` | Prefer bundled over system variants of Google Test library         |
-|    `CH_ODBC_PREFER_BUNDLED_NANODBC`    | inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` | Prefer bundled over system variants of nanodbc library             |
-|     `CH_ODBC_RUNTIME_LINK_STATIC`      |                          `OFF`                           | Link with compiler and language runtime statically                 |
-|   `CH_ODBC_THIRD_PARTY_LINK_STATIC`    |                           `ON`                           | Link with third party libraries statically                         |
-|       `CH_ODBC_DEFAULT_DSN_ANSI`       |                 `ClickHouse DSN (ANSI)`                  | Default ANSI DSN name                                              |
-|     `CH_ODBC_DEFAULT_DSN_UNICODE`      |                `ClickHouse DSN (Unicode)`                | Default Unicode DSN name                                           |
-|               `TEST_DSN`               |       inherits value of `CH_ODBC_DEFAULT_DSN_ANSI`       | ANSI DSN name to use in tests                                      |
-|              `TEST_DSN_W`              |     inherits value of `CH_ODBC_DEFAULT_DSN_UNICODE`      | Unicode DSN name to use in tests                                   |
+|                 Option                 |                      Default value                       | Description                                                                              |
+| :------------------------------------: | :------------------------------------------------------: | :--------------------------------------------------------------------------------------- |
+|           `CMAKE_BUILD_TYPE`           |                     `RelWithDebInfo`                     | Build type, one of: `Debug`, `Release`, `RelWithDebInfo`                                 |
+|    `CH_ODBC_ALLOW_UNSAFE_DISPATCH`     |                           `ON`                           | Allow unchecked handle dispatching (may slightly increase performance in some scenarios) |
+|          `CH_ODBC_ENABLE_SSL`          |                           `ON`                           | Enable TLS/SSL (required for utilizing `https://` interface, etc.)                       |
+|        `CH_ODBC_ENABLE_INSTALL`        |                           `ON`                           | Enable install targets (required for packaging)                                          |
+|        `CH_ODBC_ENABLE_TESTING`        |            inherits value of `BUILD_TESTING`             | Enable test targets                                                                      |
+| `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` |                           `ON`                           | Prefer bundled over system variants of third party libraries                             |
+|     `CH_ODBC_PREFER_BUNDLED_POCO`      | inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` | Prefer bundled over system variants of Poco library                                      |
+|      `CH_ODBC_PREFER_BUNDLED_SSL`      |     inherits value of `CH_ODBC_PREFER_BUNDLED_POCO`      | Prefer bundled over system variants of TLS/SSL library                                   |
+|  `CH_ODBC_PREFER_BUNDLED_GOOGLETEST`   | inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` | Prefer bundled over system variants of Google Test library                               |
+|    `CH_ODBC_PREFER_BUNDLED_NANODBC`    | inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` | Prefer bundled over system variants of nanodbc library                                   |
+|     `CH_ODBC_RUNTIME_LINK_STATIC`      |                          `OFF`                           | Link with compiler and language runtime statically                                       |
+|   `CH_ODBC_THIRD_PARTY_LINK_STATIC`    |                           `ON`                           | Link with third party libraries statically                                               |
+|       `CH_ODBC_DEFAULT_DSN_ANSI`       |                 `ClickHouse DSN (ANSI)`                  | Default ANSI DSN name                                                                    |
+|     `CH_ODBC_DEFAULT_DSN_UNICODE`      |                `ClickHouse DSN (Unicode)`                | Default Unicode DSN name                                                                 |
+|               `TEST_DSN`               |       inherits value of `CH_ODBC_DEFAULT_DSN_ANSI`       | ANSI DSN name to use in tests                                                            |
+|              `TEST_DSN_W`              |     inherits value of `CH_ODBC_DEFAULT_DSN_UNICODE`      | Unicode DSN name to use in tests                                                         |
 
 Configuration options above can be specified in the first `cmake` command (generation step) in a form of `-Dopt=val`.
 
@@ -412,10 +413,11 @@ cmake --open .
 Execute the following in the terminal:
 
 ```sh
+sudo yum install epel-release
 sudo yum groupinstall "Development Tools"
 sudo yum install centos-release-scl
 sudo yum install devtoolset-8
-sudo yum install git cmake openssl-devel unixODBC-devel
+sudo yum install git cmake3 openssl-devel unixODBC-devel
 ```
 
 #### Build-time dependencies: iODBC <!-- omit in toc -->
@@ -423,10 +425,11 @@ sudo yum install git cmake openssl-devel unixODBC-devel
 Execute the following in the terminal:
 
 ```sh
+sudo yum install epel-release
 sudo yum groupinstall "Development Tools"
 sudo yum install centos-release-scl
 sudo yum install devtoolset-8
-sudo yum install git cmake openssl-devel libiodbc-devel
+sudo yum install git cmake3 openssl-devel libiodbc-devel
 ```
 
 #### Build steps <!-- omit in toc -->
@@ -452,20 +455,20 @@ cd build
 
 # Configuration options for the project can be specified in the next command in a form of '-Dopt=val'
 
-cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+cmake3 -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 ```
 
 Build the generated solution in-place:
 
 ```sh
-cmake --build . -C RelWithDebInfo
-cmake --build . -C RelWithDebInfo --target package
+cmake3 --build . -C RelWithDebInfo
+cmake3 --build . -C RelWithDebInfo --target package
 ```
 
 ...and, optionally, run tests (note, that for non-unit tests, preconfigured driver and DSN entries must exist, that point to the binaries generated in this build folder):
 
 ```sh
-cmake --build . -C RelWithDebInfo --target test
+cmake3 --build . -C RelWithDebInfo --target test
 ```
 
 ### Building from sources: Debian/Ubuntu

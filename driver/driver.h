@@ -16,7 +16,7 @@
 #include <string>
 #include <type_traits>
 #include <unordered_map>
-#include <vector>
+#include <variant>
 
 #include <cstddef>
 #include <cstdio>
@@ -79,8 +79,8 @@ public:
     template <typename T> T & allocateChild();
     template <typename T> void deallocateChild(SQLHANDLE) noexcept;
 
-    void registerDescendant(Object & descendant);
-    void unregisterDescendant(Object & descendant) noexcept;
+    template <typename T> void registerDescendant(T & descendant);
+    template <typename T> void unregisterDescendant(T & descendant) noexcept;
 
     bool isLoggingEnabled() const;
     std::ostream & getLogStream();
@@ -93,13 +93,10 @@ protected:
     virtual void onAttrChange(int attr) final override;
 
 private:
-    // Leave unimplemented for general case.
-    template <typename T> T * dynamicCastTo(Object *);
-
     template <typename Callable>
     static inline SQLRETURN doCall(Callable & callable,
         typename std::enable_if<
-            is_invocable_r<SQLRETURN, Callable>::value
+            std::is_invocable_r_v<SQLRETURN, Callable>
         >::type * = nullptr
     ) {
         return callable();
@@ -108,8 +105,8 @@ private:
     template <typename Callable>
     static inline SQLRETURN doCall(Callable & callable,
         typename std::enable_if<
-            !is_invocable_r<SQLRETURN, Callable>::value &&
-            is_invocable<Callable>::value
+            !std::is_invocable_r_v<SQLRETURN, Callable> &&
+            std::is_invocable_v<Callable>
         >::type * = nullptr
     ) {
         callable();
@@ -119,8 +116,8 @@ private:
     template <typename Callable>
     static inline SQLRETURN doCall(Callable & callable,
         typename std::enable_if<
-            !is_invocable_r<SQLRETURN, Callable>::value &&
-            !is_invocable<Callable>::value
+            !std::is_invocable_r_v<SQLRETURN, Callable> &&
+            !std::is_invocable_v<Callable>
         >::type * = nullptr
     ) {
         return SQL_INVALID_HANDLE;
@@ -129,7 +126,7 @@ private:
     template <typename Callable, typename ObjectType>
     static inline SQLRETURN doCall(Callable & callable, ObjectType & object, bool skip_diag,
         typename std::enable_if<
-            is_invocable_r<SQLRETURN, Callable, ObjectType &>::value
+            std::is_invocable_r_v<SQLRETURN, Callable, ObjectType &>
         >::type * = nullptr
     ) {
         SQLRETURN rc = SQL_SUCCESS;
@@ -146,8 +143,8 @@ private:
     template <typename Callable, typename ObjectType>
     static inline SQLRETURN doCall(Callable & callable, ObjectType & object, bool skip_diag,
         typename std::enable_if<
-            !is_invocable_r<SQLRETURN, Callable, ObjectType &>::value &&
-            is_invocable<Callable, ObjectType &>::value
+            !std::is_invocable_r_v<SQLRETURN, Callable, ObjectType &> &&
+            std::is_invocable_v<Callable, ObjectType &>
         >::type * = nullptr
     ) {
         SQLRETURN rc = SQL_SUCCESS;
@@ -164,8 +161,8 @@ private:
     template <typename Callable, typename ObjectType>
     static inline SQLRETURN doCall(Callable & callable, ObjectType & object, bool skip_diag,
         typename std::enable_if<
-            !is_invocable_r<SQLRETURN, Callable, ObjectType &>::value &&
-            !is_invocable<Callable, ObjectType &>::value
+            !std::is_invocable_r_v<SQLRETURN, Callable, ObjectType &> &&
+            !std::is_invocable_v<Callable, ObjectType &>
         >::type * = nullptr
     ) {
         return SQL_INVALID_HANDLE;
@@ -173,108 +170,154 @@ private:
 
 public:
     template <typename Callable>
-    SQLRETURN call(Callable && callable, SQLHANDLE handle = nullptr, SQLSMALLINT handle_type = 0, bool skip_diag = false) noexcept;
+    inline SQLRETURN call(Callable && callable, SQLHANDLE handle = nullptr, SQLSMALLINT handle_type = 0, bool skip_diag = false) const noexcept;
 
 private:
     std::string log_file_name;
     std::ofstream log_file_stream;
 
-    // TODO: consider upgrading from common Object type to std::variant of C++17 (or Boost), when available.
-    std::unordered_map<SQLHANDLE, std::reference_wrapper<Object>> descendants;
+    using DescendantVariantType = std::variant<
+        std::reference_wrapper<Statement>,
+        std::reference_wrapper<Descriptor>,
+        std::reference_wrapper<Connection>,
+        std::reference_wrapper<Environment>
+    >;
+
+    std::unordered_map<SQLHANDLE, DescendantVariantType> descendants;
     std::unordered_map<SQLHANDLE, std::shared_ptr<Environment>> environments;
 };
 
 template <> Environment & Driver::allocateChild<Environment>();
 template <> void Driver::deallocateChild<Environment>(SQLHANDLE handle) noexcept;
 
-// Move this to cpp to avoid the need of fully specifying these types here.
-template <> Environment * Driver::dynamicCastTo<Environment>(Object * obj);
-template <> Connection * Driver::dynamicCastTo<Connection>(Object * obj);
-template <> Descriptor * Driver::dynamicCastTo<Descriptor>(Object * obj);
-template <> Statement * Driver::dynamicCastTo<Statement>(Object * obj);
+template <typename T>
+void Driver::registerDescendant(T & descendant) {
+    descendants.erase(descendant.getHandle());
+    descendants.emplace(descendant.getHandle(), std::ref(descendant));
+}
+
+template <typename T>
+void Driver::unregisterDescendant(T & descendant) noexcept {
+    descendants.erase(descendant.getHandle());
+}
 
 template <typename Callable>
-SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLINT handle_type, bool skip_diag) noexcept {
+inline SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLINT handle_type, bool skip_diag) const noexcept {
     try {
-        Object* obj_ptr = nullptr;
-
         if (handle == nullptr) {
-            if (handle_type != 0)
-                return SQL_INVALID_HANDLE;
-        }
-        else {
-            auto it = descendants.find(handle);
-            if (it == descendants.end())
-                return SQL_INVALID_HANDLE;
-
-            obj_ptr = &it->second.get();
-        }
-
-        if (obj_ptr == nullptr) {
-            try {
-                return doCall(callable);
-            }
-            catch (const SqlException & ex) {
-                LOG(ex.getSQLState() << " (" << ex.what() << ")" << "[rc: " << ex.getReturnCode() << "]");
-                return ex.getReturnCode();
-            }
-            catch (const Poco::Exception & ex) {
-                LOG("HY000 (" << ex.displayText() << ")");
-                return SQL_ERROR;
-            }
-            catch (const std::exception & ex) {
-                LOG("HY000 (" << ex.what() << ")");
-                return SQL_ERROR;
-            }
-            catch (...) {
-                LOG("HY000 (Unknown exception)");
-                return SQL_ERROR;
+            if (handle_type == 0) {
+                try {
+                    return doCall(callable);
+                }
+                catch (const SqlException & ex) {
+                    LOG(ex.getSQLState() << " (" << ex.what() << ")" << "[rc: " << ex.getReturnCode() << "]");
+                    return ex.getReturnCode();
+                }
+                catch (const Poco::Exception & ex) {
+                    LOG("HY000 (" << ex.displayText() << ")");
+                    return SQL_ERROR;
+                }
+                catch (const std::exception & ex) {
+                    LOG("HY000 (" << ex.what() << ")");
+                    return SQL_ERROR;
+                }
+                catch (...) {
+                    LOG("HY000 (Unknown exception)");
+                    return SQL_ERROR;
+                }
             }
         }
         else {
-            try {
+            const auto func = [&] (auto & descendant_ref) noexcept -> SQLRETURN {
+                auto & descendant = descendant_ref.get();
 
-#define TRY_DISPATCH_AS(ObjectType) \
-    if ( \
-        handle_type == 0 || \
-        handle_type == getObjectHandleType<ObjectType>() \
-    ) { \
-        auto * obj = dynamicCastTo<ObjectType>(obj_ptr); \
-        if (obj) \
-            return doCall(callable, *obj, skip_diag); \
-    }
+                try {
+                    return doCall(callable, descendant, skip_diag);
+                }
+                catch (const SqlException & ex) {
+                    LOG(ex.getSQLState() << " (" << ex.what() << ")" << "[rc: " << ex.getReturnCode() << "]");
+                    if (!skip_diag)
+                        descendant.fillDiag(ex.getReturnCode(), ex.getSQLState(), ex.what(), 1);
+                    return ex.getReturnCode();
+                }
+                catch (const Poco::Exception & ex) {
+                    LOG("HY000 (" << ex.displayText() << ")");
+                    if (!skip_diag)
+                        descendant.fillDiag(SQL_ERROR, "HY000", ex.displayText(), 1);
+                    return SQL_ERROR;
+                }
+                catch (const std::exception & ex) {
+                    LOG("HY000 (" << ex.what() << ")");
+                    if (!skip_diag)
+                        descendant.fillDiag(SQL_ERROR, "HY000", ex.what(), 1);
+                    return SQL_ERROR;
+                }
+                catch (...) {
+                    LOG("HY000 (Unknown exception)");
+                    if (!skip_diag)
+                        descendant.fillDiag(SQL_ERROR, "HY000", "Unknown exception", 2);
+                    return SQL_ERROR;
+                }
+            };
 
-                TRY_DISPATCH_AS(Statement);
-                TRY_DISPATCH_AS(Descriptor);
-                TRY_DISPATCH_AS(Connection);
-                TRY_DISPATCH_AS(Environment);
+#if defined(WORKAROUND_ALLOW_UNSAFE_DISPATCH)
+            // If handle type is provided, and we are not in the "safe dispatch only" mode,
+            // we just directly interpret the handle as a pointer to the corresponding class.
+            switch (handle_type) {
+                case getObjectHandleType<Statement>(): {
+                    if constexpr (std::is_invocable_r_v<SQLRETURN, decltype(func), std::reference_wrapper<Statement>>)
+                        return func(std::ref(*reinterpret_cast<Statement *>(handle)));
+                    break;
+                }
+                case getObjectHandleType<Descriptor>(): {
+                    if constexpr (std::is_invocable_r_v<SQLRETURN, decltype(func), std::reference_wrapper<Descriptor>>)
+                        return func(std::ref(*reinterpret_cast<Descriptor *>(handle)));
+                    break;
+                }
+                case getObjectHandleType<Connection>(): {
+                    if constexpr (std::is_invocable_r_v<SQLRETURN, decltype(func), std::reference_wrapper<Connection>>)
+                        return func(std::ref(*reinterpret_cast<Connection *>(handle)));
+                    break;
+                }
+                case getObjectHandleType<Environment>(): {
+                    if constexpr (std::is_invocable_r_v<SQLRETURN, decltype(func), std::reference_wrapper<Environment>>)
+                        return func(std::ref(*reinterpret_cast<Environment *>(handle)));
+                    break;
+                }
+            }
+#endif
 
-#undef TRY_DISPATCH_AS
+            const auto it = descendants.find(handle);
+            if (it != descendants.end()) {
+                switch (handle_type) {
+                    case 0: {
+                        return std::visit(func, it->second);
+                    }
 
-            }
-            catch (const SqlException & ex) {
-                LOG(ex.getSQLState() << " (" << ex.what() << ")" << "[rc: " << ex.getReturnCode() << "]");
-                if (!skip_diag)
-                    obj_ptr->fillDiag(ex.getReturnCode(), ex.getSQLState(), ex.what(), 1);
-                return ex.getReturnCode();
-            }
-            catch (const Poco::Exception & ex) {
-                LOG("HY000 (" << ex.displayText() << ")");
-                if (!skip_diag)
-                    obj_ptr->fillDiag(SQL_ERROR, "HY000", ex.displayText(), 1);
-                return SQL_ERROR;
-            }
-            catch (const std::exception & ex) {
-                LOG("HY000 (" << ex.what() << ")");
-                if (!skip_diag)
-                    obj_ptr->fillDiag(SQL_ERROR, "HY000", ex.what(), 1);
-                return SQL_ERROR;
-            }
-            catch (...) {
-                LOG("HY000 (Unknown exception)");
-                if (!skip_diag)
-                    obj_ptr->fillDiag(SQL_ERROR, "HY000", "Unknown exception", 2);
-                return SQL_ERROR;
+                    // Shortcut visitation using std::get_if<>() when 'handle_type' is not 0.
+                    // This yields slightly better results with the current compilers optimization capabilities.
+
+                    case getObjectHandleType<Statement>(): {
+                        if (auto * descendant_ref_ptr = std::get_if<std::reference_wrapper<Statement>>(&it->second))
+                            return func(*descendant_ref_ptr);
+                        break;
+                    }
+                    case getObjectHandleType<Descriptor>(): {
+                        if (auto * descendant_ref_ptr = std::get_if<std::reference_wrapper<Descriptor>>(&it->second))
+                            return func(*descendant_ref_ptr);
+                        break;
+                    }
+                    case getObjectHandleType<Connection>(): {
+                        if (auto * descendant_ref_ptr = std::get_if<std::reference_wrapper<Connection>>(&it->second))
+                            return func(*descendant_ref_ptr);
+                        break;
+                    }
+                    case getObjectHandleType<Environment>(): {
+                        if (auto * descendant_ref_ptr = std::get_if<std::reference_wrapper<Environment>>(&it->second))
+                            return func(*descendant_ref_ptr);
+                        break;
+                    }
+                }
             }
         }
     }

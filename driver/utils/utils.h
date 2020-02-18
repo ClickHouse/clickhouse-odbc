@@ -5,7 +5,7 @@
 #include "driver/type_info.h"
 #include "driver/exception.h"
 
-#if !defined(NDEBUG) && __cplusplus >= 201703L
+#if !defined(NDEBUG)
 #   include "driver/utils/iostream_debug_helpers.h"
 #endif
 
@@ -32,45 +32,18 @@
 
 #include <cstring>
 
-#if __cplusplus >= 201703L
-
-using std::is_invocable;
-using std::is_invocable_r;
-
-#else
-
-template <typename F, typename... Args>
-struct is_invocable :
-    std::is_constructible<
-        std::function<void(Args...)>,
-        std::reference_wrapper<typename std::remove_reference<F>::type>
-    >
-{
-};
-
-template <typename R, typename F, typename... Args>
-struct is_invocable_r
-    : public std::is_constructible<
-        std::function<R(Args...)>,
-        std::reference_wrapper<typename std::remove_reference<F>::type>
-    >
-{
-};
-
-#endif
-
 class Environment;
 class Connection;
 class Descriptor;
 class Statement;
 
-template <typename T> constexpr auto & getObjectTypeName() { return "HANDLE"; }
+template <typename T> constexpr auto & getObjectTypeName(); // Leave unimplemented for general case.
 template <> constexpr auto & getObjectTypeName<Environment>() { return "ENV"; }
 template <> constexpr auto & getObjectTypeName<Connection>() { return "DBC"; }
 template <> constexpr auto & getObjectTypeName<Descriptor>() { return "DESC"; }
 template <> constexpr auto & getObjectTypeName<Statement>() { return "STMT"; }
 
-template <typename T> constexpr int getObjectHandleType() { return 0; }
+template <typename T> constexpr int getObjectHandleType(); // Leave unimplemented for general case.
 template <> constexpr int getObjectHandleType<Environment>() { return SQL_HANDLE_ENV; }
 template <> constexpr int getObjectHandleType<Connection>() { return SQL_HANDLE_DBC; }
 template <> constexpr int getObjectHandleType<Descriptor>() { return SQL_HANDLE_DESC; }
@@ -106,6 +79,19 @@ inline void hexPrint(std::ostream &stream, const std::basic_string<CharT, Traits
     for(unsigned char c : s)
         stream << std::setw(2) << static_cast<int>(c) << ' ';
     stream << std::dec << '\n';
+}
+
+template <typename T>
+inline T fromString(const std::string & s) {
+    T result;
+
+    std::istringstream iss(s);
+    iss >> result;
+
+    if (iss.fail() || !iss.eof())
+        throw std::runtime_error("bad lexical cast");
+
+    return result;
 }
 
 inline bool isYes(std::string str) {

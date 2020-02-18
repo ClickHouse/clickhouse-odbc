@@ -9,7 +9,7 @@
 #include <Poco/NumberParser.h> // TODO: switch to std
 #include <Poco/URI.h>
 
-#if USE_SSL
+#if !defined(WORKAROUND_DISABLE_SSL)
 #    include <Poco/Net/AcceptCertificateHandler.h>
 #    include <Poco/Net/RejectCertificateHandler.h>
 
@@ -21,7 +21,7 @@
 
 std::once_flag ssl_init_once;
 
-#if USE_SSL
+#if !defined(WORKAROUND_DISABLE_SSL)
 void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::string & certificateFile, const std::string & caLocation) {
 // http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
     Poco::Net::initializeSSL();
@@ -112,7 +112,7 @@ void Connection::connect(const std::string & connection_string) {
 
     LOG("Creating session with " << proto << "://" << server << ":" << port);
 
-#if USE_SSL
+#if !defined(WORKAROUND_DISABLE_SSL)
     const auto is_ssl = (Poco::UTF8::icompare(proto, "https") == 0);
     if (is_ssl) {
         const auto ssl_strict = (Poco::UTF8::icompare(sslmode, "allow") != 0);
@@ -121,7 +121,7 @@ void Connection::connect(const std::string & connection_string) {
 #endif
 
     session = std::unique_ptr<Poco::Net::HTTPClientSession>(
-#if USE_SSL
+#if !defined(WORKAROUND_DISABLE_SSL)
         is_ssl ? new Poco::Net::HTTPSClientSession :
 #endif
         new Poco::Net::HTTPClientSession
@@ -318,7 +318,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
     for (auto & field : dsn_fields) {
         const auto & key = field.first;
         const auto & value = field.second;
-        
+
         if (cs_fields.find(key) != cs_fields.end()) {
             LOG("DSN: attribute '" << key << " = " << value << "' unused, overriden by the connection string");
         }

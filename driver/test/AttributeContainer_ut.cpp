@@ -62,7 +62,9 @@ TYPED_TEST(AttributeContainerT, SetAttribute)
     EXPECT_FALSE(container.hasAttrAs<OtherType>(KEY));
 
     EXPECT_EQ(VALUE, container.getAttrAs<Type>(KEY));
-    EXPECT_EQ(OtherType{}, container.getAttrAs<OtherType>(KEY));
+
+    if constexpr (std::is_same_v<OtherType, std::string>)
+        EXPECT_EQ(std::to_string(VALUE), container.getAttrAs<OtherType>(KEY));
 }
 
 TYPED_TEST(AttributeContainerT, ResetAttribute)
@@ -83,7 +85,9 @@ TYPED_TEST(AttributeContainerT, ResetAttribute)
     EXPECT_FALSE(container.hasAttrAs<OtherType>(KEY));
 
     EXPECT_EQ(OTHER_VALUE, container.getAttrAs<Type>(KEY));
-    EXPECT_EQ(OtherType{}, container.getAttrAs<OtherType>(KEY));
+
+    if constexpr (std::is_same_v<OtherType, std::string>)
+        EXPECT_EQ(std::to_string(OTHER_VALUE), container.getAttrAs<OtherType>(KEY));
 }
 
 class AttributeContainerTrackingAttributeChange : public AttributeContainer

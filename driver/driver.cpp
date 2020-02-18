@@ -44,35 +44,6 @@ void Driver::deallocateChild<Environment>(SQLHANDLE handle) noexcept {
     environments.erase(handle);
 }
 
-void Driver::registerDescendant(Object & descendant) {
-    descendants.erase(descendant.getHandle());
-    descendants.emplace(descendant.getHandle(), std::ref(descendant));
-}
-
-void Driver::unregisterDescendant(Object & descendant) noexcept {
-    descendants.erase(descendant.getHandle());
-}
-
-template <>
-Environment * Driver::dynamicCastTo<Environment>(Object * obj) {
-    return dynamic_cast<Environment *>(obj);
-}
-
-template <>
-Connection * Driver::dynamicCastTo<Connection>(Object * obj) {
-    return dynamic_cast<Connection *>(obj);
-}
-
-template <>
-Descriptor * Driver::dynamicCastTo<Descriptor>(Object * obj) {
-    return dynamic_cast<Descriptor *>(obj);
-}
-
-template <>
-Statement * Driver::dynamicCastTo<Statement>(Object * obj) {
-    return dynamic_cast<Statement *>(obj);
-}
-
 void Driver::onAttrChange(int attr) {
     switch (attr) {
         case CH_SQL_ATTR_DRIVERLOG:

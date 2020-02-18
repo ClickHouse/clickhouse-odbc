@@ -1,10 +1,11 @@
 function (declare_odbc_lib_targets libname UNICODE)
 
 # See the usage of each workaround in the code, for comments.
+unset (WORKAROUND_ALLOW_UNSAFE_DISPATCH)
+unset (WORKAROUND_DISABLE_SSL)
 unset (WORKAROUND_ENABLE_TRIM_TRAILING_NULL)
 unset (WORKAROUND_ENABLE_DEFINE_SQLBindParam)
 unset (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
-unset (USE_SSL)
 
 if (UNICODE)
     set (DRIVER_PREFIX Unicode)
@@ -22,8 +23,12 @@ if ("${ODBC_PROVIDER}" STREQUAL "iODBC")
     set (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS 1)
 endif ()
 
-if (CH_ODBC_ENABLE_SSL)
-    set (USE_SSL 1)
+if (CH_ODBC_ALLOW_UNSAFE_DISPATCH)
+    set (WORKAROUND_ALLOW_UNSAFE_DISPATCH 1)
+endif()
+
+if (NOT CH_ODBC_ENABLE_SSL)
+    set (WORKAROUND_DISABLE_SSL 1)
 endif()
 
 message (STATUS "${libname}: ${DRIVER_PREFIX}")
@@ -33,10 +38,11 @@ configure_file (
     ${CMAKE_CURRENT_BINARY_DIR}/platform/config_cmake${WIDECHAR_SUFFIX}.h
 )
 
+unset (WORKAROUND_ALLOW_UNSAFE_DISPATCH)
+unset (WORKAROUND_DISABLE_SSL)
 unset (WORKAROUND_ENABLE_TRIM_TRAILING_NULL)
 unset (WORKAROUND_ENABLE_DEFINE_SQLBindParam)
 unset (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
-unset (USE_SSL)
 
 # In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
 add_library (${libname}-impl STATIC
@@ -47,6 +53,8 @@ add_library (${libname}-impl STATIC
 
     escaping/escape_sequences.cpp
     escaping/lexer.cpp
+
+    api/impl/impl.cpp
 
     attributes.cpp
     connection.cpp
@@ -78,6 +86,8 @@ add_library (${libname}-impl STATIC
     escaping/lexer.h
     escaping/lexer_declare.h
     escaping/function_declare.h
+
+    api/impl/impl.h
 
     attributes.h
     connection.h
@@ -142,10 +152,6 @@ target_link_libraries (${libname}-impl
 
 add_library (${libname} SHARED
     api/odbc.cpp
-    api/impl/handles.cpp
-    api/impl/attr.cpp
-    api/impl/info.cpp
-
     ${WIN_SOURCES}
 )
 

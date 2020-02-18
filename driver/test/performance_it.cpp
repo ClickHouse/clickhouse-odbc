@@ -1,14 +1,9 @@
 #include "driver/platform/platform.h"
-#include "driver/test/gtest_env.h"
 #include "driver/test/client_utils.h"
 #include "driver/test/client_test_base.h"
 
 #include <gtest/gtest.h>
-
-#include <chrono>
-#include <iostream>
-#include <string>
-#include <sstream>
+#include <gmock/gmock.h>
 
 #include <cstring>
 
@@ -60,10 +55,65 @@ private:
     SQLUINTEGER driver_log = SQL_OPT_TRACE_ON;
 };
 
-#ifdef NDEBUG
+// API call that doesn't reach the driver, i.e., this is effectively (somewhat incomplete) Driver Manager overhead, just for the reference.
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(UnimplementedAPICallOverhead)) {
+    constexpr std::size_t call_count = 1'000'000;
+    const auto tstr = fromUTF8<SQLTCHAR>("");
+    auto * tstr_wptr = const_cast<SQLTCHAR * >(tstr.c_str());
 
-TEST_F(PerformanceTest, Basic) {
-    const std::size_t total_rows_expected = 1000000;
+    // Verify that SQLStatistics() is not implemented. Change to something else when implemented.
+    {
+        const auto rc = SQLStatistics(hstmt, tstr_wptr, 0, tstr_wptr, 0, tstr_wptr, 0, SQL_INDEX_ALL, SQL_ENSURE);
+        if (rc != SQL_ERROR) {
+            throw std::runtime_error(
+                "SQLStatistics return code: " + std::to_string(rc) +
+                ", expected SQL_ERROR (" + std::to_string(SQL_ERROR) +
+                ") - a function that is not implemented by the driver"
+            );
+        }
+
+        // TODO: fix this, the following extra check works reliably only on UnixODBC with matching encoding versions of driver and app.
+/*
+        const auto diag_str = extract_diagnostics(hstmt, SQL_HANDLE_STMT);
+        ASSERT_THAT(diag_str, ::testing::HasSubstr("Driver does not support this function"));
+*/
+    }
+
+    START_MEASURING_TIME();
+
+    for (std::size_t i = 0; i < call_count; ++i) {
+        SQLStatistics(hstmt, tstr_wptr, 0, tstr_wptr, 0, tstr_wptr, 0, SQL_INDEX_ALL, SQL_ENSURE);
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT(call_count);
+}
+
+// API call that involves the driver, triggers handle dispatch and diag reset, but does no real work.
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(NoOpAPICallOverhead)) {
+    constexpr std::size_t call_count = 1'000'000;
+
+    // Verify that several consequent SQLNumResultCols() calls  on an executed statement, without destination buffer, return SQL_SUCCESS.
+    {
+        const auto query = fromUTF8<SQLTCHAR>("SELECT 1");
+        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLNumResultCols(hstmt, nullptr));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLNumResultCols(hstmt, nullptr));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLNumResultCols(hstmt, nullptr));
+    }
+
+    START_MEASURING_TIME();
+
+    for (std::size_t i = 0; i < call_count; ++i) {
+        SQLNumResultCols(hstmt, nullptr);
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT(call_count);
+}
+
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(GetDataBasic)) {
+    constexpr std::size_t total_rows_expected = 1'000'000;
     const std::string query_orig = "SELECT CAST('some not very long text', 'String') as col1, CAST('12345', 'Int') as col2, CAST('12.345', 'Float32') as col3, CAST('-123.456789012345678', 'Float64') as col4 FROM numbers(" + std::to_string(total_rows_expected) + ")";
 
     std::cout << "Executing query:\n\t" << query_orig << std::endl;
@@ -71,12 +121,12 @@ TEST_F(PerformanceTest, Basic) {
     const auto query = fromUTF8<SQLTCHAR>(query_orig);
     auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
 
-    const auto start = std::chrono::system_clock::now();
-
-    std::size_t total_rows = 0;
-
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+    START_MEASURING_TIME();
+
+    std::size_t total_rows = 0;
 
     while (true) {
         SQLRETURN rc = SQLFetch(hstmt);
@@ -154,11 +204,5 @@ TEST_F(PerformanceTest, Basic) {
 
     ASSERT_EQ(total_rows, total_rows_expected);
 
-    const auto end = std::chrono::system_clock::now();
-    const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-    std::stringstream str;
-    str << std::fixed << std::setprecision(9) << static_cast<double>(elapsed.count()) / static_cast<double>(1000'000'000);
-    std::cout << "Executed in:\n\t" << str.str() << " seconds" << std::endl;
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
 }
-
-#endif

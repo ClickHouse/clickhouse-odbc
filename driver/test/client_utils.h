@@ -3,6 +3,7 @@
 #include "driver/platform/platform.h"
 #include "driver/type_info.h"
 #include "driver/utils/unicode_conv.h"
+#include "driver/test/common_utils.h"
 
 namespace {
 
@@ -16,7 +17,7 @@ namespace {
         SQLRETURN rc = SQL_SUCCESS;
 
         do {
-            rc = SQLGetDiagRec(type, handle, ++i, state, &native, text, sizeof(text), &len );
+            rc = SQLGetDiagRec(type, handle, ++i, state, &native, text, sizeof(text), &len);
             if (SQL_SUCCEEDED(rc)) {
                 if (!result.empty())
                     result += '\n';
