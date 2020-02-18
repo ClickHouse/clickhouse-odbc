@@ -327,14 +327,14 @@ cmake -A x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 Build the generated solution in-place:
 
 ```sh
-cmake --build . -C RelWithDebInfo
-cmake --build . -C RelWithDebInfo --target package
+cmake --build . --config RelWithDebInfo
+cmake --build . --config RelWithDebInfo --target package
 ```
 
 ...and, optionally, run tests (note, that for non-unit tests, preconfigured driver and DSN entries must exist, that point to the binaries generated in this build folder):
 
 ```sh
-cmake --build . -C RelWithDebInfo --target test
+cmake --build . --config RelWithDebInfo --target test
 ```
 
 ...or open the IDE and build `all`, `package`, and `test` targets manually from there:
@@ -389,14 +389,14 @@ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 Build the generated solution in-place:
 
 ```sh
-cmake --build . -C RelWithDebInfo
-cmake --build . -C RelWithDebInfo --target package
+cmake --build . --config RelWithDebInfo
+cmake --build . --config RelWithDebInfo --target package
 ```
 
 ...and, optionally, run tests (note, that for non-unit tests, preconfigured driver and DSN entries must exist, that point to the binaries generated in this build folder):
 
 ```sh
-cmake --build . -C RelWithDebInfo --target test
+cmake --build . --config RelWithDebInfo --target test
 ```
 
 ...or, if you configured the project with '-G Xcode' initially, open the IDE and build `all`, `package`, and `test` targets manually from there:
@@ -460,14 +460,14 @@ cmake3 -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 Build the generated solution in-place:
 
 ```sh
-cmake3 --build . -C RelWithDebInfo
-cmake3 --build . -C RelWithDebInfo --target package
+cmake3 --build . --config RelWithDebInfo
+cmake3 --build . --config RelWithDebInfo --target package
 ```
 
 ...and, optionally, run tests (note, that for non-unit tests, preconfigured driver and DSN entries must exist, that point to the binaries generated in this build folder):
 
 ```sh
-cmake3 --build . -C RelWithDebInfo --target test
+cmake3 --build . --config RelWithDebInfo --target test
 ```
 
 ### Building from sources: Debian/Ubuntu
@@ -513,12 +513,12 @@ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 Build the generated solution in-place:
 
 ```sh
-cmake --build . -C RelWithDebInfo
-cmake --build . -C RelWithDebInfo --target package
+cmake --build . --config RelWithDebInfo
+cmake --build . --config RelWithDebInfo --target package
 ```
 
 ...and, optionally, run tests (note, that for non-unit tests, preconfigured driver and DSN entries must exist, that point to the binaries generated in this build folder):
 
 ```sh
-cmake --build . -C RelWithDebInfo --target test
+cmake --build . --config RelWithDebInfo --target test
 ```
