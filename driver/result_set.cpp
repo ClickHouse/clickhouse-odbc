@@ -67,8 +67,36 @@ void ColumnInfo::assignTypeInfo(const TypeAst & ast) {
     }
 }
 
-void ColumnInfo::updateTypeId() {
+void ColumnInfo::updateTypeInfo() {
     type_without_parameters_id = convertUnparametrizedTypeNameToTypeId(type_without_parameters);
+
+    auto tmp_type_name = convertTypeIdToUnparametrizedCanonicalTypeName(type_without_parameters_id);
+
+    if (
+        type_without_parameters_id == DataSourceTypeId::Decimal32 ||
+        type_without_parameters_id == DataSourceTypeId::Decimal64 ||
+        type_without_parameters_id == DataSourceTypeId::Decimal128
+    ) {
+        tmp_type_name = "Decimal";
+    }
+
+    switch (type_without_parameters_id) {
+        case DataSourceTypeId::FixedString: {
+            display_size = fixed_size;
+            break;
+        }
+
+        case DataSourceTypeId::String: {
+            display_size = SQL_NO_TOTAL;
+            break;
+        }
+
+        default: {
+            auto & type_info = type_info_for(tmp_type_name);
+            display_size = type_info.column_size;
+            break;
+        }
+    }
 }
 
 SQLRETURN Field::extract(BindingInfo & binding_info) const {
@@ -131,7 +159,7 @@ std::size_t ResultSet::fetchRowSet(SQLSMALLINT orientation, SQLLEN offset, std::
     }
 
     if (prefetched_rows.size() < size) {
-        constexpr std::size_t prefetch_at_least = 10'000;
+        constexpr std::size_t prefetch_at_least = 100;
         tryPrefetchRows(std::max(size, prefetch_at_least));
     }
 

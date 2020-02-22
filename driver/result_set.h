@@ -17,14 +17,15 @@ extern const std::string::size_type initial_string_capacity_g;
 class ColumnInfo {
 public:
     void assignTypeInfo(const TypeAst & ast);
-    void updateTypeId();
+    void updateTypeInfo();
 
 public:
     std::string name;
     std::string type;
     std::string type_without_parameters;
     DataSourceTypeId type_without_parameters_id = DataSourceTypeId::Unknown;
-    std::size_t display_size = 0;
+    std::int64_t display_size = SQL_NO_TOTAL;
+    std::size_t display_size_so_far = 0;
     std::size_t fixed_size = 0;
     std::size_t precision = 0;
     std::size_t scale = 0;

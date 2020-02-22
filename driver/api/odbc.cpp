@@ -568,7 +568,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
 
         std::int32_t SQL_DESC_LENGTH_value = 0;
         if (type_info.isBufferType()) {
-            const auto data_size = (column_info.fixed_size ? column_info.fixed_size : column_info.display_size);
+            const auto data_size = (column_info.fixed_size ? static_cast<std::int64_t>(column_info.fixed_size) : column_info.display_size);
             SQL_DESC_LENGTH_value = std::min<int32_t>(statement.getParent().stringmaxlength, data_size);
         }
 
@@ -1014,7 +1014,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
                     tmp_column_info.type_without_parameters = "String";
                 }
 
-                tmp_column_info.updateTypeId();
+                tmp_column_info.updateTypeInfo();
             }, row.fields.at(5).data);
 
             const TypeInfo & type_info = env.getTypeInfo(tmp_column_info.type, tmp_column_info.type_without_parameters);
