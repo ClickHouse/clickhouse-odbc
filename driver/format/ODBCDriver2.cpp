@@ -1,5 +1,7 @@
 #include "driver/format/ODBCDriver2.h"
 
+#include <folly/memory/UninitializedMemoryHacks.h>
+
 ODBCDriver2ResultSet::ODBCDriver2ResultSet(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
     : ResultSet(stream, std::move(mutator))
 {
@@ -80,7 +82,7 @@ void ODBCDriver2ResultSet::readValue(std::string & dest, bool * is_null) {
     readSize(size);
 
     if (size >= 0) {
-        dest.resize(size); // TODO: switch to uninitializing resize().
+        folly::resizeWithoutInitialization(dest, size);
 
         if (is_null)
             *is_null = false;
@@ -88,12 +90,14 @@ void ODBCDriver2ResultSet::readValue(std::string & dest, bool * is_null) {
         if (size > 0) {
             raw_stream.read(dest.data(), size);
 
-            if (raw_stream.gcount() != size)
+            if (raw_stream.gcount() != size) {
+                dest.clear();
                 throw std::runtime_error("Incomplete result received, expected size: " + std::to_string(size));
+            }
         }
     }
     else /*if (size == -1) */{
-        dest.resize(0);
+        dest.clear();
 
         if (is_null)
             *is_null = true;
