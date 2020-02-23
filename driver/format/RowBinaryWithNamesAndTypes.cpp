@@ -1,5 +1,7 @@
 #include "driver/format/RowBinaryWithNamesAndTypes.h"
 
+#include <folly/memory/UninitializedMemoryHacks.h>
+
 #include <ctime>
 
 RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
@@ -95,11 +97,13 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(std::string & res) {
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(std::string & dest, const std::uint64_t size) {
-    dest.resize(size); // TODO: switch to uninitializing resize().
+    folly::resizeWithoutInitialization(dest, size);
     raw_stream.read(dest.data(), dest.size());
 
-    if (raw_stream.gcount() != dest.size())
+    if (raw_stream.gcount() != dest.size()) {
+        dest.clear();
         throw std::runtime_error("Incomplete result received, expected size: " + std::to_string(size));
+    }
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(Field & dest, ColumnInfo & column_info) {
