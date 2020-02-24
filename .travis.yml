@@ -42,7 +42,6 @@ jobs:
           packages:
             - gcc
             - g++
-            - cmake
             - unixodbc
             - unixodbc-bin
             - unixodbc-dev
@@ -71,7 +70,6 @@ jobs:
           packages:
             - gcc
             - g++
-            - cmake
             - unixodbc
             - unixodbc-bin
             - unixodbc-dev
@@ -100,7 +98,6 @@ jobs:
           packages:
             - gcc
             - g++
-            - cmake
             - unixodbc
             - unixodbc-bin
             - unixodbc-dev
@@ -129,7 +126,6 @@ jobs:
           packages:
             - gcc
             - g++
-            - cmake
             - openssl
             - libssl-dev
             - libpoco-dev
@@ -161,7 +157,6 @@ jobs:
               key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - clang
-            - cmake
             - unixodbc
             - unixodbc-bin
             - unixodbc-dev
@@ -190,7 +185,6 @@ jobs:
           packages:
             - gcc
             - g++
-            - cmake
             - iodbc
             - libiodbc2
             - libiodbc2-dev
@@ -218,7 +212,6 @@ jobs:
               key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - clang
-            - cmake
             - iodbc
             - libiodbc2
             - libiodbc2-dev
