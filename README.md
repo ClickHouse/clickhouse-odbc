@@ -124,7 +124,7 @@ To debug issues with the driver, first things that need to be done are:
 
 The general requirements for building the driver from sources are as follows:
 
-- CMake 3.12 and later
+- CMake 3.13.5 and later
 - C++17 and C11 capable compiler toolchain:
   - Clang 4 and later
   - GCC 7 and later
