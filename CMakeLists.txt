@@ -167,8 +167,10 @@ set (CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 include (CheckIPOSupported)
 check_ipo_supported (RESULT ipo_supported LANGUAGES C CXX)
 if (ipo_supported)
-    set (CMAKE_INTERPROCEDURAL_OPTIMIZATION 1)
-    set (CMAKE_INTERPROCEDURAL_OPTIMIZATION_DEBUG 0)
+    if (NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION) # respect value prodivided by user
+        set (CMAKE_INTERPROCEDURAL_OPTIMIZATION 1)
+        set (CMAKE_INTERPROCEDURAL_OPTIMIZATION_DEBUG 0)
+    endif ()    
 endif ()
 
 add_subdirectory (driver)
