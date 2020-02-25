@@ -18,6 +18,8 @@ struct TypeInfo {
     std::string sql_type_name;
     bool is_unsigned;
     SQLSMALLINT sql_type;
+
+    // https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/column-size-decimal-digits-transfer-octet-length-and-display-size
     int32_t column_size;
     int32_t octet_length;
 
