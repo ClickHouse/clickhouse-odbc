@@ -236,6 +236,7 @@ jobs:
         homebrew:
           packages:
             - libiodbc
+          update: true
 
     - name: "macOS 10.14 - iODBC - RelWithDebInfo - System third-party libs - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
       os: osx
@@ -254,6 +255,7 @@ jobs:
             - openssl
             - poco
             - libiodbc
+          update: true
 
     - name: "macOS 10.14 - UnixODBC - RelWithDebInfo - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
       os: osx
@@ -270,6 +272,7 @@ jobs:
         homebrew:
           packages:
             - unixodbc
+          update: true
 
 before_install: |-
   set -Eeo pipefail
