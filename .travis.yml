@@ -253,7 +253,7 @@ jobs:
         homebrew:
           packages:
             - poco
-            - openssl
+            - openssl@1.1
             - libiodbc
           update: true
 
