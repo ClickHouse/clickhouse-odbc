@@ -492,6 +492,11 @@ sudo apt install build-essential git cmake libpoco-dev libssl-dev libiodbc2-dev
 
 Assuming, that the system `cc` and `c++` are pointing to the compilers that satisfy the minimum requirements from [Building from sources](#building-from-sources).
 
+If the version of `cmake` is not recent enough, you can install a newer version by folowing instructions from one of these pages:
+
+- [Kitware APT Repository](https://apt.kitware.com/)
+- [Installing CMake](https://cmake.org/install/)
+
 Clone the repo with submodules:
 
 ```sh
