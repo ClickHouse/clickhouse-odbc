@@ -252,8 +252,8 @@ jobs:
       addons:
         homebrew:
           packages:
-            - openssl
             - poco
+            - openssl
             - libiodbc
           update: true
 
