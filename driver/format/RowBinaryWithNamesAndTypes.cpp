@@ -113,6 +113,14 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(Field & dest, ColumnInfo & c
         }
     }
 
+    constexpr bool convert_on_fetch_conservatively = true;
+
+    if (convert_on_fetch_conservatively) switch (column_info.type_without_parameters_id) {
+        case DataSourceTypeId::Date:        return readValueAs<WireTypeDateAsInt    >(dest, column_info);
+        case DataSourceTypeId::DateTime:    return readValueAs<WireTypeDateTimeAsInt>(dest, column_info);
+        default:                            break; // Continue with the next complete switch...
+    }
+
     switch (column_info.type_without_parameters_id) {
         case DataSourceTypeId::Date:        return readValueAs<DataSourceType< DataSourceTypeId::Date        >>(dest, column_info);
         case DataSourceTypeId::DateTime:    return readValueAs<DataSourceType< DataSourceTypeId::DateTime    >>(dest, column_info);
@@ -138,33 +146,24 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(Field & dest, ColumnInfo & c
     }
 }
 
+void RowBinaryWithNamesAndTypesResultSet::readValue(WireTypeDateAsInt & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(WireTypeDateTimeAsInt & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Date> & dest, ColumnInfo & column_info) {
-    std::uint16_t days_since_epoch = 0;
-    readPOD(days_since_epoch);
-
-    std::time_t time = days_since_epoch;
-    time = time * 24 * 60 * 60; // Now it's seconds since epoch.
-    const auto & tm = *std::localtime(&time);
-
-    dest.value.year = 1900 + tm.tm_year;
-    dest.value.month = 1 + tm.tm_mon;
-    dest.value.day = tm.tm_mday;
+    WireTypeDateAsInt dest_raw;
+    readValue(dest_raw, column_info);
+    value_manip::from_value<decltype(dest_raw)>::template to_value<decltype(dest)>::convert(dest_raw, dest);
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::DateTime> & dest, ColumnInfo & column_info) {
-    std::uint32_t secs_since_epoch = 0;
-    readPOD(secs_since_epoch);
-
-    std::time_t time = secs_since_epoch;
-    const auto & tm = *std::localtime(&time);
-
-    dest.value.year = 1900 + tm.tm_year;
-    dest.value.month = 1 + tm.tm_mon;
-    dest.value.day = tm.tm_mday;
-    dest.value.hour = tm.tm_hour;
-    dest.value.minute = tm.tm_min;
-    dest.value.second = tm.tm_sec;
-    dest.value.fraction = 0;
+    WireTypeDateTimeAsInt dest_raw;
+    readValue(dest_raw, column_info);
+    value_manip::from_value<decltype(dest_raw)>::template to_value<decltype(dest)>::convert(dest_raw, dest);
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Decimal> & dest, ColumnInfo & column_info) {

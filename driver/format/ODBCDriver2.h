@@ -28,6 +28,8 @@ private:
         dest.data = std::move(value);
     }
 
+    void readValue(std::string & src, WireTypeAnyAsString & dest, ColumnInfo & column_info);
+
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::Date        > & dest, ColumnInfo & column_info);
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::DateTime    > & dest, ColumnInfo & column_info);
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::Decimal     > & dest, ColumnInfo & column_info);

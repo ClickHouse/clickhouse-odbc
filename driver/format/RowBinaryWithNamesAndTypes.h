@@ -39,6 +39,9 @@ private:
         dest.data = std::move(value);
     }
 
+    void readValue(WireTypeDateAsInt & dest, ColumnInfo & column_info);
+    void readValue(WireTypeDateTimeAsInt & dest, ColumnInfo & column_info);
+
     void readValue(DataSourceType< DataSourceTypeId::Date        > & dest, ColumnInfo & column_info);
     void readValue(DataSourceType< DataSourceTypeId::DateTime    > & dest, ColumnInfo & column_info);
     void readValue(DataSourceType< DataSourceTypeId::Decimal     > & dest, ColumnInfo & column_info);
