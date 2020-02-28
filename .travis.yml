@@ -257,6 +257,7 @@ jobs:
         homebrew:
           packages:
             - libiodbc
+          update: true
 
     - name: "macOS 10.14 - iODBC - RelWithDebInfo - System third-party libs - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
       os: osx
@@ -275,6 +276,7 @@ jobs:
             - openssl
             - poco
             - libiodbc
+          update: true
 
     - name: "macOS 10.14 - UnixODBC - RelWithDebInfo - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
       os: osx
@@ -291,6 +293,7 @@ jobs:
         homebrew:
           packages:
             - unixodbc
+          update: true
 
 before_install: |-
   set -Eeo pipefail
@@ -429,6 +432,9 @@ install: |-
   CMAKE_CONFIGURE_ARGS="-DTEST_DSN_LIST=\"ClickHouse DSN (ANSI);ClickHouse DSN (Unicode);ClickHouse DSN (ANSI, RBWNAT)\" $CMAKE_CONFIGURE_EXTRA_ARGS"
   if [[ "$EXTERNAL_THIRD_PARTY" == "yes" ]]; then
     CMAKE_CONFIGURE_ARGS="-DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=OFF $CMAKE_CONFIGURE_ARGS"
+    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      CMAKE_CONFIGURE_ARGS="-DOPENSSL_ROOT_DIR=$(brew --prefix)/opt/openssl $CMAKE_CONFIGURE_ARGS"
+    fi
   fi
   if [[ ! -z "$ODBC_PROVIDER" ]]; then
     CMAKE_CONFIGURE_ARGS="-DODBC_PROVIDER=$ODBC_PROVIDER $CMAKE_CONFIGURE_ARGS"

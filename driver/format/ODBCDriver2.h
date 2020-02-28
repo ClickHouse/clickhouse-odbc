@@ -3,6 +3,7 @@
 #include "driver/platform/platform.h"
 #include "driver/result_set.h"
 
+// Implementation of ResultSet for ODBCDriver2 wire format of ClickHouse.
 class ODBCDriver2ResultSet
     : public ResultSet
 {
