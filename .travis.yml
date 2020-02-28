@@ -36,6 +36,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - gcc
             - g++
@@ -61,6 +64,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - gcc
             - g++
@@ -86,6 +92,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - gcc
             - g++
@@ -111,6 +120,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - gcc
             - g++
@@ -140,6 +152,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - clang
             - unixodbc
@@ -164,6 +179,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - gcc
             - g++
@@ -189,6 +207,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - clang
             - iodbc
@@ -290,6 +311,7 @@ before_install: |-
 
 install: |-
   if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+    export PATH=$(echo "$PATH" | sed -e 's|:/usr/local/cmake-[^:]*/bin:|:|')
     sudo apt-get install -y build-essential cmake perl libdbi-perl libdbd-odbc-perl python python-pyodbc
   elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     # brew install cmake perl python

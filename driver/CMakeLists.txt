@@ -166,6 +166,12 @@ target_link_libraries (${libname}
     PRIVATE ${libname}-impl
 )
 
+if (NOT APPLE AND NOT WIN32)
+    target_link_options (${libname}
+        PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/platform/version_script"
+    )
+endif ()
+
 if (CH_ODBC_ENABLE_INSTALL)
     if (MSVC)
         install (
