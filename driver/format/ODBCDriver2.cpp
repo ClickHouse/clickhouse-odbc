@@ -58,7 +58,7 @@ ODBCDriver2ResultSet::ODBCDriver2ResultSet(std::istream & stream, std::unique_pt
 
 bool ODBCDriver2ResultSet::readNextRow(Row & row) {
     if (raw_stream.peek() == EOF) {
-        // Adjust display_size of columns, is not set already, according to display_size_so_far.
+        // Adjust display_size of columns, if not set already, according to display_size_so_far.
         for (std::size_t i = 0; i < columns_info.size(); ++i) {
             auto & column_info = columns_info[i];
             if (column_info.display_size_so_far > 0) {

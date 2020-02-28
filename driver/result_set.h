@@ -25,7 +25,7 @@ public:
     std::string type_without_parameters;
     DataSourceTypeId type_without_parameters_id = DataSourceTypeId::Unknown;
     std::int64_t display_size = SQL_NO_TOTAL;
-    std::size_t display_size_so_far = 0;
+    std::size_t display_size_so_far = 0; // Dynamically calculated display size, used for deducing actual display size when the entire result set is processed.
     std::size_t fixed_size = 0;
     std::size_t precision = 0;
     std::size_t scale = 0;
