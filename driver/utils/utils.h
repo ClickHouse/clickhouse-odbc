@@ -110,6 +110,8 @@ struct UTF8CaseInsensitiveCompare {
     }
 };
 
+// A pool of at most max_size movable objects, that helps to reuse their capacity but not the content.
+// Makes sense to use with std::string's and std::vector's to avoid reallocations of underlying storage.
 template<typename T>
 class ObjectPool {
 public:

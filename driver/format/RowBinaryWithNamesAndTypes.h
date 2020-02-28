@@ -3,6 +3,7 @@
 #include "driver/platform/platform.h"
 #include "driver/result_set.h"
 
+// Implementation of ResultSet for RowBinaryWithNamesAndTypes wire format of ClickHouse.
 class RowBinaryWithNamesAndTypesResultSet
     : public ResultSet
 {
