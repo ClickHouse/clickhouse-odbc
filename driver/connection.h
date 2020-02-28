@@ -20,22 +20,23 @@ private:
     using ChildType = Child<Environment, Connection>;
 
 public: // Configuration fields.
-    std::string data_source;
+    std::string dsn;
     std::string url;
     std::string proto;
-    std::string user;
+    std::string username;
     std::string password;
     std::string server;
     std::uint16_t port = 0;
-    std::string path;
-    std::string database;
-    std::uint32_t timeout = 0;
     std::uint32_t connection_timeout = 0;
-    std::int32_t stringmaxlength = 0;
+    std::uint32_t timeout = 0;
     std::string sslmode;
     std::string privateKeyFile;
     std::string certificateFile;
     std::string caLocation;
+    std::string path;
+    std::string default_format;
+    std::string database;
+    std::int32_t stringmaxlength = 0;
 
 public:
     std::string useragent;

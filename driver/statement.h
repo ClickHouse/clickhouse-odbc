@@ -23,7 +23,7 @@ public:
     virtual ~Statement();
 
     /// Lookup TypeInfo for given name of type.
-    const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parametrs = "") const;
+    const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters = "") const;
 
     bool isPrepared() const;
 
@@ -33,32 +33,22 @@ public:
     void prepareQuery(const std::string & q);
 
     /// Execute previously prepared query, or no-op if previous execution was done using forwardExecuteQuery().
-    void executeQuery(IResultMutatorPtr && mutator = IResultMutatorPtr{});
+    void executeQuery(std::unique_ptr<ResultMutator> && mutator = std::unique_ptr<ResultMutator>{});
 
     /// Prepare and execute query.
-    void executeQuery(const std::string & q, IResultMutatorPtr && mutator = IResultMutatorPtr {});
+    void executeQuery(const std::string & q, std::unique_ptr<ResultMutator> && mutator = std::unique_ptr<ResultMutator> {});
 
     /// Execute previously prepared query.
-    void forwardExecuteQuery(IResultMutatorPtr && mutator = IResultMutatorPtr {});
+    void forwardExecuteQuery(std::unique_ptr<ResultMutator> && mutator = std::unique_ptr<ResultMutator> {});
 
     /// Indicates whether there is an result set available for reading.
     bool hasResultSet() const;
 
+    /// Get the current resukt set.
+    ResultSet & getResultSet();
+
     /// Make the next result set current, if any.
     bool advanceToNextResultSet();
-
-    const ColumnInfo & getColumnInfo(size_t i) const;
-
-    size_t getNumColumns() const;
-
-    bool hasCurrentRow() const;
-
-    const Row & getCurrentRow() const;
-
-    /// Checked way of retrieving the number of the current row in the current result set.
-    std::size_t getCurrentRowNum() const;
-
-    bool advanceToNextRow();
 
     /// Reset statement to initial state.
     void closeCursor();
@@ -79,7 +69,7 @@ public:
     void setImplicitDescriptor(SQLINTEGER type);
 
 private:
-    void requestNextPackOfResultSets(IResultMutatorPtr && mutator);
+    void requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mutator);
 
     void processEscapeSequences();
     void extractParametersinfo();
@@ -114,7 +104,7 @@ private:
 
     std::unique_ptr<Poco::Net::HTTPResponse> response;
     std::istream* in = nullptr;
-    std::unique_ptr<ResultSet> result_set;
+    std::unique_ptr<ResultReader> result_reader;
     std::size_t next_param_set = 0;
 
 public:

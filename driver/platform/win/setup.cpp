@@ -16,9 +16,6 @@
 
 #    include <strsafe.h>
 
-#    define ABBR_PROTOCOL "A1"
-#    define ABBR_READONLY "A0"
-
 /// Saved module handle.
 extern HINSTANCE module_instance;
 
@@ -67,8 +64,6 @@ inline BOOL copyAttributes(ConnInfo * ci, LPCTSTR attribute, LPCTSTR value) {
     COPY_ATTR_IF(timeout,    INI_TIMEOUT);
     COPY_ATTR_IF(sslmode,    INI_SSLMODE);
     COPY_ATTR_IF(database,   INI_DATABASE);
-    COPY_ATTR_IF(onlyread,   INI_READONLY);
-    COPY_ATTR_IF(onlyread,   ABBR_READONLY);
 
 #undef COPY_ATTR_IF
 

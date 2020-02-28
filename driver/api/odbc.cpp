@@ -1,7 +1,6 @@
 #include "driver/platform/platform.h"
 #include "driver/api/impl/impl.h"
 #include "driver/utils/utils.h"
-#include "driver/utils/scope_guard.h"
 #include "driver/utils/type_parser.h"
 #include "driver/attributes.h"
 #include "driver/diagnostics.h"
@@ -136,7 +135,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
             CASE_STRING(SQL_DBMS_NAME, "ClickHouse")
             CASE_STRING(SQL_DBMS_VER, "01.00.0000")
             CASE_STRING(SQL_SERVER_NAME, connection.server)
-            CASE_STRING(SQL_DATA_SOURCE_NAME, connection.data_source)
+            CASE_STRING(SQL_DATA_SOURCE_NAME, connection.dsn)
             CASE_STRING(SQL_CATALOG_TERM, "catalog")
             CASE_STRING(SQL_COLLATION_SEQ, "UTF-8")
             CASE_STRING(SQL_DATABASE_NAME, connection.database)
@@ -148,7 +147,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
             CASE_STRING(SQL_SCHEMA_TERM, "schema")
             CASE_STRING(SQL_TABLE_TERM, "table")
             CASE_STRING(SQL_SPECIAL_CHARACTERS, "")
-            CASE_STRING(SQL_USER_NAME, connection.user)
+            CASE_STRING(SQL_USER_NAME, connection.username)
             CASE_STRING(SQL_XOPEN_CLI_YEAR, "2015")
 
             CASE_FALLTHROUGH(SQL_DATA_SOURCE_READ_ONLY)
@@ -527,8 +526,15 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLNumResultCols)(
             if (statement.isPrepared() && !statement.isExecuted())
                 statement.forwardExecuteQuery();
 
-            *ColumnCountPtr = statement.getNumColumns();
+            if (statement.hasResultSet()) {
+                auto & result_set = statement.getResultSet();
+                *ColumnCountPtr = result_set.getColumnCount();
+            }
+            else {
+                *ColumnCountPtr = 0;
+            }
         }
+
         return SQL_SUCCESS;
     });
 }
@@ -549,14 +555,15 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
     LOG(__FUNCTION__ << "(col=" << column_number << ", field=" << field_identifier << ")");
     auto func = [&](Statement & statement) -> SQLRETURN {
         if (!statement.hasResultSet())
-            throw SqlException("Column info is not available", "07009");
+            throw SqlException("Column info is not available", "07005");
 
-        if (column_number < 1 || column_number > statement.getNumColumns())
-            throw SqlException("Column number " + std::to_string(column_number) + " is out of range: 1.." +
-                std::to_string(statement.getNumColumns()), "07009");
+        auto & result_set = statement.getResultSet();
+
+        if (column_number < 1)
+            throw SqlException("Invalid descriptor index", "07009");
 
         const auto column_idx = column_number - 1;
-        const auto & column_info = statement.getColumnInfo(column_idx);
+        const auto & column_info = result_set.getColumnInfo(column_idx);
         const auto & type_info = statement.getTypeInfo(column_info.type, column_info.type_without_parameters);
 
         std::int32_t SQL_DESC_LENGTH_value = 0;
@@ -594,7 +601,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
             CASE_FIELD_NUM(SQL_DESC_CONCISE_TYPE, type_info.sql_type);
 
             case SQL_COLUMN_COUNT: /* fallthrough */
-            CASE_FIELD_NUM(SQL_DESC_COUNT, statement.getNumColumns());
+            CASE_FIELD_NUM(SQL_DESC_COUNT, result_set.getColumnCount());
 
             CASE_FIELD_NUM(SQL_DESC_DISPLAY_SIZE, column_info.display_size);
             CASE_FIELD_NUM(SQL_DESC_FIXED_PREC_SCALE, SQL_FALSE);
@@ -658,16 +665,16 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_hand
 ) {
     auto func = [&] (Statement & statement) {
         if (!statement.hasResultSet())
-            throw SqlException("Column info is not available", "07009");
+            throw SqlException("Column info is not available", "07005");
 
-        if (column_number < 1 || column_number > statement.getNumColumns())
-            throw SqlException("Column number " + std::to_string(column_number) + " is out of range: 1.." +
-                std::to_string(statement.getNumColumns()), "07009");
+        auto & result_set = statement.getResultSet();
+
+        if (column_number < 1)
+            throw SqlException("Invalid descriptor index", "07009");
 
         const auto column_idx = column_number - 1;
-
-        const ColumnInfo & column_info = statement.getColumnInfo(column_idx);
-        const TypeInfo & type_info = statement.getTypeInfo(column_info.type, column_info.type_without_parameters);
+        const auto & column_info = result_set.getColumnInfo(column_idx);
+        const auto & type_info = statement.getTypeInfo(column_info.type, column_info.type_without_parameters);
 
         LOG(__FUNCTION__ << " column_number=" << column_number << "name=" << column_info.name << " type=" << type_info.sql_type
                          << " size=" << type_info.column_size << " nullable=" << column_info.is_nullable);
@@ -689,21 +696,19 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_hand
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFetch)(HSTMT statement_handle) {
-    LOG(__FUNCTION__);
-    return impl::Fetch(
-        statement_handle
-    );
+    auto func = [&] (Statement & statement) {
+        return impl::FetchScroll(statement, SQL_FETCH_NEXT, 0);
+    };
+
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFetchScroll)(HSTMT statement_handle, SQLSMALLINT orientation, SQLLEN offset) {
-    LOG(__FUNCTION__);
+    auto func = [&] (Statement & statement) {
+        return impl::FetchScroll(statement, orientation, offset);
+    };
 
-    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, [&](Statement & statement) -> SQLRETURN {
-        if (orientation != SQL_FETCH_NEXT)
-            throw SqlException("Fetch type out of range", "HY106");
-
-        return impl::Fetch(statement_handle);
-    });
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetData)(
@@ -714,15 +719,22 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetData)(
     SQLLEN out_value_max_size,
     SQLLEN * out_value_size_or_indicator
 ) {
-    LOG(__FUNCTION__);
-    return impl::GetData(
-        statement_handle,
-        column_or_param_number,
-        target_type,
-        out_value,
-        out_value_max_size,
-        out_value_size_or_indicator
-    );
+    auto func = [&] (Statement & statement) {
+        BindingInfo binding_info;
+        binding_info.c_type = target_type;
+        binding_info.value = out_value;
+        binding_info.value_max_size = out_value_max_size;
+        binding_info.value_size = out_value_size_or_indicator;
+        binding_info.indicator = out_value_size_or_indicator;
+
+        return impl::GetData(
+            statement,
+            column_or_param_number,
+            binding_info
+        );
+    };
+
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindCol)(
@@ -738,11 +750,12 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindCol)(
             throw SqlException("Invalid string or buffer length", "HY090");
 
         if (!statement.hasResultSet())
-            throw SqlException("Column info is not available", "07009");
+            throw SqlException("Column info is not available", "07005");
 
-        if (column_number < 1 || column_number > statement.getNumColumns())
-            throw SqlException("Column number " + std::to_string(column_number) + " is out of range: 1.." +
-                std::to_string(statement.getNumColumns()), "07009");
+        auto & result_set = statement.getResultSet();
+
+        if (column_number < 1)
+            throw SqlException("Invalid descriptor index", "07009");
 
         // Unbinding column
         if (out_value_size_or_indicator == nullptr) {
@@ -752,9 +765,8 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindCol)(
 
         const auto column_idx = column_number - 1;
 
-        if (target_type == SQL_C_DEFAULT) {
-            target_type = statement.getTypeInfo(statement.getColumnInfo(column_idx).type_without_parameters).sql_type;
-        }
+        if (target_type == SQL_C_DEFAULT)
+            target_type = statement.getTypeInfo(result_set.getColumnInfo(column_idx).type_without_parameters).sql_type;
 
         BindingInfo binding;
         binding.c_type = target_type;
@@ -975,39 +987,47 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
     SQLTCHAR *      ColumnName,
     SQLSMALLINT     NameLength4
 ) {
-    class ColumnsMutator : public IResultMutator {
+    class ColumnsMutator
+        : public ResultMutator
+    {
     public:
-        ColumnsMutator(Environment * env_) : env(env_) {}
-
-        void UpdateColumnInfo(std::vector<ColumnInfo> * columns_info) override {
-            columns_info->at(4).type = "Int16";
-            columns_info->at(4).type_without_parameters = "Int16";
+        explicit ColumnsMutator(Environment & env_)
+            : env(env_)
+        {
         }
 
-        void UpdateRow(const std::vector<ColumnInfo> & columns_info, Row * row) override {
-            ColumnInfo type_column;
+        void transformRow(const std::vector<ColumnInfo> & columns_info, Row & row) override {
+            ColumnInfo tmp_column_info;
 
-            {
+            std::visit([&] (auto & value) {
+                std::string type_name;
+                value_manip::from_value<std::decay_t<decltype(value)>>::template to_value<std::string>::convert(value, type_name);
+
+                TypeParser parser{type_name};
                 TypeAst ast;
-                if (TypeParser(row->data.at(4).data).parse(&ast)) {
-                    assignTypeInfo(ast, &type_column);
-                } else {
-                    // Interprete all unknown types as String.
-                    type_column.type_without_parameters = "String";
+
+                if (parser.parse(&ast)) {
+                    tmp_column_info.assignTypeInfo(ast);
                 }
-            }
+                else {
+                    // Interpret all unknown types as String.
+                    tmp_column_info.type_without_parameters = "String";
+                }
 
-            const TypeInfo & type_info = env->getTypeInfo(type_column.type, type_column.type_without_parameters);
+                tmp_column_info.updateTypeId();
+            }, row.fields.at(5).data);
 
-            row->data.at(4).data = std::to_string(type_info.sql_type);
-            row->data.at(5).data = type_info.sql_type_name;
-            row->data.at(6).data = std::to_string(type_info.column_size);
-            row->data.at(13).data = std::to_string(type_info.sql_type);
-            row->data.at(15).data = std::to_string(type_info.octet_length);
+            const TypeInfo & type_info = env.getTypeInfo(tmp_column_info.type, tmp_column_info.type_without_parameters);
+
+            row.fields.at(4).data = DataSourceType<DataSourceTypeId::Int16>{type_info.sql_type};
+            row.fields.at(5).data = DataSourceType<DataSourceTypeId::String>{type_info.sql_type_name};
+            row.fields.at(6).data = DataSourceType<DataSourceTypeId::Int32>{type_info.column_size};
+            row.fields.at(13).data = DataSourceType<DataSourceTypeId::Int16>{type_info.sql_type};
+            row.fields.at(15).data = DataSourceType<DataSourceTypeId::Int32>{type_info.octet_length};
         }
 
     private:
-        Environment * const env;
+        Environment & env;
     };
 
     auto func = [&](Statement & statement) {
@@ -1029,8 +1049,8 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
                  ", '' AS TABLE_SCHEM"      // 1
                  ", table AS TABLE_NAME"    // 2
                  ", name AS COLUMN_NAME"    // 3
-                 ", type AS DATA_TYPE"      // 4
-                 ", '' AS TYPE_NAME"        // 5
+                 ", 0 AS DATA_TYPE"         // 4
+                 ", type AS TYPE_NAME"      // 5
                  ", 0 AS COLUMN_SIZE"       // 6
                  ", 0 AS BUFFER_LENGTH"     // 7
                  ", 0 AS DECIMAL_DIGITS"    // 8
@@ -1091,7 +1111,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
         }
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
-        statement.executeQuery(query.str(), IResultMutatorPtr(new ColumnsMutator(&statement.getParent().getParent())));
+        statement.executeQuery(query.str(), std::make_unique<ColumnsMutator>(statement.getParent().getParent()));
 
         return SQL_SUCCESS;
     };

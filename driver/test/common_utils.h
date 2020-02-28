@@ -7,7 +7,7 @@
 #include <string>
 #include <sstream>
 
-#if defined(BUILD_TYPE_Release)
+#if defined(BUILD_TYPE_RELEASE)
 #   define ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(test) test
 #else
 #   define ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(test) DISABLED_##test

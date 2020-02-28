@@ -286,7 +286,9 @@ protected:
         std::strncpy(param_ptr, initial_str.c_str(), lengthof(param) - 1);
 
         // We need this to autodetect actual precision and scale of the value in initial_str.
-        auto param_typed = value_manip::to<SQL_NUMERIC_STRUCT>::template from<std::string>(initial_str);
+        SQL_NUMERIC_STRUCT param_typed;
+        value_manip::to_null(param_typed);
+        value_manip::from_value<std::string>::template to_value<SQL_NUMERIC_STRUCT>::convert(initial_str, param_typed);
 
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
         ODBC_CALL_ON_STMT_THROW(hstmt,
@@ -368,7 +370,10 @@ private:
         const auto query = fromUTF8<SQLTCHAR>("SELECT ?");
         auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
 
-        auto param = value_manip::to<T>::template from<std::string>(initial_str);
+        T param;
+        value_manip::to_null(param);
+        value_manip::from_value<std::string>::template to_value<T>::convert(initial_str, param);
+
         SQLLEN param_ind = 0;
 
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
@@ -399,7 +404,8 @@ private:
             throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
         T col;
-        value_manip::reset(col);
+        value_manip::to_default(col);
+
         SQLLEN col_ind = 0;
 
         ODBC_CALL_ON_STMT_THROW(hstmt,
@@ -415,7 +421,9 @@ private:
 
         ASSERT_TRUE(col_ind >= 0 || col_ind == SQL_NTS);
 
-        const auto resulting_str = value_manip::to<std::string>::template from<T>(col);
+        std::string resulting_str;
+        value_manip::to_null(resulting_str);
+        value_manip::from_value<T>::template to_value<std::string>::convert(col, resulting_str);
 
         if (case_sensitive)
             ASSERT_STREQ(resulting_str.c_str(), expected_str.c_str());
@@ -434,7 +442,10 @@ private:
         const auto query = fromUTF8<SQLTCHAR>("SELECT ?");
         auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
 
-        auto param = value_manip::to<T>::template from<std::string>(initial_str);
+        T param;
+        value_manip::to_null(param);
+        value_manip::from_value<std::string>::template to_value<T>::convert(initial_str, param);
+
         SQLLEN param_ind = 0;
 
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
@@ -465,7 +476,8 @@ private:
             throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
         T col;
-        value_manip::reset(col);
+        value_manip::to_default(col);
+
         SQLLEN col_ind = 0;
 
         SQLHDESC hdesc = 0;
@@ -487,7 +499,9 @@ private:
 
         ASSERT_TRUE(col_ind >= 0 || col_ind == SQL_NTS);
 
-        const auto resulting_str = value_manip::to<std::string>::template from<T>(col);
+        std::string resulting_str;
+        value_manip::to_null(resulting_str);
+        value_manip::from_value<T>::template to_value<std::string>::convert(col, resulting_str);
 
         if (case_sensitive)
             ASSERT_STREQ(resulting_str.c_str(), expected_str.c_str());
@@ -550,22 +564,14 @@ INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripNumericSymmetri
         "-12345.6789",
         "12345.000000000000",
         "12345.001002003000",
-        "10000000000000000000",
-        "-10000000000000000000",
-        ".00000000000000000001",
-        "-.0000000000000000001",
-        "9876543210987654321",
-        ".9876543210987654321",
-        "-9876543210987654321",
-        "-.9876543210987654321",
-        "9999999999999999999",
-        "-9999999999999999999",
-        ".9999999999999999999",
-        "-.9999999999999999999",
-        "18446744073709551615",
-        "-18446744073709551615",
-        ".18446744073709551615",
-        "-.18446744073709551615"
+        "100000000000000000",
+        "-100000000000000000",
+        ".000000000000000001",
+        "-.000000000000000001",
+        "999999999999999999",
+        "-999999999999999999",
+        ".999999999999999999",
+        "-.999999999999999999"
     )
 );
 
@@ -597,6 +603,9 @@ TEST_P(ParameterColumnRoundTripDecimalAsStringSymmetric, Execute) {
 
 INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripDecimalAsStringSymmetric,
     ::testing::Values(
+
+        // TODO: do DECIMALs have to not start with dot?
+
         "0",
         "12345",
         "-12345",
@@ -604,21 +613,13 @@ INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripDecimalAsString
         "-12345.6789",
         "12345.000000000000",
         "12345.001002003000",
-        "10000000000000000000",
-        "-10000000000000000000",
-        "0.00000000000000000001",
-        "-0.0000000000000000001",
-        "9876543210987654321",
-        "0.9876543210987654321",
-        "-9876543210987654321",
-        "-0.9876543210987654321",
-        "9999999999999999999",
-        "-9999999999999999999",
-        "0.9999999999999999999",
-        "-0.9999999999999999999",
-        "18446744073709551615",
-        "-18446744073709551615",
-        "0.18446744073709551615",
-        "-0.18446744073709551615"
+        "100000000000000000",
+        "-100000000000000000",
+        ".000000000000000001",
+        "-.000000000000000001",
+        "999999999999999999",
+        "-999999999999999999",
+        ".999999999999999999",
+        "-.999999999999999999"
     )
 );

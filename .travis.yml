@@ -236,6 +236,7 @@ jobs:
         homebrew:
           packages:
             - libiodbc
+          update: true
 
     - name: "macOS 10.14 - iODBC - RelWithDebInfo - System third-party libs - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
       os: osx
@@ -254,6 +255,7 @@ jobs:
             - openssl
             - poco
             - libiodbc
+          update: true
 
     - name: "macOS 10.14 - UnixODBC - RelWithDebInfo - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
       os: osx
@@ -270,6 +272,7 @@ jobs:
         homebrew:
           packages:
             - unixodbc
+          update: true
 
 before_install: |-
   set -Eeo pipefail
@@ -375,8 +378,9 @@ install: |-
   DebugFile = ${RUN_DIR}/odbc-driver-manager-debug.log
 
   [ODBC Data Sources]
-  ClickHouse DSN (ANSI)    = ClickHouse ODBC Driver (ANSI)
-  ClickHouse DSN (Unicode) = ClickHouse ODBC Driver (Unicode)
+  ClickHouse DSN (ANSI)         = ClickHouse ODBC Driver (ANSI)
+  ClickHouse DSN (Unicode)      = ClickHouse ODBC Driver (Unicode)
+  ClickHouse DSN (ANSI, RBWNAT) = ClickHouse ODBC Driver (ANSI)
 
   [ClickHouse DSN (ANSI)]
   Driver        = ClickHouse ODBC Driver (ANSI)
@@ -391,23 +395,37 @@ install: |-
   Url           = http://${CLICKHOUSE_SERVER_IP}
   DriverLog     = yes
   DriverLogFile = ${RUN_DIR}/clickhouse-odbc-driver-w.log
+
+  [ClickHouse DSN (ANSI, RBWNAT)]
+  Driver        = ClickHouse ODBC Driver (ANSI)
+  Description   = Test DSN for ClickHouse ODBC Driver (ANSI) that uses RowBinaryWithNamesAndTypes as data source communication default format
+  Url           = http://${CLICKHOUSE_SERVER_IP}/query?default_format=RowBinaryWithNamesAndTypes
+  DriverLog     = yes
+  DriverLogFile = ${RUN_DIR}/clickhouse-odbc-driver.log
   EOF
     fi
   fi
 
 .configure: &configure |-
-  CMAKE_CONFIGURE_ARGS="'-DTEST_DSN=ClickHouse DSN (ANSI)' '-DTEST_DSN_W=ClickHouse DSN (Unicode)' $CMAKE_CONFIGURE_EXTRA_ARGS"
+  CMAKE_CONFIGURE_ARGS="-DTEST_DSN_LIST=\"ClickHouse DSN (ANSI);ClickHouse DSN (Unicode);ClickHouse DSN (ANSI, RBWNAT)\" $CMAKE_CONFIGURE_EXTRA_ARGS"
   if [[ "$EXTERNAL_THIRD_PARTY" == "yes" ]]; then
     CMAKE_CONFIGURE_ARGS="-DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=OFF $CMAKE_CONFIGURE_ARGS"
+    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      CMAKE_CONFIGURE_ARGS="-DOPENSSL_ROOT_DIR=$(brew --prefix)/opt/openssl $CMAKE_CONFIGURE_ARGS"
+    fi
   fi
   if [[ ! -z "$ODBC_PROVIDER" ]]; then
     CMAKE_CONFIGURE_ARGS="-DODBC_PROVIDER=$ODBC_PROVIDER $CMAKE_CONFIGURE_ARGS"
   fi
   cd $BUILD_DIR
+  echo "#!/usr/bin/env bash" > cmake_configure.sh
+  echo "set -Eeuo pipefail" >> cmake_configure.sh
+  echo "cmake $CMAKE_CONFIGURE_ARGS $SOURCE_DIR" >> cmake_configure.sh
+  chmod u+x cmake_configure.sh
   if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
-    $SOURCE_DIR/test/vcvars_enabled_bash.sh cmake $CMAKE_CONFIGURE_ARGS $SOURCE_DIR
+    $SOURCE_DIR/test/vcvars_enabled_bash.sh ./cmake_configure.sh
   else
-    cmake $CMAKE_CONFIGURE_ARGS $SOURCE_DIR
+    ./cmake_configure.sh
   fi
 
 .build: &build |-

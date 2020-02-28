@@ -16,6 +16,7 @@ See [LICENSE](LICENSE) file for licensing information.
 
 - [Installation](#installation)
 - [Configuration](#configuration)
+  - [URL query string](#url-query-string)
   - [Troubleshooting: driver manager tracing and driver logging](#troubleshooting-driver-manager-tracing-and-driver-logging)
 - [Building from sources](#building-from-sources)
 - [Appendices](#appendices)
@@ -79,7 +80,7 @@ The list of DSN parameters recognized by the driver is as follows:
 
 |      Parameter      |                                                      Default value                                                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | :-----------------: | :----------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|        `Url`        |                                                          empty                                                           | URL that points to a running ClickHouse instance, may include username, password, port, database, etc.                                                                                                                                                                                                                                                                                                                       |
+|        `Url`        |                                                          empty                                                           | URL that points to a running ClickHouse instance, may include username, password, port, database, etc. Also, see [URL query string](#url-query-string)                                                                                                                                                                                                                                                                       |
 |       `Proto`       | deduced from `Url`, or from `Port` and `SSLMode`: `https` if `443` or `8443` or `SSLMode` is not empty, `http` otherwise | Protocol, one of: `http`, `https`                                                                                                                                                                                                                                                                                                                                                                                            |
 | `Server` or `Host`  |                                                    deduced from `Url`                                                    | IP or hostname of a server with a running ClickHouse instance on it                                                                                                                                                                                                                                                                                                                                                          |
 |       `Port`        |                         deduced from `Url`, or from `Proto`: `8443` if `https`, `8123` otherwise                         | Port on which the ClickHouse instance is listening                                                                                                                                                                                                                                                                                                                                                                           |
@@ -94,6 +95,19 @@ The list of DSN parameters recognized by the driver is as follows:
 |    `CALocation`     |                                                          empty                                                           | Path to the file or directory containing the CA/root certificates (used by TLS/SSL connections, ignored in Windows)                                                                                                                                                                                                                                                                                                          |
 |     `DriverLog`     |                                  `on` if `CMAKE_BUILD_TYPE` is `Debug`, `off` otherwise                                  | Enable or disable the extended driver logging                                                                                                                                                                                                                                                                                                                                                                                |
 |   `DriverLogFile`   |               `\temp\clickhouse-odbc-driver.log`  on Windows, `/tmp/clickhouse-odbc-driver.log` otherwise                | Path to the extended driver log file (used when `DriverLog` is `on`)                                                                                                                                                                                                                                                                                                                                                         |
+
+### URL query string
+
+Some of configuration parameters can be passed to the server as a part of the query string of the URL.
+
+The list of parameters in the query string of the URL that are also recognized by the driver is as follows:
+
+|    Parameter     | Default value | Description                                                                                                                                                            |
+| :--------------: | :-----------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|    `database`    |   `default`   | Database name to connect to                                                                                                                                            |
+| `default_format` | `ODBCDriver2` | Default wire format of the resulting data that the server will send to the driver. Formats supported by the driver are: `ODBCDriver2` and `RowBinaryWithNamesAndTypes` |
+
+Note, that currently there is a difference in timezone handling between `ODBCDriver2` and `RowBinaryWithNamesAndTypes` formats: in `ODBCDriver2` date and time values are presented to the ODBC application in server's timezone, wherease in `RowBinaryWithNamesAndTypes` they are converted to local timezone. This behavior will be changed/parametrized in future. If server and ODBC application timezones are the same, date and time values handling will effectively be identical between these two formats.
 
 ### Troubleshooting: driver manager tracing and driver logging
 
@@ -128,24 +142,23 @@ See the exact steps for each platform in the corresponding section below:
 
 The list of configuration options recognized during the CMake generation step is as follows:
 
-|                 Option                 |                      Default value                       | Description                                                                              |
-| :------------------------------------: | :------------------------------------------------------: | :--------------------------------------------------------------------------------------- |
-|           `CMAKE_BUILD_TYPE`           |                     `RelWithDebInfo`                     | Build type, one of: `Debug`, `Release`, `RelWithDebInfo`                                 |
-|    `CH_ODBC_ALLOW_UNSAFE_DISPATCH`     |                           `ON`                           | Allow unchecked handle dispatching (may slightly increase performance in some scenarios) |
-|          `CH_ODBC_ENABLE_SSL`          |                           `ON`                           | Enable TLS/SSL (required for utilizing `https://` interface, etc.)                       |
-|        `CH_ODBC_ENABLE_INSTALL`        |                           `ON`                           | Enable install targets (required for packaging)                                          |
-|        `CH_ODBC_ENABLE_TESTING`        |            inherits value of `BUILD_TESTING`             | Enable test targets                                                                      |
-| `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` |                           `ON`                           | Prefer bundled over system variants of third party libraries                             |
-|     `CH_ODBC_PREFER_BUNDLED_POCO`      | inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` | Prefer bundled over system variants of Poco library                                      |
-|      `CH_ODBC_PREFER_BUNDLED_SSL`      |     inherits value of `CH_ODBC_PREFER_BUNDLED_POCO`      | Prefer bundled over system variants of TLS/SSL library                                   |
-|  `CH_ODBC_PREFER_BUNDLED_GOOGLETEST`   | inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` | Prefer bundled over system variants of Google Test library                               |
-|    `CH_ODBC_PREFER_BUNDLED_NANODBC`    | inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` | Prefer bundled over system variants of nanodbc library                                   |
-|     `CH_ODBC_RUNTIME_LINK_STATIC`      |                          `OFF`                           | Link with compiler and language runtime statically                                       |
-|   `CH_ODBC_THIRD_PARTY_LINK_STATIC`    |                           `ON`                           | Link with third party libraries statically                                               |
-|       `CH_ODBC_DEFAULT_DSN_ANSI`       |                 `ClickHouse DSN (ANSI)`                  | Default ANSI DSN name                                                                    |
-|     `CH_ODBC_DEFAULT_DSN_UNICODE`      |                `ClickHouse DSN (Unicode)`                | Default Unicode DSN name                                                                 |
-|               `TEST_DSN`               |       inherits value of `CH_ODBC_DEFAULT_DSN_ANSI`       | ANSI DSN name to use in tests                                                            |
-|              `TEST_DSN_W`              |     inherits value of `CH_ODBC_DEFAULT_DSN_UNICODE`      | Unicode DSN name to use in tests                                                         |
+|                 Option                 |                        Default value                         | Description                                                                              |
+| :------------------------------------: | :----------------------------------------------------------: | :--------------------------------------------------------------------------------------- |
+|           `CMAKE_BUILD_TYPE`           |                       `RelWithDebInfo`                       | Build type, one of: `Debug`, `Release`, `RelWithDebInfo`                                 |
+|    `CH_ODBC_ALLOW_UNSAFE_DISPATCH`     |                             `ON`                             | Allow unchecked handle dispatching (may slightly increase performance in some scenarios) |
+|          `CH_ODBC_ENABLE_SSL`          |                             `ON`                             | Enable TLS/SSL (required for utilizing `https://` interface, etc.)                       |
+|        `CH_ODBC_ENABLE_INSTALL`        |                             `ON`                             | Enable install targets (required for packaging)                                          |
+|        `CH_ODBC_ENABLE_TESTING`        |              inherits value of `BUILD_TESTING`               | Enable test targets                                                                      |
+| `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` |                             `ON`                             | Prefer bundled over system variants of third party libraries                             |
+|     `CH_ODBC_PREFER_BUNDLED_POCO`      |   inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES`   | Prefer bundled over system variants of Poco library                                      |
+|      `CH_ODBC_PREFER_BUNDLED_SSL`      |       inherits value of `CH_ODBC_PREFER_BUNDLED_POCO`        | Prefer bundled over system variants of TLS/SSL library                                   |
+|  `CH_ODBC_PREFER_BUNDLED_GOOGLETEST`   |   inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES`   | Prefer bundled over system variants of Google Test library                               |
+|    `CH_ODBC_PREFER_BUNDLED_NANODBC`    |   inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES`   | Prefer bundled over system variants of nanodbc library                                   |
+|     `CH_ODBC_RUNTIME_LINK_STATIC`      |                            `OFF`                             | Link with compiler and language runtime statically                                       |
+|   `CH_ODBC_THIRD_PARTY_LINK_STATIC`    |                             `ON`                             | Link with third party libraries statically                                               |
+|       `CH_ODBC_DEFAULT_DSN_ANSI`       |                   `ClickHouse DSN (ANSI)`                    | Default ANSI DSN name                                                                    |
+|     `CH_ODBC_DEFAULT_DSN_UNICODE`      |                  `ClickHouse DSN (Unicode)`                  | Default Unicode DSN name                                                                 |
+|            `TEST_DSN_LIST`             | `${CH_ODBC_DEFAULT_DSN_ANSI};${CH_ODBC_DEFAULT_DSN_UNICODE}` | `;`-separated list of DSNs, each test will be executed with each of these DSNs           |
 
 Configuration options above can be specified in the first `cmake` command (generation step) in a form of `-Dopt=val`.
 
@@ -328,14 +341,14 @@ cmake -A x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 Build the generated solution in-place:
 
 ```sh
-cmake --build . -C RelWithDebInfo
-cmake --build . -C RelWithDebInfo --target package
+cmake --build . --config RelWithDebInfo
+cmake --build . --config RelWithDebInfo --target package
 ```
 
 ...and, optionally, run tests (note, that for non-unit tests, preconfigured driver and DSN entries must exist, that point to the binaries generated in this build folder):
 
 ```sh
-cmake --build . -C RelWithDebInfo --target test
+cmake --build . --config RelWithDebInfo --target test
 ```
 
 ...or open the IDE and build `all`, `package`, and `test` targets manually from there:
@@ -390,14 +403,14 @@ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 Build the generated solution in-place:
 
 ```sh
-cmake --build . -C RelWithDebInfo
-cmake --build . -C RelWithDebInfo --target package
+cmake --build . --config RelWithDebInfo
+cmake --build . --config RelWithDebInfo --target package
 ```
 
 ...and, optionally, run tests (note, that for non-unit tests, preconfigured driver and DSN entries must exist, that point to the binaries generated in this build folder):
 
 ```sh
-cmake --build . -C RelWithDebInfo --target test
+cmake --build . --config RelWithDebInfo --target test
 ```
 
 ...or, if you configured the project with '-G Xcode' initially, open the IDE and build `all`, `package`, and `test` targets manually from there:
@@ -461,14 +474,14 @@ cmake3 -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 Build the generated solution in-place:
 
 ```sh
-cmake3 --build . -C RelWithDebInfo
-cmake3 --build . -C RelWithDebInfo --target package
+cmake3 --build . --config RelWithDebInfo
+cmake3 --build . --config RelWithDebInfo --target package
 ```
 
 ...and, optionally, run tests (note, that for non-unit tests, preconfigured driver and DSN entries must exist, that point to the binaries generated in this build folder):
 
 ```sh
-cmake3 --build . -C RelWithDebInfo --target test
+cmake3 --build . --config RelWithDebInfo --target test
 ```
 
 ### Building from sources: Debian/Ubuntu
@@ -514,12 +527,12 @@ cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 Build the generated solution in-place:
 
 ```sh
-cmake --build . -C RelWithDebInfo
-cmake --build . -C RelWithDebInfo --target package
+cmake --build . --config RelWithDebInfo
+cmake --build . --config RelWithDebInfo --target package
 ```
 
 ...and, optionally, run tests (note, that for non-unit tests, preconfigured driver and DSN entries must exist, that point to the binaries generated in this build folder):
 
 ```sh
-cmake --build . -C RelWithDebInfo --target test
+cmake --build . --config RelWithDebInfo --target test
 ```
