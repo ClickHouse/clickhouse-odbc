@@ -586,6 +586,11 @@ template <> struct is_string_data_source_type<DataSourceType<DataSourceTypeId::F
 {
 };
 
+template <> struct is_string_data_source_type<WireTypeAnyAsString>
+    : public std::true_type
+{
+};
+
 template <class T> inline constexpr bool is_string_data_source_type_v = is_string_data_source_type<T>::value;
 
 // Used to avoid duplicate specializations in platforms where 'std::int32_t' or 'std::int64_t' are typedef'd as 'long'.

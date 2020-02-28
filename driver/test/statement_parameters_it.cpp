@@ -603,9 +603,6 @@ TEST_P(ParameterColumnRoundTripDecimalAsStringSymmetric, Execute) {
 
 INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripDecimalAsStringSymmetric,
     ::testing::Values(
-
-        // TODO: do DECIMALs have to not start with dot?
-
         "0",
         "12345",
         "-12345",
@@ -615,11 +612,11 @@ INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripDecimalAsString
         "12345.001002003000",
         "100000000000000000",
         "-100000000000000000",
-        ".000000000000000001",
-        "-.000000000000000001",
+        "0.000000000000000001",
+        "-0.000000000000000001",
         "999999999999999999",
         "-999999999999999999",
-        ".999999999999999999",
-        "-.999999999999999999"
+        "0.999999999999999999",
+        "-0.999999999999999999"
     )
 );
