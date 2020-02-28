@@ -221,6 +221,25 @@ void ResultSet::tryPrefetchRows(std::size_t size) {
         if (!result_set_not_finished) {
             retireRow(std::move(row));
             prefetched_rows.pop_back();
+
+            // Adjust display_size of columns, if not set already, according to display_size_so_far.
+            for (std::size_t i = 0; i < columns_info.size(); ++i) {
+                auto & column_info = columns_info[i];
+                if (column_info.display_size_so_far > 0) {
+                    if (column_info.display_size == SQL_NO_TOTAL) {
+                        column_info.display_size = column_info.display_size_so_far;
+                    }
+                    else if (column_info.display_size_so_far > column_info.display_size) {
+                        if (
+                            column_info.type_without_parameters_id == DataSourceTypeId::String ||
+                            column_info.type_without_parameters_id == DataSourceTypeId::FixedString
+                        ) {
+                            column_info.display_size = column_info.display_size_so_far;
+                        }
+                    }
+                }
+            }
+
             finished = true;
             break;
         }
