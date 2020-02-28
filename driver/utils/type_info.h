@@ -280,7 +280,7 @@ inline SQLRETURN fillOutputString(
     );
 }
 
-// ObjectType, that is a pointer type, is treated as an integer, the value of that pointer.
+// If ObjectType is a pointer type then obj is treated as an integer corrsponding to the value of that pointer itself.
 template <typename ObjectType, typename LengthType1, typename LengthType2>
 inline SQLRETURN fillOutputPOD(
     const ObjectType & obj,
