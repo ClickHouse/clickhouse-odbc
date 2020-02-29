@@ -1,16 +1,16 @@
-cmake_minimum_required (VERSION 3.12)
+cmake_minimum_required (VERSION 3.13.5)
 
 set (CMAKE_MODULE_PATH_orig ${CMAKE_MODULE_PATH})
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 include (cmake/prevent_in_source_builds.cmake)
 
-project (clickhouse-odbc VERSION 1.1.2.20191216 LANGUAGES C CXX)
+project (clickhouse-odbc VERSION 1.1.3.20200115 LANGUAGES C CXX)
 
 set (CMAKE_C_STANDARD 11)
 #set (CMAKE_C_EXTENSIONS 0)
 set (CMAKE_C_STANDARD_REQUIRED 1)
 
-set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_EXTENSIONS 0)
 set (CMAKE_CXX_STANDARD_REQUIRED 1)
 
@@ -38,6 +38,7 @@ include(CMakeDependentOption)
 option(BUILD_TESTING "Build test targets" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
+option (CH_ODBC_ALLOW_UNSAFE_DISPATCH "Allow unchecked handle dispatching (may slightly increase performance in some scenarios)" ON)
 option (CH_ODBC_ENABLE_SSL "Enable SSL (required for utilizing https:// interface, etc.)" ON)
 option (CH_ODBC_ENABLE_INSTALL "Enable install targets (required for packaging)" ON)
 cmake_dependent_option (CH_ODBC_ENABLE_TESTING "Enable test targets" ON "BUILD_TESTING" OFF)
@@ -49,8 +50,8 @@ cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_NANODBC "Prefer bundled over syst
 option (CH_ODBC_RUNTIME_LINK_STATIC "Link with compiler and language runtime statically" OFF)
 option (CH_ODBC_THIRD_PARTY_LINK_STATIC "Link with third party libraries statically" ON)
 
-set (CH_ODBC_DEFAULT_DSN_ANSI "ClickHouse DSN (ANSI)")
-set (CH_ODBC_DEFAULT_DSN_UNICODE "ClickHouse DSN (Unicode)")
+set (CH_ODBC_DEFAULT_DSN_ANSI "ClickHouse DSN (ANSI)" CACHE STRING "Default ANSI DSN name")
+set (CH_ODBC_DEFAULT_DSN_UNICODE "ClickHouse DSN (Unicode)" CACHE STRING "Default Unicode DSN name")
 
 if (MSVC)
     # This default encoding mode will be overriden by UNICODE, in the corresponding cases.
@@ -62,8 +63,26 @@ if (ARCH_FREEBSD)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
 endif ()
 
+# Make sure that all optimized builds have NDEBUG macro set.
+foreach (config Release RelWithDebInfo MinSizeRel)
+    foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+        string (TOUPPER "${config}" config_uc)
+        set (var "${lang}_${config_uc}")
+        set (${var} "${${var}} -DNDEBUG")
+    endforeach ()
+endforeach ()
+
+# Set BUILD_TYPE_* macro for each of build types.
+foreach (config Debug Release RelWithDebInfo MinSizeRel)
+    foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+        string (TOUPPER "${config}" config_uc)
+        set (var "${lang}_${config_uc}")
+        set (${var} "${${var}} -DBUILD_TYPE_${config_uc}")
+    endforeach ()
+endforeach ()
+
 if (CH_ODBC_RUNTIME_LINK_STATIC)
-    if (MSVC)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
             foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
                 set (var "${lang}_${config}")
@@ -71,16 +90,20 @@ if (CH_ODBC_RUNTIME_LINK_STATIC)
                 string (REPLACE "-MD" "-MT" ${var} "${${var}}")
             endforeach ()
         endforeach ()
-    endif ()
-
-    if (COMPILER_GCC)
-        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
-        set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -static-libstdc++")
-    endif ()
-
-    if (NOT APPLE AND NOT ARCH_FREEBSD AND NOT WIN32)
-        set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,${FORCE_STATIC_LINK}--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
-    endif ()
+    elseif (
+        CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
+        (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT APPLE)
+    )
+        if (NOT APPLE AND NOT WIN32 AND NOT ARCH_FREEBSD)
+            set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
+            set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
+        else ()
+            set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
+            set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -static-libstdc++")
+        endif ()
+    else ()
+        message (WARNING "linking with compiler and language runtime statically is not supported in the current build environment")
+    endif()
 endif ()
 
 include (GNUInstallDirs)
@@ -132,12 +155,8 @@ if (CH_ODBC_ENABLE_TESTING)
     enable_testing ()
     include (GoogleTest)
 
-    if (NOT TEST_DSN)
-        set (TEST_DSN "${CH_ODBC_DEFAULT_DSN_ANSI}")
-    endif ()
-
-    if (NOT TEST_DSN_W)
-        set (TEST_DSN_W "${CH_ODBC_DEFAULT_DSN_UNICODE}")
+    if (NOT TEST_DSN_LIST)
+        set (TEST_DSN_LIST "${CH_ODBC_DEFAULT_DSN_ANSI};${CH_ODBC_DEFAULT_DSN_UNICODE}")
     endif ()
 endif ()
 
@@ -152,8 +171,10 @@ set (CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 include (CheckIPOSupported)
 check_ipo_supported (RESULT ipo_supported LANGUAGES C CXX)
 if (ipo_supported)
-    set (CMAKE_INTERPROCEDURAL_OPTIMIZATION 1)
-    set (CMAKE_INTERPROCEDURAL_OPTIMIZATION_DEBUG 0)
+    if (NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION) # respect value prodivided by user
+        set (CMAKE_INTERPROCEDURAL_OPTIMIZATION 1)
+        set (CMAKE_INTERPROCEDURAL_OPTIMIZATION_DEBUG 0)
+    endif ()
 endif ()
 
 add_subdirectory (driver)

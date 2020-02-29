@@ -1,4 +1,4 @@
-#include "driver/type_info.h"
+#include "driver/utils/type_info.h"
 
 #include <gtest/gtest.h>
 
@@ -11,8 +11,13 @@ class StringPong
 protected:
     template <typename T>
     inline void compare(const std::string & initial_str, const std::string & expected_str, bool case_sensitive = true) {
-        const auto obj           = value_manip::to<T>::template from<std::string>(initial_str);
-        const auto resulting_str = value_manip::to<std::string>::template from<T>(obj);
+        T obj;
+        value_manip::to_null(obj);
+        value_manip::from_value<std::string>::template to_value<T>::convert(initial_str, obj);
+
+        std::string resulting_str;
+        value_manip::to_null(resulting_str);
+        value_manip::from_value<T>::template to_value<std::string>::convert(obj, resulting_str);
 
         if (case_sensitive)
             ASSERT_STREQ(resulting_str.c_str(), expected_str.c_str());

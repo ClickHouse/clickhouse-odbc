@@ -26,9 +26,9 @@ if(PERL)
     endif()
 endif()
 
-set(PYTHON_USES_MDAC 0)
-set(PYTHON_USES_UNIXODBC 0)
-set(PYTHON_USES_IODBC 0)
+set(PYTHON2_USES_MDAC 0)
+set(PYTHON2_USES_UNIXODBC 0)
+set(PYTHON2_USES_IODBC 0)
 
 if(PYTHON2)
     execute_process(
@@ -73,8 +73,7 @@ if(PYTHON3)
 endif()
 
 message(STATUS "Testing with:\n\t"
-    "TEST_DSN=${TEST_DSN}\n\t"
-    "TEST_DSN_W=${TEST_DSN_W}\n\t"
+    "TEST_DSN_LIST=${TEST_DSN_LIST}\n\t"
     "PERL=${PERL}\n\t"
     "PERL_USES_MDAC=${PERL_USES_MDAC}\n\t"
     "PERL_USES_UNIXODBC=${PERL_USES_UNIXODBC}\n\t"
@@ -97,93 +96,53 @@ message(STATUS "Testing with:\n\t"
 set(SQL_QUERY "123456+456789" CACHE STRING "")
 set(SQL_ANSWER "580245" CACHE STRING "")
 
-if(TEST_DSN)
-    if(PERL AND (
-            ("${ODBC_PROVIDER}" STREQUAL "MDAC" AND PERL_USES_MDAC) OR
-            ("${ODBC_PROVIDER}" STREQUAL "UnixODBC" AND PERL_USES_UNIXODBC) OR
-            ("${ODBC_PROVIDER}" STREQUAL "iODBC" AND PERL_USES_IODBC)
-    ))
-        add_test(NAME "test.pl-a-a" COMMAND ${PERL} ${CMAKE_CURRENT_SOURCE_DIR}/test.pl "${TEST_DSN}" a)
-        add_test(NAME "test.pl-w-a" COMMAND ${PERL} ${CMAKE_CURRENT_SOURCE_DIR}/test.pl "${TEST_DSN}" w)
-    endif()
-    if(PYTHON2 AND (
-            ("${ODBC_PROVIDER}" STREQUAL "MDAC" AND PYTHON2_USES_MDAC) OR
-            ("${ODBC_PROVIDER}" STREQUAL "UnixODBC" AND PYTHON2_USES_UNIXODBC) OR
-            ("${ODBC_PROVIDER}" STREQUAL "iODBC" AND PYTHON2_USES_IODBC)
-    ))
-        add_test(NAME "test.py-2-a-a" COMMAND ${PYTHON2} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${TEST_DSN}" a)
-        add_test(NAME "test.py-2-w-a" COMMAND ${PYTHON2} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${TEST_DSN}" w)
-    endif()
-    if(PYTHON3 AND (
-            ("${ODBC_PROVIDER}" STREQUAL "MDAC" AND PYTHON3_USES_MDAC) OR
-            ("${ODBC_PROVIDER}" STREQUAL "UnixODBC" AND PYTHON3_USES_UNIXODBC) OR
-            ("${ODBC_PROVIDER}" STREQUAL "iODBC" AND PYTHON3_USES_IODBC)
-    ))
-        add_test(NAME "test.py-3-a-a" COMMAND ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${TEST_DSN}" a)
-        add_test(NAME "test.py-3-w-a" COMMAND ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${TEST_DSN}" w)
-        add_test(NAME "parametrized-regression.py-3-a" COMMAND ${CMAKE_COMMAND} -E env "DSN=${TEST_DSN}" ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/parameterized/regression.py)
-    endif()
-    if(ODBC_UNIXODBC_ISQL AND "${ODBC_PROVIDER}" STREQUAL "UnixODBC")
-        add_test(NAME "isql-a" COMMAND sh -c "echo select ${SQL_QUERY} | ${ODBC_UNIXODBC_ISQL} '${TEST_DSN}' | grep ${SQL_ANSWER}")
-        add_test(NAME "test.sh-isql-a" COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test.sh ${ODBC_UNIXODBC_ISQL} \"${TEST_DSN}\" -v -b)
-    endif()
-    if(ODBC_UNIXODBC_IUSQL AND "${ODBC_PROVIDER}" STREQUAL "UnixODBC")
-        add_test(NAME "iusql-a" COMMAND sh -c "echo select ${SQL_QUERY} | ${ODBC_UNIXODBC_IUSQL} '${TEST_DSN}' | grep ${SQL_ANSWER}")
-        add_test(NAME "test.sh-iusql-a" COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test.sh ${ODBC_UNIXODBC_IUSQL} \"${TEST_DSN}\" -v -b)
-    endif()
-    if(ODBC_IODBC_IODBCTEST AND "${ODBC_PROVIDER}" STREQUAL "iODBC")
-        add_test(NAME "iodbctest-a" COMMAND sh -c "echo select ${SQL_QUERY} | ${ODBC_IODBC_IODBCTEST} 'DSN=${TEST_DSN}' | grep ${SQL_ANSWER}")
-        add_test(NAME "test.sh-iodbctest-a" COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test.sh ${ODBC_IODBC_IODBCTEST} \"DSN=${TEST_DSN}\")
-    endif()
-    if(ODBC_IODBC_IODBCTESTW AND "${ODBC_PROVIDER}" STREQUAL "iODBC")
-        add_test(NAME "iodbctestw-a" COMMAND sh -c "echo select ${SQL_QUERY} | ${ODBC_IODBC_IODBCTESTW} 'DSN=${TEST_DSN}' | grep ${SQL_ANSWER}")
-        add_test(NAME "test.sh-iodbctestw-a" COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test.sh ${ODBC_IODBC_IODBCTESTW} \"DSN=${TEST_DSN}\")
-    endif()
-endif()
+set(test_dsn_counter 0)
+foreach (test_dsn ${TEST_DSN_LIST})
+    if (test_dsn)
+        if(PERL AND (
+                ("${ODBC_PROVIDER}" STREQUAL "MDAC" AND PERL_USES_MDAC) OR
+                ("${ODBC_PROVIDER}" STREQUAL "UnixODBC" AND PERL_USES_UNIXODBC) OR
+                ("${ODBC_PROVIDER}" STREQUAL "iODBC" AND PERL_USES_IODBC)
+        ))
+            add_test(NAME "test.pl-a-dsn-${test_dsn_counter}" COMMAND ${PERL} ${CMAKE_CURRENT_SOURCE_DIR}/test.pl "${test_dsn}" a)
+            add_test(NAME "test.pl-w-dsn-${test_dsn_counter}" COMMAND ${PERL} ${CMAKE_CURRENT_SOURCE_DIR}/test.pl "${test_dsn}" w)
+        endif()
+        if(PYTHON2 AND (
+                ("${ODBC_PROVIDER}" STREQUAL "MDAC" AND PYTHON2_USES_MDAC) OR
+                ("${ODBC_PROVIDER}" STREQUAL "UnixODBC" AND PYTHON2_USES_UNIXODBC) OR
+                ("${ODBC_PROVIDER}" STREQUAL "iODBC" AND PYTHON2_USES_IODBC)
+        ))
+            add_test(NAME "test.py-2-a-dsn-${test_dsn_counter}" COMMAND ${PYTHON2} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${test_dsn}" a)
+            add_test(NAME "test.py-2-w-dsn-${test_dsn_counter}" COMMAND ${PYTHON2} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${test_dsn}" w)
+        endif()
+        if(PYTHON3 AND (
+                ("${ODBC_PROVIDER}" STREQUAL "MDAC" AND PYTHON3_USES_MDAC) OR
+                ("${ODBC_PROVIDER}" STREQUAL "UnixODBC" AND PYTHON3_USES_UNIXODBC) OR
+                ("${ODBC_PROVIDER}" STREQUAL "iODBC" AND PYTHON3_USES_IODBC)
+        ))
+            add_test(NAME "test.py-3-a-dsn-${test_dsn_counter}" COMMAND ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${test_dsn}" a)
+            add_test(NAME "test.py-3-w-dsn-${test_dsn_counter}" COMMAND ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${test_dsn}" w)
+        endif()
+        if(ODBC_UNIXODBC_ISQL AND "${ODBC_PROVIDER}" STREQUAL "UnixODBC")
+            add_test(NAME "isql-dsn-${test_dsn_counter}" COMMAND sh -c "echo select ${SQL_QUERY} | ${ODBC_UNIXODBC_ISQL} '${test_dsn}' | grep ${SQL_ANSWER}")
+            add_test(NAME "test.sh-isql-dsn-${test_dsn_counter}" COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test.sh ${ODBC_UNIXODBC_ISQL} \"${test_dsn}\" -v -b)
+        endif()
+        if(ODBC_UNIXODBC_IUSQL AND "${ODBC_PROVIDER}" STREQUAL "UnixODBC")
+            add_test(NAME "iusql-dsn-${test_dsn_counter}" COMMAND sh -c "echo select ${SQL_QUERY} | ${ODBC_UNIXODBC_IUSQL} '${test_dsn}' | grep ${SQL_ANSWER}")
+            add_test(NAME "test.sh-iusql-dsn-${test_dsn_counter}" COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test.sh ${ODBC_UNIXODBC_IUSQL} \"${test_dsn}\" -v -b)
+        endif()
+        if(ODBC_IODBC_IODBCTEST AND "${ODBC_PROVIDER}" STREQUAL "iODBC")
+            add_test(NAME "iodbctest-dsn-${test_dsn_counter}" COMMAND sh -c "echo select ${SQL_QUERY} | ${ODBC_IODBC_IODBCTEST} 'DSN=${test_dsn}' | grep ${SQL_ANSWER}")
+            add_test(NAME "test.sh-iodbctest-dsn-${test_dsn_counter}" COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test.sh ${ODBC_IODBC_IODBCTEST} \"DSN=${test_dsn}\")
+        endif()
+        if(ODBC_IODBC_IODBCTESTW AND "${ODBC_PROVIDER}" STREQUAL "iODBC")
+            add_test(NAME "iodbctestw-dsn-${test_dsn_counter}" COMMAND sh -c "echo select ${SQL_QUERY} | ${ODBC_IODBC_IODBCTESTW} 'DSN=${test_dsn}' | grep ${SQL_ANSWER}")
+            add_test(NAME "test.sh-iodbctestw-dsn-${test_dsn_counter}" COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test.sh ${ODBC_IODBC_IODBCTESTW} \"DSN=${test_dsn}\")
+        endif()
 
-if(TEST_DSN_W)
-    if(PERL AND (
-            ("${ODBC_PROVIDER}" STREQUAL "MDAC" AND PERL_USES_MDAC) OR
-            ("${ODBC_PROVIDER}" STREQUAL "UnixODBC" AND PERL_USES_UNIXODBC) OR
-            ("${ODBC_PROVIDER}" STREQUAL "iODBC" AND PERL_USES_IODBC)
-    ))
-        add_test(NAME "test.pl-a-w" COMMAND ${PERL} ${CMAKE_CURRENT_SOURCE_DIR}/test.pl "${TEST_DSN_W}" a)
-        add_test(NAME "test.pl-w-w" COMMAND ${PERL} ${CMAKE_CURRENT_SOURCE_DIR}/test.pl "${TEST_DSN_W}" w)
-    endif()
-    if(PYTHON2 AND (
-            ("${ODBC_PROVIDER}" STREQUAL "MDAC" AND PYTHON2_USES_MDAC) OR
-            ("${ODBC_PROVIDER}" STREQUAL "UnixODBC" AND PYTHON2_USES_UNIXODBC) OR
-            ("${ODBC_PROVIDER}" STREQUAL "iODBC" AND PYTHON2_USES_IODBC)
-    ))
-        add_test(NAME "test.py-2-a-w" COMMAND ${PYTHON2} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${TEST_DSN_W}" a)
-        add_test(NAME "test.py-2-w-w" COMMAND ${PYTHON2} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${TEST_DSN_W}" w)
-    endif()
-    if(PYTHON3 AND (
-            ("${ODBC_PROVIDER}" STREQUAL "MDAC" AND PYTHON3_USES_MDAC) OR
-            ("${ODBC_PROVIDER}" STREQUAL "UnixODBC" AND PYTHON3_USES_UNIXODBC) OR
-            ("${ODBC_PROVIDER}" STREQUAL "iODBC" AND PYTHON3_USES_IODBC)
-    ))
-        add_test(NAME "test.py-3-a-w" COMMAND ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${TEST_DSN_W}" a)
-        add_test(NAME "test.py-3-w-w" COMMAND ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${TEST_DSN_W}" w)
-        add_test(NAME "parametrized-regression.py-3-w" COMMAND ${CMAKE_COMMAND} -E env "DSN=${TEST_DSN_W}" ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/parameterized/regression.py)
-    endif()
-    if(ODBC_UNIXODBC_ISQL AND "${ODBC_PROVIDER}" STREQUAL "UnixODBC")
-        add_test(NAME "isql-w" COMMAND sh -c "echo select ${SQL_QUERY} | ${ODBC_UNIXODBC_ISQL} '${TEST_DSN_W}' | grep ${SQL_ANSWER}")
-        add_test(NAME "test.sh-isql-w" COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test.sh ${ODBC_UNIXODBC_ISQL} \"${TEST_DSN_W}\" -v -b)
-    endif()
-    if(ODBC_UNIXODBC_IUSQL AND "${ODBC_PROVIDER}" STREQUAL "UnixODBC")
-        add_test(NAME "iusql-w" COMMAND sh -c "echo select ${SQL_QUERY} | ${ODBC_UNIXODBC_IUSQL} '${TEST_DSN_W}' | grep ${SQL_ANSWER}")
-        add_test(NAME "test.sh-iusql-w" COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test.sh ${ODBC_UNIXODBC_IUSQL} \"${TEST_DSN_W}\" -v -b)
-    endif()
-    if(ODBC_IODBC_IODBCTEST AND "${ODBC_PROVIDER}" STREQUAL "iODBC")
-        add_test(NAME "iodbctest-w" COMMAND sh -c "echo select ${SQL_QUERY} | ${ODBC_IODBC_IODBCTEST} 'DSN=${TEST_DSN_W}' | grep ${SQL_ANSWER}")
-        add_test(NAME "test.sh-iodbctest-w" COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test.sh ${ODBC_IODBC_IODBCTEST} \"DSN=${TEST_DSN_W}\")
-    endif()
-    if(ODBC_IODBC_IODBCTESTW AND "${ODBC_PROVIDER}" STREQUAL "iODBC")
-        add_test(NAME "iodbctestw-w" COMMAND sh -c "echo select ${SQL_QUERY} | ${ODBC_IODBC_IODBCTESTW} 'DSN=${TEST_DSN_W}' | grep ${SQL_ANSWER}")
-        add_test(NAME "test.sh-iodbctestw-w" COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test.sh ${ODBC_IODBC_IODBCTESTW} \"DSN=${TEST_DSN_W}\")
-    endif()
-endif()
+        math (EXPR test_dsn_counter "${test_dsn_counter}+1")
+    endif ()
+endforeach ()
 
 if(SQLCMD)
     # MS SQL server need change server in file:

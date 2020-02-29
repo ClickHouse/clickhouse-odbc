@@ -1,14 +1,9 @@
 #include "driver/platform/platform.h"
-#include "driver/test/gtest_env.h"
 #include "driver/test/client_utils.h"
 #include "driver/test/client_test_base.h"
 
 #include <gtest/gtest.h>
-
-#include <chrono>
-#include <iostream>
-#include <string>
-#include <sstream>
+#include <gmock/gmock.h>
 
 #include <cstring>
 
@@ -60,26 +55,81 @@ private:
     SQLUINTEGER driver_log = SQL_OPT_TRACE_ON;
 };
 
-#ifdef NDEBUG
+// API call that doesn't reach the driver, i.e., this is effectively (somewhat incomplete) Driver Manager overhead, just for the reference.
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(UnimplementedAPICallOverhead)) {
+    constexpr std::size_t call_count = 1'000'000;
+    const auto tstr = fromUTF8<SQLTCHAR>("");
+    auto * tstr_wptr = const_cast<SQLTCHAR * >(tstr.c_str());
 
-TEST_F(PerformanceTest, Basic) {
-    const std::size_t total_rows_expected = 1000000;
-    const std::string query_orig = "SELECT CAST('some not very long text', 'String') as col1, CAST('12345', 'Int') as col2, CAST('12.345', 'Float32') as col3, CAST('-123.456789012345678', 'Float64') as col4 FROM numbers(" + std::to_string(total_rows_expected) + ")";
+    // Verify that SQLStatistics() is not implemented. Change to something else when implemented.
+    {
+        const auto rc = SQLStatistics(hstmt, tstr_wptr, 0, tstr_wptr, 0, tstr_wptr, 0, SQL_INDEX_ALL, SQL_ENSURE);
+        if (rc != SQL_ERROR) {
+            throw std::runtime_error(
+                "SQLStatistics return code: " + std::to_string(rc) +
+                ", expected SQL_ERROR (" + std::to_string(SQL_ERROR) +
+                ") - a function that is not implemented by the driver"
+            );
+        }
+
+        // TODO: fix this, the following extra check works reliably only on UnixODBC with matching encoding versions of driver and app.
+/*
+        const auto diag_str = extract_diagnostics(hstmt, SQL_HANDLE_STMT);
+        ASSERT_THAT(diag_str, ::testing::HasSubstr("Driver does not support this function"));
+*/
+    }
+
+    START_MEASURING_TIME();
+
+    for (std::size_t i = 0; i < call_count; ++i) {
+        SQLStatistics(hstmt, tstr_wptr, 0, tstr_wptr, 0, tstr_wptr, 0, SQL_INDEX_ALL, SQL_ENSURE);
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT(call_count);
+}
+
+// API call that involves the driver, triggers handle dispatch and diag reset, but does no real work.
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(NoOpAPICallOverhead)) {
+    constexpr std::size_t call_count = 1'000'000;
+
+    // Verify that several consequent SQLNumResultCols() calls  on an executed statement, without destination buffer, return SQL_SUCCESS.
+    {
+        const auto query = fromUTF8<SQLTCHAR>("SELECT 1");
+        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLNumResultCols(hstmt, nullptr));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLNumResultCols(hstmt, nullptr));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLNumResultCols(hstmt, nullptr));
+    }
+
+    START_MEASURING_TIME();
+
+    for (std::size_t i = 0; i < call_count; ++i) {
+        SQLNumResultCols(hstmt, nullptr);
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT(call_count);
+}
+
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchNoExtractMultiType)) {
+    constexpr std::size_t total_rows_expected = 10'000'000;
+    const std::string query_orig = "SELECT CAST('some not very long text', 'String') AS col1, CAST('12345', 'Int') AS col2, CAST('12.345', 'Float32') AS col3, CAST('-123.456789012345678', 'Float64') AS col4 FROM numbers(" + std::to_string(total_rows_expected) + ")";
 
     std::cout << "Executing query:\n\t" << query_orig << std::endl;
 
     const auto query = fromUTF8<SQLTCHAR>(query_orig);
     auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
 
-    const auto start = std::chrono::system_clock::now();
-
-    std::size_t total_rows = 0;
-
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
+    std::size_t total_rows = 0;
+
+    START_MEASURING_TIME();
+
     while (true) {
-        SQLRETURN rc = SQLFetch(hstmt);
+        const SQLRETURN rc = SQLFetch(hstmt);
 
         if (rc == SQL_NO_DATA)
             break;
@@ -93,17 +143,57 @@ TEST_F(PerformanceTest, Basic) {
         if (!SQL_SUCCEEDED(rc))
             throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
-        SQLTCHAR col1[32] = {};
-        SQLLEN col1_ind = 0;
+        ++total_rows;
+    }
 
-        SQLINTEGER col2 = 0;
-        SQLLEN col2_ind = 0;
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
 
-        SQLREAL col3 = 0.0;
-        SQLLEN col3_ind = 0;
+    ASSERT_EQ(total_rows, total_rows_expected);
+}
 
-        SQLDOUBLE col4 = 0.0;
-        SQLLEN col4_ind = 0;
+
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchGetDataMultiType)) {
+    constexpr std::size_t total_rows_expected = 10'000'000;
+    const std::string query_orig = "SELECT CAST('some not very long text', 'String') AS col1, CAST('12345', 'Int') AS col2, CAST('12.345', 'Float32') AS col3, CAST('-123.456789012345678', 'Float64') AS col4 FROM numbers(" + std::to_string(total_rows_expected) + ")";
+
+    std::cout << "Executing query:\n\t" << query_orig << std::endl;
+
+    const auto query = fromUTF8<SQLTCHAR>(query_orig);
+    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+    SQLTCHAR col1[32] = {};
+    SQLLEN col1_ind = 0;
+
+    SQLINTEGER col2 = 0;
+    SQLLEN col2_ind = 0;
+
+    SQLREAL col3 = 0.0;
+    SQLLEN col3_ind = 0;
+
+    SQLDOUBLE col4 = 0.0;
+    SQLLEN col4_ind = 0;
+
+    std::size_t total_rows = 0;
+
+    START_MEASURING_TIME();
+
+    while (true) {
+        const SQLRETURN rc = SQLFetch(hstmt);
+
+        if (rc == SQL_NO_DATA)
+            break;
+
+        if (rc == SQL_ERROR)
+            throw std::runtime_error(extract_diagnostics(hstmt, SQL_HANDLE_STMT));
+
+        if (rc == SQL_SUCCESS_WITH_INFO)
+            std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+
+        if (!SQL_SUCCEEDED(rc))
+            throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
         ODBC_CALL_ON_STMT_THROW(hstmt,
             SQLGetData(
@@ -111,7 +201,7 @@ TEST_F(PerformanceTest, Basic) {
                 1,
                 getCTypeFor<decltype(&col1[0])>(),
                 &col1,
-                lengthof(col1),
+                sizeof(col1),
                 &col1_ind
             )
         );
@@ -152,13 +242,314 @@ TEST_F(PerformanceTest, Basic) {
         ++total_rows;
     }
 
-    ASSERT_EQ(total_rows, total_rows_expected);
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
 
-    const auto end = std::chrono::system_clock::now();
-    const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-    std::stringstream str;
-    str << std::fixed << std::setprecision(9) << static_cast<double>(elapsed.count()) / static_cast<double>(1000'000'000);
-    std::cout << "Executed in:\n\t" << str.str() << " seconds" << std::endl;
+    ASSERT_EQ(total_rows, total_rows_expected);
 }
 
-#endif
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColMultiType)) {
+    constexpr std::size_t total_rows_expected = 10'000'000;
+    const std::string query_orig = "SELECT CAST('some not very long text', 'String') AS col1, CAST('12345', 'Int') AS col2, CAST('12.345', 'Float32') AS col3, CAST('-123.456789012345678', 'Float64') AS col4 FROM numbers(" + std::to_string(total_rows_expected) + ")";
+
+    std::cout << "Executing query:\n\t" << query_orig << std::endl;
+
+    const auto query = fromUTF8<SQLTCHAR>(query_orig);
+    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+    SQLTCHAR col1[32] = {};
+    SQLLEN col1_ind = 0;
+
+    SQLINTEGER col2 = 0;
+    SQLLEN col2_ind = 0;
+
+    SQLREAL col3 = 0.0;
+    SQLLEN col3_ind = 0;
+
+    SQLDOUBLE col4 = 0.0;
+    SQLLEN col4_ind = 0;
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            1,
+            getCTypeFor<decltype(&col1[0])>(),
+            &col1,
+            sizeof(col1),
+            &col1_ind
+        )
+    );
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            2,
+            getCTypeFor<decltype(col2)>(),
+            &col2,
+            sizeof(col2),
+            &col2_ind
+        )
+    );
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            3,
+            getCTypeFor<decltype(col3)>(),
+            &col3,
+            sizeof(col3),
+            &col3_ind
+        )
+    );
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            4,
+            getCTypeFor<decltype(col4)>(),
+            &col4,
+            sizeof(col4),
+            &col4_ind
+        )
+    );
+
+    std::size_t total_rows = 0;
+
+    START_MEASURING_TIME();
+
+    while (true) {
+        const SQLRETURN rc = SQLFetch(hstmt);
+
+        if (rc == SQL_NO_DATA)
+            break;
+
+        if (rc == SQL_ERROR)
+            throw std::runtime_error(extract_diagnostics(hstmt, SQL_HANDLE_STMT));
+
+        if (rc == SQL_SUCCESS_WITH_INFO)
+            std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+
+        if (!SQL_SUCCEEDED(rc))
+            throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
+
+        ++total_rows;
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
+
+    ASSERT_EQ(total_rows, total_rows_expected);
+}
+
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColSingleType_ANSI_String)) {
+    constexpr std::size_t total_rows_expected = 10'000'000;
+    const std::string query_orig = "SELECT CAST('some not very long text', 'String') AS col FROM numbers(" + std::to_string(total_rows_expected) + ")";
+
+    std::cout << "Executing query:\n\t" << query_orig << std::endl;
+
+    const auto query = fromUTF8<SQLTCHAR>(query_orig);
+    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+    SQLCHAR col[32] = {};
+    SQLLEN col_ind = 0;
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            1,
+            getCTypeFor<decltype(&col[0])>(),
+            &col,
+            sizeof(col),
+            &col_ind
+        )
+    );
+
+    std::size_t total_rows = 0;
+
+    START_MEASURING_TIME();
+
+    while (true) {
+        const SQLRETURN rc = SQLFetch(hstmt);
+
+        if (rc == SQL_NO_DATA)
+            break;
+
+        if (rc == SQL_ERROR)
+            throw std::runtime_error(extract_diagnostics(hstmt, SQL_HANDLE_STMT));
+
+        if (rc == SQL_SUCCESS_WITH_INFO)
+            std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+
+        if (!SQL_SUCCEEDED(rc))
+            throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
+
+        ++total_rows;
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
+
+    ASSERT_EQ(total_rows, total_rows_expected);
+}
+
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColSingleType_Unicode_String)) {
+    constexpr std::size_t total_rows_expected = 10'000'000;
+    const std::string query_orig = "SELECT CAST('some not very long text', 'String') AS col FROM numbers(" + std::to_string(total_rows_expected) + ")";
+
+    std::cout << "Executing query:\n\t" << query_orig << std::endl;
+
+    const auto query = fromUTF8<SQLTCHAR>(query_orig);
+    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+    SQLWCHAR col[32] = {};
+    SQLLEN col_ind = 0;
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            1,
+            getCTypeFor<decltype(&col[0])>(),
+            &col,
+            sizeof(col),
+            &col_ind
+        )
+    );
+
+    std::size_t total_rows = 0;
+
+    START_MEASURING_TIME();
+
+    while (true) {
+        const SQLRETURN rc = SQLFetch(hstmt);
+
+        if (rc == SQL_NO_DATA)
+            break;
+
+        if (rc == SQL_ERROR)
+            throw std::runtime_error(extract_diagnostics(hstmt, SQL_HANDLE_STMT));
+
+        if (rc == SQL_SUCCESS_WITH_INFO)
+            std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+
+        if (!SQL_SUCCEEDED(rc))
+            throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
+
+        ++total_rows;
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
+
+    ASSERT_EQ(total_rows, total_rows_expected);
+}
+
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColSingleType_Int)) {
+    constexpr std::size_t total_rows_expected = 10'000'000;
+    const std::string query_orig = "SELECT CAST('12345', 'Int') AS col FROM numbers(" + std::to_string(total_rows_expected) + ")";
+
+    std::cout << "Executing query:\n\t" << query_orig << std::endl;
+
+    const auto query = fromUTF8<SQLTCHAR>(query_orig);
+    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+    SQLINTEGER col = 0;
+    SQLLEN col_ind = 0;
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            1,
+            getCTypeFor<decltype(col)>(),
+            &col,
+            sizeof(col),
+            &col_ind
+        )
+    );
+
+    std::size_t total_rows = 0;
+
+    START_MEASURING_TIME();
+
+    while (true) {
+        const SQLRETURN rc = SQLFetch(hstmt);
+
+        if (rc == SQL_NO_DATA)
+            break;
+
+        if (rc == SQL_ERROR)
+            throw std::runtime_error(extract_diagnostics(hstmt, SQL_HANDLE_STMT));
+
+        if (rc == SQL_SUCCESS_WITH_INFO)
+            std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+
+        if (!SQL_SUCCEEDED(rc))
+            throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
+
+        ++total_rows;
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
+
+    ASSERT_EQ(total_rows, total_rows_expected);
+}
+
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColSingleType_Float64)) {
+    constexpr std::size_t total_rows_expected = 10'000'000;
+    const std::string query_orig = "SELECT CAST('-123.456789012345678', 'Float64') AS col FROM numbers(" + std::to_string(total_rows_expected) + ")";
+
+    std::cout << "Executing query:\n\t" << query_orig << std::endl;
+
+    const auto query = fromUTF8<SQLTCHAR>(query_orig);
+    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+    SQLDOUBLE col = 0.0;
+    SQLLEN col_ind = 0;
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            1,
+            getCTypeFor<decltype(col)>(),
+            &col,
+            sizeof(col),
+            &col_ind
+        )
+    );
+
+    std::size_t total_rows = 0;
+
+    START_MEASURING_TIME();
+
+    while (true) {
+        const SQLRETURN rc = SQLFetch(hstmt);
+
+        if (rc == SQL_NO_DATA)
+            break;
+
+        if (rc == SQL_ERROR)
+            throw std::runtime_error(extract_diagnostics(hstmt, SQL_HANDLE_STMT));
+
+        if (rc == SQL_SUCCESS_WITH_INFO)
+            std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+
+        if (!SQL_SUCCEEDED(rc))
+            throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
+
+        ++total_rows;
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
+
+    ASSERT_EQ(total_rows, total_rows_expected);
+}

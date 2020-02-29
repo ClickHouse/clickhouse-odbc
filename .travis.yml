@@ -36,6 +36,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - gcc
             - g++
@@ -61,6 +64,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - gcc
             - g++
@@ -86,6 +92,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - gcc
             - g++
@@ -111,6 +120,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - gcc
             - g++
@@ -140,6 +152,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - clang
             - unixodbc
@@ -164,6 +179,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - gcc
             - g++
@@ -189,6 +207,9 @@ jobs:
         - docker
       addons:
         apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
           packages:
             - clang
             - iodbc
@@ -236,6 +257,7 @@ jobs:
         homebrew:
           packages:
             - libiodbc
+          update: true
 
     - name: "macOS 10.14 - iODBC - RelWithDebInfo - System third-party libs - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
       os: osx
@@ -254,6 +276,7 @@ jobs:
             - openssl
             - poco
             - libiodbc
+          update: true
 
     - name: "macOS 10.14 - UnixODBC - RelWithDebInfo - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
       os: osx
@@ -270,6 +293,7 @@ jobs:
         homebrew:
           packages:
             - unixodbc
+          update: true
 
 before_install: |-
   set -Eeo pipefail
@@ -287,11 +311,11 @@ before_install: |-
 
 install: |-
   if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+    export PATH=$(echo "$PATH" | sed -e 's|:/usr/local/cmake-[^:]*/bin:|:|')
     sudo apt-get install -y build-essential cmake perl libdbi-perl libdbd-odbc-perl python python-pip python-pyodbc python3 python3-pip python3-pyodbc python3-setuptools
     pip3 install --user testflows
   elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    brew uninstall --force --ignore-dependencies cmake perl python@2 python@3
-    brew install cmake perl python@2 python@3
+    # brew install cmake perl python@2 python@3
     PERL_MM_USE_DEFAULT=1 cpan -T DBD::ODBC
     if [[ "$ODBC_PROVIDER" == "UnixODBC" ]]; then
       pip2 install --user pyodbc
@@ -378,8 +402,9 @@ install: |-
   DebugFile = ${RUN_DIR}/odbc-driver-manager-debug.log
 
   [ODBC Data Sources]
-  ClickHouse DSN (ANSI)    = ClickHouse ODBC Driver (ANSI)
-  ClickHouse DSN (Unicode) = ClickHouse ODBC Driver (Unicode)
+  ClickHouse DSN (ANSI)         = ClickHouse ODBC Driver (ANSI)
+  ClickHouse DSN (Unicode)      = ClickHouse ODBC Driver (Unicode)
+  ClickHouse DSN (ANSI, RBWNAT) = ClickHouse ODBC Driver (ANSI)
 
   [ClickHouse DSN (ANSI)]
   Driver        = ClickHouse ODBC Driver (ANSI)
@@ -394,23 +419,37 @@ install: |-
   Url           = http://${CLICKHOUSE_SERVER_IP}
   DriverLog     = yes
   DriverLogFile = ${RUN_DIR}/clickhouse-odbc-driver-w.log
+
+  [ClickHouse DSN (ANSI, RBWNAT)]
+  Driver        = ClickHouse ODBC Driver (ANSI)
+  Description   = Test DSN for ClickHouse ODBC Driver (ANSI) that uses RowBinaryWithNamesAndTypes as data source communication default format
+  Url           = http://${CLICKHOUSE_SERVER_IP}/query?default_format=RowBinaryWithNamesAndTypes
+  DriverLog     = yes
+  DriverLogFile = ${RUN_DIR}/clickhouse-odbc-driver.log
   EOF
     fi
   fi
 
 .configure: &configure |-
-  CMAKE_CONFIGURE_ARGS="'-DTEST_DSN=ClickHouse DSN (ANSI)' '-DTEST_DSN_W=ClickHouse DSN (Unicode)' $CMAKE_CONFIGURE_EXTRA_ARGS"
+  CMAKE_CONFIGURE_ARGS="-DTEST_DSN_LIST=\"ClickHouse DSN (ANSI);ClickHouse DSN (Unicode);ClickHouse DSN (ANSI, RBWNAT)\" $CMAKE_CONFIGURE_EXTRA_ARGS"
   if [[ "$EXTERNAL_THIRD_PARTY" == "yes" ]]; then
     CMAKE_CONFIGURE_ARGS="-DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=OFF $CMAKE_CONFIGURE_ARGS"
+    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      CMAKE_CONFIGURE_ARGS="-DOPENSSL_ROOT_DIR=$(brew --prefix)/opt/openssl $CMAKE_CONFIGURE_ARGS"
+    fi
   fi
   if [[ ! -z "$ODBC_PROVIDER" ]]; then
     CMAKE_CONFIGURE_ARGS="-DODBC_PROVIDER=$ODBC_PROVIDER $CMAKE_CONFIGURE_ARGS"
   fi
   cd $BUILD_DIR
+  echo "#!/usr/bin/env bash" > cmake_configure.sh
+  echo "set -Eeuo pipefail" >> cmake_configure.sh
+  echo "cmake $CMAKE_CONFIGURE_ARGS $SOURCE_DIR" >> cmake_configure.sh
+  chmod u+x cmake_configure.sh
   if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
-    $SOURCE_DIR/test/vcvars_enabled_bash.sh cmake $CMAKE_CONFIGURE_ARGS $SOURCE_DIR
+    $SOURCE_DIR/test/vcvars_enabled_bash.sh ./cmake_configure.sh
   else
-    cmake $CMAKE_CONFIGURE_ARGS $SOURCE_DIR
+    ./cmake_configure.sh
   fi
 
 .build: &build |-

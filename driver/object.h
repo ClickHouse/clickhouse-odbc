@@ -19,7 +19,11 @@ public:
     Object& operator= (Object &&) = delete;
 
     explicit Object() noexcept;
+
+#if !defined(WORKAROUND_ALLOW_UNSAFE_DISPATCH)
     explicit Object(SQLHANDLE h) noexcept;
+#endif
+
     virtual ~Object() = default;
 
     SQLHANDLE getHandle() const noexcept;
@@ -39,18 +43,20 @@ public:
     explicit Child(Parent & p) noexcept
         : parent(p)
     {
-        getDriver().registerDescendant(*this);
+        getDriver().registerDescendant(getSelf());
     }
 
+#if !defined(WORKAROUND_ALLOW_UNSAFE_DISPATCH)
     explicit Child(Parent & p, SQLHANDLE h) noexcept
         : Object(h)
         , parent(p)
     {
-        getDriver().registerDescendant(*this);
+        getDriver().registerDescendant(getSelf());
     }
+#endif
 
     virtual ~Child() {
-        getDriver().unregisterDescendant(*this);
+        getDriver().unregisterDescendant(getSelf());
     }
 
     Driver & getDriver() const noexcept {
@@ -72,16 +78,6 @@ public:
     void deallocateSelf() noexcept {
         parent.template deallocateChild<Self>(getHandle());
     }
-
-#if __cplusplus < 201703L
-    std::weak_ptr<Self> weak_from_this() noexcept {
-        return this->shared_from_this();
-    }
-
-    std::weak_ptr<const Self> weak_from_this() const noexcept {
-        return this->shared_from_this();
-    }
-#endif
 
     bool isLoggingEnabled() const {
         return parent.isLoggingEnabled();

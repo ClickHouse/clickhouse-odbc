@@ -1,242 +1,285 @@
-#include "driver/statement.h"
 #include "driver/result_set.h"
+#include "driver/format/ODBCDriver2.h"
+#include "driver/format/RowBinaryWithNamesAndTypes.h"
 
-uint64_t Field::getUInt() const {
-    try {
-        return std::stoull(data);
-    } catch (std::exception & e) {
-        throw std::runtime_error("Cannot interpret '" + data + "' as uint64: " + e.what());
-    }
-}
+const std::string::size_type initial_string_capacity_g = std::string{}.capacity();
 
-int64_t Field::getInt() const {
-    try {
-        return std::stoll(data);
-    } catch (std::exception & e) {
-        throw std::runtime_error("Cannot interpret '" + data + "' as int64: " + e.what());
-    }
-}
-
-float Field::getFloat() const {
-    try {
-        return std::stof(data);
-    } catch (std::exception & e) {
-        throw std::runtime_error("Cannot interpret '" + data + "' as float: " + e.what());
-    }
-}
-
-double Field::getDouble() const {
-    try {
-        return std::stod(data);
-    } catch (std::exception & e) {
-        throw std::runtime_error("Cannot interpret '" + data + "' as double: " + e.what());
-    }
-}
-
-SQLGUID Field::getGUID() const {
-    return value_manip::to<SQLGUID>::template from<std::string>(data);
-}
-
-SQL_NUMERIC_STRUCT Field::getNumeric(const std::int16_t precision, const std::int16_t scale) const {
-    return value_manip::to<SQL_NUMERIC_STRUCT>::template from<std::string>(data, precision, scale);
-}
-
-SQL_DATE_STRUCT Field::getDate() const {
-    if (data.size() != 10)
-        throw std::runtime_error("Cannot interpret '" + data + "' as Date");
-
-    SQL_DATE_STRUCT res;
-    res.year = (data[0] - '0') * 1000 + (data[1] - '0') * 100 + (data[2] - '0') * 10 + (data[3] - '0');
-    res.month = (data[5] - '0') * 10 + (data[6] - '0');
-    res.day = (data[8] - '0') * 10 + (data[9] - '0');
-
-    normalizeDate(res);
-
-    return res;
-}
-
-SQL_TIMESTAMP_STRUCT Field::getDateTime() const {
-    SQL_TIMESTAMP_STRUCT res;
-
-    if (data.size() == 10) {
-        res.year = (data[0] - '0') * 1000 + (data[1] - '0') * 100 + (data[2] - '0') * 10 + (data[3] - '0');
-        res.month = (data[5] - '0') * 10 + (data[6] - '0');
-        res.day = (data[8] - '0') * 10 + (data[9] - '0');
-        res.hour = 0;
-        res.minute = 0;
-        res.second = 0;
-        res.fraction = 0;
-    } else if (data.size() == 19) {
-        res.year = (data[0] - '0') * 1000 + (data[1] - '0') * 100 + (data[2] - '0') * 10 + (data[3] - '0');
-        res.month = (data[5] - '0') * 10 + (data[6] - '0');
-        res.day = (data[8] - '0') * 10 + (data[9] - '0');
-        res.hour = (data[11] - '0') * 10 + (data[12] - '0');
-        res.minute = (data[14] - '0') * 10 + (data[15] - '0');
-        res.second = (data[17] - '0') * 10 + (data[18] - '0');
-        res.fraction = 0;
-    } else {
-        throw std::runtime_error("Cannot interpret '" + data + "' as DateTime");
-    }
-
-    normalizeDate(res);
-
-    return res;
-}
-
-template <typename T>
-void Field::normalizeDate(T & date) const {
-    if (date.year == 0)
-        date.year = 1970;
-    if (date.month == 0)
-        date.month = 1;
-    if (date.day == 0)
-        date.day = 1;
-}
-
-void assignTypeInfo(const TypeAst & ast, ColumnInfo * info) {
+void ColumnInfo::assignTypeInfo(const TypeAst & ast) {
     if (ast.meta == TypeAst::Terminal) {
-        info->type_without_parameters = ast.name;
-        if (ast.elements.size() == 1)
-            info->fixed_size = ast.elements.front().size;
-    } else if (ast.meta == TypeAst::Nullable) {
-        info->is_nullable = true;
-        assignTypeInfo(ast.elements.front(), info);
-    } else {
-        // Interprete all unsupported types as String.
-        info->type_without_parameters = "String";
-    }
-}
+        type_without_parameters = ast.name;
 
-ResultSet::ResultSet(std::istream & in_, IResultMutatorPtr && mutator_)
-    : in(in_)
-    , mutator(std::move(mutator_))
-{
-    if (in.peek() == EOF) {
-        finished = true;
-        return;
-    }
+        switch (convertUnparametrizedTypeNameToTypeId(type_without_parameters)) {
+            case DataSourceTypeId::Decimal: {
+                if (ast.elements.size() != 2)
+                    throw std::runtime_error("Unexpected Decimal type specification syntax");
 
-    int32_t num_header_rows = 0;
-    readSize(in, num_header_rows);
-    if (!num_header_rows)
-        return;
+                precision = ast.elements.front().size;
+                scale = ast.elements.back().size;
 
-    for (size_t row_n = 0; row_n < num_header_rows; ++row_n) {
-        /// Title: number of columns, their names and types.
-        int32_t num_columns = 0;
-        readSize(in, num_columns);
-
-        if (num_columns <= 1)
-            return;
-
-        std::string row_name;
-        readString(in, row_name);
-        --num_columns;
-
-        if (row_name == "name") {
-            columns_info.resize(num_columns);
-            for (size_t i = 0; i < num_columns; ++i) {
-                readString(in, columns_info[i].name);
-            }
-        } else if (row_name == "type") {
-            columns_info.resize(num_columns);
-            for (size_t i = 0; i < num_columns; ++i) {
-                readString(in, columns_info[i].type);
-                {
-                    TypeAst ast;
-                    if (TypeParser(columns_info[i].type).parse(&ast)) {
-                        assignTypeInfo(ast, &columns_info[i]);
-                    } else {
-                        // Interprete all unknown types as String.
-                        columns_info[i].type_without_parameters = "String";
-                    }
-                }
-                LOG("Row " << i << " name=" << columns_info[i].name << " type=" << columns_info[i].type << " -> " << columns_info[i].type
-                           << " typenoparams=" << columns_info[i].type_without_parameters << " fixedsize=" << columns_info[i].fixed_size);
+                break;
             }
 
-            // TODO: max_length
+            case DataSourceTypeId::Decimal32: {
+                if (ast.elements.size() != 1)
+                    throw std::runtime_error("Unexpected Decimal32 type specification syntax");
 
-        } else {
-            LOG("Unknown header " << row_name << "; Columns left: " << num_columns);
-            for (size_t i = 0; i < num_columns; ++i) {
-                std::string dummy;
-                readString(in, dummy);
+                precision = 9;
+                scale = ast.elements.front().size;
+
+                break;
+            }
+
+            case DataSourceTypeId::Decimal64: {
+                if (ast.elements.size() != 1)
+                    throw std::runtime_error("Unexpected Decimal64 type specification syntax");
+
+                precision = 18;
+                scale = ast.elements.front().size;
+
+                break;
+            }
+
+            case DataSourceTypeId::Decimal128: {
+                if (ast.elements.size() != 1)
+                    throw std::runtime_error("Unexpected Decimal128 type specification syntax");
+
+                precision = 38;
+                scale = ast.elements.front().size;
+
+                break;
+            }
+
+            default: {
+                if (ast.elements.size() == 1)
+                    fixed_size = ast.elements.front().size;
+
+                break;
             }
         }
     }
-
-    if (mutator)
-        mutator->UpdateColumnInfo(&columns_info);
-
-    prepareSomeRows();
+    else if (ast.meta == TypeAst::Nullable) {
+        is_nullable = true;
+        assignTypeInfo(ast.elements.front());
+    }
+    else {
+        // Interpret all unsupported types as String.
+        type_without_parameters = "String";
+    }
 }
 
-size_t ResultSet::getNumColumns() const {
+void ColumnInfo::updateTypeId() {
+    type_without_parameters_id = convertUnparametrizedTypeNameToTypeId(type_without_parameters);
+}
+
+SQLRETURN Field::extract(BindingInfo & binding_info) const {
+    return std::visit([&binding_info] (auto & value) {
+        if constexpr (std::is_same_v<DataSourceType<DataSourceTypeId::Nothing>, std::decay_t<decltype(value)>>) {
+            return fillOutputNULL(binding_info.value, binding_info.value_max_size, binding_info.indicator);
+        }
+        else {
+            return writeDataFrom(value, binding_info);
+        }
+    }, data);
+}
+
+SQLRETURN Row::extractField(std::size_t column_idx, BindingInfo & binding_info) const {
+    if (column_idx >= fields.size())
+        throw SqlException("Invalid descriptor index", "07009");
+
+    return fields[column_idx].extract(binding_info);
+}
+
+ResultSet::ResultSet(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
+    : raw_stream(stream)
+    , result_mutator(std::move(mutator))
+    , string_pool(1000000)
+    , row_pool(1000000)
+{
+}
+
+ResultSet::~ResultSet() {
+    while (!row_set.empty()) {
+        retireRow(std::move(row_set.front()));
+        row_set.pop_front();
+    }
+
+    while (!prefetched_rows.empty()) {
+        retireRow(std::move(prefetched_rows.front()));
+        prefetched_rows.pop_front();
+    }
+}
+
+std::unique_ptr<ResultMutator> ResultSet::releaseMutator() {
+    return std::move(result_mutator);
+}
+
+const ColumnInfo & ResultSet::getColumnInfo(std::size_t column_idx) const {
+    if (column_idx >= columns_info.size())
+        throw SqlException("Invalid descriptor index", "07009");
+
+    return columns_info[column_idx];
+}
+
+std::size_t ResultSet::fetchRowSet(SQLSMALLINT orientation, SQLLEN offset, std::size_t size) {
+    if (orientation != SQL_FETCH_NEXT)
+        throw SqlException("Fetch type out of range", "HY106");
+
+    while (!row_set.empty()) {
+        retireRow(std::move(row_set.front()));
+        row_set.pop_front();
+        ++row_set_position;
+    }
+
+    if (prefetched_rows.size() < size) {
+        constexpr std::size_t prefetch_at_least = 10'000;
+        tryPrefetchRows(std::max(size, prefetch_at_least));
+    }
+
+    for (std::size_t i = 0; i < size && !prefetched_rows.empty(); ++i) {
+        row_set.emplace_back(std::move(prefetched_rows.front()));
+        prefetched_rows.pop_front();
+        ++affected_row_count;
+    }
+
+    if (row_set.empty())
+        row_set_position = 0;
+    else if (row_set_position == 0)
+        row_set_position = 1;
+
+    row_position = row_set_position;
+
+    return row_set.size();
+}
+
+std::size_t ResultSet::getColumnCount() const {
     return columns_info.size();
 }
 
-const ColumnInfo & ResultSet::getColumnInfo(size_t i) const {
-    return columns_info.at(i);
+std::size_t ResultSet::getCurrentRowSetSize() const {
+    return row_set.size();
 }
 
-bool ResultSet::hasCurrentRow() const {
-    return current_row.isValid();
+std::size_t ResultSet::getCurrentRowSetPosition() const {
+    return row_set_position;
 }
 
-const Row & ResultSet::getCurrentRow() const {
-    return current_row;
+std::size_t ResultSet::getCurrentRowPosition() const {
+    if (row_position < row_set_position || row_position >= (row_set_position + row_set.size()))
+        return 0;
+
+    return row_position;
 }
 
-std::size_t ResultSet::getCurrentRowNum() const {
-    return current_row_num;
+std::size_t ResultSet::getAffectedRowCount() const {
+    return affected_row_count;
 }
 
-bool ResultSet::advanceToNextRow() {
-    if (endOfSet()) {
-        current_row = Row{};
-    }
-    else {
-        current_row = std::move(ready_raw_rows.front());
-        ready_raw_rows.pop_front();
-        ++current_row_num;
+SQLRETURN ResultSet::extractField(std::size_t row_idx, std::size_t column_idx, BindingInfo & binding_info) const {
+    if (row_idx >= row_set.size())
+        throw SqlException("Invalid cursor position", "HY109");
 
-        if (mutator)
-            mutator->UpdateRow(columns_info, &current_row);
-    }
-
-    return hasCurrentRow();
+    return row_set[row_idx].extractField(column_idx, binding_info);
 }
 
-IResultMutatorPtr ResultSet::releaseMutator() {
-    return std::move(mutator);
-}
+void ResultSet::tryPrefetchRows(std::size_t size) {
+    while (!finished && prefetched_rows.size() < size) {
+        prefetched_rows.emplace_back(row_pool.get());
 
-bool ResultSet::endOfSet() {
-    if (ready_raw_rows.empty())
-        prepareSomeRows();
+        auto & row = prefetched_rows.back();
+        row.fields.resize(columns_info.size());
 
-    return ready_raw_rows.empty();
-}
+        const auto result_set_not_finished = readNextRow(row);
 
-size_t ResultSet::prepareSomeRows(size_t max_ready_rows) {
-    while (!finished && ready_raw_rows.size() < max_ready_rows) {
-        if (in.peek() == EOF /* || TODO: reached the end of the current rowset */) {
+        if (!result_set_not_finished) {
+            retireRow(std::move(row));
+            prefetched_rows.pop_back();
             finished = true;
             break;
         }
 
-        const auto num_columns = getNumColumns();
-        Row row(num_columns);
+        if (result_mutator)
+            result_mutator->transformRow(columns_info, row);
+    }
+}
 
-        for (size_t j = 0; j < num_columns; ++j) {
-            readString(in, row.data[j].data, &row.data[j].is_null);
-            columns_info[j].display_size
-                = std::max<decltype(columns_info[j].display_size)>(row.data[j].data.size(), columns_info[j].display_size);
-        }
+namespace {
 
-        ready_raw_rows.emplace_back(std::move(row));
+    // Using these instead of simple "if constexpr" to workaround VS2017 behavior.
+
+    template <typename T>
+    inline void maybe_recycle(ObjectPool<std::string> & string_pool, T & obj,
+        std::enable_if_t<
+            std::is_same_v<std::string, T>
+        >* = 0
+    ) {
+        if (obj.capacity() > initial_string_capacity_g)
+            string_pool.put(std::move(obj));
     }
 
-    return ready_raw_rows.size();
+    template <typename T>
+    inline void maybe_recycle(ObjectPool<std::string> & string_pool, T & obj,
+        std::enable_if_t<
+            is_string_data_source_type_v<T>
+        >* = 0
+    ) {
+        if (obj.value.capacity() > initial_string_capacity_g)
+            string_pool.put(std::move(obj.value));
+    }
+
+    template <typename T>
+    inline void maybe_recycle(ObjectPool<std::string> & string_pool, T & obj,
+        std::enable_if_t<
+            !std::is_same_v<std::string, T> &&
+            !is_string_data_source_type_v<T>
+        >* = 0
+    ) {
+        // Do nothing;
+    }
+
+} // namespace
+
+void ResultSet::retireRow(Row && row) {
+    for (auto & field : row.fields) {
+        if (!field.data.valueless_by_exception()) {
+            std::visit([&] (auto & value) {
+                maybe_recycle(string_pool, value);
+            }, field.data);
+        }
+    }
+    row_pool.put(std::move(row));
+}
+
+ResultReader::ResultReader(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
+    : raw_stream(stream)
+    , result_mutator(std::move(mutator))
+{
+}
+
+bool ResultReader::hasResultSet() const {
+    return static_cast<bool>(result_set);
+}
+
+ResultSet & ResultReader::getResultSet() {
+    return *result_set;
+}
+
+std::unique_ptr<ResultMutator> ResultReader::releaseMutator() {
+    if (result_set)
+        result_mutator = result_set->releaseMutator();
+
+    return std::move(result_mutator);
+}
+
+std::unique_ptr<ResultReader> make_result_reader(const std::string & format, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator) {
+    if (format == "ODBCDriver2") {
+        return std::make_unique<ODBCDriver2ResultReader>(raw_stream, std::move(mutator));
+    }
+    else if (format == "RowBinaryWithNamesAndTypes") {
+        if (!is_little_endian())
+            throw std::runtime_error("'" + format + "' format is supported only on little-endian platforms");
+
+        return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(raw_stream, std::move(mutator));
+    }
+
+    throw std::runtime_error("'" + format + "' format is not supported");
 }
