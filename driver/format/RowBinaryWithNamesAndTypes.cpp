@@ -88,7 +88,8 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(std::string & res) {
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(std::string & dest, const std::uint64_t size) {
-    folly::resizeWithoutInitialization(dest, size);
+    resize_without_initialization(dest, size);
+
     try {
         stream.read(dest.data(), dest.size());
     }

@@ -9,8 +9,6 @@
 #   include "driver/utils/iostream_debug_helpers.h"
 #endif
 
-#include <folly/memory/UninitializedMemoryHacks.h>
-
 #include <Poco/NumberParser.h>
 #include <Poco/String.h>
 #include <Poco/UTF8String.h>
@@ -34,6 +32,13 @@
 #include <vector>
 
 #include <cstring>
+
+#if defined(_MSC_VER) && _MSC_VER > 1916 // Not supported yet for Visual Studio 2019 and later.
+#   define resize_without_initialization(container, size) container.resize(size)
+#else
+#   include <folly/memory/UninitializedMemoryHacks.h>
+#   define resize_without_initialization(container, size) folly::resizeWithoutInitialization(container, size)
+#endif
 
 class Environment;
 class Connection;
@@ -230,23 +235,23 @@ private:
                 if (free_capacity < to_read) { // Reallocation is unavoidable. Compact the buffer while doing it.
                     if (avail > 0) {
                         decltype(buffer_) tmp;
-                        folly::resizeWithoutInitialization(tmp, avail + to_read);
+                        resize_without_initialization(tmp, avail + to_read);
                         std::memcpy(&tmp[0], &buffer_[offset_], avail);
                         buffer_.swap(tmp);
                     }
                     else {
                         buffer_.clear();
-                        folly::resizeWithoutInitialization(buffer_, to_read);
+                        resize_without_initialization(buffer_, to_read);
                     }
                 }
                 else { // Compacting the buffer is enough.
                     std::memmove(&buffer_[0], &buffer_[offset_], avail);
-                    folly::resizeWithoutInitialization(buffer_, avail + to_read);
+                    resize_without_initialization(buffer_, avail + to_read);
                 }
                 offset_ = 0;
             }
             else {
-                folly::resizeWithoutInitialization(buffer_, buffer_.size() + to_read);
+                resize_without_initialization(buffer_, buffer_.size() + to_read);
             }
 
             raw_stream_.read(&buffer_[offset_ + avail], to_read);

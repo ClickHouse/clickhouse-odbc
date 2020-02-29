@@ -76,7 +76,7 @@ void ODBCDriver2ResultSet::readValue(std::string & dest, bool * is_null) {
     readSize(size);
 
     if (size >= 0) {
-        folly::resizeWithoutInitialization(dest, size);
+        resize_without_initialization(dest, size);
 
         if (is_null)
             *is_null = false;
