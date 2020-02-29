@@ -170,14 +170,22 @@ public:
     AmortizedIStreamReader & operator= (const AmortizedIStreamReader &) = delete;
     AmortizedIStreamReader & operator= (AmortizedIStreamReader &&) noexcept = delete;
 
-    bool eof() const {
+    bool eof() {
+        if (available() > 0)
+            return false;
+
+        if (raw_stream_.eof() || raw_stream_.fail())
+            return true;
+
+        tryPrepare(1);
+
         if (available() > 0)
             return false;
 
         return (raw_stream_.eof() || raw_stream_.fail());
     }
 
-    std::istream::char_type get() {
+    char get() {
         tryPrepare(1);
 
         if (available() < 1)
@@ -186,14 +194,14 @@ public:
         return buffer_[offset_++];
     }
 
-    AmortizedIStreamReader & read(std::istream::char_type * str, std::streamsize count) {
+    AmortizedIStreamReader & read(char * str, std::size_t count) {
         tryPrepare(count);
 
         if (available() < count)
             throw std::runtime_error("Incomplete input stream, expected at least " + std::to_string(count) + " more bytes");
 
         if (str) // If str == nullptr, just silently consume requested amount of data.
-            std::memcpy(str, &buffer_[offset_], count * sizeof(std::istream::char_type));
+            std::memcpy(str, &buffer_[offset_], count);
 
         offset_ += count;
 
@@ -201,14 +209,14 @@ public:
     }
 
 private:
-    std::streamsize available() const {
+    std::size_t available() const {
         if (offset_ < buffer_.size())
             return (buffer_.size() - offset_);
 
         return 0;
     }
 
-    void tryPrepare(std::streamsize count) {
+    void tryPrepare(std::size_t count) {
         const auto avail = available();
 
         if (avail < count) {
@@ -223,7 +231,7 @@ private:
                     if (avail > 0) {
                         decltype(buffer_) tmp;
                         folly::resizeWithoutInitialization(tmp, avail + to_read);
-                        std::memcpy(&tmp[0], &buffer_[offset_], avail * sizeof(std::istream::char_type));
+                        std::memcpy(&tmp[0], &buffer_[offset_], avail);
                         buffer_.swap(tmp);
                     }
                     else {
@@ -232,7 +240,7 @@ private:
                     }
                 }
                 else { // Compacting the buffer is enough.
-                    std::memmove(&buffer_[0], &buffer_[offset_], avail * sizeof(std::istream::char_type));
+                    std::memmove(&buffer_[0], &buffer_[offset_], avail);
                     folly::resizeWithoutInitialization(buffer_, avail + to_read);
                 }
                 offset_ = 0;
@@ -251,7 +259,7 @@ private:
 private:
     std::istream & raw_stream_;
     std::size_t offset_ = 0;
-    std::vector<std::istream::char_type> buffer_;
+    std::string buffer_;
 };
 
 // Parses "Value List Arguments" of catalog functions.
