@@ -124,7 +124,7 @@ To debug issues with the driver, first things that need to be done are:
 
 The general requirements for building the driver from sources are as follows:
 
-- CMake 3.12 and later
+- CMake 3.13.5 and later
 - C++17 and C11 capable compiler toolchain:
   - Clang 4 and later
   - GCC 7 and later
@@ -505,6 +505,11 @@ sudo apt install build-essential git cmake libpoco-dev libssl-dev libiodbc2-dev
 #### Build steps <!-- omit in toc -->
 
 Assuming, that the system `cc` and `c++` are pointing to the compilers that satisfy the minimum requirements from [Building from sources](#building-from-sources).
+
+If the version of `cmake` is not recent enough, you can install a newer version by folowing instructions from one of these pages:
+
+- [Kitware APT Repository](https://apt.kitware.com/)
+- [Installing CMake](https://cmake.org/install/)
 
 Clone the repo with submodules:
 
