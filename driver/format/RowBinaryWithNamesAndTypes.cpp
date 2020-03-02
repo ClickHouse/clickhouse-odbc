@@ -28,36 +28,10 @@ RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(std::is
             columns_info[i].type_without_parameters = "String";
         }
 
-        columns_info[i].updateTypeId();
-
-        if (columns_info[i].display_size == 0) {
-            auto type_name = convertTypeIdToUnparametrizedCanonicalTypeName(columns_info[i].type_without_parameters_id);
-
-            if (
-                type_name == "Decimal32" &&
-                type_name == "Decimal64" &&
-                type_name == "Decimal128"
-            ) {
-                type_name = "Decimal";
-            }
-
-            if (type_name == "FixedString") {
-                columns_info[i].display_size = columns_info[i].fixed_size;
-            }
-            else if (type_name == "String") {
-                columns_info[i].display_size = 0; // Will be populated when the actual data is received.
-            }
-            else {
-                auto & type_info = type_info_for(type_name);
-                columns_info[i].display_size = type_info.column_size;
-            }
-        }
+        columns_info[i].updateTypeInfo();
     }
 
     finished = columns_info.empty();
-
-    constexpr std::size_t prefetch_at_least = 10'000;
-    tryPrefetchRows(prefetch_at_least);
 }
 
 bool RowBinaryWithNamesAndTypesResultSet::readNextRow(Row & row) {
@@ -247,6 +221,9 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
     }
 
     readValue(dest.value, column_info.fixed_size);
+
+    if (column_info.display_size_so_far < dest.value.size())
+        column_info.display_size_so_far = dest.value.size();
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Float32> & dest, ColumnInfo & column_info) {
@@ -285,8 +262,8 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
 
     readValue(dest.value);
 
-    if (column_info.display_size < dest.value.size())
-        column_info.display_size = dest.value.size();
+    if (column_info.display_size_so_far < dest.value.size())
+        column_info.display_size_so_far = dest.value.size();
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::UInt8> & dest, ColumnInfo & column_info) {
