@@ -117,8 +117,8 @@ SQLRETURN Row::extractField(std::size_t column_idx, BindingInfo & binding_info) 
     return fields[column_idx].extract(binding_info);
 }
 
-ResultSet::ResultSet(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
-    : raw_stream(stream)
+ResultSet::ResultSet(AmortizedIStreamReader & str, std::unique_ptr<ResultMutator> && mutator)
+    : stream(str)
     , result_mutator(std::move(mutator))
     , string_pool(1000000)
     , row_pool(1000000)
@@ -296,8 +296,8 @@ void ResultSet::retireRow(Row && row) {
     row_pool.put(std::move(row));
 }
 
-ResultReader::ResultReader(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
-    : raw_stream(stream)
+ResultReader::ResultReader(std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
+    : stream(raw_stream)
     , result_mutator(std::move(mutator))
 {
 }

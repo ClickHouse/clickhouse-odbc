@@ -2,7 +2,7 @@
 
 #include <ctime>
 
-RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
+RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator)
     : ResultSet(stream, std::move(mutator))
 {
     std::uint64_t num_columns = 0;
@@ -35,7 +35,7 @@ RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(std::is
 }
 
 bool RowBinaryWithNamesAndTypesResultSet::readNextRow(Row & row) {
-    if (raw_stream.peek() == EOF)
+    if (stream.eof())
         return false;
 
     for (std::size_t i = 0; i < row.fields.size(); ++i) {
@@ -53,10 +53,7 @@ void RowBinaryWithNamesAndTypesResultSet::readSize(std::uint64_t & res) {
     std::uint8_t shift = 0;
 
     while (true) {
-        auto byte = raw_stream.get();
-
-        if (raw_stream.fail() || byte == EOF)
-            throw std::runtime_error("Incomplete result received, expected: at least 1 more byte");
+        const int byte = stream.get();
 
         const std::uint64_t chunk = (byte & 0b01111111);
         const std::uint64_t segment = (chunk << shift);
@@ -80,11 +77,7 @@ void RowBinaryWithNamesAndTypesResultSet::readSize(std::uint64_t & res) {
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(bool & dest) {
-    auto byte = raw_stream.get();
-
-    if (raw_stream.fail() || byte == EOF)
-        throw std::runtime_error("Incomplete result received, expected size: 1");
-
+    const int byte = stream.get();
     dest = (byte != 0);
 }
 
@@ -95,11 +88,15 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(std::string & res) {
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(std::string & dest, const std::uint64_t size) {
-    dest.resize(size); // TODO: switch to uninitializing resize().
-    raw_stream.read(dest.data(), dest.size());
+    resize_without_initialization(dest, size);
 
-    if (raw_stream.gcount() != dest.size())
-        throw std::runtime_error("Incomplete result received, expected size: " + std::to_string(size));
+    try {
+        stream.read(dest.data(), dest.size());
+    }
+    catch (...) {
+        dest.clear();
+        throw;
+    }
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(Field & dest, ColumnInfo & column_info) {
@@ -285,11 +282,7 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
     char buf[16];
 
     static_assert(sizeof(dest.value) == lengthof(buf));
-
-    raw_stream.read(buf, lengthof(buf));
-
-    if (raw_stream.gcount() != lengthof(buf))
-        throw std::runtime_error("Incomplete result received, expected size: " + std::to_string(lengthof(buf)));
+    stream.read(buf, lengthof(buf));
 
     auto * ptr = buf;
 
@@ -300,10 +293,10 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
     std::copy(ptr, ptr + lengthof(dest.value.Data4), std::make_reverse_iterator(dest.value.Data4 + lengthof(dest.value.Data4)));
 }
 
-RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
-    : ResultReader(stream, std::move(mutator))
+RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
+    : ResultReader(raw_stream, std::move(mutator))
 {
-    if (stream.peek() == EOF)
+    if (stream.eof())
         return;
 
     result_set = std::make_unique<RowBinaryWithNamesAndTypesResultSet>(stream, releaseMutator());
