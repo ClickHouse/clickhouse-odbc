@@ -42,30 +42,7 @@ ODBCDriver2ResultSet::ODBCDriver2ResultSet(std::istream & stream, std::unique_pt
                     columns_info[i].type_without_parameters = "String";
                 }
 
-                columns_info[i].updateTypeId();
-
-                if (columns_info[i].display_size == 0) {
-                    auto type_name = convertTypeIdToUnparametrizedCanonicalTypeName(columns_info[i].type_without_parameters_id);
-
-                    if (
-                        type_name == "Decimal32" &&
-                        type_name == "Decimal64" &&
-                        type_name == "Decimal128"
-                    ) {
-                        type_name = "Decimal";
-                    }
-
-                    if (type_name == "FixedString") {
-                        columns_info[i].display_size = columns_info[i].fixed_size;
-                    }
-                    else if (type_name == "String") {
-                        columns_info[i].display_size = 0; // Will be populated when the actual data is received.
-                    }
-                    else {
-                        auto & type_info = type_info_for(type_name);
-                        columns_info[i].display_size = type_info.column_size;
-                    }
-                }
+                columns_info[i].updateTypeInfo();
             }
         }
         else {
@@ -77,9 +54,6 @@ ODBCDriver2ResultSet::ODBCDriver2ResultSet(std::istream & stream, std::unique_pt
     }
 
     finished = columns_info.empty();
-
-    constexpr std::size_t prefetch_at_least = 10'000;
-    tryPrefetchRows(prefetch_at_least);
 }
 
 bool ODBCDriver2ResultSet::readNextRow(Row & row) {
@@ -139,8 +113,8 @@ void ODBCDriver2ResultSet::readValue(Field & dest, ColumnInfo & column_info) {
         return;
     }
 
-    if (column_info.display_size < value.size())
-        column_info.display_size = value.size();
+    if (column_info.display_size_so_far < value.size())
+        column_info.display_size_so_far = value.size();
 
     switch (column_info.type_without_parameters_id) {
         case DataSourceTypeId::Date:        readValueAs<DataSourceType< DataSourceTypeId::Date        >>(value, dest, column_info); break;
