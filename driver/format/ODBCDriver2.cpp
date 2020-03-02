@@ -116,7 +116,14 @@ void ODBCDriver2ResultSet::readValue(Field & dest, ColumnInfo & column_info) {
     if (column_info.display_size_so_far < value.size())
         column_info.display_size_so_far = value.size();
 
-    switch (column_info.type_without_parameters_id) {
+    constexpr bool convert_on_fetch_conservatively = true;
+
+    if (convert_on_fetch_conservatively) switch (column_info.type_without_parameters_id) {
+        case DataSourceTypeId::FixedString: readValueAs<DataSourceType< DataSourceTypeId::FixedString >>(value, dest, column_info); break;
+        case DataSourceTypeId::String:      readValueAs<DataSourceType< DataSourceTypeId::String      >>(value, dest, column_info); break;
+        default:                            readValueAs<WireTypeAnyAsString                            >(value, dest, column_info); break;
+    }
+    else switch (column_info.type_without_parameters_id) {
         case DataSourceTypeId::Date:        readValueAs<DataSourceType< DataSourceTypeId::Date        >>(value, dest, column_info); break;
         case DataSourceTypeId::DateTime:    readValueAs<DataSourceType< DataSourceTypeId::DateTime    >>(value, dest, column_info); break;
         case DataSourceTypeId::Decimal:     readValueAs<DataSourceType< DataSourceTypeId::Decimal     >>(value, dest, column_info); break;
@@ -142,6 +149,10 @@ void ODBCDriver2ResultSet::readValue(Field & dest, ColumnInfo & column_info) {
 
     if (value.capacity() > initial_string_capacity_g)
         string_pool.put(std::move(value));
+}
+
+void ODBCDriver2ResultSet::readValue(std::string & src, WireTypeAnyAsString & dest, ColumnInfo & column_info) {
+    dest.value = std::move(src);
 }
 
 void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourceTypeId::Date> & dest, ColumnInfo & column_info) {

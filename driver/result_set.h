@@ -54,7 +54,12 @@ public:
         DataSourceType< DataSourceTypeId::UInt16      >,
         DataSourceType< DataSourceTypeId::UInt32      >,
         DataSourceType< DataSourceTypeId::UInt64      >,
-        DataSourceType< DataSourceTypeId::UUID        >
+        DataSourceType< DataSourceTypeId::UUID        >,
+
+        // In case we approach value conversion conservatively...
+        WireTypeAnyAsString,
+        WireTypeDateAsInt,
+        WireTypeDateTimeAsInt
     >;
 
     SQLRETURN extract(BindingInfo & binding_info) const;
