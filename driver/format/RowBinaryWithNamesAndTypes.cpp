@@ -2,7 +2,7 @@
 
 #include <ctime>
 
-RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
+RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator)
     : ResultSet(stream, std::move(mutator))
 {
     std::uint64_t num_columns = 0;
@@ -35,7 +35,7 @@ RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(std::is
 }
 
 bool RowBinaryWithNamesAndTypesResultSet::readNextRow(Row & row) {
-    if (raw_stream.peek() == EOF)
+    if (stream.eof())
         return false;
 
     for (std::size_t i = 0; i < row.fields.size(); ++i) {
@@ -53,10 +53,7 @@ void RowBinaryWithNamesAndTypesResultSet::readSize(std::uint64_t & res) {
     std::uint8_t shift = 0;
 
     while (true) {
-        auto byte = raw_stream.get();
-
-        if (raw_stream.fail() || byte == EOF)
-            throw std::runtime_error("Incomplete result received, expected: at least 1 more byte");
+        const int byte = stream.get();
 
         const std::uint64_t chunk = (byte & 0b01111111);
         const std::uint64_t segment = (chunk << shift);
@@ -80,11 +77,7 @@ void RowBinaryWithNamesAndTypesResultSet::readSize(std::uint64_t & res) {
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(bool & dest) {
-    auto byte = raw_stream.get();
-
-    if (raw_stream.fail() || byte == EOF)
-        throw std::runtime_error("Incomplete result received, expected size: 1");
-
+    const int byte = stream.get();
     dest = (byte != 0);
 }
 
@@ -95,11 +88,15 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(std::string & res) {
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(std::string & dest, const std::uint64_t size) {
-    dest.resize(size); // TODO: switch to uninitializing resize().
-    raw_stream.read(dest.data(), dest.size());
+    resize_without_initialization(dest, size);
 
-    if (raw_stream.gcount() != dest.size())
-        throw std::runtime_error("Incomplete result received, expected size: " + std::to_string(size));
+    try {
+        stream.read(dest.data(), dest.size());
+    }
+    catch (...) {
+        dest.clear();
+        throw;
+    }
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(Field & dest, ColumnInfo & column_info) {
@@ -111,6 +108,14 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(Field & dest, ColumnInfo & c
             dest.data = DataSourceType<DataSourceTypeId::Nothing>{};
             return;
         }
+    }
+
+    constexpr bool convert_on_fetch_conservatively = true;
+
+    if (convert_on_fetch_conservatively) switch (column_info.type_without_parameters_id) {
+        case DataSourceTypeId::Date:        return readValueAs<WireTypeDateAsInt    >(dest, column_info);
+        case DataSourceTypeId::DateTime:    return readValueAs<WireTypeDateTimeAsInt>(dest, column_info);
+        default:                            break; // Continue with the next complete switch...
     }
 
     switch (column_info.type_without_parameters_id) {
@@ -138,33 +143,24 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(Field & dest, ColumnInfo & c
     }
 }
 
+void RowBinaryWithNamesAndTypesResultSet::readValue(WireTypeDateAsInt & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(WireTypeDateTimeAsInt & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Date> & dest, ColumnInfo & column_info) {
-    std::uint16_t days_since_epoch = 0;
-    readPOD(days_since_epoch);
-
-    std::time_t time = days_since_epoch;
-    time = time * 24 * 60 * 60; // Now it's seconds since epoch.
-    const auto & tm = *std::localtime(&time);
-
-    dest.value.year = 1900 + tm.tm_year;
-    dest.value.month = 1 + tm.tm_mon;
-    dest.value.day = tm.tm_mday;
+    WireTypeDateAsInt dest_raw;
+    readValue(dest_raw, column_info);
+    value_manip::from_value<decltype(dest_raw)>::template to_value<decltype(dest)>::convert(dest_raw, dest);
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::DateTime> & dest, ColumnInfo & column_info) {
-    std::uint32_t secs_since_epoch = 0;
-    readPOD(secs_since_epoch);
-
-    std::time_t time = secs_since_epoch;
-    const auto & tm = *std::localtime(&time);
-
-    dest.value.year = 1900 + tm.tm_year;
-    dest.value.month = 1 + tm.tm_mon;
-    dest.value.day = tm.tm_mday;
-    dest.value.hour = tm.tm_hour;
-    dest.value.minute = tm.tm_min;
-    dest.value.second = tm.tm_sec;
-    dest.value.fraction = 0;
+    WireTypeDateTimeAsInt dest_raw;
+    readValue(dest_raw, column_info);
+    value_manip::from_value<decltype(dest_raw)>::template to_value<decltype(dest)>::convert(dest_raw, dest);
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Decimal> & dest, ColumnInfo & column_info) {
@@ -286,11 +282,7 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
     char buf[16];
 
     static_assert(sizeof(dest.value) == lengthof(buf));
-
-    raw_stream.read(buf, lengthof(buf));
-
-    if (raw_stream.gcount() != lengthof(buf))
-        throw std::runtime_error("Incomplete result received, expected size: " + std::to_string(lengthof(buf)));
+    stream.read(buf, lengthof(buf));
 
     auto * ptr = buf;
 
@@ -301,10 +293,10 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
     std::copy(ptr, ptr + lengthof(dest.value.Data4), std::make_reverse_iterator(dest.value.Data4 + lengthof(dest.value.Data4)));
 }
 
-RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
-    : ResultReader(stream, std::move(mutator))
+RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
+    : ResultReader(raw_stream, std::move(mutator))
 {
-    if (stream.peek() == EOF)
+    if (stream.eof())
         return;
 
     result_set = std::make_unique<RowBinaryWithNamesAndTypesResultSet>(stream, releaseMutator());

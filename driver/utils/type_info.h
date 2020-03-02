@@ -280,7 +280,7 @@ inline SQLRETURN fillOutputString(
     );
 }
 
-// ObjectType, that is a pointer type, is treated as an integer, the value of that pointer.
+// If ObjectType is a pointer type then obj is treated as an integer corrsponding to the value of that pointer itself.
 template <typename ObjectType, typename LengthType1, typename LengthType2>
 inline SQLRETURN fillOutputPOD(
     const ObjectType & obj,
@@ -404,6 +404,27 @@ struct SimpleTypeWrapper {
     }
 
     T value;
+};
+
+// Values stored exactly as they are written on wire in ODBCDriver2 format.
+struct WireTypeAnyAsString
+    : public SimpleTypeWrapper<std::string>
+{
+    using SimpleTypeWrapper<std::string>::SimpleTypeWrapper;
+};
+
+// Date stored exactly as it is represented on wire in RowBinaryWithNamesAndTypes format.
+struct WireTypeDateAsInt
+    : public SimpleTypeWrapper<std::uint16_t>
+{
+    using SimpleTypeWrapper<std::uint16_t>::SimpleTypeWrapper;
+};
+
+// DateTime stored exactly as it is represented on wire in RowBinaryWithNamesAndTypes format.
+struct WireTypeDateTimeAsInt
+    : public SimpleTypeWrapper<std::uint32_t>
+{
+    using SimpleTypeWrapper<std::uint32_t>::SimpleTypeWrapper;
 };
 
 template <DataSourceTypeId Id> struct DataSourceType; // Leave unimplemented for general case.
@@ -561,6 +582,11 @@ template <> struct is_string_data_source_type<DataSourceType<DataSourceTypeId::S
 };
 
 template <> struct is_string_data_source_type<DataSourceType<DataSourceTypeId::FixedString>>
+    : public std::true_type
+{
+};
+
+template <> struct is_string_data_source_type<WireTypeAnyAsString>
     : public std::true_type
 {
 };
@@ -1718,6 +1744,75 @@ namespace value_manip {
                 return from_value<DataSourceType<DataSourceTypeId::Decimal>>::template to_value<DestinationType>::convert(src, dest);
             }
         };
+    };
+
+    template <>
+    struct from_value<WireTypeAnyAsString> {
+        using SourceType = WireTypeAnyAsString;
+
+        template <typename DestinationType>
+        struct to_value {
+            static inline void convert(const SourceType & src, DestinationType & dest) {
+                return from_value<std::string>::template to_value<DestinationType>::convert(src.value, dest);
+            }
+        };
+    };
+
+    template <>
+    struct from_value<WireTypeDateAsInt> {
+        using SourceType = WireTypeDateAsInt;
+
+        template <typename DestinationType>
+        struct to_value {
+            static inline void convert(const SourceType & src, DestinationType & dest) {
+                convert_via_proxy<DataSourceType<DataSourceTypeId::Date>>(src, dest);
+            }
+        };
+    };
+
+    template <>
+    struct from_value<WireTypeDateAsInt>::to_value<DataSourceType<DataSourceTypeId::Date>> {
+        using DestinationType = DataSourceType<DataSourceTypeId::Date>;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::time_t time = src.value;
+            time = time * 24 * 60 * 60; // Now it's seconds since epoch.
+            const auto & tm = *std::localtime(&time);
+
+            dest.value.year = 1900 + tm.tm_year;
+            dest.value.month = 1 + tm.tm_mon;
+            dest.value.day = tm.tm_mday;
+        }
+    };
+
+    template <>
+    struct from_value<WireTypeDateTimeAsInt> {
+        using SourceType = WireTypeDateTimeAsInt;
+
+        template <typename DestinationType>
+        struct to_value {
+            static inline void convert(const SourceType & src, DestinationType & dest) {
+                convert_via_proxy<DataSourceType<DataSourceTypeId::DateTime>>(src, dest);
+            }
+        };
+    };
+
+    template <>
+    struct from_value<WireTypeDateTimeAsInt>::to_value<DataSourceType<DataSourceTypeId::DateTime>> {
+        using DestinationType = DataSourceType<DataSourceTypeId::DateTime>;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::time_t time = src.value;
+            const auto & tm = *std::localtime(&time);
+
+            dest.value.year = 1900 + tm.tm_year;
+            dest.value.month = 1 + tm.tm_mon;
+            dest.value.day = tm.tm_mday;
+            dest.value.hour = tm.tm_hour;
+            dest.value.minute = tm.tm_min;
+            dest.value.second = tm.tm_sec;
+            dest.value.fraction = 0;
+        }
     };
 
     template <typename DestinationType>

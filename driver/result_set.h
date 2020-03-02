@@ -54,7 +54,12 @@ public:
         DataSourceType< DataSourceTypeId::UInt16      >,
         DataSourceType< DataSourceTypeId::UInt32      >,
         DataSourceType< DataSourceTypeId::UInt64      >,
-        DataSourceType< DataSourceTypeId::UUID        >
+        DataSourceType< DataSourceTypeId::UUID        >,
+
+        // In case we approach value conversion conservatively...
+        WireTypeAnyAsString,
+        WireTypeDateAsInt,
+        WireTypeDateTimeAsInt
     >;
 
     SQLRETURN extract(BindingInfo & binding_info) const;
@@ -80,7 +85,7 @@ public:
 
 class ResultSet {
 public:
-    explicit ResultSet(std::istream & stream, std::unique_ptr<ResultMutator> && mutator);
+    explicit ResultSet(AmortizedIStreamReader & str, std::unique_ptr<ResultMutator> && mutator);
 
     virtual ~ResultSet();
 
@@ -106,7 +111,7 @@ protected:
     virtual bool readNextRow(Row & row) = 0;
 
 protected:
-    std::istream & raw_stream;
+    AmortizedIStreamReader & stream;
     std::unique_ptr<ResultMutator> result_mutator;
     std::vector<ColumnInfo> columns_info;
     std::deque<Row> row_set;
@@ -134,7 +139,7 @@ public:
     virtual bool advanceToNextResultSet() = 0;
 
 protected:
-    std::istream & raw_stream;
+    AmortizedIStreamReader stream;
     std::unique_ptr<ResultMutator> result_mutator;
     std::unique_ptr<ResultSet> result_set;
 };

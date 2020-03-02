@@ -8,7 +8,7 @@ class ODBCDriver2ResultSet
     : public ResultSet
 {
 public:
-    explicit ODBCDriver2ResultSet(std::istream & stream, std::unique_ptr<ResultMutator> && mutator);
+    explicit ODBCDriver2ResultSet(AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator);
     virtual ~ODBCDriver2ResultSet() override = default;
 
 protected:
@@ -27,6 +27,8 @@ private:
         readValue(src, value, column_info);
         dest.data = std::move(value);
     }
+
+    void readValue(std::string & src, WireTypeAnyAsString & dest, ColumnInfo & column_info);
 
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::Date        > & dest, ColumnInfo & column_info);
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::DateTime    > & dest, ColumnInfo & column_info);
@@ -59,7 +61,7 @@ class ODBCDriver2ResultReader
     : public ResultReader
 {
 public:
-    explicit ODBCDriver2ResultReader(std::istream & stream, std::unique_ptr<ResultMutator> && mutator);
+    explicit ODBCDriver2ResultReader(std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator);
     virtual ~ODBCDriver2ResultReader() override = default;
 
     virtual bool advanceToNextResultSet() override;

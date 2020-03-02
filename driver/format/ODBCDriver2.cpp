@@ -1,6 +1,6 @@
 #include "driver/format/ODBCDriver2.h"
 
-ODBCDriver2ResultSet::ODBCDriver2ResultSet(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
+ODBCDriver2ResultSet::ODBCDriver2ResultSet(AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator)
     : ResultSet(stream, std::move(mutator))
 {
     std::int32_t num_header_rows = 0;
@@ -57,7 +57,7 @@ ODBCDriver2ResultSet::ODBCDriver2ResultSet(std::istream & stream, std::unique_pt
 }
 
 bool ODBCDriver2ResultSet::readNextRow(Row & row) {
-    if (raw_stream.peek() == EOF)
+    if (stream.eof())
         return false;
 
     for (std::size_t i = 0; i < row.fields.size(); ++i) {
@@ -68,11 +68,7 @@ bool ODBCDriver2ResultSet::readNextRow(Row & row) {
 }
 
 void ODBCDriver2ResultSet::readSize(std::int32_t & dest) {
-    constexpr auto size = sizeof(dest);
-    raw_stream.read(reinterpret_cast<char *>(&dest), size);
-
-    if (raw_stream.gcount() != size)
-        throw std::runtime_error("Incomplete result received, expected size: " + std::to_string(size));
+    stream.read(reinterpret_cast<char *>(&dest), sizeof(std::int32_t));
 }
 
 void ODBCDriver2ResultSet::readValue(std::string & dest, bool * is_null) {
@@ -80,20 +76,23 @@ void ODBCDriver2ResultSet::readValue(std::string & dest, bool * is_null) {
     readSize(size);
 
     if (size >= 0) {
-        dest.resize(size); // TODO: switch to uninitializing resize().
+        resize_without_initialization(dest, size);
 
         if (is_null)
             *is_null = false;
 
         if (size > 0) {
-            raw_stream.read(dest.data(), size);
-
-            if (raw_stream.gcount() != size)
-                throw std::runtime_error("Incomplete result received, expected size: " + std::to_string(size));
+            try {
+                stream.read(dest.data(), size);
+            }
+            catch (...) {
+                dest.clear();
+                throw;
+            }
         }
     }
     else /*if (size == -1) */{
-        dest.resize(0);
+        dest.clear();
 
         if (is_null)
             *is_null = true;
@@ -116,7 +115,14 @@ void ODBCDriver2ResultSet::readValue(Field & dest, ColumnInfo & column_info) {
     if (column_info.display_size_so_far < value.size())
         column_info.display_size_so_far = value.size();
 
-    switch (column_info.type_without_parameters_id) {
+    constexpr bool convert_on_fetch_conservatively = true;
+
+    if (convert_on_fetch_conservatively) switch (column_info.type_without_parameters_id) {
+        case DataSourceTypeId::FixedString: readValueAs<DataSourceType< DataSourceTypeId::FixedString >>(value, dest, column_info); break;
+        case DataSourceTypeId::String:      readValueAs<DataSourceType< DataSourceTypeId::String      >>(value, dest, column_info); break;
+        default:                            readValueAs<WireTypeAnyAsString                            >(value, dest, column_info); break;
+    }
+    else switch (column_info.type_without_parameters_id) {
         case DataSourceTypeId::Date:        readValueAs<DataSourceType< DataSourceTypeId::Date        >>(value, dest, column_info); break;
         case DataSourceTypeId::DateTime:    readValueAs<DataSourceType< DataSourceTypeId::DateTime    >>(value, dest, column_info); break;
         case DataSourceTypeId::Decimal:     readValueAs<DataSourceType< DataSourceTypeId::Decimal     >>(value, dest, column_info); break;
@@ -142,6 +148,10 @@ void ODBCDriver2ResultSet::readValue(Field & dest, ColumnInfo & column_info) {
 
     if (value.capacity() > initial_string_capacity_g)
         string_pool.put(std::move(value));
+}
+
+void ODBCDriver2ResultSet::readValue(std::string & src, WireTypeAnyAsString & dest, ColumnInfo & column_info) {
+    dest.value = std::move(src);
 }
 
 void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourceTypeId::Date> & dest, ColumnInfo & column_info) {
@@ -224,10 +234,10 @@ void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourc
     return value_manip::from_value<std::string>::template to_value<DataSourceType<DataSourceTypeId::UUID>>::convert(src, dest);
 }
 
-ODBCDriver2ResultReader::ODBCDriver2ResultReader(std::istream & stream, std::unique_ptr<ResultMutator> && mutator)
-    : ResultReader(stream, std::move(mutator))
+ODBCDriver2ResultReader::ODBCDriver2ResultReader(std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
+    : ResultReader(raw_stream, std::move(mutator))
 {
-    if (stream.peek() == EOF)
+    if (stream.eof())
         return;
 
     result_set = std::make_unique<ODBCDriver2ResultSet>(stream, releaseMutator());
