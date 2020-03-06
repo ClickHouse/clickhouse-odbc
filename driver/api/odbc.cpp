@@ -1013,9 +1013,14 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
 
                 if (parser.parse(&ast)) {
                     tmp_column_info.assignTypeInfo(ast);
+
+                    if (convertUnparametrizedTypeNameToTypeId(tmp_column_info.type_without_parameters) == DataSourceTypeId::Unknown) {
+                        // Interpret all unknown types as String.
+                        tmp_column_info.type_without_parameters = "String";
+                    }
                 }
                 else {
-                    // Interpret all unknown types as String.
+                    // Interpret all unparsable types as String.
                     tmp_column_info.type_without_parameters = "String";
                 }
 

@@ -62,7 +62,7 @@ void ColumnInfo::assignTypeInfo(const TypeAst & ast) {
         assignTypeInfo(ast.elements.front());
     }
     else {
-        // Interpret all unsupported types as String.
+        // Interpret all unrecognized ASTs as of String type.
         type_without_parameters = "String";
     }
 }

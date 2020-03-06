@@ -36,9 +36,14 @@ ODBCDriver2ResultSet::ODBCDriver2ResultSet(AmortizedIStreamReader & stream, std:
 
                 if (parser.parse(&ast)) {
                     columns_info[i].assignTypeInfo(ast);
+
+                    if (convertUnparametrizedTypeNameToTypeId(columns_info[i].type_without_parameters) == DataSourceTypeId::Unknown) {
+                        // Interpret all unknown types as String.
+                        columns_info[i].type_without_parameters = "String";
+                    }
                 }
                 else {
-                    // Interpret all unknown types as String.
+                    // Interpret all unparsable types as String.
                     columns_info[i].type_without_parameters = "String";
                 }
 
