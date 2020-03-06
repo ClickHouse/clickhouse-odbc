@@ -1011,10 +1011,19 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
                 TypeParser parser{type_name};
                 TypeAst ast;
 
-                if (!parser.parse(&ast))
-                    throw std::runtime_error("Unsupported type: " + type_name);
+                if (parser.parse(&ast)) {
+                    tmp_column_info.assignTypeInfo(ast);
 
-                tmp_column_info.assignTypeInfo(ast);
+                    if (convertUnparametrizedTypeNameToTypeId(tmp_column_info.type_without_parameters) == DataSourceTypeId::Unknown) {
+                        // Interpret all unknown types as String.
+                        tmp_column_info.type_without_parameters = "String";
+                    }
+                }
+                else {
+                    // Interpret all unparsable types as String.
+                    tmp_column_info.type_without_parameters = "String";
+                }
+
                 tmp_column_info.updateTypeInfo();
             }, row.fields.at(5).data);
 
