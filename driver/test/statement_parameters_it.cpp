@@ -404,7 +404,7 @@ private:
             throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
         T col;
-        value_manip::to_default(col);
+        value_manip::to_null(col);
 
         SQLLEN col_ind = 0;
 
@@ -476,7 +476,7 @@ private:
             throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
 
         T col;
-        value_manip::to_default(col);
+        value_manip::to_null(col);
 
         SQLLEN col_ind = 0;
 
