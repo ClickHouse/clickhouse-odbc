@@ -1,4 +1,5 @@
 #include "driver/format/ODBCDriver2.h"
+#include "driver/utils/resize_without_initialization.h"
 
 ODBCDriver2ResultSet::ODBCDriver2ResultSet(AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator)
     : ResultSet(stream, std::move(mutator))

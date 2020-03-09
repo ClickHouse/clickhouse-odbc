@@ -75,6 +75,9 @@ add_library (${libname}-impl STATIC
     platform/platform.h
 
     utils/utils.h
+    utils/resize_without_initialization.h
+    utils/object_pool.h
+    utils/amortized_istream_reader.h
     utils/unicode_conv.h
     utils/iostream_debug_helpers.h
     utils/type_parser.h
