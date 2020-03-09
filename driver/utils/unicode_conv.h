@@ -11,6 +11,18 @@
 
 #include <cstring>
 
+class UnicodeConversionContext {
+public:
+    UnicodeConversionContext() {} // ...to call explicit c-tors of member objects.
+
+public:
+//  std::locale source_locale;
+//  std::locale destination_locale;
+    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> UCS2_converter_char16;
+    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> UCS2_converter_char32;
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> UCS2_converter_wchar;
+};
+
 using CharTypeLPCTSTR = std::remove_cv<std::remove_pointer<LPCTSTR>::type>::type;
 
 inline std::size_t NTSStringLength(const char * src, const std::locale& locale) {
@@ -182,113 +194,80 @@ inline decltype(auto) toUTF8(const std::basic_string<CharType> & src) {
 }
 
 template <typename CharType>
-inline decltype(auto) fromUTF8(const std::string & src, const std::locale& locale); // Leave unimplemented for general case.
+inline decltype(auto) fromUTF8(const std::string & src, UnicodeConversionContext & context); // Leave unimplemented for general case.
 
 template <>
-inline decltype(auto) fromUTF8<char>(const std::string & src, const std::locale& locale) {
+inline decltype(auto) fromUTF8<char>(const std::string & src, UnicodeConversionContext & context) {
 
-    // TODO: implement and use conversion to the specified locale.
-
-    throw std::runtime_error("not implemented");
-
-    return std::string{};
-}
-
-template <>
-inline decltype(auto) fromUTF8<signed char>(const std::string & src, const std::locale& locale) {
-    const auto converted = fromUTF8<char>(src, locale);
-    return std::basic_string<signed char>{converted.begin(), converted.end()};
-}
-
-template <>
-inline decltype(auto) fromUTF8<unsigned char>(const std::string & src, const std::locale& locale) {
-    const auto converted = fromUTF8<char>(src, locale);
-    return std::basic_string<unsigned char>{converted.begin(), converted.end()};
-}
-
-template <typename CharType>
-inline decltype(auto) fromUTF8(const std::string & src); // Leave unimplemented for general case.
-
-template <>
-inline decltype(auto) fromUTF8<char>(const std::string & src) {
-
-    // TODO: convert to the current locale?
+    // TODO: implement conversion between specified locales.
 
     return src;
 }
 
 template <>
-inline decltype(auto) fromUTF8<char16_t>(const std::string & src) {
-    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> convert;
-    return convert.from_bytes(src);
-}
-
-template <>
-inline decltype(auto) fromUTF8<char32_t>(const std::string & src) {
-    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> convert;
-    return convert.from_bytes(src);
-}
-
-template <>
-inline decltype(auto) fromUTF8<wchar_t>(const std::string & src) {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
-    return convert.from_bytes(src);
-}
-
-template <>
-inline decltype(auto) fromUTF8<signed char>(const std::string & src) {
-    const auto converted = fromUTF8<char>(src);
+inline decltype(auto) fromUTF8<signed char>(const std::string & src, UnicodeConversionContext & context) {
+    const auto converted = fromUTF8<char>(src, context);
     return std::basic_string<signed char>{converted.begin(), converted.end()};
 }
 
 template <>
-inline decltype(auto) fromUTF8<unsigned char>(const std::string & src) {
-    const auto converted = fromUTF8<char>(src);
+inline decltype(auto) fromUTF8<unsigned char>(const std::string & src, UnicodeConversionContext & context) {
+    const auto converted = fromUTF8<char>(src, context);
     return std::basic_string<unsigned char>{converted.begin(), converted.end()};
 }
 
 template <>
-inline decltype(auto) fromUTF8<unsigned short>(const std::string & src) {
+inline decltype(auto) fromUTF8<char16_t>(const std::string & src, UnicodeConversionContext & context) {
+    return context.UCS2_converter_char16.from_bytes(src);
+}
+
+template <>
+inline decltype(auto) fromUTF8<char32_t>(const std::string & src, UnicodeConversionContext & context) {
+    return context.UCS2_converter_char32.from_bytes(src);
+}
+
+template <>
+inline decltype(auto) fromUTF8<wchar_t>(const std::string & src, UnicodeConversionContext & context) {
+    return context.UCS2_converter_wchar.from_bytes(src);
+}
+
+template <>
+inline decltype(auto) fromUTF8<unsigned short>(const std::string & src, UnicodeConversionContext & context) {
     static_assert(sizeof(unsigned short) == sizeof(char16_t), "unsigned short doesn't match char16_t exactly");
-    const auto converted = fromUTF8<char16_t>(src);
+    const auto converted = fromUTF8<char16_t>(src, context);
     return std::basic_string<unsigned short>{converted.begin(), converted.end()};
 }
 
 template <typename CharType>
-inline void fromUTF8(const std::string & src, std::basic_string<CharType> & dest, const std::locale& locale); // Leave unimplemented for general case.
-
-template <>
-inline void fromUTF8<char>(const std::string & src, std::string & dest, const std::locale& locale) {
-    dest = fromUTF8<char>(src, locale);
-}
-
-template <>
-inline void fromUTF8<signed char>(const std::string & src, std::basic_string<signed char> & dest, const std::locale& locale) {
-    dest = fromUTF8<signed char>(src, locale);
-}
-
-template <>
-inline void fromUTF8<unsigned char>(const std::string & src, std::basic_string<unsigned char> & dest, const std::locale& locale) {
-    dest = fromUTF8<unsigned char>(src, locale);
+inline decltype(auto) fromUTF8(const std::string & src) {
+    UnicodeConversionContext context;
+    return fromUTF8<CharType>(src, context);
 }
 
 template <typename CharType>
-inline void fromUTF8(const std::string & src, std::basic_string<CharType> & dest,
-    typename std::enable_if<std::is_assignable<
-        std::basic_string<CharType>, decltype(fromUTF8<CharType>(src))
-    >::value>::type * = nullptr
+inline void fromUTF8(const std::string & src, std::basic_string<CharType> & dest, UnicodeConversionContext & context,
+    typename std::enable_if_t<
+        std::is_assignable_v<std::basic_string<CharType>, decltype(fromUTF8<CharType>(src))>
+    > * = nullptr
 ) {
-    dest = fromUTF8<CharType>(src);
+    dest = fromUTF8<CharType>(src, context);
 }
 
 template <typename CharType>
-inline void fromUTF8(const std::string & src, std::basic_string<CharType> & dest,
-    typename std::enable_if<!std::is_assignable<
-        std::basic_string<CharType>, decltype(fromUTF8<CharType>(src))
-    >::value>::type * = nullptr
+inline void fromUTF8(const std::string & src, std::basic_string<CharType> & dest, UnicodeConversionContext & context,
+    typename std::enable_if_t<
+        !std::is_assignable_v<std::basic_string<CharType>, decltype(fromUTF8<CharType>(src))> &&
+        std::is_assignable_v<CharType, typename decltype(fromUTF8<CharType>(src))::char_type>
+    > * = nullptr
 ) {
-    const auto converted = fromUTF8<CharType>(src);
+    const auto converted = fromUTF8<CharType>(src, context);
     dest.clear();
     dest.reserve(converted.size() + 1);
     dest.assign(converted.begin(), converted.end());
+}
+
+template <typename CharType>
+inline decltype(auto) fromUTF8(const std::string & src, std::basic_string<CharType> & dest) {
+    UnicodeConversionContext context;
+    return fromUTF8<CharType>(src, dest, context);
 }

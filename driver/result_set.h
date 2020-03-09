@@ -62,7 +62,8 @@ public:
         WireTypeDateTimeAsInt
     >;
 
-    SQLRETURN extract(BindingInfo & binding_info) const;
+    template <typename ConversionContext>
+    SQLRETURN extract(BindingInfo & binding_info, ConversionContext && context) const;
 
 public:
     DataType data = DataSourceType<DataSourceTypeId::Nothing>{};
@@ -70,7 +71,8 @@ public:
 
 class Row {
 public:
-    SQLRETURN extractField(std::size_t column_idx, BindingInfo & binding_info) const;
+    template <typename ConversionContext>
+    SQLRETURN extractField(std::size_t column_idx, BindingInfo & binding_info, ConversionContext && context) const;
 
 public:
     std::vector<Field> fields;
@@ -102,7 +104,7 @@ public:
     std::size_t getAffectedRowCount() const;
 
     // row_idx - row index within the row set.
-    SQLRETURN extractField(std::size_t row_idx, std::size_t column_idx, BindingInfo & binding_info) const;
+    SQLRETURN extractField(std::size_t row_idx, std::size_t column_idx, BindingInfo & binding_info);
 
 protected:
     void tryPrefetchRows(std::size_t size);
@@ -113,6 +115,7 @@ protected:
 protected:
     AmortizedIStreamReader & stream;
     std::unique_ptr<ResultMutator> result_mutator;
+    DefaultConversionContext conversion_context;
     std::vector<ColumnInfo> columns_info;
     std::deque<Row> row_set;
     std::size_t row_set_position = 0; // 1-based. 1 means the first row of the row set is the first row of the entire result set.
@@ -145,3 +148,23 @@ protected:
 };
 
 std::unique_ptr<ResultReader> make_result_reader(const std::string & format, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator);
+
+template <typename ConversionContext>
+SQLRETURN Field::extract(BindingInfo & binding_info, ConversionContext && context) const {
+    return std::visit([&binding_info, &context] (auto & value) {
+        if constexpr (std::is_same_v<DataSourceType<DataSourceTypeId::Nothing>, std::decay_t<decltype(value)>>) {
+            return fillOutputNULL(binding_info.value, binding_info.value_max_size, binding_info.indicator);
+        }
+        else {
+            return writeDataFrom(value, binding_info, std::forward<ConversionContext>(context));
+        }
+    }, data);
+}
+
+template <typename ConversionContext>
+SQLRETURN Row::extractField(std::size_t column_idx, BindingInfo & binding_info, ConversionContext && context) const {
+    if (column_idx >= fields.size())
+        throw SqlException("Invalid descriptor index", "07009");
+
+    return fields[column_idx].extract(binding_info, std::forward<ConversionContext>(context));
+}
