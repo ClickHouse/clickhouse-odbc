@@ -114,6 +114,8 @@ include (cmake/sanitize.cmake)
 find_package (Threads REQUIRED)
 find_package (ODBC REQUIRED)
 
+find_package (ICU COMPONENTS uc REQUIRED)
+
 if (CH_ODBC_ENABLE_SSL)
     if (NOT CH_ODBC_PREFER_BUNDLED_SSL)
         if (CH_ODBC_THIRD_PARTY_LINK_STATIC)

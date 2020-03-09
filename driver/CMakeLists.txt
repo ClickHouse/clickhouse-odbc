@@ -153,6 +153,7 @@ endif ()
 target_link_libraries (${libname}-impl
     PUBLIC ${_poco_net}
     PUBLIC Poco::Foundation
+    PUBLIC ICU::uc
     PUBLIC ODBC::Driver
     PUBLIC Threads::Threads
 )
