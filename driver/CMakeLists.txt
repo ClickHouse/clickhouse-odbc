@@ -79,6 +79,8 @@ add_library (${libname}-impl STATIC
     utils/object_pool.h
     utils/amortized_istream_reader.h
     utils/unicode_conv.h
+    utils/unicode_conv_std.h
+    utils/unicode_conv_icu.h
     utils/iostream_debug_helpers.h
     utils/type_parser.h
     utils/type_info.h
