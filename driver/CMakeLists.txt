@@ -3,6 +3,7 @@ function (declare_odbc_lib_targets libname UNICODE)
 # See the usage of each workaround in the code, for comments.
 unset (WORKAROUND_ALLOW_UNSAFE_DISPATCH)
 unset (WORKAROUND_DISABLE_SSL)
+unset (WORKAROUND_USE_ICU)
 unset (WORKAROUND_ENABLE_TRIM_TRAILING_NULL)
 unset (WORKAROUND_ENABLE_DEFINE_SQLBindParam)
 unset (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
@@ -31,6 +32,10 @@ if (NOT CH_ODBC_ENABLE_SSL)
     set (WORKAROUND_DISABLE_SSL 1)
 endif()
 
+if (CH_ODBC_USE_ICU)
+    set (WORKAROUND_USE_ICU 1)
+endif ()
+
 message (STATUS "${libname}: ${DRIVER_PREFIX}")
 
 configure_file (
@@ -40,6 +45,7 @@ configure_file (
 
 unset (WORKAROUND_ALLOW_UNSAFE_DISPATCH)
 unset (WORKAROUND_DISABLE_SSL)
+unset (WORKAROUND_USE_ICU)
 unset (WORKAROUND_ENABLE_TRIM_TRAILING_NULL)
 unset (WORKAROUND_ENABLE_DEFINE_SQLBindParam)
 unset (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
@@ -155,10 +161,15 @@ endif ()
 target_link_libraries (${libname}-impl
     PUBLIC ${_poco_net}
     PUBLIC Poco::Foundation
-    PUBLIC ICU::uc
     PUBLIC ODBC::Driver
     PUBLIC Threads::Threads
 )
+
+if (CH_ODBC_USE_ICU)
+    target_link_libraries (${libname}-impl
+        PUBLIC ICU::uc
+    )
+endif ()
 
 add_library (${libname} SHARED
     api/odbc.cpp
