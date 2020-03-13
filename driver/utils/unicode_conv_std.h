@@ -7,13 +7,21 @@
 #include <locale>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 #include <cstring>
 
+using CharTypeLPCTSTR = std::remove_cv_t<std::remove_pointer_t<LPCTSTR>>;
+
 class UnicodeConversionContext {
 public:
     UnicodeConversionContext() {} // ...to call explicit c-tors of member objects.
+
+    template <typename CharType>
+    inline void retireString(std::basic_string<CharType> && str) {
+        // Do nothing.
+    }
 
 public:
 //  std::locale source_locale;
@@ -25,7 +33,16 @@ public:
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> UCS2_converter_wchar;
 };
 
-using CharTypeLPCTSTR = std::remove_cv<std::remove_pointer<LPCTSTR>::type>::type;
+
+// NTSBufferLength() - number of elements in the null-terminated buffer (that holds a string).
+
+template <typename CharType>
+inline std::size_t NTSBufferLength(const CharType * str) {
+    return (str ? std::basic_string_view<CharType>{str}.size() : 0);
+}
+
+
+// NTSStringLength() - number of characters in the null-terminated string in application encoding.
 
 inline std::size_t NTSStringLength(const char * src, const std::locale& locale) {
 
@@ -208,13 +225,13 @@ inline decltype(auto) fromUTF8<char>(const std::string & src, UnicodeConversionC
 
 template <>
 inline decltype(auto) fromUTF8<signed char>(const std::string & src, UnicodeConversionContext & context) {
-    const auto converted = fromUTF8<char>(src, context);
+    auto && converted = fromUTF8<char>(src, context);
     return std::basic_string<signed char>{converted.begin(), converted.end()};
 }
 
 template <>
 inline decltype(auto) fromUTF8<unsigned char>(const std::string & src, UnicodeConversionContext & context) {
-    const auto converted = fromUTF8<char>(src, context);
+    auto && converted = fromUTF8<char>(src, context);
     return std::basic_string<unsigned char>{converted.begin(), converted.end()};
 }
 
@@ -239,7 +256,7 @@ inline decltype(auto) fromUTF8<wchar_t>(const std::string & src, UnicodeConversi
 template <>
 inline decltype(auto) fromUTF8<unsigned short>(const std::string & src, UnicodeConversionContext & context) {
     static_assert(sizeof(unsigned short) == sizeof(char16_t), "unsigned short doesn't match char16_t exactly");
-    const auto converted = fromUTF8<char16_t>(src, context);
+    auto && converted = fromUTF8<char16_t>(src, context);
     return std::basic_string<unsigned short>{converted.begin(), converted.end()};
 }
 #endif
@@ -266,7 +283,7 @@ inline void fromUTF8(const std::string & src, std::basic_string<CharType> & dest
         std::is_assignable_v<CharType, typename decltype(fromUTF8<CharType>(src))::char_type>
     > * = nullptr
 ) {
-    const auto converted = fromUTF8<CharType>(src, context);
+    auto && converted = fromUTF8<CharType>(src, context);
     dest.clear();
     dest.reserve(converted.size() + 1);
     dest.assign(converted.begin(), converted.end());

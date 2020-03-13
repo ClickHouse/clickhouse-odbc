@@ -122,10 +122,9 @@ TEST_F(StatementParametersTest, BindingNullStringValueForInteger) {
 #    define SQL_C_myTCHAR SQL_C_TCHAR
 #endif
 
-    std::basic_string<SQLmyTCHAR> param;
+    auto param = fromUTF8<SQLmyTCHAR>("Null");
     SQLLEN param_ind = 0;
 
-    fromUTF8<SQLmyTCHAR>("Null", param);
     auto * param_wptr = const_cast<SQLmyTCHAR *>(param.c_str());
 
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
@@ -202,10 +201,9 @@ TEST_F(StatementParametersTest, BindingNullStringValueForString) {
 #    define SQL_C_myTCHAR SQL_C_TCHAR
 #endif
 
-    std::basic_string<SQLmyTCHAR> param;
+    auto param = fromUTF8<SQLmyTCHAR>("Null");
     SQLLEN param_ind = 0;
 
-    fromUTF8<SQLmyTCHAR>("Null", param);
     auto * param_wptr = const_cast<SQLmyTCHAR *>(param.c_str());
 
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));

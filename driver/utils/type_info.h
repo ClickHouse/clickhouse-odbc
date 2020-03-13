@@ -242,6 +242,9 @@ inline SQLRETURN fillOutputString(
         out_value_max_length_in_bytes
     );
 
+    if constexpr (std::is_lvalue_reference_v<decltype(converted)>)
+        context.retireString(std::move(converted));
+
     if (out_value_length) {
         if (out_length_in_bytes)
             *out_value_length = converted_length_in_bytes;

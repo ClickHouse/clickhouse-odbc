@@ -85,6 +85,7 @@ function (declare_odbc_test_targets libname UNICODE)
     endif ()
 
     target_include_directories (${libname}-client-it
+        PRIVATE ${FOLLY_INLUDE_DIR}      # TODO: switch to linking with folly lib target?
         PRIVATE ${PROJECT_BINARY_DIR}
         PRIVATE ${PROJECT_SOURCE_DIR}
     )
