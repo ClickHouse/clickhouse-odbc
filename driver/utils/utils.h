@@ -68,7 +68,7 @@ inline auto getTID() {
     return std::this_thread::get_id();
 }
 
-inline bool is_little_endian() noexcept {
+inline bool isLittleEndian() noexcept {
     union {
         std::uint32_t i32;
         std::uint8_t i8[4];

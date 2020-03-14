@@ -304,7 +304,7 @@ std::unique_ptr<ResultReader> make_result_reader(const std::string & format, std
         return std::make_unique<ODBCDriver2ResultReader>(raw_stream, std::move(mutator));
     }
     else if (format == "RowBinaryWithNamesAndTypes") {
-        if (!is_little_endian())
+        if (!isLittleEndian())
             throw std::runtime_error("'" + format + "' format is supported only on little-endian platforms");
 
         return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(raw_stream, std::move(mutator));
