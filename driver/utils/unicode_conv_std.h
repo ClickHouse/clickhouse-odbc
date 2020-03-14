@@ -38,7 +38,7 @@ public:
 
 template <typename CharType>
 inline std::size_t NTSBufferLength(const CharType * str) {
-    return (str ? std::basic_string_view<CharType>{str}.size() : 0);
+    return (str ? std::basic_string_view<CharType>{str}.size() + 1 : 0);
 }
 
 
