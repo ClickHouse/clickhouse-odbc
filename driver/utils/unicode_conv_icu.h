@@ -97,13 +97,13 @@ private:
     template <typename CharType>
     inline ObjectPool<std::basic_string<CharType>> & accessStringPool(); // Leave unimplemented for general case.
 
-    ObjectPool< std::basic_string<char>           > string_pool_c_   {3};
-    ObjectPool< std::basic_string<signed char>    > string_pool_sc_  {3};
-    ObjectPool< std::basic_string<unsigned char>  > string_pool_uc_  {3};
-    ObjectPool< std::basic_string<char16_t>       > string_pool_c16_ {3};
-    ObjectPool< std::basic_string<char32_t>       > string_pool_c32_ {3};
-    ObjectPool< std::basic_string<wchar_t>        > string_pool_wc_  {3};
-    ObjectPool< std::basic_string<unsigned short> > string_pool_us_  {3};
+    ObjectPool< std::basic_string<char>           > string_pool_c_   {10};
+    ObjectPool< std::basic_string<signed char>    > string_pool_sc_  {10};
+    ObjectPool< std::basic_string<unsigned char>  > string_pool_uc_  {10};
+    ObjectPool< std::basic_string<char16_t>       > string_pool_c16_ {10};
+    ObjectPool< std::basic_string<char32_t>       > string_pool_c32_ {10};
+    ObjectPool< std::basic_string<wchar_t>        > string_pool_wc_  {10};
+    ObjectPool< std::basic_string<unsigned short> > string_pool_us_  {10};
 };
 
 template <typename CharType>
@@ -152,14 +152,19 @@ inline ObjectPool<std::basic_string<unsigned short>> & UnicodeConversionContext:
 }
 
 template <typename SourceCharType, typename PivotCharType>
-void convertEncodingToPivotUnchecked(
+void convertEncodingToPivotRestricted(
     UConverter & src_converter, const std::basic_string_view<SourceCharType> & src,
     std::basic_string<PivotCharType> & pivot
 ) {
-
-    // Assume, that:
+    // Check, that:
     //   1) converter reads source characters that are bit-compatible to SourceCharType,
     //   2) converter writes pivot characters that are bit-compatible to PivotCharType.
+
+    static_assert(sizeof(PivotCharType) == sizeof(DefaultPivotCharType),
+        "unable to convert encoding while writing pivot characters to the provided buffer");
+
+    if (sizeof(SourceCharType) != ucnv_getMinCharSize(&src_converter))
+        throw std::runtime_error("unable to convert encoding while reading source characters from the provided buffer");
 
     try {
         constexpr std::size_t extra_size_reserve = 32;
@@ -210,6 +215,32 @@ void convertEncodingToPivotUnchecked(
     }
 }
 
+template <typename ProxyCharType, typename SourceCharType, typename PivotCharType>
+void convertEncodingToPivotViaProxyPivot(
+    UConverter & src_converter, const std::basic_string_view<SourceCharType> & src,
+    std::basic_string<PivotCharType> & pivot, UnicodeConversionContext & context
+) {
+    auto pivot_proxy = context.allocateString<ProxyCharType>();
+    convertEncodingToPivot(src_converter, src, pivot_proxy, context);
+    pivot.clear();
+    pivot.reserve(pivot_proxy.size());
+    pivot.assign(pivot_proxy.begin(), pivot_proxy.end());
+    context.retireString(std::move(pivot_proxy));
+}
+
+template <typename ProxyCharType, typename SourceCharType, typename PivotCharType>
+void convertEncodingToPivotRestrictedViaProxySource(
+    UConverter & src_converter, const std::basic_string_view<SourceCharType> & src,
+    std::basic_string<PivotCharType> & pivot, UnicodeConversionContext & context
+) {
+    auto src_proxy = context.allocateString<ProxyCharType>();
+    src_proxy.clear();
+    src_proxy.reserve(src.size());
+    src_proxy.assign(src.begin(), src.end());
+    convertEncodingToPivotRestricted(src_converter, std::basic_string_view<ProxyCharType>{src_proxy.c_str(), src_proxy.size()}, pivot);
+    context.retireString(std::move(src_proxy));
+}
+
 template <typename SourceCharType, typename PivotCharType>
 void convertEncodingToPivot(
     UConverter & src_converter, const std::basic_string_view<SourceCharType> & src,
@@ -218,76 +249,21 @@ void convertEncodingToPivot(
     constexpr auto expected_pivot_char_size = sizeof(DefaultPivotCharType);
 
     if constexpr (expected_pivot_char_size != sizeof(PivotCharType)) {
-        if constexpr (expected_pivot_char_size == 8) {
-            auto tmp_pivot = context.allocateString<char>();
-            convertEncodingToPivot(src_converter, src, tmp_pivot, context);
-            pivot.clear();
-            pivot.reserve(tmp_pivot.size());
-            pivot.assign(tmp_pivot.begin(), tmp_pivot.end());
-            context.retireString(std::move(tmp_pivot));
-            return;
-        }
-        else if constexpr (expected_pivot_char_size == 16) {
-            auto tmp_pivot = context.allocateString<char16_t>();
-            convertEncodingToPivot(src_converter, src, tmp_pivot, context);
-            pivot.clear();
-            pivot.reserve(tmp_pivot.size());
-            pivot.assign(tmp_pivot.begin(), tmp_pivot.end());
-            context.retireString(std::move(tmp_pivot));
-            return;
-        }
-        else if constexpr (expected_pivot_char_size == 32) {
-            auto tmp_pivot = context.allocateString<char32_t>();
-            convertEncodingToPivot(src_converter, src, tmp_pivot, context);
-            pivot.clear();
-            pivot.reserve(tmp_pivot.size());
-            pivot.assign(tmp_pivot.begin(), tmp_pivot.end());
-            context.retireString(std::move(tmp_pivot));
-            return;
-        }
-        else {
-            static_assert(dependent_false<PivotCharType>::value, "unable to convert encoding while writing pivot characters to the provided buffer");
-        }
+        if constexpr (expected_pivot_char_size == 1)      return convertEncodingToPivotViaProxyPivot<char>(src_converter, src, pivot, context);
+        else if constexpr (expected_pivot_char_size == 2) return convertEncodingToPivotViaProxyPivot<char16_t>(src_converter, src, pivot, context);
+        else if constexpr (expected_pivot_char_size == 4) return convertEncodingToPivotViaProxyPivot<char32_t>(src_converter, src, pivot, context);
+        else static_assert(dependent_false<PivotCharType>::value, "unable to convert encoding while writing pivot characters to the provided buffer");
     }
 
-    const auto expected_src_char_size = static_cast<std::size_t>(ucnv_getMinCharSize(&src_converter)) * 8;
+    const auto expected_src_char_size = static_cast<std::size_t>(ucnv_getMinCharSize(&src_converter));
 
-    if (expected_src_char_size == sizeof(SourceCharType)) {
-        return convertEncodingToPivotUnchecked(src_converter, src, pivot);
-    }
+    if (expected_src_char_size == sizeof(SourceCharType))
+        return convertEncodingToPivotRestricted(src_converter, src, pivot);
     else switch (expected_src_char_size) {
-        case 8: {
-            auto tmp_src = context.allocateString<char>();
-            tmp_src.clear();
-            tmp_src.reserve(src.size());
-            tmp_src.assign(src.begin(), src.end());
-            convertEncodingToPivotUnchecked(src_converter, std::basic_string_view<char>{tmp_src.c_str(), tmp_src.size()}, pivot);
-            context.retireString(std::move(tmp_src));
-            return;
-        }
-
-        case 16: {
-            auto tmp_src = context.allocateString<char16_t>();
-            tmp_src.clear();
-            tmp_src.reserve(src.size());
-            tmp_src.assign(src.begin(), src.end());
-            convertEncodingToPivotUnchecked(src_converter, std::basic_string_view<char16_t>{tmp_src.c_str(), tmp_src.size()}, pivot);
-            context.retireString(std::move(tmp_src));
-            return;
-        }
-
-        case 32: {
-            auto tmp_src = context.allocateString<char32_t>();
-            tmp_src.clear();
-            tmp_src.reserve(src.size());
-            tmp_src.assign(src.begin(), src.end());
-            convertEncodingToPivotUnchecked(src_converter, std::basic_string_view<char32_t>{tmp_src.c_str(), tmp_src.size()}, pivot);
-            context.retireString(std::move(tmp_src));
-            return;
-        }
-
-        default:
-            throw std::runtime_error("unable to convert encoding while reading source characters from the provided buffer");
+        case 1: return convertEncodingToPivotRestrictedViaProxySource<char>(src_converter, src, pivot, context);
+        case 2: return convertEncodingToPivotRestrictedViaProxySource<char16_t>(src_converter, src, pivot, context);
+        case 4: return convertEncodingToPivotRestrictedViaProxySource<char32_t>(src_converter, src, pivot, context);
+        default: throw std::runtime_error("unable to convert encoding while reading source characters from the provided buffer");
     }
 }
 
@@ -300,14 +276,19 @@ void convertEncodingToPivot(
 }
 
 template <typename DestinationCharType, typename PivotCharType>
-void convertEncodingFromPivotUnchecked(
+void convertEncodingFromPivotRestricted(
     const std::basic_string_view<PivotCharType> & pivot,
     UConverter & dest_converter, std::basic_string<DestinationCharType> & dest
 ) {
-
-    // Assume, that:
+    // Check, that:
     //   1) converter reads pivot characters that are bit-compatible to PivotCharType,
     //   2) converter writes destination characters that are bit-compatible to DestinationCharType.
+
+    static_assert(sizeof(PivotCharType) == sizeof(DefaultPivotCharType),
+        "unable to convert encoding while reading pivot characters from the provided buffer");
+
+    if (sizeof(DestinationCharType) != ucnv_getMinCharSize(&dest_converter))
+        throw std::runtime_error("unable to convert encoding while writing destination characters to the provided buffer");
 
     try {
         constexpr std::size_t extra_size_reserve = 32;
@@ -349,7 +330,7 @@ void convertEncodingFromPivotUnchecked(
                 if (target_bytes_written % sizeof(DestinationCharType) != 0)
                     throw std::runtime_error("ucnv_fromUnicode() failed to write destination buffer to symbol boundary");
 
-                dest.resize(target_bytes_written * sizeof(DestinationCharType));
+                dest.resize(target_bytes_written / sizeof(DestinationCharType));
                 break;
             }
         }
@@ -361,6 +342,32 @@ void convertEncodingFromPivotUnchecked(
     }
 }
 
+template <typename ProxyCharType, typename DestinationCharType, typename PivotCharType>
+void convertEncodingFromPivotViaProxyPivot(
+    const std::basic_string_view<PivotCharType> & pivot,
+    UConverter & dest_converter, std::basic_string<DestinationCharType> & dest, UnicodeConversionContext & context
+) {
+    auto pivot_proxy = context.allocateString<ProxyCharType>();
+    pivot_proxy.clear();
+    pivot_proxy.reserve(pivot.size());
+    pivot_proxy.assign(pivot.begin(), pivot.end());
+    convertEncodingFromPivot(std::basic_string_view<ProxyCharType>{pivot_proxy.c_str(), pivot_proxy.size()}, dest_converter, dest, context);
+    context.retireString(std::move(pivot_proxy));
+}
+
+template <typename ProxyCharType, typename DestinationCharType, typename PivotCharType>
+void convertEncodingFromPivotRestrictedViaProxyDestination(
+    const std::basic_string_view<PivotCharType> & pivot,
+    UConverter & dest_converter, std::basic_string<DestinationCharType> & dest, UnicodeConversionContext & context
+) {
+    auto dest_proxy = context.allocateString<ProxyCharType>();
+    convertEncodingFromPivotRestricted(pivot, dest_converter, dest_proxy);
+    dest.clear();
+    dest.reserve(dest_proxy.size());
+    dest.assign(dest_proxy.begin(), dest_proxy.end());
+    context.retireString(std::move(dest_proxy));
+}
+
 template <typename DestinationCharType, typename PivotCharType>
 void convertEncodingFromPivot(
     const std::basic_string_view<PivotCharType> & pivot,
@@ -369,76 +376,21 @@ void convertEncodingFromPivot(
     constexpr auto expected_pivot_char_size = sizeof(DefaultPivotCharType);
 
     if constexpr (expected_pivot_char_size != sizeof(PivotCharType)) {
-        if constexpr (expected_pivot_char_size == 8) {
-            auto tmp_pivot = context.allocateString<char>();
-            tmp_pivot.clear();
-            tmp_pivot.reserve(pivot.size());
-            tmp_pivot.assign(pivot.begin(), pivot.end());
-            convertEncodingFromPivot(std::basic_string_view<char>{tmp_pivot.c_str(), tmp_pivot.size()}, dest_converter, dest, context);
-            context.retireString(std::move(tmp_pivot));
-            return;
-        }
-        else if constexpr (expected_pivot_char_size == 16) {
-            auto tmp_pivot = context.allocateString<char16_t>();
-            tmp_pivot.clear();
-            tmp_pivot.reserve(pivot.size());
-            tmp_pivot.assign(pivot.begin(), pivot.end());
-            convertEncodingFromPivot(std::basic_string_view<char16_t>{tmp_pivot.c_str(), tmp_pivot.size()}, dest_converter, dest, context);
-            context.retireString(std::move(tmp_pivot));
-            return;
-        }
-        else if constexpr (expected_pivot_char_size == 32) {
-            auto tmp_pivot = context.allocateString<char32_t>();
-            tmp_pivot.clear();
-            tmp_pivot.reserve(pivot.size());
-            tmp_pivot.assign(pivot.begin(), pivot.end());
-            convertEncodingFromPivot(std::basic_string_view<char32_t>{tmp_pivot.c_str(), tmp_pivot.size()}, dest_converter, dest, context);
-            context.retireString(std::move(tmp_pivot));
-            return;
-        }
-        else {
-            static_assert(dependent_false<PivotCharType>::value, "unable to convert encoding while reading pivot characters from the provided buffer");
-        }
+        if constexpr (expected_pivot_char_size == 1)      return convertEncodingFromPivotViaProxyPivot<char>(pivot, dest_converter, dest, context);
+        else if constexpr (expected_pivot_char_size == 2) return convertEncodingFromPivotViaProxyPivot<char16_t>(pivot, dest_converter, dest, context);
+        else if constexpr (expected_pivot_char_size == 4) return convertEncodingFromPivotViaProxyPivot<char32_t>(pivot, dest_converter, dest, context);
+        else static_assert(dependent_false<PivotCharType>::value, "unable to convert encoding while reading pivot characters from the provided buffer");
     }
 
-    const auto expected_dest_char_size = static_cast<std::size_t>(ucnv_getMinCharSize(&dest_converter)) * 8;
+    const auto expected_dest_char_size = static_cast<std::size_t>(ucnv_getMinCharSize(&dest_converter));
 
-    if (expected_dest_char_size == sizeof(DestinationCharType)) {
-        return convertEncodingFromPivotUnchecked(pivot, dest_converter, dest);
-    }
+    if (expected_dest_char_size == sizeof(DestinationCharType))
+        return convertEncodingFromPivotRestricted(pivot, dest_converter, dest);
     else switch (expected_dest_char_size) {
-        case 8: {
-            auto tmp_dest = context.allocateString<char>();
-            convertEncodingFromPivotUnchecked(pivot, dest_converter, tmp_dest);
-            dest.clear();
-            dest.reserve(tmp_dest.size());
-            dest.assign(tmp_dest.begin(), tmp_dest.end());
-            context.retireString(std::move(tmp_dest));
-            return;
-        }
-
-        case 16: {
-            auto tmp_dest = context.allocateString<char16_t>();
-            convertEncodingFromPivotUnchecked(pivot, dest_converter, tmp_dest);
-            dest.clear();
-            dest.reserve(tmp_dest.size());
-            dest.assign(tmp_dest.begin(), tmp_dest.end());
-            context.retireString(std::move(tmp_dest));
-            return;
-        }
-
-        case 32: {
-            auto tmp_dest = context.allocateString<char32_t>();
-            convertEncodingFromPivotUnchecked(pivot, dest_converter, tmp_dest);
-            dest.clear();
-            dest.reserve(tmp_dest.size());
-            dest.assign(tmp_dest.begin(), tmp_dest.end());
-            context.retireString(std::move(tmp_dest));
-            return;
-        }
-
-        default:
-            throw std::runtime_error("unable to convert encoding while writing destination characters to the provided buffer");
+        case 1: return convertEncodingFromPivotRestrictedViaProxyDestination<char>(pivot, dest_converter, dest, context);
+        case 2: return convertEncodingFromPivotRestrictedViaProxyDestination<char16_t>(pivot, dest_converter, dest, context);
+        case 4: return convertEncodingFromPivotRestrictedViaProxyDestination<char32_t>(pivot, dest_converter, dest, context);
+        default: throw std::runtime_error("unable to convert encoding while writing destination characters to the provided buffer");
     }
 }
 
@@ -471,53 +423,31 @@ void convertEncoding(
     return convertEncoding(src_converter, std::basic_string_view<SourceCharType>{src.c_str(), src.size()}, pivot, dest_converter, dest, context);
 }
 
-
-// NTSBufferLength() - number of elements in the null-terminated buffer (that holds a string).
-
+// Number of elements in the null-terminated buffer (that is assumed to hold a string).
 template <typename CharType>
-inline std::size_t NTSBufferLength(const CharType * str) {
+inline std::size_t StringBufferLength(const CharType * str) {
     return (str ? std::basic_string_view<CharType>{str}.size() + 1 : 0);
 }
 
-
-// NTSStringLength() - number of characters in the null-terminated string in application encoding.
-
+// Number of characters in the string in the encoding of the provided converter.
 template <typename CharType>
-inline std::size_t NTSStringLength(const CharType * str, UnicodeConversionContext & context) {
-    if (!str)
+inline std::size_t StringLength(const CharType * str, const std::size_t size, UConverter & converter, UnicodeConversionContext & context) {
+    if (!str || !size)
         return 0;
 
-    if constexpr (sizeof(CharType) == sizeof(char)) {
-        auto pivot = context.allocateString<DefaultPivotCharType>();
-        convertEncodingToPivot(*context.application_narrow_char_converter, std::basic_string_view<CharType>{str}, pivot, context);
-        const auto len = u_countChar32(pivot.c_str(), pivot.size());
-        context.retireString(std::move(pivot));
-        return (len > 0 ? len : 0);
-    }
-    else {
-        if (context.skip_application_to_converter_pivot_wide_char_conversion) {
-            const auto len = u_countChar32(reinterpret_cast<const DefaultPivotCharType *>(str), -1);
-            return (len > 0 ? len : 0);
-        }
-        else {
-            auto pivot = context.allocateString<DefaultPivotCharType>();
-            convertEncodingToPivot(*context.application_wide_char_converter, std::basic_string_view<CharType>{str}, pivot, context);
-            const auto len = u_countChar32(pivot.c_str(), pivot.size());
-            context.retireString(std::move(pivot));
-            return (len > 0 ? len : 0);
-        }
-    }
+    auto pivot = context.allocateString<DefaultPivotCharType>();
+    convertEncodingToPivot(converter, std::basic_string_view<CharType>{str}, pivot, context);
+    const auto len = u_countChar32(pivot.c_str(), pivot.size());
+    context.retireString(std::move(pivot));
+
+    return (len > 0 ? len : 0);
 }
 
+// Number of characters in the null-terminated string in the encoding of the provided converter.
 template <typename CharType>
-inline std::size_t NTSStringLength(const CharType * str) {
-    if (!str)
-        return 0;
-
-    UnicodeConversionContext context;
-    return NTSStringLength(str, context);
+inline std::size_t StringLength(const CharType * str, UConverter & converter, UnicodeConversionContext & context) {
+    return StringLength(str, StringBufferLength(str), converter, context);
 }
-
 
 // toUTF8() - convert a string from application encoding to driver's pivot encoding (UTF-8).
 

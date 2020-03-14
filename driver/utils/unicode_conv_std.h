@@ -33,94 +33,10 @@ public:
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> UCS2_converter_wchar;
 };
 
-
-// NTSBufferLength() - number of elements in the null-terminated buffer (that holds a string).
-
+// Number of elements in the null-terminated buffer (that is assumed to hold a string).
 template <typename CharType>
-inline std::size_t NTSBufferLength(const CharType * str) {
+inline std::size_t StringBufferLength(const CharType * str) {
     return (str ? std::basic_string_view<CharType>{str}.size() + 1 : 0);
-}
-
-
-// NTSStringLength() - number of characters in the null-terminated string in application encoding.
-
-inline std::size_t NTSStringLength(const char * src, const std::locale& locale) {
-
-    // TODO: implement and use conversion from the specified locale.
-
-    throw std::runtime_error("not implemented");
-}
-
-inline decltype(auto) NTSStringLength(const signed char * src, const std::locale& locale) {
-    return NTSStringLength(reinterpret_cast<const char *>(src), locale);
-}
-
-inline decltype(auto) NTSStringLength(const unsigned char * src, const std::locale& locale) {
-    return NTSStringLength(reinterpret_cast<const char *>(src), locale);
-}
-
-inline std::size_t NTSStringLength(const char * src) {
-    if (!src)
-        return 0;
-
-    // TODO: convert from the current locale by default?
-
-    return std::strlen(src);
-}
-
-inline std::size_t NTSStringLength(const char16_t * src) {
-    if (!src)
-        return 0;
-
-    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> convert;
-    convert.to_bytes(src);
-
-    return convert.converted();
-}
-
-inline std::size_t NTSStringLength(const char32_t * src) {
-    if (!src)
-        return 0;
-
-    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> convert;
-    convert.to_bytes(src);
-
-    return convert.converted();
-}
-
-inline std::size_t NTSStringLength(const wchar_t * src) {
-    if (!src)
-        return 0;
-
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
-    convert.to_bytes(src);
-
-    return convert.converted();
-}
-
-inline decltype(auto) NTSStringLength(const signed char * src) {
-    return NTSStringLength(reinterpret_cast<const char *>(src));
-}
-
-inline decltype(auto) NTSStringLength(const unsigned char * src) {
-    return NTSStringLength(reinterpret_cast<const char *>(src));
-}
-
-inline decltype(auto) NTSStringLength(const unsigned short * src) {
-    static_assert(sizeof(unsigned short) == sizeof(char16_t), "unsigned short doesn't match char16_t exactly");
-    return NTSStringLength(reinterpret_cast<const char16_t *>(src));
-}
-
-inline std::size_t NTSStringLength(const std::string & src, const std::locale& locale) {
-
-    // TODO: implement and use conversion to the specified locale.
-
-    throw std::runtime_error("not implemented");
-}
-
-template <typename CharType>
-inline std::size_t NTSStringLength(const std::basic_string<CharType> & src) {
-    return src.size();
 }
 
 inline std::string toUTF8(const char * src, const std::locale& locale, SQLLEN length = SQL_NTS) {
