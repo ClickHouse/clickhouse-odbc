@@ -228,7 +228,7 @@ inline SQLRETURN fillOutputString(
             throw SqlException("Invalid string or buffer length", "HY090");
     }
 
-    auto && converted = fromUTF8<CharType>(in_value, context);
+    auto converted = fromUTF8<CharType>(in_value, context);
 
     const auto converted_length_in_symbols = converted.size();
     const auto converted_length_in_bytes = converted_length_in_symbols * sizeof(CharType);
@@ -242,8 +242,7 @@ inline SQLRETURN fillOutputString(
         out_value_max_length_in_bytes
     );
 
-    if constexpr (std::is_lvalue_reference_v<decltype(converted)>)
-        context.retireString(std::move(converted));
+    context.retireString(std::move(converted));
 
     if (out_value_length) {
         if (out_length_in_bytes)
