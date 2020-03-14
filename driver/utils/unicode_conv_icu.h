@@ -67,7 +67,6 @@ public:
     {
     }
 
-
     ~UnicodeConversionContext() {
         destroyConverter(driver_pivot_narrow_char_converter);
         destroyConverter(data_source_narrow_char_converter);
@@ -94,16 +93,15 @@ public:
 
 private:
     template <typename CharType>
-    inline ObjectPool<std::basic_string<CharType>> & accessStringPool(void * = nullptr /* argument unused */); // Leave unimplemented for general case.
+    inline ObjectPool<std::basic_string<CharType>> & accessStringPool(); // Leave unimplemented for general case.
 
-    ObjectPool< std::basic_string<char>                 > string_pool_c_    {3};
-    ObjectPool< std::basic_string<signed char>          > string_pool_sc_   {3};
-    ObjectPool< std::basic_string<unsigned char>        > string_pool_uc_   {3};
-    ObjectPool< std::basic_string<char16_t>             > string_pool_c16_  {3};
-    ObjectPool< std::basic_string<char32_t>             > string_pool_c32_  {3};
-    ObjectPool< std::basic_string<wchar_t>              > string_pool_wc_   {3};
-    ObjectPool< std::basic_string<unsigned short>       > string_pool_us_   {3};
-    ObjectPool< std::basic_string<DefaultPivotCharType> > string_pool_Uc_   {3};
+    ObjectPool< std::basic_string<char>           > string_pool_c_   {3};
+    ObjectPool< std::basic_string<signed char>    > string_pool_sc_  {3};
+    ObjectPool< std::basic_string<unsigned char>  > string_pool_uc_  {3};
+    ObjectPool< std::basic_string<char16_t>       > string_pool_c16_ {3};
+    ObjectPool< std::basic_string<char32_t>       > string_pool_c32_ {3};
+    ObjectPool< std::basic_string<wchar_t>        > string_pool_wc_  {3};
+    ObjectPool< std::basic_string<unsigned short> > string_pool_us_  {3};
 };
 
 template <typename CharType>
@@ -117,52 +115,39 @@ inline std::basic_string<CharType> UnicodeConversionContext::allocateString() {
 }
 
 template <>
-inline ObjectPool<std::basic_string<char>> & UnicodeConversionContext::accessStringPool<char>(void *) {
+inline ObjectPool<std::basic_string<char>> & UnicodeConversionContext::accessStringPool<char>() {
     return string_pool_c_;
 }
 
 template <>
-inline ObjectPool<std::basic_string<signed char>> & UnicodeConversionContext::accessStringPool<signed char>(void *) {
+inline ObjectPool<std::basic_string<signed char>> & UnicodeConversionContext::accessStringPool<signed char>() {
     return string_pool_sc_;
 }
 
 template <>
-inline ObjectPool<std::basic_string<unsigned char>> & UnicodeConversionContext::accessStringPool<unsigned char>(void *) {
+inline ObjectPool<std::basic_string<unsigned char>> & UnicodeConversionContext::accessStringPool<unsigned char>() {
     return string_pool_uc_;
 }
 
 template <>
-inline ObjectPool<std::basic_string<char16_t>> & UnicodeConversionContext::accessStringPool<char16_t>(void *) {
+inline ObjectPool<std::basic_string<char16_t>> & UnicodeConversionContext::accessStringPool<char16_t>() {
     return string_pool_c16_;
 }
 
 template <>
-inline ObjectPool<std::basic_string<char32_t>> & UnicodeConversionContext::accessStringPool<char32_t>(void *) {
+inline ObjectPool<std::basic_string<char32_t>> & UnicodeConversionContext::accessStringPool<char32_t>() {
     return string_pool_c32_;
 }
 
 template <>
-inline ObjectPool<std::basic_string<wchar_t>> & UnicodeConversionContext::accessStringPool<wchar_t>(void *) {
+inline ObjectPool<std::basic_string<wchar_t>> & UnicodeConversionContext::accessStringPool<wchar_t>() {
     return string_pool_wc_;
 }
 
 template <>
-inline ObjectPool<std::basic_string<unsigned short>> & UnicodeConversionContext::accessStringPool<unsigned short>(void *) {
+inline ObjectPool<std::basic_string<unsigned short>> & UnicodeConversionContext::accessStringPool<unsigned short>() {
     return string_pool_us_;
 }
-
-/*
-
-template <>
-inline ObjectPool<std::basic_string<DefaultPivotCharType>> & UnicodeConversionContext::accessStringPool<DefaultPivotCharType>(
-    std::enable_if_t<
-        !std::is_same_v<DefaultPivotCharType, unsigned short> &&
-        !std::is_same_v<DefaultPivotCharType, char16_t>
-    >*
-) {
-    return string_pool_Uc_;
-}
-*/
 
 template <typename SourceCharType, typename PivotCharType>
 void convertEncodingToPivot(
