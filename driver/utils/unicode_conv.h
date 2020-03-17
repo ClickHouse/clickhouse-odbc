@@ -18,8 +18,10 @@ public:
 public:
 //  std::locale source_locale;
 //  std::locale destination_locale;
+#if !defined(_MSC_VER) || _MSC_VER >= 1920
     std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> UCS2_converter_char16;
     std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> UCS2_converter_char32;
+#endif
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> UCS2_converter_wchar;
 };
 
@@ -216,6 +218,7 @@ inline decltype(auto) fromUTF8<unsigned char>(const std::string & src, UnicodeCo
     return std::basic_string<unsigned char>{converted.begin(), converted.end()};
 }
 
+#if !defined(_MSC_VER) || _MSC_VER >= 1920
 template <>
 inline decltype(auto) fromUTF8<char16_t>(const std::string & src, UnicodeConversionContext & context) {
     return context.UCS2_converter_char16.from_bytes(src);
@@ -225,6 +228,7 @@ template <>
 inline decltype(auto) fromUTF8<char32_t>(const std::string & src, UnicodeConversionContext & context) {
     return context.UCS2_converter_char32.from_bytes(src);
 }
+#endif
 
 template <>
 inline decltype(auto) fromUTF8<wchar_t>(const std::string & src, UnicodeConversionContext & context) {
