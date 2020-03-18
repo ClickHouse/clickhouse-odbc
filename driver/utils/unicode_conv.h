@@ -235,12 +235,14 @@ inline decltype(auto) fromUTF8<wchar_t>(const std::string & src, UnicodeConversi
     return context.UCS2_converter_wchar.from_bytes(src);
 }
 
+#if !defined(_MSC_VER) || _MSC_VER >= 1920
 template <>
 inline decltype(auto) fromUTF8<unsigned short>(const std::string & src, UnicodeConversionContext & context) {
     static_assert(sizeof(unsigned short) == sizeof(char16_t), "unsigned short doesn't match char16_t exactly");
     const auto converted = fromUTF8<char16_t>(src, context);
     return std::basic_string<unsigned short>{converted.begin(), converted.end()};
 }
+#endif
 
 template <typename CharType>
 inline decltype(auto) fromUTF8(const std::string & src) {
