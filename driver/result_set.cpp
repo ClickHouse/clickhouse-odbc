@@ -99,24 +99,6 @@ void ColumnInfo::updateTypeInfo() {
     }
 }
 
-SQLRETURN Field::extract(BindingInfo & binding_info) const {
-    return std::visit([&binding_info] (auto & value) {
-        if constexpr (std::is_same_v<DataSourceType<DataSourceTypeId::Nothing>, std::decay_t<decltype(value)>>) {
-            return fillOutputNULL(binding_info.value, binding_info.value_max_size, binding_info.indicator);
-        }
-        else {
-            return writeDataFrom(value, binding_info);
-        }
-    }, data);
-}
-
-SQLRETURN Row::extractField(std::size_t column_idx, BindingInfo & binding_info) const {
-    if (column_idx >= fields.size())
-        throw SqlException("Invalid descriptor index", "07009");
-
-    return fields[column_idx].extract(binding_info);
-}
-
 ResultSet::ResultSet(AmortizedIStreamReader & str, std::unique_ptr<ResultMutator> && mutator)
     : stream(str)
     , result_mutator(std::move(mutator))
@@ -202,11 +184,11 @@ std::size_t ResultSet::getAffectedRowCount() const {
     return affected_row_count;
 }
 
-SQLRETURN ResultSet::extractField(std::size_t row_idx, std::size_t column_idx, BindingInfo & binding_info) const {
+SQLRETURN ResultSet::extractField(std::size_t row_idx, std::size_t column_idx, BindingInfo & binding_info) {
     if (row_idx >= row_set.size())
         throw SqlException("Invalid cursor position", "HY109");
 
-    return row_set[row_idx].extractField(column_idx, binding_info);
+    return row_set[row_idx].extractField(column_idx, binding_info, conversion_context);
 }
 
 void ResultSet::tryPrefetchRows(std::size_t size) {

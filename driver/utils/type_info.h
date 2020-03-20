@@ -152,6 +152,8 @@ inline T fromString(const std::string & s) {
     return result;
 }
 
+using DefaultConversionContext = UnicodeConversionContext;
+
 // Directly write raw bytes to the buffer, respecting its size.
 // All lengths are in bytes. If 'out_value_max_length == 0',
 // assume 'out_value' is able to hold the entire 'in_value'.
@@ -207,7 +209,7 @@ inline SQLRETURN fillOutputBuffer(
 
 // Change encoding, when appropriate, and write the result to the buffer.
 // Extra string copy happens here for wide char strings, and strings that require encoding change.
-template <typename CharType, typename LengthType1, typename LengthType2>
+template <typename CharType, typename LengthType1, typename LengthType2, typename ConversionContext>
 inline SQLRETURN fillOutputString(
     const std::string & in_value,
     void * out_value,
@@ -215,7 +217,8 @@ inline SQLRETURN fillOutputString(
     LengthType2 * out_value_length,
     bool in_length_in_bytes,
     bool out_length_in_bytes,
-    bool ensure_nts
+    bool ensure_nts,
+    ConversionContext && context
 ) {
     if (out_value) {
         if (out_value_max_length <= 0)
@@ -225,7 +228,7 @@ inline SQLRETURN fillOutputString(
             throw SqlException("Invalid string or buffer length", "HY090");
     }
 
-    auto && converted = fromUTF8<CharType>(in_value);
+    auto && converted = fromUTF8<CharType>(in_value, context);
 
     const auto converted_length_in_symbols = converted.size();
     const auto converted_length_in_bytes = converted_length_in_symbols * sizeof(CharType);
@@ -261,13 +264,14 @@ inline SQLRETURN fillOutputString(
     return SQL_SUCCESS;
 }
 
-template <typename CharType, typename LengthType1, typename LengthType2>
+template <typename CharType, typename LengthType1, typename LengthType2, typename ConversionContext = DefaultConversionContext>
 inline SQLRETURN fillOutputString(
     const std::string & in_value,
     void * out_value,
     LengthType1 out_value_max_length,
     LengthType2 * out_value_length,
-    bool length_in_bytes
+    bool length_in_bytes,
+    ConversionContext && context = ConversionContext{}
 ) {
     return fillOutputString<CharType>(
         in_value,
@@ -276,7 +280,8 @@ inline SQLRETURN fillOutputString(
         out_value_length,
         length_in_bytes,
         length_in_bytes,
-        true
+        true,
+        std::forward<ConversionContext>(context)
     );
 }
 
@@ -1839,18 +1844,19 @@ namespace value_manip {
 
         template <typename SourceType>
         struct from_value {
-            static inline SQLRETURN convert(const SourceType & src, BindingInfo & dest) {
+            template <typename ConversionContext>
+            static inline SQLRETURN convert(const SourceType & src, BindingInfo & dest, ConversionContext && context) {
                 if constexpr (std::is_same_v<SourceType, std::string>) {
-                    return fillOutputString<SQLCHAR>(src, dest.value, dest.value_max_size, dest.value_size, true);
+                    return fillOutputString<SQLCHAR>(src, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
                 }
                 else if constexpr (is_string_data_source_type_v<SourceType>) {
-                    return fillOutputString<SQLCHAR>(src.value, dest.value, dest.value_max_size, dest.value_size, true);
+                    return fillOutputString<SQLCHAR>(src.value, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
                 }
                 else {
                     std::string dest_obj;
                     to_null(dest_obj);
                     ::value_manip::from_value<SourceType>::template to_value<std::string>::convert(src, dest_obj);
-                    return fillOutputString<SQLCHAR>(dest_obj, dest.value, dest.value_max_size, dest.value_size, true);
+                    return fillOutputString<SQLCHAR>(dest_obj, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
                 }
             }
         };
@@ -1862,18 +1868,19 @@ namespace value_manip {
 
         template <typename SourceType>
         struct from_value {
-            static inline SQLRETURN convert(const SourceType & src, BindingInfo & dest) {
+            template <typename ConversionContext>
+            static inline SQLRETURN convert(const SourceType & src, BindingInfo & dest, ConversionContext && context) {
                 if constexpr (std::is_same_v<SourceType, std::string>) {
-                    return fillOutputString<SQLWCHAR>(src, dest.value, dest.value_max_size, dest.value_size, true);
+                    return fillOutputString<SQLWCHAR>(src, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
                 }
                 else if constexpr (is_string_data_source_type_v<SourceType>) {
-                    return fillOutputString<SQLWCHAR>(src.value, dest.value, dest.value_max_size, dest.value_size, true);
+                    return fillOutputString<SQLWCHAR>(src.value, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
                 }
                 else {
                     std::string dest_obj;
                     to_null(dest_obj);
                     ::value_manip::from_value<SourceType>::template to_value<std::string>::convert(src, dest_obj);
-                    return fillOutputString<SQLWCHAR>(dest_obj, dest.value, dest.value_max_size, dest.value_size, true);
+                    return fillOutputString<SQLWCHAR>(dest_obj, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
                 }
             }
         };
@@ -2179,11 +2186,11 @@ inline auto readReadyDataTo(const BindingInfo & src, T & dest) {
     }
 }
 
-template <typename T>
-inline auto writeDataFrom(const T & src, BindingInfo & dest) {
+template <typename T, typename ConversionContext>
+inline auto writeDataFrom(const T & src, BindingInfo & dest, ConversionContext && context) {
     switch (dest.c_type) {
-        case SQL_C_CHAR:           return value_manip::to_buffer< SQLCHAR *            >::template from_value< T >::convert(src, dest);
-        case SQL_C_WCHAR:          return value_manip::to_buffer< SQLWCHAR *           >::template from_value< T >::convert(src, dest);
+        case SQL_C_CHAR:           return value_manip::to_buffer< SQLCHAR *            >::template from_value< T >::convert(src, dest, std::forward<ConversionContext>(context));
+        case SQL_C_WCHAR:          return value_manip::to_buffer< SQLWCHAR *           >::template from_value< T >::convert(src, dest, std::forward<ConversionContext>(context));
         case SQL_C_BIT:            return value_manip::to_buffer< SQLCHAR              >::template from_value< T >::convert(src, dest);
         case SQL_C_TINYINT:        return value_manip::to_buffer< SQLSCHAR             >::template from_value< T >::convert(src, dest);
         case SQL_C_STINYINT:       return value_manip::to_buffer< SQLSCHAR             >::template from_value< T >::convert(src, dest);
@@ -2198,7 +2205,7 @@ inline auto writeDataFrom(const T & src, BindingInfo & dest) {
         case SQL_C_UBIGINT:        return value_manip::to_buffer< SQLUBIGINT           >::template from_value< T >::convert(src, dest);
         case SQL_C_FLOAT:          return value_manip::to_buffer< SQLREAL              >::template from_value< T >::convert(src, dest);
         case SQL_C_DOUBLE:         return value_manip::to_buffer< SQLDOUBLE            >::template from_value< T >::convert(src, dest);
-        case SQL_C_BINARY:         return value_manip::to_buffer< SQLCHAR *            >::template from_value< T >::convert(src, dest);
+        case SQL_C_BINARY:         return value_manip::to_buffer< SQLCHAR *            >::template from_value< T >::convert(src, dest, std::forward<ConversionContext>(context));
         case SQL_C_GUID:           return value_manip::to_buffer< SQLGUID              >::template from_value< T >::convert(src, dest);
 
 //      case SQL_C_BOOKMARK:       return value_manip::to_buffer< BOOKMARK             >::template from_value< T >::convert(src, dest);
