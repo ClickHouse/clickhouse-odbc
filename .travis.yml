@@ -18,274 +18,274 @@ env:
 jobs:
   include:
 
-    # - name: "Ubuntu 18.04 - UnixODBC - Debug - x86_64 - GCC (system) - Unix Makefiles"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: gcc
-    #   env:
-    #     - CC=gcc
-    #     - CXX=g++
-    #     - ODBC_PROVIDER=UnixODBC
-    #     - BUILD_TYPE=Debug
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
-    #   addons:
-    #     apt:
-    #       sources:
-    #         - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
-    #           key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
-    #       packages:
-    #         - gcc
-    #         - g++
-    #         - libicu-dev
-    #         - unixodbc
-    #         - unixodbc-bin
-    #         - unixodbc-dev
+    - name: "Ubuntu 18.04 - UnixODBC - Debug - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_PROVIDER=UnixODBC
+        - BUILD_TYPE=Debug
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
+          packages:
+            - gcc
+            - g++
+            - libicu-dev
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - UnixODBC - Release - x86_64 - GCC (system) - Unix Makefiles"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: gcc
-    #   env:
-    #     - CC=gcc
-    #     - CXX=g++
-    #     - ODBC_PROVIDER=UnixODBC
-    #     - BUILD_TYPE=Release
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
-    #   addons:
-    #     apt:
-    #       sources:
-    #         - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
-    #           key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
-    #       packages:
-    #         - gcc
-    #         - g++
-    #         - libicu-dev
-    #         - unixodbc
-    #         - unixodbc-bin
-    #         - unixodbc-dev
+    - name: "Ubuntu 18.04 - UnixODBC - Release - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_PROVIDER=UnixODBC
+        - BUILD_TYPE=Release
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
+          packages:
+            - gcc
+            - g++
+            - libicu-dev
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: gcc
-    #   env:
-    #     - CC=gcc
-    #     - CXX=g++
-    #     - ODBC_PROVIDER=UnixODBC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
-    #   addons:
-    #     apt:
-    #       sources:
-    #         - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
-    #           key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
-    #       packages:
-    #         - gcc
-    #         - g++
-    #         - libicu-dev
-    #         - unixodbc
-    #         - unixodbc-bin
-    #         - unixodbc-dev
+    - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_PROVIDER=UnixODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
+          packages:
+            - gcc
+            - g++
+            - libicu-dev
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - System third-party libs - x86_64 - GCC (system) - Unix Makefiles"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: gcc
-    #   env:
-    #     - CC=gcc
-    #     - CXX=g++
-    #     - ODBC_PROVIDER=UnixODBC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=yes
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
-    #   addons:
-    #     apt:
-    #       sources:
-    #         - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
-    #           key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
-    #       packages:
-    #         - gcc
-    #         - g++
-    #         - openssl
-    #         - libssl-dev
-    #         - libpoco-dev
-    #         - libicu-dev
-    #         - googletest
-    #         - unixodbc
-    #         - unixodbc-bin
-    #         - unixodbc-dev
+    - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - System third-party libs - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_PROVIDER=UnixODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=yes
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
+          packages:
+            - gcc
+            - g++
+            - openssl
+            - libssl-dev
+            - libpoco-dev
+            - libicu-dev
+            - googletest
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: clang
-    #   env:
-    #     - CC=clang
-    #     - CXX=clang++
-    #     - ODBC_PROVIDER=UnixODBC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
-    #   addons:
-    #     apt:
-    #       sources:
-    #         - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
-    #           key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
-    #       packages:
-    #         - clang
-    #         - libicu-dev
-    #         - unixodbc
-    #         - unixodbc-bin
-    #         - unixodbc-dev
+    - name: "Ubuntu 18.04 - UnixODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: clang
+      env:
+        - CC=clang
+        - CXX=clang++
+        - ODBC_PROVIDER=UnixODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
+          packages:
+            - clang
+            - libicu-dev
+            - unixodbc
+            - unixodbc-bin
+            - unixodbc-dev
 
-    # - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: gcc
-    #   env:
-    #     - CC=gcc
-    #     - CXX=g++
-    #     - ODBC_PROVIDER=iODBC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
-    #   addons:
-    #     apt:
-    #       sources:
-    #         - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
-    #           key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
-    #       packages:
-    #         - gcc
-    #         - g++
-    #         - libicu-dev
-    #         - iodbc
-    #         - libiodbc2
-    #         - libiodbc2-dev
+    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - GCC (system) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: gcc
+      env:
+        - CC=gcc
+        - CXX=g++
+        - ODBC_PROVIDER=iODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
+          packages:
+            - gcc
+            - g++
+            - libicu-dev
+            - iodbc
+            - libiodbc2
+            - libiodbc2-dev
 
-    # - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
-    #   os: linux
-    #   dist: bionic
-    #   compiler: clang
-    #   env:
-    #     - CC=clang
-    #     - CXX=clang++
-    #     - ODBC_PROVIDER=iODBC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #     - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
-    #   services:
-    #     - docker
-    #   addons:
-    #     apt:
-    #       sources:
-    #         - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
-    #           key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
-    #       packages:
-    #         - clang
-    #         - libicu-dev
-    #         - iodbc
-    #         - libiodbc2
-    #         - libiodbc2-dev
+    - name: "Ubuntu 18.04 - iODBC - RelWithDebInfo - x86_64 - Clang (default) - Unix Makefiles"
+      os: linux
+      dist: bionic
+      compiler: clang
+      env:
+        - CC=clang
+        - CXX=clang++
+        - ODBC_PROVIDER=iODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:19.11.8.46"
+      services:
+        - docker
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb https://apt.kitware.com/ubuntu/ bionic main'
+              key_url: 'https://apt.kitware.com/keys/kitware-archive-latest.asc'
+          packages:
+            - clang
+            - libicu-dev
+            - iodbc
+            - libiodbc2
+            - libiodbc2-dev
 
-    # - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x64 - MSVC (Visual Studio 2017) - MSBuild"
-    #   os: windows
-    #   language: shell
-    #   env:
-    #     - ODBC_PROVIDER=MDAC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=yes
-    #     - CMAKE_CONFIGURE_EXTRA_ARGS="-A x64 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
-    #     - VCVARSALL_ARGS=x64
+    - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x64 - MSVC (Visual Studio 2017) - MSBuild"
+      os: windows
+      language: shell
+      env:
+        - ODBC_PROVIDER=MDAC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=yes
+        - CMAKE_CONFIGURE_EXTRA_ARGS="-A x64 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
+        - VCVARSALL_ARGS=x64
 
-    # - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x86 - MSVC (Visual Studio 2017) - MSBuild"
-    #   os: windows
-    #   language: shell
-    #   env:
-    #     - ODBC_PROVIDER=MDAC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=yes
-    #     - CMAKE_CONFIGURE_EXTRA_ARGS="-A Win32 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
-    #     - VCVARSALL_ARGS=x86
+    - name: "Windows Server 1803 - MDAC - RelWithDebInfo - x86 - MSVC (Visual Studio 2017) - MSBuild"
+      os: windows
+      language: shell
+      env:
+        - ODBC_PROVIDER=MDAC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=yes
+        - CMAKE_CONFIGURE_EXTRA_ARGS="-A Win32 -DCMAKE_SYSTEM_VERSION=10.0.18362.0 $CMAKE_CONFIGURE_EXTRA_ARGS"
+        - VCVARSALL_ARGS=x86
 
-    # - name: "macOS 10.14 - iODBC - RelWithDebInfo - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
-    #   os: osx
-    #   osx_image: xcode11.2
-    #   compiler: clang
-    #   env:
-    #     - ODBC_PROVIDER=iODBC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=no
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #   addons:
-    #     homebrew:
-    #       packages:
-    #         - icu4c
-    #         - libiodbc
-    #       update: true
+    - name: "macOS 10.14 - iODBC - RelWithDebInfo - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
+      os: osx
+      osx_image: xcode11.2
+      compiler: clang
+      env:
+        - ODBC_PROVIDER=iODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=no
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+      addons:
+        homebrew:
+          packages:
+            - icu4c
+            - libiodbc
+          update: true
 
-    # - name: "macOS 10.14 - iODBC - RelWithDebInfo - System third-party libs - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
-    #   os: osx
-    #   osx_image: xcode11.2
-    #   compiler: clang
-    #   env:
-    #     - ODBC_PROVIDER=iODBC
-    #     - BUILD_TYPE=RelWithDebInfo
-    #     - EXTERNAL_THIRD_PARTY=yes
-    #     - PACKAGING=yes
-    #     - TESTING=yes
-    #     - STANDALONE_TESTS_ONLY=no
-    #   addons:
-    #     homebrew:
-    #       packages:
-    #         - openssl
-    #         - poco
-    #         - icu4c
-    #         - libiodbc
-    #       update: true
+    - name: "macOS 10.14 - iODBC - RelWithDebInfo - System third-party libs - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
+      os: osx
+      osx_image: xcode11.2
+      compiler: clang
+      env:
+        - ODBC_PROVIDER=iODBC
+        - BUILD_TYPE=RelWithDebInfo
+        - EXTERNAL_THIRD_PARTY=yes
+        - PACKAGING=yes
+        - TESTING=yes
+        - STANDALONE_TESTS_ONLY=no
+      addons:
+        homebrew:
+          packages:
+            - openssl
+            - poco
+            - icu4c
+            - libiodbc
+          update: true
 
     - name: "macOS 10.14 - UnixODBC - RelWithDebInfo - x86_64 - AppleClang (Xcode 11.2) - Unix Makefiles"
       os: osx
