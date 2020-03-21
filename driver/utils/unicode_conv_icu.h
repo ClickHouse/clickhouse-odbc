@@ -65,7 +65,11 @@ private:
 
 public:
     UnicodeConversionContext(
-        const std::string & application_wide_char_encoding   = "UCS-2",
+#if defined(_win_)
+        const std::string & application_wide_char_encoding   = (sizeof(SQLWCHAR) == 4 ? "UTF-32" : "UTF-16"),
+#else
+        const std::string & application_wide_char_encoding   = (sizeof(SQLWCHAR) == 4 ? "UCS-4" : "UCS-2"),
+#endif
         const std::string & application_narrow_char_encoding = "UTF-8",
         const std::string & data_source_narrow_char_encoding = "UTF-8"
     )
