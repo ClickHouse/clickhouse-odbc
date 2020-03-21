@@ -298,12 +298,6 @@ jobs:
         - PACKAGING=yes
         - TESTING=yes
         - STANDALONE_TESTS_ONLY=no
-      addons:
-        homebrew:
-          packages:
-            - icu4c
-            - unixodbc
-          update: true
 
 before_install: |-
   set -Eeo pipefail
