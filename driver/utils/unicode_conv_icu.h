@@ -718,7 +718,7 @@ inline std::basic_string<CharType> fromUTF8(const std::basic_string<DriverPivotC
 }
 
 template <typename CharType>
-inline std::basic_string<CharType> fromUTF8(const char * src, SQLLEN length, UnicodeConversionContext & context) {
+inline std::basic_string<CharType> fromUTF8(const DriverPivotCharType * src, SQLLEN length, UnicodeConversionContext & context) {
     if (!src || (length != SQL_NTS && length <= 0))
         return fromUTF8<CharType>(std::basic_string_view<DriverPivotCharType>{}, context);
 
@@ -733,12 +733,12 @@ inline std::basic_string<CharType> fromUTF8(const char * src, SQLLEN length, Uni
 }
 
 template <typename CharType>
-inline std::basic_string<CharType> fromUTF8(const char * src, UnicodeConversionContext & context) {
+inline std::basic_string<CharType> fromUTF8(const DriverPivotCharType * src, UnicodeConversionContext & context) {
     return fromUTF8<CharType>(src, SQL_NTS, context);
 }
 
 template <typename CharType>
-inline std::basic_string<CharType> fromUTF8(const char * src, SQLLEN length = SQL_NTS) {
+inline std::basic_string<CharType> fromUTF8(const DriverPivotCharType * src, SQLLEN length = SQL_NTS) {
     UnicodeConversionContext context;
     return fromUTF8<CharType>(src, length, context);
 }
