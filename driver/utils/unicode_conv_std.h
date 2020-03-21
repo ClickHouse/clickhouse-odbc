@@ -1,19 +1,5 @@
 #pragma once
 
-#include "driver/platform/platform.h"
-
-#include <algorithm>
-#include <codecvt>
-#include <locale>
-#include <stdexcept>
-#include <string>
-#include <string_view>
-#include <type_traits>
-
-#include <cstring>
-
-using CharTypeLPCTSTR = std::remove_cv_t<std::remove_pointer_t<LPCTSTR>>;
-
 class UnicodeConversionContext {
 public:
     UnicodeConversionContext() {} // ...to call explicit c-tors of member objects.
@@ -32,12 +18,6 @@ public:
 #endif
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> UCS2_converter_wchar;
 };
-
-// Number of elements in the null-terminated buffer (that is assumed to hold a string).
-template <typename CharType>
-inline std::size_t StringBufferLength(const CharType * str) {
-    return (str ? std::basic_string_view<CharType>{str}.size() + 1 : 0);
-}
 
 inline std::string toUTF8(const char * src, const std::locale& locale, SQLLEN length = SQL_NTS) {
 
