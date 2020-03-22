@@ -6,6 +6,15 @@
 #include <unicode/ustring.h>
 #include <unicode/ucnv.h>
 
+//FOLLY_DECLARE_STRING_RESIZE_WITHOUT_INIT(char)
+FOLLY_DECLARE_STRING_RESIZE_WITHOUT_INIT(signed char)
+FOLLY_DECLARE_STRING_RESIZE_WITHOUT_INIT(unsigned char)
+//FOLLY_DECLARE_STRING_RESIZE_WITHOUT_INIT(char8_t)
+FOLLY_DECLARE_STRING_RESIZE_WITHOUT_INIT(char16_t)
+FOLLY_DECLARE_STRING_RESIZE_WITHOUT_INIT(char32_t)
+//FOLLY_DECLARE_STRING_RESIZE_WITHOUT_INIT(wchar_t)
+FOLLY_DECLARE_STRING_RESIZE_WITHOUT_INIT(unsigned short)
+
 using ConverterPivotCharType = UChar;
 using DriverPivotCharType = char;
 
@@ -169,7 +178,8 @@ void convertEncodingToPivotRestricted(
         constexpr std::size_t min_size_increment = 128;
 
         pivot.clear();
-        pivot.resize(std::min(src.size() + extra_size_reserve, min_size_increment)); // TODO: replace with resize_without_initialization(pivot, ...)
+        const auto initial_new_size = std::min(src.size() + extra_size_reserve, min_size_increment);
+        resize_without_initialization(pivot, initial_new_size);
 
         auto * source = reinterpret_cast<const char *>(src.data());
         auto * source_end = reinterpret_cast<const char *>(src.data() + src.size());
@@ -192,7 +202,8 @@ void convertEncodingToPivotRestricted(
                 const std::size_t source_pending_symbols = (source_pending_bytes / sizeof(SourceCharType)) + (source_pending_bytes % sizeof(SourceCharType) > 0 ? 1 : 0);
                 const std::size_t target_new_size = target_symbols_written + source_pending_symbols;
 
-                pivot.resize(std::min(target_new_size + extra_size_reserve, min_size_increment)); // TODO: replace with resize_without_initialization(pivot, ...)
+                const auto final_new_size = std::min(target_new_size + extra_size_reserve, min_size_increment);
+                resize_without_initialization(pivot, final_new_size);
 
                 target = const_cast<ConverterPivotCharType *>(reinterpret_cast<const ConverterPivotCharType *>(pivot.c_str())) + target_symbols_written;
                 target_end = reinterpret_cast<const ConverterPivotCharType *>(pivot.c_str() + pivot.size());
@@ -296,7 +307,8 @@ void convertEncodingFromPivotRestricted(
         constexpr std::size_t min_size_increment = 128;
 
         dest.clear();
-        dest.resize(std::min(pivot.size() + extra_size_reserve, min_size_increment)); // TODO: replace with resize_without_initialization(dest, ...)
+        const auto initial_new_size = std::min(pivot.size() + extra_size_reserve, min_size_increment);
+        resize_without_initialization(dest, initial_new_size);
 
         auto * source = reinterpret_cast<const ConverterPivotCharType *>(pivot.data());
         auto * source_end = reinterpret_cast<const ConverterPivotCharType *>(pivot.data() + pivot.size());
@@ -319,7 +331,8 @@ void convertEncodingFromPivotRestricted(
                 const std::size_t target_symbols_written = (target_bytes_written / sizeof(DestinationCharType)) + (target_bytes_written % sizeof(DestinationCharType) > 0 ? 1 : 0);
                 const std::size_t target_new_size = target_symbols_written + source_pending_symbols;
 
-                dest.resize(std::min(target_new_size + extra_size_reserve, min_size_increment)); // TODO: replace with resize_without_initialization(dest, ...)
+                const auto final_new_size = std::min(target_new_size + extra_size_reserve, min_size_increment);
+                resize_without_initialization(dest, final_new_size);
 
                 target = const_cast<char *>(reinterpret_cast<const char *>(dest.c_str())) + target_bytes_written;
                 target_end = reinterpret_cast<const char *>(dest.c_str() + dest.size());
@@ -554,7 +567,7 @@ inline std::basic_string<CharType> fromUTF8(const std::basic_string_view<DriverP
 
     if constexpr (sizeof(CharType) == sizeof(DriverPivotCharType)) {
         if (context.skip_application_to_driver_pivot_narrow_char_conversion) {
-            result.resize(src.size()); // TODO: replace with resize_without_initialization(result, src.size());
+            resize_without_initialization(result, src.size());
             std::memcpy(&result[0], &src[0], src.size() * sizeof(CharType));
         }
         else {
