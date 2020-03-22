@@ -17,8 +17,20 @@ protected:
         // Just some non-trivial pattern of bits (that will convert to themselves when doing 'fromUTF8<CharType>(data_str)'.
         const std::string data_str(data_size, static_cast<char>(0b01011010));
 
+#if defined(WORKAROUND_USE_ICU)
+        UnicodeConversionContext context;
+        auto & converter = (sizeof(CharType) == 1 ? *context.application_narrow_char_converter : *context.application_wide_char_converter);
+        const auto data_wstr = fromUTF8<CharType>(data_str, context);
+        ASSERT_EQ(StringLength(data_wstr, converter, context), data_str.size());
+#else
+        const auto data_wstr = fromUTF8<CharType>(data_str);
+        ASSERT_EQ(data_wstr.size(), data_str.size());
+#endif
+
+        const auto converted_data_size = data_wstr.size();
+
         constexpr std::size_t padding_size = 10; // to detect possible out-of-bounds writes
-        const std::size_t size = padding_size + std::max(buffer_size, data_size) + padding_size;
+        const std::size_t size = padding_size + std::max(buffer_size, converted_data_size) + padding_size;
 
         std::vector<CharType> expected(size);
         std::vector<CharType> result(size);
@@ -40,13 +52,13 @@ protected:
 
             // All other outcomes are communicated via exceptions.
             EXPECT_EQ(rc, SQL_SUCCESS);
-            ASSERT_LT(data_size, buffer_size);
+            ASSERT_LT(converted_data_size, buffer_size);
         }
         catch (const SqlException& ex) {
             // With current configuration we only expect right truncations.
             ASSERT_EQ(ex.getSQLState(), "01004");
             ASSERT_EQ(ex.getReturnCode(), SQL_SUCCESS_WITH_INFO);
-            ASSERT_GE(data_size, buffer_size);
+            ASSERT_GE(converted_data_size, buffer_size);
         }
 
         if (check_with_length_in_bytes) {
@@ -54,30 +66,12 @@ protected:
             returned_data_size /= sizeof(CharType);
         }
 
-#if defined(WORKAROUND_USE_ICU)
-        // Expect these to be equal up to 1 BOM symbol.
-        EXPECT_TRUE(
-            (returned_data_size == data_size + 1) ||
-            (data_size == returned_data_size + 1)
-        );
-#else
-        EXPECT_TRUE(returned_data_size, data_size);
-#endif
+        EXPECT_EQ(returned_data_size, converted_data_size);
 
         // For 'buffer_size == 0' the 'expected' is the same unchanged initial buffer.
         // For 'buffer_size > 0' we fill 'expected' with what we expect - the data filled into the sized buffer.
         if (buffer_size > 0) {
-#if defined(WORKAROUND_USE_ICU)
-            UnicodeConversionContext context;
-            auto & converter = (sizeof(CharType) == 1 ? *context.application_narrow_char_converter : *context.application_wide_char_converter);
-            const auto data_wstr = fromUTF8<CharType>(data_str, context);
-            ASSERT_EQ(StringLength(data_wstr, converter, context), data_str.size());
-#else
-            const auto data_wstr = fromUTF8<CharType>(data_str);
-            ASSERT_EQ(data_wstr.size(), data_str.size());
-#endif
-
-            auto result_size = data_wstr.size();
+            auto result_size = converted_data_size;
             if (result_size >= buffer_size)
                 result_size = (buffer_size == 0 ? 0 : (buffer_size - 1));
 
