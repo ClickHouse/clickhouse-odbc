@@ -14,3 +14,7 @@
 	path = contrib/googletest
 	url = https://github.com/google/googletest.git
 	branch = master
+[submodule "contrib/folly"]
+	path = contrib/folly
+	url = https://github.com/traceon/folly.git
+	branch = uninitialized-memory-hacks-vs2019-fix
