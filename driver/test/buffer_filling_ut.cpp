@@ -54,13 +54,28 @@ protected:
             returned_data_size /= sizeof(CharType);
         }
 
-        EXPECT_EQ(returned_data_size, data_size);
+#if defined(WORKAROUND_USE_ICU)
+        // Expect these to be equal up to 1 BOM symbol.
+        EXPECT_TRUE(
+            (returned_data_size == data_size + 1) ||
+            (data_size == returned_data_size + 1)
+        );
+#else
+        EXPECT_TRUE(returned_data_size, data_size);
+#endif
 
         // For 'buffer_size == 0' the 'expected' is the same unchanged initial buffer.
         // For 'buffer_size > 0' we fill 'expected' with what we expect - the data filled into the sized buffer.
         if (buffer_size > 0) {
+#if defined(WORKAROUND_USE_ICU)
+            UnicodeConversionContext context;
+            auto & converter = (sizeof(CharType) == 1 ? *context.application_narrow_char_converter : *context.application_wide_char_converter);
+            const auto data_wstr = fromUTF8<CharType>(data_str, context);
+            ASSERT_EQ(StringLength(data_wstr, converter, context), data_str.size());
+#else
             const auto data_wstr = fromUTF8<CharType>(data_str);
             ASSERT_EQ(data_wstr.size(), data_str.size());
+#endif
 
             auto result_size = data_wstr.size();
             if (result_size >= buffer_size)
