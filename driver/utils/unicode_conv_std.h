@@ -19,18 +19,18 @@ public:
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> UCS2_converter_wchar;
 };
 
-inline std::string toUTF8(const char * src, const std::locale& locale, SQLLEN length = SQL_NTS) {
+inline std::string toUTF8(const char * src, const std::locale & locale, SQLLEN length = SQL_NTS) {
 
     // TODO: implement and use conversion from the specified locale.
 
     throw std::runtime_error("not implemented");
 }
 
-inline decltype(auto) toUTF8(const signed char * src, const std::locale& locale, SQLLEN length = SQL_NTS) {
+inline decltype(auto) toUTF8(const signed char * src, const std::locale & locale, SQLLEN length = SQL_NTS) {
     return toUTF8(reinterpret_cast<const char *>(src), locale, length);
 }
 
-inline decltype(auto) toUTF8(const unsigned char * src, const std::locale& locale, SQLLEN length = SQL_NTS) {
+inline decltype(auto) toUTF8(const unsigned char * src, const std::locale & locale, SQLLEN length = SQL_NTS) {
     return toUTF8(reinterpret_cast<const char *>(src), locale, length);
 }
 
@@ -88,7 +88,7 @@ inline decltype(auto) toUTF8(const unsigned short * src, SQLLEN length = SQL_NTS
     return toUTF8(reinterpret_cast<const char16_t *>(src), length);
 }
 
-inline std::string toUTF8(const std::string & src, const std::locale& locale) {
+inline std::string toUTF8(const std::string & src, const std::locale & locale) {
 
     // TODO: implement and use conversion to the specified locale.
 

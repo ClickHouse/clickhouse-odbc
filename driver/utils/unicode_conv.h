@@ -26,10 +26,11 @@ inline std::basic_string_view<CharType> make_string_view(const std::basic_string
     return std::basic_string_view<CharType>{src.c_str(), src.size()};
 }
 
+
 // ConsumeSignature() - return the same string but without provided leading signature/BOM bytes, if any.
 
 template <typename CharType>
-inline std::basic_string_view<CharType> ConsumeSignature(std::basic_string_view<CharType> str, const std::string_view signature) {
+inline std::basic_string_view<CharType> ConsumeSignature(std::basic_string_view<CharType> str, const std::string_view & signature) {
     if (
         signature.size() > 0 &&
         (str.size() * sizeof(CharType)) >= signature.size() &&
@@ -42,7 +43,7 @@ inline std::basic_string_view<CharType> ConsumeSignature(std::basic_string_view<
 }
 
 template <typename CharType>
-inline void ConsumeSignature(std::basic_string<CharType> & str, const std::string_view signature) {
+inline void ConsumeSignature(std::basic_string<CharType> & str, const std::string_view & signature) {
     if (
         signature.length() > 0 &&
         (str.size() * sizeof(CharType)) >= signature.size() &&
@@ -50,8 +51,6 @@ inline void ConsumeSignature(std::basic_string<CharType> & str, const std::strin
     ) {
         str.erase(0, signature.size() / sizeof(CharType));
     }
-
-    return str;
 }
 
 
@@ -65,7 +64,7 @@ inline std::size_t StringBufferLength(const CharType * str) {
 
 // StringLengthUTF8() - return the number of characters in the UTF-8 string (assuming valid UTF-8).
 
-inline std::size_t StringLengthUTF8(const std::string_view str) {
+inline std::size_t StringLengthUTF8(const std::string_view & str) {
 
 /*
     https://tools.ietf.org/html/rfc3629#section-3
@@ -109,7 +108,7 @@ inline std::size_t StringLengthUTF8(const std::string_view str) {
 }
 
 template <typename CharType>
-inline std::size_t StringLengthUTF8(const std::basic_string<CharType> str) {
+inline std::size_t StringLengthUTF8(const std::basic_string<CharType> & str) {
     return StringLengthUTF8(make_string_view(str));
 }
 

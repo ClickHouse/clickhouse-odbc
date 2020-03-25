@@ -461,7 +461,7 @@ void convertEncoding(
 // StringLength() - return the number of characters in the string assuming the encoding of the provided converter.
 
 template <typename CharType>
-inline std::size_t StringLength(const std::basic_string_view<CharType> str, UConverter & converter, UnicodeConversionContext & context) {
+inline std::size_t StringLength(const std::basic_string_view<CharType> & str, UConverter & converter, UnicodeConversionContext & context) {
     auto pivot = context.allocateString<ConverterPivotCharType>();
     convertEncodingToPivot(converter, str, pivot, context, context.converter_pivot_wide_char_signature);
     const auto len = u_countChar32(pivot.c_str(), pivot.size());
@@ -470,7 +470,7 @@ inline std::size_t StringLength(const std::basic_string_view<CharType> str, UCon
 }
 
 template <typename CharType>
-inline std::size_t StringLength(const std::basic_string<CharType> str, UConverter & converter, UnicodeConversionContext & context) {
+inline std::size_t StringLength(const std::basic_string<CharType> & str, UConverter & converter, UnicodeConversionContext & context) {
     return StringLength(make_string_view(str), converter, context);
 }
 
