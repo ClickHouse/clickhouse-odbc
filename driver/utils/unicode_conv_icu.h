@@ -284,7 +284,7 @@ void convertEncodingToPivot(
         }
     }
     else {
-        return convertEncodingToPivotViaProxyPivot<ConverterPivotCharType>(src_converter, src, pivot, context);
+        return convertEncodingToPivotViaProxyPivot<ConverterPivotCharType>(src_converter, src, pivot, context, signature_to_trim);
     }
 }
 
@@ -423,7 +423,7 @@ void convertEncodingFromPivot(
         }
     }
     else {
-        return convertEncodingFromPivotViaProxyPivot<ConverterPivotCharType>(pivot, dest_converter, dest, context);
+        return convertEncodingFromPivotViaProxyPivot<ConverterPivotCharType>(pivot, dest_converter, dest, context, signature_to_trim);
     }
 }
 
