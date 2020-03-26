@@ -87,9 +87,9 @@ protected:
 
 #define DECLARE_TEST_GROUP(CharType)          \
                                               \
-using Strings_##CharType = Strings<CharType>; \
+using StringOf##CharType = Strings<CharType>; \
                                               \
-TEST_P(Strings_##CharType, Fill){             \
+TEST_P(StringOf##CharType, Fill){             \
     fill(                                     \
         std::get<0>(GetParam()),              \
         std::get<1>(GetParam()),              \
@@ -99,7 +99,7 @@ TEST_P(Strings_##CharType, Fill){             \
                                               \
 INSTANTIATE_TEST_SUITE_P(                     \
     BufferFilling,                            \
-    Strings_##CharType,                       \
+    StringOf##CharType,                       \
     ::testing::Combine(                       \
         ::testing::Range<std::size_t>(0, 10), /* buffer sizes                      */ \
         ::testing::Range<std::size_t>(0, 10), /* data sizes                        */ \
@@ -107,18 +107,10 @@ INSTANTIATE_TEST_SUITE_P(                     \
     )                                         \
 );
 
-using signed_char = signed char;
-using unsigned_char = unsigned char;
-using unsigned_short = unsigned short;
+using SQLNarrowChar = SQLCHAR;
+using SQLWideChar = SQLWCHAR;
 
-DECLARE_TEST_GROUP(char);
-DECLARE_TEST_GROUP(signed_char);
-DECLARE_TEST_GROUP(unsigned_char);
-DECLARE_TEST_GROUP(wchar_t);
-#if !defined(_MSC_VER) || _MSC_VER >= 1920
-DECLARE_TEST_GROUP(unsigned_short);
-DECLARE_TEST_GROUP(char16_t);
-DECLARE_TEST_GROUP(char32_t);
-#endif
+DECLARE_TEST_GROUP(SQLNarrowChar);
+DECLARE_TEST_GROUP(SQLWideChar);
 
 #undef DECLARE_TEST_GROUP
