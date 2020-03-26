@@ -381,15 +381,17 @@ inline std::basic_string<DriverPivotCharType> toUTF8(const std::basic_string_vie
             context.retireString(std::move(pivot));
         }
     }
-    else {
-        if (context.skip_application_to_converter_pivot_wide_char_conversion) {
+    else if (
+        context.skip_application_to_converter_pivot_wide_char_conversion &&
+        sizeof(CharType) == sizeof(ConverterPivotCharType)
+    ) {
+        if constexpr (sizeof(CharType) == sizeof(ConverterPivotCharType)) // Re-check statically to avoid instantiation.
             convertEncodingFromPivot(src, *context.driver_pivot_narrow_char_converter, result, context.driver_pivot_narrow_char_signature);
-        }
-        else {
-            auto pivot = context.allocateString<ConverterPivotCharType>();
-            convertEncoding(*context.application_wide_char_converter, src, pivot, *context.driver_pivot_narrow_char_converter, result, context.driver_pivot_narrow_char_signature);
-            context.retireString(std::move(pivot));
-        }
+    }
+    else {
+        auto pivot = context.allocateString<ConverterPivotCharType>();
+        convertEncoding(*context.application_wide_char_converter, src, pivot, *context.driver_pivot_narrow_char_converter, result, context.driver_pivot_narrow_char_signature);
+        context.retireString(std::move(pivot));
     }
 
     return result;
@@ -467,22 +469,17 @@ inline std::basic_string<CharType> fromUTF8(const std::basic_string_view<DriverP
             context.retireString(std::move(pivot));
         }
     }
+    else if (
+        context.skip_application_to_converter_pivot_wide_char_conversion &&
+        sizeof(CharType) == sizeof(ConverterPivotCharType)
+    ) {
+        if constexpr (sizeof(CharType) == sizeof(ConverterPivotCharType)) // Re-check statically to avoid instantiation.
+            convertEncodingToPivot(*context.driver_pivot_narrow_char_converter, src, result, context.converter_pivot_wide_char_signature);
+    }
     else {
-        if (context.skip_application_to_converter_pivot_wide_char_conversion) {
-            if constexpr (sizeof(CharType) == sizeof(ConverterPivotCharType)) {
-                convertEncodingToPivot(*context.driver_pivot_narrow_char_converter, src, result, context.converter_pivot_wide_char_signature);
-            }
-            else {
-                auto pivot = context.allocateString<ConverterPivotCharType>();
-                convertEncoding(*context.driver_pivot_narrow_char_converter, src, pivot, *context.application_wide_char_converter, result, context.application_wide_char_signature);
-                context.retireString(std::move(pivot));
-            }
-        }
-        else {
-            auto pivot = context.allocateString<ConverterPivotCharType>();
-            convertEncoding(*context.driver_pivot_narrow_char_converter, src, pivot, *context.application_wide_char_converter, result, context.application_wide_char_signature);
-            context.retireString(std::move(pivot));
-        }
+        auto pivot = context.allocateString<ConverterPivotCharType>();
+        convertEncoding(*context.driver_pivot_narrow_char_converter, src, pivot, *context.application_wide_char_converter, result, context.application_wide_char_signature);
+        context.retireString(std::move(pivot));
     }
 
     return result;
