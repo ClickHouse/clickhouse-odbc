@@ -201,7 +201,7 @@ void convertEncodingToPivot(
                 const std::size_t source_pending_symbols = (source_pending_bytes / sizeof(SourceCharType)) + (source_pending_bytes % sizeof(SourceCharType) > 0 ? 1 : 0);
                 const std::size_t target_new_size = target_symbols_written + source_pending_symbols;
 
-                const auto final_new_size = std::min(target_new_size + extra_size_reserve, min_size_increment);
+                const auto final_new_size = std::max(target_new_size + extra_size_reserve, min_size_increment);
                 resize_without_initialization(pivot, final_new_size);
 
                 target = const_cast<ConverterPivotCharType *>(reinterpret_cast<const ConverterPivotCharType *>(pivot.c_str())) + target_symbols_written;
@@ -274,7 +274,7 @@ void convertEncodingFromPivot(
                 const std::size_t target_symbols_written = (target_bytes_written / sizeof(DestinationCharType)) + (target_bytes_written % sizeof(DestinationCharType) > 0 ? 1 : 0);
                 const std::size_t target_new_size = target_symbols_written + source_pending_symbols;
 
-                const auto final_new_size = std::min(target_new_size + extra_size_reserve, min_size_increment);
+                const auto final_new_size = std::max(target_new_size + extra_size_reserve, min_size_increment);
                 resize_without_initialization(dest, final_new_size);
 
                 target = const_cast<char *>(reinterpret_cast<const char *>(dest.c_str())) + target_bytes_written;
