@@ -478,7 +478,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDriverConnect)(
             if (StringLength1 > 0)
                 out_buffer_length = StringLength1;
             else if (StringLength1 == SQL_NTS)
-                out_buffer_length = StringBufferLength(InConnectionString);
+                out_buffer_length = stringBufferLength(InConnectionString);
             else
                 out_buffer_length = 1024; // ...as per SQLDriverConnect() doc: "Applications should allocate at least 1,024 characters for this buffer."
         }

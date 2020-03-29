@@ -1,7 +1,6 @@
 #pragma once
 
 #include "driver/platform/platform.h"
-#include "driver/utils/type_info.h"
 #include "driver/exception.h"
 
 #if !defined(NDEBUG)
@@ -48,6 +47,19 @@ template <> constexpr int getObjectHandleType<Environment>() { return SQL_HANDLE
 template <> constexpr int getObjectHandleType<Connection>() { return SQL_HANDLE_DBC; }
 template <> constexpr int getObjectHandleType<Descriptor>() { return SQL_HANDLE_DESC; }
 template <> constexpr int getObjectHandleType<Statement>() { return SQL_HANDLE_STMT; }
+
+template <typename T>
+inline T fromString(const std::string & s) {
+    T result;
+
+    std::istringstream iss(s);
+    iss >> result;
+
+    if (iss.fail() || !iss.eof())
+        throw std::runtime_error("bad lexical cast");
+
+    return result;
+}
 
 template <typename T>
 inline std::string toHexString(T n) {

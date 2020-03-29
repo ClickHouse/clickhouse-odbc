@@ -1,4 +1,5 @@
 #include "driver/utils/utils.h"
+#include "driver/utils/type_info.h"
 
 #include <gtest/gtest.h>
 
@@ -19,9 +20,9 @@ protected:
 
 #if defined(WORKAROUND_USE_ICU)
         UnicodeConversionContext context;
-        auto & converter = (sizeof(CharType) == 1 ? *context.application_narrow_char_converter : *context.application_wide_char_converter);
+        auto & converter = (sizeof(CharType) == 1 ? context.application_narrow_char_converter : context.application_wide_char_converter);
         const auto data_wstr = fromUTF8<CharType>(data_str, context);
-        ASSERT_EQ(StringLength(data_wstr, converter, context), data_str.size());
+        ASSERT_EQ(stringLength(data_wstr, converter, context), data_str.size());
 #else
         const auto data_wstr = fromUTF8<CharType>(data_str);
         ASSERT_EQ(data_wstr.size(), data_str.size());

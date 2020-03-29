@@ -1,5 +1,10 @@
 #pragma once
 
+#include <codecvt>
+#include <locale>
+#include <string>
+#include <type_traits>
+
 class UnicodeConversionContext {
 public:
     UnicodeConversionContext() {} // ...to call explicit c-tors of member objects.
@@ -18,6 +23,9 @@ public:
 #endif
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> UCS2_converter_wchar;
 };
+
+// In future, this will become an aggregate context that will do proper date/time, etc., conversions also.
+using DefaultConversionContext = UnicodeConversionContext;
 
 inline std::string toUTF8(const char * src, const std::locale & locale, SQLLEN length = SQL_NTS) {
 
