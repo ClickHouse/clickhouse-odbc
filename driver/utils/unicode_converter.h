@@ -55,7 +55,7 @@ inline std::size_t consumeSignatureInPlace(std::basic_string<CharType> & str, co
 
 class UnicodeConverter {
 public:
-    explicit inline UnicodeConverter(const std::string & ecnoding);
+    explicit inline UnicodeConverter(const std::string & encoding);
     inline ~UnicodeConverter();
 
     inline const std::size_t getEncodedMinCharSize() const;
@@ -100,17 +100,17 @@ private:
     std::size_t pivot_signatures_to_trim_max_size_ = 0;
 };
 
-inline UnicodeConverter::UnicodeConverter(const std::string & ecnoding) {
+inline UnicodeConverter::UnicodeConverter(const std::string & encoding) {
     // Create ICU converter instance.
     {
         UErrorCode error_code = U_ZERO_ERROR;
-        UConverter * converter = ucnv_open(ecnoding.c_str(), &error_code);
+        UConverter * converter = ucnv_open(encoding.c_str(), &error_code);
 
         if (U_FAILURE(error_code))
             throw std::runtime_error(u_errorName(error_code));
 
         if (!converter)
-            throw std::runtime_error("ucnv_open(" + ecnoding + ") failed");
+            throw std::runtime_error("ucnv_open(" + encoding + ") failed");
 
         converter_ = converter;
     }
@@ -122,11 +122,11 @@ inline UnicodeConverter::UnicodeConverter(const std::string & ecnoding) {
         bool force_non_empty_signature_to_prepend_detection = true;
 
         // Treating plain UTF-16/UTF-32 as if they are in the native byte-order.
-        if (sameEncoding(ecnoding, "UTF-1")) {
+        if (sameEncoding(encoding, "UTF-1")) {
             force_non_empty_signature_to_prepend_detection = false;
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0xF7, 0x64, 0x4C }));
         }
-        else if (sameEncoding(ecnoding, "UTF-7")) {
+        else if (sameEncoding(encoding, "UTF-7")) {
             force_non_empty_signature_to_prepend_detection = false;
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0x2B, 0x2F, 0x76, 0x38, 0x2D })); // ...this should come first.
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0x2B, 0x2F, 0x76, 0x38 }));
@@ -134,47 +134,47 @@ inline UnicodeConverter::UnicodeConverter(const std::string & ecnoding) {
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0x2B, 0x2F, 0x76, 0x2B }));
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0x2B, 0x2F, 0x76, 0x2F }));
         }
-        else if (sameEncoding(ecnoding, "UTF-8")) {
+        else if (sameEncoding(encoding, "UTF-8")) {
             force_non_empty_signature_to_prepend_detection = false;
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0xEF, 0xBB, 0xBF }));
         }
-        else if (sameEncoding(ecnoding, "UTF-EBCDIC")) {
+        else if (sameEncoding(encoding, "UTF-EBCDIC")) {
             force_non_empty_signature_to_prepend_detection = false;
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0xDD, 0x73, 0x66, 0x73 }));
         }
         else if (
-            sameEncoding(ecnoding, "UTF-16BE") || (sameEncoding(ecnoding, "UTF-16") && !isLittleEndian()) ||
-            sameEncoding(ecnoding, "UCS-2BE") || (sameEncoding(ecnoding, "UCS-2") && !isLittleEndian())
+            sameEncoding(encoding, "UTF-16BE") || (sameEncoding(encoding, "UTF-16") && !isLittleEndian()) ||
+            sameEncoding(encoding, "UCS-2BE") || (sameEncoding(encoding, "UCS-2") && !isLittleEndian())
         ) {
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0xFE, 0xFF }));
         }
         else if (
-            sameEncoding(ecnoding, "UTF-16LE") || (sameEncoding(ecnoding, "UTF-16") && isLittleEndian()) ||
-            sameEncoding(ecnoding, "UCS-2LE") || (sameEncoding(ecnoding, "UCS-2") && isLittleEndian())
+            sameEncoding(encoding, "UTF-16LE") || (sameEncoding(encoding, "UTF-16") && isLittleEndian()) ||
+            sameEncoding(encoding, "UCS-2LE") || (sameEncoding(encoding, "UCS-2") && isLittleEndian())
         ) {
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0xFF, 0xFE }));
         }
         else if (
-            sameEncoding(ecnoding, "UTF-32BE") || (sameEncoding(ecnoding, "UTF-32") && !isLittleEndian()) ||
-            sameEncoding(ecnoding, "UCS-4BE") || (sameEncoding(ecnoding, "UCS-4") && !isLittleEndian())
+            sameEncoding(encoding, "UTF-32BE") || (sameEncoding(encoding, "UTF-32") && !isLittleEndian()) ||
+            sameEncoding(encoding, "UCS-4BE") || (sameEncoding(encoding, "UCS-4") && !isLittleEndian())
         ) {
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0x00, 0x00, 0xFE, 0xFF }));
         }
         else if (
-            sameEncoding(ecnoding, "UTF-32LE") || (sameEncoding(ecnoding, "UTF-32") && isLittleEndian()) ||
-            sameEncoding(ecnoding, "UCS-4LE") || (sameEncoding(ecnoding, "UCS-4") && isLittleEndian())
+            sameEncoding(encoding, "UTF-32LE") || (sameEncoding(encoding, "UTF-32") && isLittleEndian()) ||
+            sameEncoding(encoding, "UCS-4LE") || (sameEncoding(encoding, "UCS-4") && isLittleEndian())
         ) {
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0xFF, 0xFE, 0x00, 0x00 }));
         }
-        else if (sameEncoding(ecnoding, "SCSU")) {
+        else if (sameEncoding(encoding, "SCSU")) {
             force_non_empty_signature_to_prepend_detection = false;
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0x0E, 0xFE, 0xFF }));
         }
-        else if (sameEncoding(ecnoding, "BOCU-1")) {
+        else if (sameEncoding(encoding, "BOCU-1")) {
             force_non_empty_signature_to_prepend_detection = false;
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0xFB, 0xEE, 0x28 }));
         }
-        else if (sameEncoding(ecnoding, "GB-18030")) {
+        else if (sameEncoding(encoding, "GB-18030")) {
             force_non_empty_signature_to_prepend_detection = false;
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0x84, 0x31, 0x95, 33 }));
         }
