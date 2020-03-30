@@ -58,7 +58,6 @@ public:
     explicit inline UnicodeConverter(const std::string & ecnoding);
     inline ~UnicodeConverter();
 
-    inline const bool isNoOp() const;
     inline const std::size_t getEncodedMinCharSize() const;
 
     template <typename CharType>
@@ -92,9 +91,6 @@ public:
 private:
     UConverter * converter_ = nullptr;
 
-    bool is_noop_ = false;
-    std::size_t encoded_min_char_size_ = 0;
-
     std::string encoded_signature_to_prepend_;
     std::vector<std::string> encoded_signatures_to_trim_;
     std::size_t encoded_signatures_to_trim_max_size_ = 0;
@@ -117,21 +113,6 @@ inline UnicodeConverter::UnicodeConverter(const std::string & ecnoding) {
             throw std::runtime_error("ucnv_open(" + ecnoding + ") failed");
 
         converter_ = converter;
-    }
-
-    // Read and cache some properties of the converter/encoding.
-    {
-        UErrorCode error_code = U_ZERO_ERROR;
-        auto * converter_name = ucnv_getName(converter_, &error_code);
-
-        if (U_FAILURE(error_code))
-            throw std::runtime_error(u_errorName(error_code));
-
-        if (!converter_name)
-            throw std::runtime_error("ucnv_getName() failed");
-
-        is_noop_ = sameEncoding(converter_name, converter_pivot_wide_char_encoding);
-        encoded_min_char_size_ = ucnv_getMinCharSize(converter_);
     }
 
     // Fill/detect some signature/BOM info.
@@ -242,7 +223,7 @@ inline UnicodeConverter::UnicodeConverter(const std::string & ecnoding) {
             encoded_signature_to_prepend_.assign(reinterpret_cast<const char *>(dest.c_str()), dest.size() * sizeof(DestinationCharType));
         };
 
-        switch (encoded_min_char_size_) {
+        switch (getEncodedMinCharSize()) {
             case 1: detect_signature(char{});     break;
             case 2: detect_signature(char16_t{}); break;
             case 4: detect_signature(char32_t{}); break;
@@ -280,12 +261,8 @@ inline UnicodeConverter::~UnicodeConverter() {
     }
 }
 
-inline const bool UnicodeConverter::isNoOp() const {
-    return is_noop_;
-}
-
 inline const std::size_t UnicodeConverter::getEncodedMinCharSize() const {
-    return encoded_min_char_size_;
+    return ucnv_getMinCharSize(converter_);
 }
 
 template <typename CharType>
@@ -351,7 +328,7 @@ inline void UnicodeConverter::convertToPivot(
 
     static_assert(sizeof(PivotCharType) == sizeof(ConverterPivotWideCharType), "unable to convert encoding: unsuitable character type for the pivot");
 
-    if (sizeof(CharType) != ucnv_getMinCharSize(converter_))
+    if (sizeof(CharType) != getEncodedMinCharSize())
         throw std::runtime_error("unable to convert encoding: unsuitable character type for the source converter");
 
     try {
@@ -371,12 +348,37 @@ inline void UnicodeConverter::convertToPivot(
         std::size_t target_symbols_written = 0;
         bool pivot_signature_trimmed = false;
 
+        // If signature must be prepended to the encoded string before decoding, we feed it to ucnv_toUnicode() separately, to avoid heavy copying.
+        if (ensure_encoded_signature) {
+            auto encoded_no_sig = consumeEncodedSignature(encoded);
+            if (encoded_no_sig.size() == encoded.size()) {
+                auto * target_prev = target;
+                auto * sig_source = reinterpret_cast<const char *>(encoded_signature_to_prepend_.c_str());
+                auto * sig_source_end = reinterpret_cast<const char *>(encoded_signature_to_prepend_.c_str() + encoded_signature_to_prepend_.size());
+                UErrorCode error_code = U_ZERO_ERROR;
+
+                ucnv_toUnicode(converter_, &target, target_end, &sig_source, sig_source_end, nullptr, false, &error_code);
+
+                target_symbols_written += target - target_prev;
+
+                // Assuming, target had enough space to hold any signature.
+
+                if (U_FAILURE(error_code)) {
+                    throw std::runtime_error(u_errorName(error_code));
+                }
+                else if (sig_source != sig_source_end) {
+                    throw std::runtime_error("unable to convert encoding: failed to fully decode prepended signature");
+                }
+            }
+        }
+
+        // Main streaming conversion loop.
         while (true) {
             auto * target_prev = target;
+            const auto * conservative_target_end_candidate = target + conservative_target_write_increment;
+            const auto * conservative_target_end = (conservative_target_end_candidate < target_end ? conservative_target_end_candidate : target_end);
+            const auto * final_target_end = (trim_pivot_signature && !pivot_signature_trimmed ? conservative_target_end : target_end);
             UErrorCode error_code = U_ZERO_ERROR;
-            const auto conservative_target_end_candidate = target + conservative_target_write_increment;
-            const auto conservative_target_end = (conservative_target_end_candidate < target_end ? conservative_target_end_candidate : target_end);
-            const auto final_target_end = (trim_pivot_signature && !pivot_signature_trimmed ? conservative_target_end : target_end);
 
             ucnv_toUnicode(converter_, &target, final_target_end, &source, source_end, nullptr, true, &error_code);
 
@@ -432,7 +434,7 @@ inline void UnicodeConverter::convertFromPivot(
 
     static_assert(sizeof(PivotCharType) == sizeof(ConverterPivotWideCharType), "unable to convert encoding: unsuitable character type for the pivot");
 
-    if (sizeof(CharType) != ucnv_getMinCharSize(converter_))
+    if (sizeof(CharType) != getEncodedMinCharSize())
         throw std::runtime_error("unable to convert encoding: unsuitable character type for the destination converter");
 
     try {
@@ -452,12 +454,37 @@ inline void UnicodeConverter::convertFromPivot(
         std::size_t target_symbols_written = 0;
         bool encoded_signature_trimmed = false;
 
+        // If signature must be prepended to the pivot before encoding, we feed it to ucnv_fromUnicode() separately, to avoid heavy copying.
+        if (ensure_pivot_signature) {
+            auto pivot_no_sig = consumePivotSignature(pivot);
+            if (pivot_no_sig.size() == pivot.size()) {
+                auto * target_prev = target;
+                auto * sig_source = reinterpret_cast<const ConverterPivotWideCharType *>(pivot_signature_to_prepend_.c_str());
+                auto * sig_source_end = reinterpret_cast<const ConverterPivotWideCharType *>(pivot_signature_to_prepend_.c_str() + pivot_signature_to_prepend_.size());
+                UErrorCode error_code = U_ZERO_ERROR;
+
+                ucnv_fromUnicode(converter_, &target, target_end, &sig_source, sig_source_end, nullptr, false, &error_code);
+
+                target_symbols_written += target - target_prev;
+
+                // Assuming, target had enough space to hold any signature.
+
+                if (U_FAILURE(error_code)) {
+                    throw std::runtime_error(u_errorName(error_code));
+                }
+                else if (sig_source != sig_source_end) {
+                    throw std::runtime_error("unable to convert encoding: failed to fully encode prepended signature");
+                }
+            }
+        }
+
+        // Main streaming conversion loop.
         while (true) {
             auto * target_prev = target;
+            const auto * conservative_target_end_candidate = target + conservative_target_write_increment * sizeof(CharType);
+            const auto * conservative_target_end = (conservative_target_end_candidate < target_end ? conservative_target_end_candidate : target_end);
+            const auto * final_target_end = (trim_encoded_signature && !encoded_signature_trimmed ? conservative_target_end : target_end);
             UErrorCode error_code = U_ZERO_ERROR;
-            const auto conservative_target_end_candidate = target + conservative_target_write_increment * sizeof(CharType);
-            const auto conservative_target_end = (conservative_target_end_candidate < target_end ? conservative_target_end_candidate : target_end);
-            const auto final_target_end = (trim_encoded_signature && !encoded_signature_trimmed ? conservative_target_end : target_end);
 
             ucnv_fromUnicode(converter_, &target, final_target_end, &source, source_end, nullptr, true, &error_code);
 
