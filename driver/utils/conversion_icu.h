@@ -38,17 +38,42 @@ inline void convertEncoding(
 
 namespace value_manip {
 
-    template <typename> struct from_application; // Leave unimplemented for general case.
-    template <typename> struct from_driver;      // Leave unimplemented for general case.
-    template <typename> struct from_data_source; // Leave unimplemented for general case.
+    template <typename SourceType>
+    struct from_application {
+        template <typename DestinationType>
+        struct to_driver {
+            static inline void convert(const SourceType & src, DestinationType & dest); // Leave unimplemented for general case.
+        };
+    };
 
-    template <typename SourceCharType>
-    struct from_application<SourceCharType *> { // SQLCHAR or SQLWCHAR
-        template <typename> struct to_driver; // Leave unimplemented for general case.
+    template <typename SourceType>
+    struct from_driver {
+        template <typename DestinationType>
+        struct to_application {
+            static inline void convert(const SourceType & src, DestinationType & dest); // Leave unimplemented for general case.
+        };
 
-        template <>
-        struct to_driver<std::basic_string<DriverPivotNarrowCharType>> {
-            using DestinationType = std::basic_string<DriverPivotNarrowCharType>;
+        template <typename DestinationType>
+        struct to_data_source {
+            static inline void convert(const SourceType & src, DestinationType & dest); // Leave unimplemented for general case.
+        };
+    };
+
+    template <typename SourceType>
+    struct from_data_source {
+        template <typename DestinationType>
+        struct to_driver {
+            static inline void convert(const SourceType & src, DestinationType & dest); // Leave unimplemented for general case.
+        };
+    };
+
+    template <typename SourceCharType> // SQLCHAR or SQLWCHAR
+    struct from_application<SourceCharType *> {
+        template <typename DestinationType>
+        struct to_driver {
+
+            // Not allowed to specialize a member template of a partially specialized class, so perform this check instead.
+            static_assert(std::is_same_v<DestinationType, std::basic_string<DriverPivotNarrowCharType>>);
 
             template <typename ConversionContext = DefaultConversionContext>
             static inline void convert(const std::basic_string_view<SourceCharType> & src, DestinationType & dest, ConversionContext && context = ConversionContext{}) {
@@ -123,71 +148,81 @@ namespace value_manip {
 
     template <>
     struct from_driver<std::basic_string<DriverPivotNarrowCharType>> {
-        template <typename> struct to_application;  // Leave unimplemented for general case.
+        using SourceType = std::basic_string<DriverPivotNarrowCharType>;
 
-        template <typename DestinationCharType>
-        struct to_application<DestinationCharType *> { // SQLCHAR or SQLWCHAR
-            using DestinationType = std::basic_string<DestinationCharType>;
+        template <typename DestinationType>
+        struct to_application {
+            static inline void convert(const SourceType & src, DestinationType & dest); // Leave unimplemented for general case.
+        };
 
-            template <typename ConversionContext = DefaultConversionContext>
-            static inline void convert(const std::basic_string_view<DriverPivotNarrowCharType> & src, DestinationType & dest, ConversionContext && context = ConversionContext{}) {
-                dest.clear();
+        template <typename DestinationType>
+        struct to_data_source {
+            static inline void convert(const SourceType & src, DestinationType & dest); // Leave unimplemented for general case.
+        };
+    };
 
-                if constexpr (sizeof(DestinationCharType) == sizeof(ApplicationNarrowCharType)) {
-                    if (
-                        context.skip_application_to_driver_pivot_narrow_char_conversion &&
-                        sizeof(DestinationCharType) == sizeof(DriverPivotNarrowCharType)
-                    ) {
-                        auto src_no_sig = context.application_narrow_char_converter.consumeEncodedSignature(src);
-                        resize_without_initialization(dest, src_no_sig.size());
-                        std::memcpy(&dest[0], &src_no_sig[0], src_no_sig.size() * sizeof(DriverPivotNarrowCharType));
-                    }
-                    else {
-                        auto pivot = context.string_pool.template allocateString<ConverterPivotWideCharType>();
-                        convertEncoding(context.driver_pivot_narrow_char_converter, src, pivot, context.application_narrow_char_converter, dest);
-                        context.string_pool.retireString(std::move(pivot));
-                    }
-                }
-                else if constexpr (sizeof(DestinationCharType) == sizeof(ApplicationWideCharType)) {
-                    if (
-                        context.skip_application_to_converter_pivot_wide_char_conversion &&
-                        sizeof(DestinationCharType) == sizeof(ConverterPivotWideCharType)
-                    ) {
-                        if constexpr (sizeof(DestinationCharType) == sizeof(ConverterPivotWideCharType)) // Re-check statically to avoid instantiation.
-                            context.driver_pivot_narrow_char_converter.convertToPivot(src, dest, true, true);
-                    }
-                    else {
-                        auto pivot = context.string_pool.template allocateString<ConverterPivotWideCharType>();
-                        convertEncoding(context.driver_pivot_narrow_char_converter, src, pivot, context.application_wide_char_converter, dest);
-                        context.string_pool.retireString(std::move(pivot));
-                    }
+    template <typename DestinationCharType> // SQLCHAR or SQLWCHAR
+    struct from_driver<std::basic_string<DriverPivotNarrowCharType>>::to_application<DestinationCharType *> {
+        using DestinationType = std::basic_string<DestinationCharType>;
+
+        template <typename ConversionContext = DefaultConversionContext>
+        static inline void convert(const std::basic_string_view<DriverPivotNarrowCharType> & src, DestinationType & dest, ConversionContext && context = ConversionContext{}) {
+            dest.clear();
+
+            if constexpr (sizeof(DestinationCharType) == sizeof(ApplicationNarrowCharType)) {
+                if (
+                    context.skip_application_to_driver_pivot_narrow_char_conversion &&
+                    sizeof(DestinationCharType) == sizeof(DriverPivotNarrowCharType)
+                ) {
+                    auto src_no_sig = context.application_narrow_char_converter.consumeEncodedSignature(src);
+                    resize_without_initialization(dest, src_no_sig.size());
+                    std::memcpy(&dest[0], &src_no_sig[0], src_no_sig.size() * sizeof(DriverPivotNarrowCharType));
                 }
                 else {
-                    static_assert(dependent_false<DestinationCharType>::value, "conversion not defined");
+                    auto pivot = context.string_pool.template allocateString<ConverterPivotWideCharType>();
+                    convertEncoding(context.driver_pivot_narrow_char_converter, src, pivot, context.application_narrow_char_converter, dest);
+                    context.string_pool.retireString(std::move(pivot));
                 }
             }
+            else if constexpr (sizeof(DestinationCharType) == sizeof(ApplicationWideCharType)) {
+                if (
+                    context.skip_application_to_converter_pivot_wide_char_conversion &&
+                    sizeof(DestinationCharType) == sizeof(ConverterPivotWideCharType)
+                ) {
+                    if constexpr (sizeof(DestinationCharType) == sizeof(ConverterPivotWideCharType)) // Re-check statically to avoid instantiation.
+                        context.driver_pivot_narrow_char_converter.convertToPivot(src, dest, true, true);
+                }
+                else {
+                    auto pivot = context.string_pool.template allocateString<ConverterPivotWideCharType>();
+                    convertEncoding(context.driver_pivot_narrow_char_converter, src, pivot, context.application_wide_char_converter, dest);
+                    context.string_pool.retireString(std::move(pivot));
+                }
+            }
+            else {
+                static_assert(dependent_false<DestinationCharType>::value, "conversion not defined");
+            }
+        }
 
-            template <typename ConversionContext = DefaultConversionContext>
-            static inline void convert(const std::basic_string<DriverPivotNarrowCharType> & src, DestinationType & dest, ConversionContext && context = ConversionContext{}) {
+        template <typename ConversionContext = DefaultConversionContext>
+        static inline void convert(const std::basic_string<DriverPivotNarrowCharType> & src, DestinationType & dest, ConversionContext && context = ConversionContext{}) {
+            return convert(make_string_view(src), dest, std::forward<ConversionContext>(context));
+        }
+
+        template <typename ConversionContext = DefaultConversionContext>
+        static inline void convert(const DriverPivotNarrowCharType * src, DestinationType & dest, ConversionContext && context = ConversionContext{}) {
+            return convert((src ? make_string_view(src) : std::basic_string_view<DriverPivotNarrowCharType>{}), dest, std::forward<ConversionContext>(context));
+        }
+
+        template <typename ConversionContext = DefaultConversionContext>
+        static inline void convert(const DriverPivotNarrowCharType * src, SQLLEN src_length, DestinationType & dest, ConversionContext && context = ConversionContext{}) {
+            if (!src || (src_length != SQL_NTS && src_length <= 0))
+                return convert(std::basic_string_view<DriverPivotNarrowCharType>{}, dest, std::forward<ConversionContext>(context));
+
+            if (src_length == SQL_NTS)
                 return convert(make_string_view(src), dest, std::forward<ConversionContext>(context));
-            }
 
-            template <typename ConversionContext = DefaultConversionContext>
-            static inline void convert(const DriverPivotNarrowCharType * src, DestinationType & dest, ConversionContext && context = ConversionContext{}) {
-                return convert((src ? make_string_view(src) : std::basic_string_view<DriverPivotNarrowCharType>{}), dest, std::forward<ConversionContext>(context));
-            }
-
-            template <typename ConversionContext = DefaultConversionContext>
-            static inline void convert(const DriverPivotNarrowCharType * src, SQLLEN src_length, DestinationType & dest, ConversionContext && context = ConversionContext{}) {
-                if (!src || (src_length != SQL_NTS && src_length <= 0))
-                    return convert(std::basic_string_view<DriverPivotNarrowCharType>{}, dest, std::forward<ConversionContext>(context));
-
-                if (src_length == SQL_NTS)
-                    return convert(make_string_view(src), dest, std::forward<ConversionContext>(context));
-
-                return convert(make_string_view(src, static_cast<std::size_t>(src_length)), dest, std::forward<ConversionContext>(context));
-            }
-        };
+            return convert(make_string_view(src, static_cast<std::size_t>(src_length)), dest, std::forward<ConversionContext>(context));
+        }
     };
 
 } // namespace value_manip
