@@ -170,11 +170,11 @@ inline UnicodeConverter::UnicodeConverter(const std::string & encoding) {
             force_non_empty_signature_to_prepend_detection = false;
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0x0E, 0xFE, 0xFF }));
         }
-        else if (sameEncoding(ecnoding, "BOCU-1")) {
+        else if (sameEncoding(encoding, "BOCU-1")) {
             force_non_empty_signature_to_prepend_detection = false;
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0xFB, 0xEE, 0x28 }));
         }
-        else if (sameEncoding(ecnoding, "GB-18030")) {
+        else if (sameEncoding(encoding, "GB-18030")) {
             force_non_empty_signature_to_prepend_detection = false;
             encoded_signatures_to_trim_.push_back(make_raw_str({ 0x84, 0x31, 0x95, 33 }));
         }
