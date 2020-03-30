@@ -59,7 +59,7 @@ namespace value_manip {
                         context.skip_application_to_driver_pivot_narrow_char_conversion &&
                         sizeof(SourceCharType) == sizeof(DriverPivotNarrowCharType)
                     ) {
-                        auto src_no_sig = context.driver_pivot_narrow_char_converter.consumeSignature(src);
+                        auto src_no_sig = context.driver_pivot_narrow_char_converter.consumeEncodedSignature(src);
                         resize_without_initialization(dest, src_no_sig.size());
                         std::memcpy(&dest[0], &src_no_sig[0], src_no_sig.size() * sizeof(SourceCharType));
                     }
@@ -138,7 +138,7 @@ namespace value_manip {
                         context.skip_application_to_driver_pivot_narrow_char_conversion &&
                         sizeof(DestinationCharType) == sizeof(DriverPivotNarrowCharType)
                     ) {
-                        auto src_no_sig = context.application_narrow_char_converter.consumeSignature(src);
+                        auto src_no_sig = context.application_narrow_char_converter.consumeEncodedSignature(src);
                         resize_without_initialization(dest, src_no_sig.size());
                         std::memcpy(&dest[0], &src_no_sig[0], src_no_sig.size() * sizeof(DriverPivotNarrowCharType));
                     }
