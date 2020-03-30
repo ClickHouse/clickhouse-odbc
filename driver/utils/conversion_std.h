@@ -1,5 +1,7 @@
 #pragma once
 
+#include "driver/utils/string_pool.h"
+
 #include <codecvt>
 #include <locale>
 #include <string>
@@ -7,14 +9,8 @@
 
 class UnicodeConversionContext {
 public:
-    UnicodeConversionContext() {} // ...to call explicit c-tors of member objects.
+    StringPool string_pool{10};
 
-    template <typename CharType>
-    inline void retireString(std::basic_string<CharType> && str) {
-        // Do nothing.
-    }
-
-public:
 //  std::locale source_locale;
 //  std::locale destination_locale;
 #if !defined(_MSC_VER) || _MSC_VER >= 1920
