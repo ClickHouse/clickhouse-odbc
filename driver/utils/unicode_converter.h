@@ -53,6 +53,26 @@ inline std::size_t consumeSignatureInPlace(std::basic_string<CharType> & str, co
     return symbols_to_trim; // Already trimmed symbols count, actually.
 }
 
+class UnicodeConverter;
+
+template <typename SourceCharType, typename DestinationCharType, typename PivotCharType>
+inline void convertEncoding(
+    UnicodeConverter & src_converter, const std::basic_string_view<SourceCharType> & src,
+    std::basic_string<PivotCharType> & pivot,
+    UnicodeConverter & dest_converter, std::basic_string<DestinationCharType> & dest,
+    const bool trim_dest_signature = true
+);
+
+template <typename SourceCharType, typename DestinationCharType, typename PivotCharType>
+inline void convertEncoding(
+    UnicodeConverter & src_converter, const std::basic_string<SourceCharType> & src,
+    std::basic_string<PivotCharType> & pivot,
+    UnicodeConverter & dest_converter, std::basic_string<DestinationCharType> & dest,
+    const bool trim_dest_signature = true
+) {
+    return convertEncoding(src_converter, make_string_view(src), pivot, dest_converter, dest, trim_dest_signature);
+}
+
 class UnicodeConverter {
 public:
     explicit inline UnicodeConverter(const std::string & encoding);
@@ -550,4 +570,15 @@ inline void UnicodeConverter::convertFromPivot(
         encoded.clear();
         throw;
     }
+}
+
+template <typename SourceCharType, typename DestinationCharType, typename PivotCharType>
+inline void convertEncoding(
+    UnicodeConverter & src_converter, const std::basic_string_view<SourceCharType> & src,
+    std::basic_string<PivotCharType> & pivot,
+    UnicodeConverter & dest_converter, std::basic_string<DestinationCharType> & dest,
+    const bool trim_dest_signature
+) {
+    src_converter.convertToPivot(src, pivot, true, false);
+    dest_converter.convertFromPivot(make_string_view(pivot), dest, true, trim_dest_signature);
 }

@@ -13,29 +13,6 @@
 
 template <typename> struct dependent_false : std::false_type {};
 
-// convertEncoding() - convert between encodings using the provided converters.
-
-template <typename SourceCharType, typename DestinationCharType, typename PivotCharType>
-inline void convertEncoding(
-    UnicodeConverter & src_converter, const std::basic_string_view<SourceCharType> & src,
-    std::basic_string<PivotCharType> & pivot,
-    UnicodeConverter & dest_converter, std::basic_string<DestinationCharType> & dest,
-    const bool trim_dest_signature = true
-) {
-    src_converter.convertToPivot(src, pivot, true, false);
-    dest_converter.convertFromPivot(make_string_view(pivot), dest, true, trim_dest_signature);
-}
-
-template <typename SourceCharType, typename DestinationCharType, typename PivotCharType>
-inline void convertEncoding(
-    UnicodeConverter & src_converter, const std::basic_string<SourceCharType> & src,
-    std::basic_string<PivotCharType> & pivot,
-    UnicodeConverter & dest_converter, std::basic_string<DestinationCharType> & dest,
-    const bool trim_dest_signature = true
-) {
-    return convertEncoding(src_converter, make_string_view(src), pivot, dest_converter, dest, trim_dest_signature);
-}
-
 namespace value_manip {
 
     template <typename SourceType>
