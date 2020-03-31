@@ -60,6 +60,7 @@ inline void convertEncoding(
     UnicodeConverter & src_converter, const std::basic_string_view<SourceCharType> & src,
     std::basic_string<PivotCharType> & pivot,
     UnicodeConverter & dest_converter, std::basic_string<DestinationCharType> & dest,
+    const bool ensure_src_signature = true,
     const bool trim_dest_signature = true
 );
 
@@ -68,9 +69,10 @@ inline void convertEncoding(
     UnicodeConverter & src_converter, const std::basic_string<SourceCharType> & src,
     std::basic_string<PivotCharType> & pivot,
     UnicodeConverter & dest_converter, std::basic_string<DestinationCharType> & dest,
+    const bool ensure_src_signature = true,
     const bool trim_dest_signature = true
 ) {
-    return convertEncoding(src_converter, make_string_view(src), pivot, dest_converter, dest, trim_dest_signature);
+    return convertEncoding(src_converter, make_string_view(src), pivot, dest_converter, dest, ensure_src_signature, trim_dest_signature);
 }
 
 class UnicodeConverter {
@@ -106,6 +108,15 @@ public:
         std::basic_string<CharType> & encoded,
         const bool ensure_pivot_signature,
         const bool trim_encoded_signature
+    );
+
+    template <typename SourceCharType, typename DestinationCharType, typename PivotCharType>
+    friend inline void convertEncoding(
+        UnicodeConverter & src_converter, const std::basic_string_view<SourceCharType> & src,
+        std::basic_string<PivotCharType> & pivot,
+        UnicodeConverter & dest_converter, std::basic_string<DestinationCharType> & dest,
+        const bool ensure_src_signature,
+        const bool trim_dest_signature
     );
 
 private:
@@ -577,8 +588,12 @@ inline void convertEncoding(
     UnicodeConverter & src_converter, const std::basic_string_view<SourceCharType> & src,
     std::basic_string<PivotCharType> & pivot,
     UnicodeConverter & dest_converter, std::basic_string<DestinationCharType> & dest,
+    const bool ensure_src_signature,
     const bool trim_dest_signature
 ) {
-    src_converter.convertToPivot(src, pivot, true, false);
+#if defined(WORKAROUND_ICU_USE_EXPLICIT_PIVOTING)
+    src_converter.convertToPivot(src, pivot, ensure_encoded_signature, false);
     dest_converter.convertFromPivot(make_string_view(pivot), dest, true, trim_dest_signature);
+#else
+#endif
 }
