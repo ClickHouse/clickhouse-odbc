@@ -15,6 +15,25 @@ template <typename> struct dependent_false : std::false_type {};
 
 namespace value_manip {
 
+    // from_X<X_StorageType>::to_Y<Y_StorageType>::convert(src, dest, context) converts src and writes result into dest,
+    // assuming src has encoding of X and dest's encoding should be encoding of Y, for the corresponding char widths.
+    //
+    // For example, in Linux and UnixODBC builds, if:
+    //   X is application,
+    //   X_StorageType is SQLWCHAR *,
+    //   Y is driver
+    //   Y_StorageType is std::string
+    // then, the content of src will be interpreted as wide-char string in UCS-16, converted to narrow-char UTF-8, and
+    // the result will be written into dest. The corresponding converters will be taken from the provided context.
+    //
+    // The overloads allow differnet actual ways of providing src string:
+    //   X_StorageType * buffer with explicitly provided string length
+    //   X_StorageType * buffer of null-terminated string
+    //   std::basic_string<X_StorageType>
+    //   std::basic_string_view<X_StorageType>
+    //
+    // dest is always assumed to be of std::basic_string<Y_StorageType> type.
+
     template <typename SourceType>
     struct from_application {
         template <typename DestinationType>

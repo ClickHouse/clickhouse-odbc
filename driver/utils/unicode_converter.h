@@ -75,6 +75,11 @@ inline void convertEncoding(
     return convertEncoding(src_converter, make_string_view(src), pivot, dest_converter, dest, ensure_src_signature, trim_dest_signature);
 }
 
+// A wrapper class around an ICU converter. Converter is created by providing an encoding.
+// Converter is able to convert between that encoding and ICU's hardcoded pivot encoding.
+// Pivot string is always stored in UChar * buffers. Encoded string is stored in buffers of
+// getEncodedMinCharSize()-byte sized characters (even though pointers to such buffers are
+// passed around as char * internally.)
 class UnicodeConverter {
 public:
     explicit inline UnicodeConverter(const std::string & encoding);
