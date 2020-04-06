@@ -19,12 +19,15 @@
 #endif
 
 #include <algorithm>
+#include <chrono>
 #include <deque>
 #include <functional>
-#include <chrono>
+#include <initializer_list>
 #include <iomanip>
 #include <set>
 #include <sstream>
+#include <string>
+#include <string_view>
 #include <thread>
 #include <type_traits>
 #include <vector>
@@ -47,6 +50,26 @@ template <> constexpr int getObjectHandleType<Environment>() { return SQL_HANDLE
 template <> constexpr int getObjectHandleType<Connection>() { return SQL_HANDLE_DBC; }
 template <> constexpr int getObjectHandleType<Descriptor>() { return SQL_HANDLE_DESC; }
 template <> constexpr int getObjectHandleType<Statement>() { return SQL_HANDLE_STMT; }
+
+template <typename CharType>
+inline auto make_string_view(const CharType * src) {
+    return std::basic_string_view<CharType>{src};
+}
+
+template <typename CharType>
+inline auto make_string_view(const CharType * src, const std::size_t size) {
+    return std::basic_string_view<CharType>{src, size};
+}
+
+template <typename CharType>
+inline auto make_string_view(const std::basic_string<CharType> & src) {
+    return std::basic_string_view<CharType>{src.c_str(), src.size()};
+}
+
+template <typename CharType>
+inline auto make_raw_str(std::initializer_list<CharType> && list) {
+    return std::string{list.begin(), list.end()};
+}
 
 template <typename T>
 inline T fromString(const std::string & s) {

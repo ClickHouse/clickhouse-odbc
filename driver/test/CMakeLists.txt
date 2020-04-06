@@ -61,6 +61,8 @@ function (declare_odbc_test_targets libname UNICODE)
         client_utils.h
         client_test_base.h
         ${PROJECT_SOURCE_DIR}/driver/utils/type_info.cpp
+        ${PROJECT_SOURCE_DIR}/driver/utils/unicode_converter.cpp
+        ${PROJECT_SOURCE_DIR}/driver/utils/conversion_context.cpp
         ${PROJECT_SOURCE_DIR}/driver/utils/conversion.h
         ${PROJECT_SOURCE_DIR}/driver/utils/conversion_std.h
         ${PROJECT_SOURCE_DIR}/driver/utils/conversion_icu.h

@@ -12,21 +12,6 @@
 
 using CharTypeLPCTSTR = std::remove_cv_t<std::remove_pointer_t<LPCTSTR>>;
 
-template <typename CharType>
-inline auto make_string_view(const CharType * src) {
-    return std::basic_string_view<CharType>{src};
-}
-
-template <typename CharType>
-inline auto make_string_view(const CharType * src, const std::size_t size) {
-    return std::basic_string_view<CharType>{src, size};
-}
-
-template <typename CharType>
-inline auto make_string_view(const std::basic_string<CharType> & src) {
-    return std::basic_string_view<CharType>{src.c_str(), src.size()};
-}
-
 
 // stringBufferLength() - return the number of elements in the null-terminated buffer (that is assumed to hold a string).
 
