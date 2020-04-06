@@ -1,3 +1,7 @@
+#include "driver/platform/platform.h"
+
+#if defined(WORKAROUND_USE_ICU)
+
 #include "driver/utils/unicode_converter.h"
 
 bool sameEncoding(const std::string & lhs, const std::string & rhs) {
@@ -183,3 +187,5 @@ UnicodeConverter::~UnicodeConverter() {
         converter_ = nullptr;
     }
 }
+
+#endif

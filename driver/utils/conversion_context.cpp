@@ -1,3 +1,7 @@
+#include "driver/platform/platform.h"
+
+#if defined(WORKAROUND_USE_ICU)
+
 #include "driver/utils/conversion_context.h"
 
 UnicodeConversionContext::UnicodeConversionContext(
@@ -27,3 +31,5 @@ UnicodeConversionContext::UnicodeConversionContext(
     if (sizeof(DriverPivotNarrowCharType) != driver_pivot_narrow_char_converter.getEncodedMinCharSize())
         throw std::runtime_error("unsuitable character type for the driver pivot narrow-char encoding");
 }
+
+#endif
