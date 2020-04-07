@@ -16,5 +16,5 @@
 	branch = master
 [submodule "contrib/folly"]
 	path = contrib/folly
-	url = https://github.com/traceon/folly.git
-	branch = uninit-mem-hacks-vs2019-fix
+    url = https://github.com/facebook/folly.git
+	branch = master
