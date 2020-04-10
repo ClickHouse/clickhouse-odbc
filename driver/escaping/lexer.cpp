@@ -164,41 +164,59 @@ Token Lexer::NextToken() {
                     has_slash = false;
                 }
 
-                return Token {Token::INVALID, StringView(st, cur_ - st)};
+                return Token {Token::INVALID, StringView(st, cur_)};
             }
 
             default: {
                 const char * st = cur_;
 
-                if (*cur_ == '`') {
-                    bool inside_quotes = true;
-                    for (++cur_; cur_ < end_; ++cur_) {
+                if (isalpha(*cur_) || *cur_ == '_' || *cur_ == '`') {
+                    bool has_dot = false;
+                    bool has_backtick = false;
+
+                    while (cur_ < end_) {
                         if (*cur_ == '`') {
-                            inside_quotes = !inside_quotes;
-                            if (cur_ < end_ && *(cur_ + 1) == '.') {
-                                ++cur_;
-                                continue;
-                            } else if (!inside_quotes)
-                                return Token {Token::IDENT, StringView(st, ++cur_)};
-                            if (cur_ < end_)
-                                ++cur_;
+                            has_backtick = true;
+                            bool found_closing_backtick = false;
+
+                            for (++cur_; cur_ < end_; ++cur_) {
+                                if (*cur_ == '`') {
+                                    found_closing_backtick = true;
+                                    ++cur_;
+                                    break;
+                                }
+                            }
+
+                            if (!found_closing_backtick) {
+                                return Token {Token::INVALID, StringView(st, cur_)};
+                            }
                         }
-                        if (!isalpha(*cur_) && !isdigit(*cur_) && *cur_ != '_' && *cur_ != '.') {
+                        else if (isalpha(*cur_) || *cur_ == '_') {
+                            for (++cur_; cur_ < end_; ++cur_) {
+                                if (!isalpha(*cur_) && !isdigit(*cur_) && *cur_ != '_') {
+                                    break;
+                                }
+                            }
+                        }
+                        else {
                             return Token {Token::INVALID, StringView(st, cur_)};
                         }
-                    }
 
-                    break;
-                }
-
-                if (isalpha(*cur_) || *cur_ == '_') {
-                    for (++cur_; cur_ < end_; ++cur_) {
-                        if (!isalpha(*cur_) && !isdigit(*cur_) && *cur_ != '_' && *cur_ != '.') {
+                        if (cur_ < end_ && *cur_ == '.') {
+                            has_dot = true;
+                            ++cur_;
+                        }
+                        else {
                             break;
                         }
                     }
 
-                    return Token {LookupIdent(to_upper(StringView(st, cur_))), StringView(st, cur_)};
+                    if (has_dot || has_backtick) {
+                        return Token {Token::IDENT, StringView(st, cur_)};
+                    }
+                    else {
+                        return Token {LookupIdent(to_upper(StringView(st, cur_))), StringView(st, cur_)};
+                    }
                 }
 
                 if (isdigit(*cur_) || *cur_ == '.' || *cur_ == '-') {

@@ -2,6 +2,71 @@
 
 #include <gtest/gtest.h>
 
+TEST(EscapeSequencesCase, ParseIdent1) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(abc, SQL_BIGINT)})"),
+        "SELECT SUM(toInt64(abc))");
+}
+
+TEST(EscapeSequencesCase, ParseIdent2) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(`abc`, SQL_BIGINT)})"),
+        "SELECT SUM(toInt64(`abc`))");
+}
+
+TEST(EscapeSequencesCase, ParseIdent3) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(`0 a b $ c`, SQL_BIGINT)})"),
+        "SELECT SUM(toInt64(`0 a b $ c`))");
+}
+
+TEST(EscapeSequencesCase, ParseIdent4) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(abc.`0 a b $ c`, SQL_BIGINT)})"),
+        "SELECT SUM(toInt64(abc.`0 a b $ c`))");
+}
+
+TEST(EscapeSequencesCase, ParseIdent5) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(`0 a b $ c`.abc, SQL_BIGINT)})"),
+        "SELECT SUM(toInt64(`0 a b $ c`.abc))");
+}
+
+TEST(EscapeSequencesCase, ParseIdent6) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(abc.`0 a b $ c`.abc, SQL_BIGINT)})"),
+        "SELECT SUM(toInt64(abc.`0 a b $ c`.abc))");
+}
+
+TEST(EscapeSequencesCase, ParseIdent7) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(`0 a b $ c`.abc.`0 a b $ c`, SQL_BIGINT)})"),
+        "SELECT SUM(toInt64(`0 a b $ c`.abc.`0 a b $ c`))");
+}
+
+TEST(EscapeSequencesCase, ParseIdentX1) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(0 a b $ c, SQL_BIGINT)})"),
+        "SELECT SUM({fn CONVERT(0 a b $ c, SQL_BIGINT)})");
+}
+
+TEST(EscapeSequencesCase, ParseIdentX2) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(.abc, SQL_BIGINT)})"),
+        "SELECT SUM({fn CONVERT(.abc, SQL_BIGINT)})");
+}
+
+TEST(EscapeSequencesCase, ParseIdentX3) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(.`abc`, SQL_BIGINT)})"),
+        "SELECT SUM({fn CONVERT(.`abc`, SQL_BIGINT)})");
+}
+
+TEST(EscapeSequencesCase, ParseIdentX4) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(abc., SQL_BIGINT)})"),
+        "SELECT SUM({fn CONVERT(abc., SQL_BIGINT)})");
+}
+
+TEST(EscapeSequencesCase, ParseIdentX5) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(`abc`., SQL_BIGINT)})"),
+        "SELECT SUM({fn CONVERT(`abc`., SQL_BIGINT)})");
+}
+
+TEST(EscapeSequencesCase, ParseIdentX6) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(abc..abc, SQL_BIGINT)})"),
+        "SELECT SUM({fn CONVERT(abc..abc, SQL_BIGINT)})");
+}
+
 TEST(EscapeSequencesCase, ParseConvert1) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONVERT(1, SQL_BIGINT)}"), "SELECT toInt64(1)");
 }
@@ -50,6 +115,10 @@ TEST(EscapeSequencesCase, ParseConcat) {
 
 TEST(EscapeSequencesCase, ParseRound) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn ROUND(1.1 + 2.4, 1)}"), "SELECT round(1.1 + 2.4, 1)");
+}
+
+TEST(EscapeSequencesCase, ParseFloor) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn FLOOR(1.1 + 2.4, 1)}"), "SELECT floor(1.1 + 2.4, 1)");
 }
 
 TEST(EscapeSequencesCase, ParsePower) {
