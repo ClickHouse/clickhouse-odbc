@@ -43,8 +43,9 @@
     DECLARE2(LOWER, "lowerUTF8"),
     // LEFT  substring(s, 0, length)
     DECLARE2(LENGTH, "lengthUTF8"),
-    //DECLARE2(LOCATE, "position"), // special
-    // LTRIM
+    DECLARE2(LOCATE, "" /* "position" */), // special handling
+    DECLARE2(CONVERT, ""), // special handling
+    DECLARE2(LTRIM, ""), // special handling
     DECLARE2(OCTET_LENGTH, "length"),
     // POSITION
     // REPEAT
@@ -59,10 +60,11 @@
 
 
     // Date
+    DECLARE2(CURRENT_TIMESTAMP, ""), // special handling
     DECLARE2(CURDATE, "today"),
     DECLARE2(CURRENT_DATE, "today"),
     DECLARE2(DAYOFMONTH, "toDayOfMonth"),
-    // DECLARE2(DAYOFWEEK, " toDayOfWeek"), // special handling
+    DECLARE2(DAYOFWEEK, "" /* "toDayOfWeek" */), // special handling
     DECLARE2(DAYOFYEAR, " toDayOfYear"), // Supported by ClickHouse since 18.13.0
     DECLARE2(EXTRACT, "EXTRACT"), // Do not touch extract inside {fn ... }
     DECLARE2(HOUR, "toHour"),
@@ -70,6 +72,7 @@
     DECLARE2(MONTH, "toMonth"),
     DECLARE2(NOW, "now"),
     DECLARE2(SECOND, "toSecond"),
+    DECLARE2(TIMESTAMPADD, ""), // special handling
     DECLARE2(TIMESTAMPDIFF, "dateDiff"),
     DECLARE2(WEEK, "toISOWeek"),
     DECLARE2(SQL_TSI_QUARTER, "toQuarter"),

@@ -143,6 +143,10 @@ TEST(EscapeSequencesCase, ParseTimestampadd6) {
         "toDayOfWeek(CAST(`publishers_report`.`install_date` AS DATE)) + 1)), 7))))");
 }
 
+TEST(EscapeSequencesCase, ParseTimestampadd7) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD(SQL_TSI_HOUR,EXTRACT(HOUR FROM `abc`.`xyz`),CAST(`klm`.`nop` AS DATE))}"),
+        "SELECT addHours(CAST(`klm`.`nop` AS DATE), EXTRACT(HOUR FROM `abc`.`xyz`))");
+}
 
 TEST(EscapeSequencesCase, ParseCurrentTimestamp1) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn CURRENT_TIMESTAMP}"), "SELECT now()");
