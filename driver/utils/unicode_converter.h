@@ -78,6 +78,9 @@ public:
     explicit UnicodeConverter(const std::string & encoding);
     ~UnicodeConverter();
 
+    UnicodeConverter(const UnicodeConverter &) = delete;
+    UnicodeConverter & operator= (const UnicodeConverter &) = delete;
+
     inline const std::size_t getEncodedMinCharSize() const;
 
     template <typename CharType>
@@ -185,6 +188,30 @@ inline std::size_t UnicodeConverter::consumePivotSignatureInPlace(std::basic_str
     return 0;
 }
 
+// Converts 'encoded' string and stores the result in 'pivot' string.
+// 'encoded' string char type (CharType) is expected to be of 'getEncodedMinCharSize()' size.
+// 'pivot' string char type (PivotCharType) is expected to be of sizeof(ConverterPivotWideCharType) size.
+// All char types of the same size are expected to be bit-compatible, types are parametrized only for static type info consistency.
+// Essentially, calls 'ucnv_toUnicode()' in a loop until the entire 'encoded' is processed (ICU's "streamed" conversion method).
+// Only after the last call (or on hard error during the conversion process) the converter is reset.
+// Streamed conversion API is used in order to have fine-grained control over buffer reallocations on 'pivot' output string.
+// Note, that 'encoded' string is passed to 'ucnv_toUnicode()' as 'const char *', however the data pointed by those pointers may be interpreted
+// as multi-byte chars depending on the encoding (determined by 'getEncodedMinCharSize()'). The code converts sizes between
+// octet counts and code unit counts as needed.
+// Conceptually, the following steps are performed:
+//   1. Clear 'pivot'.
+//   2. Perform char type checks.
+//   3. Calculate the initial 'pivot' string reservation and resize it.
+//   4. Define arguments for 'ucnv_toUnicode()'. Some of these pointers will be moved forward as conversion proceeds.
+//   5. If signature must be prepended, feed it to a separate call to 'ucnv_toUnicode()' to avoid copying and modifying the original 'encoded' string.
+//   6. Run conversion in a loop, until the entire 'encoded' string is consumed and the result is fully written into 'pivot'.
+//   6.1. If signature must be trimmed from the resulting 'pivot' string, try to increase 'pivot' conservatively with each step,
+//        until a successfull trim is performed. This is done to avoid potentially heavy memmoves.
+//        Trim is considered successfull, if signature is found or there is enough data to confidently conclude that there will be no signature.
+//   6.2. Call 'ucnv_toUnicode()' with the next set of params. Trim the signature if requested and not performed yet.
+//   6.3. If the result hasn't been fully written yet, calculate a new size for 'pivot' and prepare the space for the next chunk by resizing it.
+//   6.4. If the result is fully written into 'pivot', resize it to the actual size and exit.
+//   7. On error, clear 'pivot' and reset the converter to keep it in ready state.
 template <typename CharType, typename PivotCharType>
 inline void UnicodeConverter::convertToPivot(
     const std::basic_string_view<CharType> & encoded,
@@ -291,6 +318,30 @@ inline void UnicodeConverter::convertToPivot(
     }
 }
 
+// Converts 'pivot' string and stores the result in 'encoded' string.
+// 'pivot' string char type (PivotCharType) is expected to be of sizeof(ConverterPivotWideCharType) size.
+// 'encoded' string char type (CharType) is expected to be of 'getEncodedMinCharSize()' size.
+// All char types of the same size are expected to be bit-compatible, types are parametrized only for static type info consistency.
+// Essentially, calls 'ucnv_fromUnicode()' in a loop until the entire 'pivot' is processed (ICU's "streamed" conversion method).
+// Only after the last call (or on hard error during the conversion process) the converter is reset.
+// Streamed conversion API is used in order to have fine-grained control over buffer reallocations on 'encoded' output string.
+// Note, that 'encoded' string is passed to 'ucnv_fromUnicode()' as 'const char *', however the data pointed by those pointers may be interpreted
+// as multi-byte chars depending on the encoding (determined by 'getEncodedMinCharSize()'). The code converts sizes between
+// octet counts and code unit counts as needed.
+// Conceptually, the following steps are performed:
+//   1. Clear 'encoded'.
+//   2. Perform char type checks.
+//   3. Calculate the initial 'encoded' string reservation and resize it.
+//   4. Define arguments for 'ucnv_fromUnicode()'. Some of these pointers will be moved forward as conversion proceeds.
+//   5. If signature must be prepended, feed it to a separate call to 'ucnv_fromUnicode()' to avoid copying and modifying the original 'pivot' string.
+//   6. Run conversion in a loop, until the entire 'pivot' string is consumed and the result is fully written into 'encoded'.
+//   6.1. If signature must be trimmed from the resulting 'encoded' string, try to increase 'encoded' conservatively with each step,
+//        until a successfull trim is performed. This is done to avoid potentially heavy memmoves.
+//        Trim is considered successfull, if signature is found or there is enough data to confidently conclude that there will be no signature.
+//   6.2. Call 'ucnv_fromUnicode()' with the next set of params. Trim the signature if requested and not performed yet.
+//   6.3. If the result hasn't been fully written yet, calculate a new size for 'encoded' and prepare the space for the next chunk by resizing it.
+//   6.4. If the result is fully written into 'encoded', resize it to the actual size and exit.
+//   7. On error, clear 'encoded' and reset the converter to keep it in ready state.
 template <typename CharType, typename PivotCharType>
 inline void UnicodeConverter::convertFromPivot(
     const std::basic_string_view<PivotCharType> & pivot,
@@ -406,6 +457,23 @@ inline void UnicodeConverter::convertFromPivot(
     }
 }
 
+// Converts 'src' encoded string (encoding defined by 'src_converter') and stores the result in 'dest' encoded string (encoding defined by 'dest_converter'),
+// using 'pivot' as an intermediate storage for pivot. Content of 'pivot' is ignored before the conversion, and should be ignored after the conversion, it's an optimization detail.
+// 'src' string char type (SourceCharType) is expected to be of 'src_converter.getEncodedMinCharSize()' size.
+// 'pivot' string char type (PivotCharType) is expected to be of sizeof(ConverterPivotWideCharType) size.
+// 'dest' string char type (DestinationCharType) is expected to be of 'dest_converter.getEncodedMinCharSize()' size.
+// All char types of the same size are expected to be bit-compatible, types are parametrized only for static type info consistency.
+// If WORKAROUND_ICU_USE_EXPLICIT_PIVOTING is defined, essentially, calls 'src_converter.convertToPivot()' and then 'dest_converter.convertFromPivot()'
+// with the corresponding sets of arguments.
+// If WORKAROUND_ICU_USE_EXPLICIT_PIVOTING is not defined, calls 'ucnv_convertEx()' in a loop until the entire 'src' is processed (ICU's "streamed" conversion method).
+// In that case, 'ucnv_convertEx()' is used just as a merged 'ucnv_toUnicode()' and 'ucnv_fromUnicode()', where the pivot conversion is done implicitly.
+// So all the conceptual steps that apply to 'encoded' string in 'convertToPivot()' and 'convertFromPivot()' can be applied here to 'src' and 'dest' accordingly,
+// likewise for 'pivot' with some obvious corrections (two cursors on the pivot buffer).
+// 'ucnv_convertEx()' could perform better instead of explicit encoded->pivot->encoded conversion in some cases defined by ICU implementation,
+// which is currently documented as follows:
+//   The conversion from UTF-8 to most other charsets uses a dedicated, optimized code path, avoiding the pivot through UTF-16.
+//   (Conversion from other charsets to UTF-8 could be optimized as well, but that has not been implemented yet as of ICU 4.4.)
+// Hence, the code may also benefit performance-wise from ICU's pivot encoding being hardcoded as UTF-8, which requires a custom-built ICU, since the default pivot encoding is UTF-16.
 template <typename SourceCharType, typename DestinationCharType, typename PivotCharType>
 inline void convertEncoding(
     UnicodeConverter & src_converter, const std::basic_string_view<SourceCharType> & src,
