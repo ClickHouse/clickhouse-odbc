@@ -1,8 +1,10 @@
 #pragma once
 
+#include "driver/platform/platform.h"
 #include "driver/utils/utils.h"
 
 #include <string>
+#include <map>
 
 using key_value_map_t = std::map<std::string, std::string, UTF8CaseInsensitiveCompare>;
 

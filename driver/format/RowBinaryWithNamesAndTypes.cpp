@@ -1,4 +1,5 @@
 #include "driver/format/RowBinaryWithNamesAndTypes.h"
+#include "driver/utils/resize_without_initialization.h"
 
 #include <ctime>
 

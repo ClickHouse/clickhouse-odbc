@@ -1,7 +1,8 @@
 #pragma once
 
 #include "driver/platform/platform.h"
-#include "driver/utils/unicode_conv.h"
+#include "driver/utils/utils.h"
+#include "driver/utils/conversion.h"
 #include "driver/exception.h"
 
 #include <algorithm>
@@ -139,21 +140,6 @@ std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info);
 std::string convertSQLOrCTypeToDataSourceType(const BoundTypeInfo & type_info);
 bool isMappedToStringDataSourceType(SQLSMALLINT sql_type, SQLSMALLINT c_type) noexcept;
 
-template <typename T>
-inline T fromString(const std::string & s) {
-    T result;
-
-    std::istringstream iss(s);
-    iss >> result;
-
-    if (iss.fail() || !iss.eof())
-        throw std::runtime_error("bad lexical cast");
-
-    return result;
-}
-
-using DefaultConversionContext = UnicodeConversionContext;
-
 // Directly write raw bytes to the buffer, respecting its size.
 // All lengths are in bytes. If 'out_value_max_length == 0',
 // assume 'out_value' is able to hold the entire 'in_value'.
@@ -228,7 +214,7 @@ inline SQLRETURN fillOutputString(
             throw SqlException("Invalid string or buffer length", "HY090");
     }
 
-    auto && converted = fromUTF8<CharType>(in_value, context);
+    auto converted = fromUTF8<CharType>(in_value, context);
 
     const auto converted_length_in_symbols = converted.size();
     const auto converted_length_in_bytes = converted_length_in_symbols * sizeof(CharType);
@@ -241,6 +227,8 @@ inline SQLRETURN fillOutputString(
         out_value,
         out_value_max_length_in_bytes
     );
+
+    context.string_pool.retireString(std::move(converted));
 
     if (out_value_length) {
         if (out_length_in_bytes)

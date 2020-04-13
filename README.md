@@ -177,7 +177,7 @@ Another run-time dependecies are `C++ Redistributable for Visual Studio 2017` or
 Homebrew: execute the following in the terminal (assuming you have [Homebrew](https://brew.sh/) installed):
 
 ```sh
-brew install poco openssl libiodbc
+brew install poco openssl icu4c libiodbc
 ```
 
 #### UnixODBC <!-- omit in toc -->
@@ -185,7 +185,7 @@ brew install poco openssl libiodbc
 Homebrew: execute the following in the terminal (assuming you have [Homebrew](https://brew.sh/) installed):
 
 ```sh
-brew install poco openssl unixodbc
+brew install poco openssl icu4c unixodbc
 ```
 
 ### Run-time dependencies: Red Hat/CentOS
@@ -195,7 +195,7 @@ brew install poco openssl unixodbc
 Execute the following in the terminal:
 
 ```sh
-sudo yum install openssl unixODBC
+sudo yum install openssl libicu unixODBC
 ```
 
 #### iODBC <!-- omit in toc -->
@@ -203,7 +203,7 @@ sudo yum install openssl unixODBC
 Execute the following in the terminal:
 
 ```sh
-sudo yum install openssl libiodbc
+sudo yum install openssl libicu libiodbc
 ```
 
 ### Run-time dependencies: Debian/Ubuntu
@@ -213,7 +213,7 @@ sudo yum install openssl libiodbc
 Execute the following in the terminal:
 
 ```sh
-sudo apt install openssl unixodbc
+sudo apt install openssl libicu unixodbc
 ```
 
 #### iODBC <!-- omit in toc -->
@@ -221,7 +221,7 @@ sudo apt install openssl unixodbc
 Execute the following in the terminal:
 
 ```sh
-sudo apt install openssl libiodbc2
+sudo apt install openssl libicu libiodbc2
 ```
 
 ### Configuration: MDAC/WDAC (Microsoft/Windows Data Access Components)
@@ -368,7 +368,7 @@ You will need Xcode 10 or later and Command Line Tools to be installed, as well 
 Homebrew: execute the following in the terminal (assuming you have [Homebrew](https://brew.sh/) installed):
 
 ```sh
-brew install git cmake make poco openssl libiodbc
+brew install git cmake make poco openssl icu4c libiodbc
 ```
 
 #### Build-time dependencies: UnixODBC <!-- omit in toc -->
@@ -376,7 +376,7 @@ brew install git cmake make poco openssl libiodbc
 Homebrew: execute the following in the terminal (assuming you have [Homebrew](https://brew.sh/) installed):
 
 ```sh
-brew install git cmake make poco openssl unixodbc
+brew install git cmake make poco openssl icu4c unixodbc
 ```
 
 #### Build steps <!-- omit in toc -->
@@ -397,7 +397,7 @@ cd build
 # Configuration options for the project can be specified in the next command in a form of '-Dopt=val'.
 
 # You may also add '-G Xcode' to the next command, in order to use Xcode as a build system or IDE, and generate the solution and project files instead of Makefile.
-cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DOPENSSL_ROOT_DIR=$(brew --prefix)/opt/openssl -DICU_ROOT=$(brew --prefix)/opt/icu4c ..
 ```
 
 Build the generated solution in-place:
@@ -430,7 +430,7 @@ sudo yum install epel-release
 sudo yum groupinstall "Development Tools"
 sudo yum install centos-release-scl
 sudo yum install devtoolset-8
-sudo yum install git cmake3 openssl-devel unixODBC-devel
+sudo yum install git cmake3 openssl-devel libicu-devel unixODBC-devel
 ```
 
 #### Build-time dependencies: iODBC <!-- omit in toc -->
@@ -442,7 +442,7 @@ sudo yum install epel-release
 sudo yum groupinstall "Development Tools"
 sudo yum install centos-release-scl
 sudo yum install devtoolset-8
-sudo yum install git cmake3 openssl-devel libiodbc-devel
+sudo yum install git cmake3 openssl-devel libicu-devel libiodbc-devel
 ```
 
 #### Build steps <!-- omit in toc -->
@@ -491,7 +491,7 @@ cmake3 --build . --config RelWithDebInfo --target test
 Execute the following in the terminal:
 
 ```sh
-sudo apt install build-essential git cmake libpoco-dev libssl-dev unixodbc-dev
+sudo apt install build-essential git cmake libpoco-dev libssl-dev libicu-dev unixodbc-dev
 ```
 
 #### Build-time dependencies: iODBC <!-- omit in toc -->
@@ -499,7 +499,7 @@ sudo apt install build-essential git cmake libpoco-dev libssl-dev unixodbc-dev
 Execute the following in the terminal:
 
 ```sh
-sudo apt install build-essential git cmake libpoco-dev libssl-dev libiodbc2-dev
+sudo apt install build-essential git cmake libpoco-dev libssl-dev libicu-dev libiodbc2-dev
 ```
 
 #### Build steps <!-- omit in toc -->

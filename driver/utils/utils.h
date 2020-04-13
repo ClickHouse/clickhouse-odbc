@@ -1,8 +1,6 @@
 #pragma once
 
 #include "driver/platform/platform.h"
-#include "driver/utils/unicode_conv.h"
-#include "driver/utils/type_info.h"
 #include "driver/exception.h"
 
 #if !defined(NDEBUG)
@@ -21,24 +19,20 @@
 #endif
 
 #include <algorithm>
+#include <chrono>
 #include <deque>
 #include <functional>
-#include <chrono>
+#include <initializer_list>
 #include <iomanip>
 #include <set>
 #include <sstream>
+#include <string>
+#include <string_view>
 #include <thread>
 #include <type_traits>
 #include <vector>
 
 #include <cstring>
-
-#if defined(_MSC_VER) && _MSC_VER > 1916 // Not supported yet for Visual Studio 2019 and later.
-#   define resize_without_initialization(container, size) container.resize(size)
-#else
-#   include <folly/memory/UninitializedMemoryHacks.h>
-#   define resize_without_initialization(container, size) folly::resizeWithoutInitialization(container, size)
-#endif
 
 class Environment;
 class Connection;
@@ -56,6 +50,39 @@ template <> constexpr int getObjectHandleType<Environment>() { return SQL_HANDLE
 template <> constexpr int getObjectHandleType<Connection>() { return SQL_HANDLE_DBC; }
 template <> constexpr int getObjectHandleType<Descriptor>() { return SQL_HANDLE_DESC; }
 template <> constexpr int getObjectHandleType<Statement>() { return SQL_HANDLE_STMT; }
+
+template <typename CharType>
+inline auto make_string_view(const CharType * src) {
+    return std::basic_string_view<CharType>{src};
+}
+
+template <typename CharType>
+inline auto make_string_view(const CharType * src, const std::size_t size) {
+    return std::basic_string_view<CharType>{src, size};
+}
+
+template <typename CharType>
+inline auto make_string_view(const std::basic_string<CharType> & src) {
+    return std::basic_string_view<CharType>{src.c_str(), src.size()};
+}
+
+template <typename CharType>
+inline auto make_raw_str(std::initializer_list<CharType> && list) {
+    return std::string{list.begin(), list.end()};
+}
+
+template <typename T>
+inline T fromString(const std::string & s) {
+    T result;
+
+    std::istringstream iss(s);
+    iss >> result;
+
+    if (iss.fail() || !iss.eof())
+        throw std::runtime_error("bad lexical cast");
+
+    return result;
+}
 
 template <typename T>
 inline std::string toHexString(T n) {
@@ -76,7 +103,7 @@ inline auto getTID() {
     return std::this_thread::get_id();
 }
 
-inline bool is_little_endian() noexcept {
+inline bool isLittleEndian() noexcept {
     union {
         std::uint32_t i32;
         std::uint8_t i8[4];
@@ -115,156 +142,6 @@ struct UTF8CaseInsensitiveCompare {
     bool operator() (const std::string & lhs, const std::string & rhs) const {
         return Poco::UTF8::icompare(lhs, rhs) < 0;
     }
-};
-
-// A pool of at most max_size movable objects, that helps to reuse their capacity but not the content.
-// Makes sense to use with std::string's and std::vector's to avoid reallocations of underlying storage.
-template<typename T>
-class ObjectPool {
-public:
-    explicit ObjectPool(const std::size_t max_size)
-        : max_size_(max_size)
-    {
-    }
-
-    void put(T && obj) {
-        cache_.emplace_back(std::move(obj));
-        while (cache_.size() > max_size_) {
-            cache_.pop_front();
-        }
-    }
-
-    T get() {
-        if (cache_.empty()) {
-            return T{};
-        }
-        else {
-            T obj = std::move(cache_.front());
-            cache_.pop_front();
-            return obj;
-        }
-    }
-
-private:
-    const std::size_t max_size_;
-    std::deque<T> cache_;
-};
-
-// A restricted wrapper around std::istream, that tries to reduce the number of std::istream::read() calls at the cost of extra std::memcpy().
-// Maintains internal buffer of pre-read characters making AmortizedIStreamReader::read() calls for small counts more efficient.
-// Handles incomplete reads and terminated std::istream more aggressively, by throwing exceptions.
-class AmortizedIStreamReader
-{
-public:
-    explicit AmortizedIStreamReader(std::istream & raw_stream)
-        : raw_stream_(raw_stream)
-    {
-    }
-
-    ~AmortizedIStreamReader() {
-        // Put back any pre-read characters, just in case...
-        if (available() > 0) {
-            for (std::size_t i = buffer_.size() - 1; i >= offset_; --i) {
-                raw_stream_.putback(buffer_[i]);
-            }
-        }
-    }
-
-    AmortizedIStreamReader(const AmortizedIStreamReader &) = delete;
-    AmortizedIStreamReader(AmortizedIStreamReader &&) noexcept = delete;
-    AmortizedIStreamReader & operator= (const AmortizedIStreamReader &) = delete;
-    AmortizedIStreamReader & operator= (AmortizedIStreamReader &&) noexcept = delete;
-
-    bool eof() {
-        if (available() > 0)
-            return false;
-
-        if (raw_stream_.eof() || raw_stream_.fail())
-            return true;
-
-        tryPrepare(1);
-
-        if (available() > 0)
-            return false;
-
-        return (raw_stream_.eof() || raw_stream_.fail());
-    }
-
-    char get() {
-        tryPrepare(1);
-
-        if (available() < 1)
-            throw std::runtime_error("Incomplete input stream, expected at least 1 more byte");
-
-        return buffer_[offset_++];
-    }
-
-    AmortizedIStreamReader & read(char * str, std::size_t count) {
-        tryPrepare(count);
-
-        if (available() < count)
-            throw std::runtime_error("Incomplete input stream, expected at least " + std::to_string(count) + " more bytes");
-
-        if (str) // If str == nullptr, just silently consume requested amount of data.
-            std::memcpy(str, &buffer_[offset_], count);
-
-        offset_ += count;
-
-        return *this;
-    }
-
-private:
-    std::size_t available() const {
-        if (offset_ < buffer_.size())
-            return (buffer_.size() - offset_);
-
-        return 0;
-    }
-
-    void tryPrepare(std::size_t count) {
-        const auto avail = available();
-
-        if (avail < count) {
-            static constexpr std::size_t min_read_size = 1 << 13; // 8 KB
-
-            const auto to_read = std::max<std::size_t>(min_read_size, count - avail);
-            const auto tail_capacity = buffer_.capacity() - buffer_.size();
-            const auto free_capacity = tail_capacity + offset_;
-
-            if (tail_capacity < to_read) { // Reallocation or at least compacting have to be done.
-                if (free_capacity < to_read) { // Reallocation is unavoidable. Compact the buffer while doing it.
-                    if (avail > 0) {
-                        decltype(buffer_) tmp;
-                        resize_without_initialization(tmp, avail + to_read);
-                        std::memcpy(&tmp[0], &buffer_[offset_], avail);
-                        buffer_.swap(tmp);
-                    }
-                    else {
-                        buffer_.clear();
-                        resize_without_initialization(buffer_, to_read);
-                    }
-                }
-                else { // Compacting the buffer is enough.
-                    std::memmove(&buffer_[0], &buffer_[offset_], avail);
-                    resize_without_initialization(buffer_, avail + to_read);
-                }
-                offset_ = 0;
-            }
-            else {
-                resize_without_initialization(buffer_, buffer_.size() + to_read);
-            }
-
-            raw_stream_.read(&buffer_[offset_ + avail], to_read);
-
-            if (raw_stream_.gcount() < to_read)
-                buffer_.resize(buffer_.size() - (to_read - raw_stream_.gcount()));
-        }
-    }
-
-private:
-    std::istream & raw_stream_;
-    std::size_t offset_ = 0;
-    std::string buffer_;
 };
 
 // Parses "Value List Arguments" of catalog functions.

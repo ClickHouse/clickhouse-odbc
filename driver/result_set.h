@@ -2,6 +2,8 @@
 
 #include "driver/platform/platform.h"
 #include "driver/utils/utils.h"
+#include "driver/utils/object_pool.h"
+#include "driver/utils/amortized_istream_reader.h"
 #include "driver/utils/type_parser.h"
 #include "driver/utils/type_info.h"
 

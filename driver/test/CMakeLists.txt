@@ -61,7 +61,11 @@ function (declare_odbc_test_targets libname UNICODE)
         client_utils.h
         client_test_base.h
         ${PROJECT_SOURCE_DIR}/driver/utils/type_info.cpp
-        ${PROJECT_SOURCE_DIR}/driver/utils/unicode_conv.h
+        ${PROJECT_SOURCE_DIR}/driver/utils/unicode_converter.cpp
+        ${PROJECT_SOURCE_DIR}/driver/utils/conversion_context.cpp
+        ${PROJECT_SOURCE_DIR}/driver/utils/conversion.h
+        ${PROJECT_SOURCE_DIR}/driver/utils/conversion_std.h
+        ${PROJECT_SOURCE_DIR}/driver/utils/conversion_icu.h
         misc_it.cpp
         statement_parameters_it.cpp
         performance_it.cpp
@@ -76,7 +80,14 @@ function (declare_odbc_test_targets libname UNICODE)
         PRIVATE ${CMAKE_DL_LIBS}
     )
 
+    if (CH_ODBC_USE_ICU)
+        target_link_libraries (${libname}-client-it
+            PRIVATE ICU::uc
+        )
+    endif ()
+
     target_include_directories (${libname}-client-it
+        PRIVATE ${FOLLY_INLUDE_DIR}      # TODO: switch to linking with folly lib target?
         PRIVATE ${PROJECT_BINARY_DIR}
         PRIVATE ${PROJECT_SOURCE_DIR}
     )
