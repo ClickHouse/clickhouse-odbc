@@ -21,8 +21,8 @@ curl https://clickhouse-builds.s3.yandex.net/0/381947509a4f66236f943beaefb0b1f5c
 curl https://clickhouse-builds.s3.yandex.net/0/381947509a4f66236f943beaefb0b1f5c2fd979d/1570028580_binary/clickhouse-odbc-bridge -o usr/bin/clickhouse-odbc-bridge
 
 echo 3. Download configs
-curl https://raw.githubusercontent.com/ClickHouse/ClickHouse/master/programs/server/config.xml -o etc/clickhouse-server/config.xml
-curl https://raw.githubusercontent.com/ClickHouse/ClickHouse/master/programs/server/users.xml -o etc/clickhouse-server/users.xml
+curl https://raw.githubusercontent.com/ClickHouse/ClickHouse/v20.1.9.54-stable/dbms/programs/server/config.xml -o etc/clickhouse-server/config.xml
+curl https://raw.githubusercontent.com/ClickHouse/ClickHouse/v20.1.9.54-stable/dbms/programs/server/users.xml -o etc/clickhouse-server/users.xml
 
 echo 4. Setup executables
 pushd usr/bin/
