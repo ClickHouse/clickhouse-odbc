@@ -1,4 +1,5 @@
 #include "driver/format/RowBinaryWithNamesAndTypes.h"
+#include "driver/utils/resize_without_initialization.h"
 
 #include <ctime>
 
@@ -24,7 +25,7 @@ RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(Amortiz
             columns_info[i].assignTypeInfo(ast);
         }
         else {
-            // Interpret all unknown types as String.
+            // Interpret all unparsable types as String.
             columns_info[i].type_without_parameters = "String";
         }
 

@@ -478,7 +478,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDriverConnect)(
             if (StringLength1 > 0)
                 out_buffer_length = StringLength1;
             else if (StringLength1 == SQL_NTS)
-                out_buffer_length = NTSStringLength(InConnectionString) + 1; // +1 for null terminating character
+                out_buffer_length = stringBufferLength(InConnectionString);
             else
                 out_buffer_length = 1024; // ...as per SQLDriverConnect() doc: "Applications should allocate at least 1,024 characters for this buffer."
         }
@@ -1013,9 +1013,14 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
 
                 if (parser.parse(&ast)) {
                     tmp_column_info.assignTypeInfo(ast);
+
+                    if (convertUnparametrizedTypeNameToTypeId(tmp_column_info.type_without_parameters) == DataSourceTypeId::Unknown) {
+                        // Interpret all unknown types as String.
+                        tmp_column_info.type_without_parameters = "String";
+                    }
                 }
                 else {
-                    // Interpret all unknown types as String.
+                    // Interpret all unparsable types as String.
                     tmp_column_info.type_without_parameters = "String";
                 }
 

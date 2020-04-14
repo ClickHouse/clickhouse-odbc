@@ -62,7 +62,7 @@ void ColumnInfo::assignTypeInfo(const TypeAst & ast) {
         assignTypeInfo(ast.elements.front());
     }
     else {
-        // Interpret all unsupported types as String.
+        // Interpret all types with unrecognized ASTs as String.
         type_without_parameters = "String";
     }
 }
@@ -97,24 +97,6 @@ void ColumnInfo::updateTypeInfo() {
             break;
         }
     }
-}
-
-SQLRETURN Field::extract(BindingInfo & binding_info) const {
-    return std::visit([&binding_info] (auto & value) {
-        if constexpr (std::is_same_v<DataSourceType<DataSourceTypeId::Nothing>, std::decay_t<decltype(value)>>) {
-            return fillOutputNULL(binding_info.value, binding_info.value_max_size, binding_info.indicator);
-        }
-        else {
-            return writeDataFrom(value, binding_info);
-        }
-    }, data);
-}
-
-SQLRETURN Row::extractField(std::size_t column_idx, BindingInfo & binding_info) const {
-    if (column_idx >= fields.size())
-        throw SqlException("Invalid descriptor index", "07009");
-
-    return fields[column_idx].extract(binding_info);
 }
 
 ResultSet::ResultSet(AmortizedIStreamReader & str, std::unique_ptr<ResultMutator> && mutator)
@@ -202,11 +184,11 @@ std::size_t ResultSet::getAffectedRowCount() const {
     return affected_row_count;
 }
 
-SQLRETURN ResultSet::extractField(std::size_t row_idx, std::size_t column_idx, BindingInfo & binding_info) const {
+SQLRETURN ResultSet::extractField(std::size_t row_idx, std::size_t column_idx, BindingInfo & binding_info) {
     if (row_idx >= row_set.size())
         throw SqlException("Invalid cursor position", "HY109");
 
-    return row_set[row_idx].extractField(column_idx, binding_info);
+    return row_set[row_idx].extractField(column_idx, binding_info, conversion_context);
 }
 
 void ResultSet::tryPrefetchRows(std::size_t size) {
@@ -322,7 +304,7 @@ std::unique_ptr<ResultReader> make_result_reader(const std::string & format, std
         return std::make_unique<ODBCDriver2ResultReader>(raw_stream, std::move(mutator));
     }
     else if (format == "RowBinaryWithNamesAndTypes") {
-        if (!is_little_endian())
+        if (!isLittleEndian())
             throw std::runtime_error("'" + format + "' format is supported only on little-endian platforms");
 
         return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(raw_stream, std::move(mutator));
