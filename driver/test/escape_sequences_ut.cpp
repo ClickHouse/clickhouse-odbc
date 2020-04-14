@@ -37,32 +37,32 @@ TEST(EscapeSequencesCase, ParseIdent7) {
         "SELECT SUM(toInt64(`0 a b $ c`.abc.`0 a b $ c`))");
 }
 
-TEST(EscapeSequencesCase, ParseIdentX1) {
+TEST(EscapeSequencesCase, ParseIdent_Negative1) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(0 a b $ c, SQL_BIGINT)})"),
         "SELECT SUM({fn CONVERT(0 a b $ c, SQL_BIGINT)})");
 }
 
-TEST(EscapeSequencesCase, ParseIdentX2) {
+TEST(EscapeSequencesCase, ParseIdent_Negative2) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(.abc, SQL_BIGINT)})"),
         "SELECT SUM({fn CONVERT(.abc, SQL_BIGINT)})");
 }
 
-TEST(EscapeSequencesCase, ParseIdentX3) {
+TEST(EscapeSequencesCase, ParseIdent_Negative3) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(.`abc`, SQL_BIGINT)})"),
         "SELECT SUM({fn CONVERT(.`abc`, SQL_BIGINT)})");
 }
 
-TEST(EscapeSequencesCase, ParseIdentX4) {
+TEST(EscapeSequencesCase, ParseIdent_Negative4) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(abc., SQL_BIGINT)})"),
         "SELECT SUM({fn CONVERT(abc., SQL_BIGINT)})");
 }
 
-TEST(EscapeSequencesCase, ParseIdentX5) {
+TEST(EscapeSequencesCase, ParseIdent_Negative5) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(`abc`., SQL_BIGINT)})"),
         "SELECT SUM({fn CONVERT(`abc`., SQL_BIGINT)})");
 }
 
-TEST(EscapeSequencesCase, ParseIdentX6) {
+TEST(EscapeSequencesCase, ParseIdent_Negative6) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(abc..abc, SQL_BIGINT)})"),
         "SELECT SUM({fn CONVERT(abc..abc, SQL_BIGINT)})");
 }
