@@ -120,15 +120,18 @@ string processIdentOrFunction(const StringView seq, Lexer & lex) {
         lex.SetEmitSpaces(true);
     } else if (token.type == Token::LPARENT) {
         result += processParentheses(seq, lex);
-    } else if (token.type == Token::IDENT && lex.LookAhead(1).type == Token::LPARENT) { // CAST( ... )
+    } else if (function_map_strip_params.find(token.type) != function_map_strip_params.end()) {
+        result += function_map_strip_params.at(token.type);
+    } else if ( // any of the remaining recognized FUNCTION( ... ), or any IDENT( ... ), including CAST( ... )
+        (token.type == Token::IDENT || function_map.find(token.type) != function_map.end()) &&
+        lex.LookAhead(1).type == Token::LPARENT
+    ) {
         result += token.literal.to_string();                                            // func name
         lex.Consume();
         result += processParentheses(seq, lex);
     } else if (token.type == Token::NUMBER || token.type == Token::IDENT || token.type == Token::STRING) {
         result += token.literal.to_string();
         lex.Consume();
-    } else if (function_map_strip_params.find(token.type) != function_map_strip_params.end()) {
-        result += function_map_strip_params.at(token.type);
     } else {
         return "";
     }
@@ -267,6 +270,14 @@ string processFunction(const StringView seq, Lexer & lex) {
         lex.Consume();
         return "( toRelativeDayNum(" + param + ") - toRelativeDayNum(toStartOfYear(" + param + ")) + 1 )";
 */
+    } else if (function_map_strip_params.find(fn.type) != function_map_strip_params.end()) {
+        string result = function_map_strip_params.at(fn.type);
+
+        if (lex.Peek().type == Token::LPARENT) {
+            processParentheses(seq, lex); // ignore anything inside ( )
+        }
+
+        return result;
     } else if (function_map.find(fn.type) != function_map.end()) {
         string result = function_map.at(fn.type);
         auto func = result;
@@ -293,15 +304,6 @@ string processFunction(const StringView seq, Lexer & lex) {
             }
         }
         lex.SetEmitSpaces(false);
-
-        return result;
-
-    } else if (function_map_strip_params.find(fn.type) != function_map_strip_params.end()) {
-        string result = function_map_strip_params.at(fn.type);
-
-        if (lex.Peek().type == Token::LPARENT) {
-            processParentheses(seq, lex); // ignore anything inside ( )
-        }
 
         return result;
     }
