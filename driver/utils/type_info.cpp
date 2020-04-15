@@ -327,71 +327,75 @@ bool isStreamParam(SQLSMALLINT param_io_type) noexcept {
 }
 
 std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info) {
+    const auto set_nullability = [is_nullable = type_info.is_nullable] (const std::string & type_name) {
+        return (is_nullable ? "Nullable(" + type_name + ")" : type_name);
+    };
+
     std::string type_name;
 
     switch (type_info.c_type) {
         case SQL_C_WCHAR:
         case SQL_C_CHAR:
-            type_name = "String";
+            type_name = set_nullability("String");
             break;
 
         case SQL_C_BIT:
-            type_name = "UInt8";
+            type_name = set_nullability("UInt8");
             break;
 
         case SQL_C_TINYINT:
         case SQL_C_STINYINT:
-            type_name = "Int8";
+            type_name = set_nullability("Int8");
             break;
 
         case SQL_C_UTINYINT:
-            type_name = "UInt8";
+            type_name = set_nullability("UInt8");
             break;
 
         case SQL_C_SHORT:
         case SQL_C_SSHORT:
-            type_name = "Int16";
+            type_name = set_nullability("Int16");
             break;
 
         case SQL_C_USHORT:
-            type_name = "UInt16";
+            type_name = set_nullability("UInt16");
             break;
 
         case SQL_C_LONG:
         case SQL_C_SLONG:
-            type_name = "Int32";
+            type_name = set_nullability("Int32");
             break;
 
         case SQL_C_ULONG:
-            type_name = "UInt32";
+            type_name = set_nullability("UInt32");
             break;
 
         case SQL_C_SBIGINT:
-            type_name = "Int64";
+            type_name = set_nullability("Int64");
             break;
 
         case SQL_C_UBIGINT:
-            type_name = "UInt64";
+            type_name = set_nullability("UInt64");
             break;
 
         case SQL_C_FLOAT:
-            type_name = "Float32";
+            type_name = set_nullability("Float32");
             break;
 
         case SQL_C_DOUBLE:
-            type_name = "Float64";
+            type_name = set_nullability("Float64");
             break;
 
         case SQL_C_NUMERIC:
-            type_name = "Decimal(" + std::to_string(type_info.precision) + ", " + std::to_string(type_info.scale) + ")";
+            type_name = set_nullability("Decimal(" + std::to_string(type_info.precision) + ", " + std::to_string(type_info.scale) + ")");
             break;
 
         case SQL_C_BINARY:
-            type_name = (type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
+            type_name = set_nullability(type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
             break;
 
         case SQL_C_GUID:
-            type_name = "UUID";
+            type_name = set_nullability("UUID");
             break;
 
 //      case SQL_C_BOOKMARK:
@@ -399,17 +403,17 @@ std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info) {
 
         case SQL_C_DATE:
         case SQL_C_TYPE_DATE:
-            type_name = "Date";
+            type_name = set_nullability("Date");
             break;
 
         case SQL_C_TIME:
         case SQL_C_TYPE_TIME:
-            type_name = "LowCardinality(String)";
+            type_name = "LowCardinality(" + set_nullability("String") + ")";
             break;
 
         case SQL_C_TIMESTAMP:
         case SQL_C_TYPE_TIMESTAMP:
-            type_name = "DateTime";
+            type_name = set_nullability("DateTime");
             break;
 
         case SQL_C_INTERVAL_YEAR:
@@ -425,98 +429,99 @@ std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info) {
         case SQL_C_INTERVAL_HOUR_TO_MINUTE:
         case SQL_C_INTERVAL_HOUR_TO_SECOND:
         case SQL_C_INTERVAL_MINUTE_TO_SECOND:
-            type_name = "LowCardinality(String)";
+            type_name = "LowCardinality(" + set_nullability("String") + ")";
             break;
     }
 
     if (type_name.empty())
         throw std::runtime_error("Unable to deduce data source type from C type");
 
-    if (type_info.is_nullable)
-        type_name = "Nullable(" + type_name + ")";
-
     return type_name;
 }
 
 std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info) {
+    const auto set_nullability = [is_nullable = type_info.is_nullable] (const std::string & type_name) {
+        return (is_nullable ? "Nullable(" + type_name + ")" : type_name);
+    };
+
     std::string type_name;
 
     switch (type_info.sql_type) {
         case SQL_WCHAR:
         case SQL_CHAR:
-            type_name = "String";
+            type_name = set_nullability("String");
             break;
 
         case SQL_WVARCHAR:
         case SQL_VARCHAR:
-            type_name = "LowCardinality(String)";
+            type_name = "LowCardinality(" + set_nullability("String") + ")";
             break;
 
         case SQL_WLONGVARCHAR:
         case SQL_LONGVARCHAR:
-            type_name = "String";
+            type_name = set_nullability("String");
             break;
 
         case SQL_BIT:
-            type_name = "UInt8";
+            type_name = set_nullability("UInt8");
             break;
 
         case SQL_TINYINT:
-            type_name = "Int8";
+            type_name = set_nullability("Int8");
             break;
 
         case SQL_SMALLINT:
-            type_name = "Int16";
+            type_name = set_nullability("Int16");
             break;
 
         case SQL_INTEGER:
-            type_name = "Int32";
+            type_name = set_nullability("Int32");
             break;
 
         case SQL_BIGINT:
-            type_name = "Int64";
+            type_name = set_nullability("Int64");
             break;
 
         case SQL_REAL:
-            type_name = "Float32";
+            type_name = set_nullability("Float32");
             break;
 
         case SQL_FLOAT:
         case SQL_DOUBLE:
-            type_name = "Float64";
+            type_name = set_nullability("Float64");
             break;
 
         case SQL_DECIMAL:
         case SQL_NUMERIC:
-            type_name = "Decimal(" + std::to_string(type_info.precision) + ", " + std::to_string(type_info.scale) + ")";
+            type_name = set_nullability("Decimal(" + std::to_string(type_info.precision) + ", " + std::to_string(type_info.scale) + ")");
             break;
 
         case SQL_BINARY:
-            type_name = (type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
+            type_name = set_nullability(type_info.value_max_size > 0 ? ("FixedString(" + std::to_string(type_info.value_max_size) + ")") : "String");
             break;
 
         case SQL_VARBINARY:
-            type_name = "LowCardinality(String)";
+            type_name = "LowCardinality(" + set_nullability("String") + ")";
             break;
 
         case SQL_LONGVARBINARY:
-            type_name = "String";
+            type_name = set_nullability("String");
             break;
 
         case SQL_GUID:
-            type_name = "UUID";
+            type_name = set_nullability("UUID");
             break;
 
         case SQL_TYPE_DATE:
-            type_name = "Date";
+            type_name = set_nullability("Date");
             break;
 
         case SQL_TYPE_TIME:
-            type_name = "LowCardinality(String)";
+            type_name = "LowCardinality(" + set_nullability("String") + ")";
             break;
 
         case SQL_TYPE_TIMESTAMP:
-            type_name = "DateTime";
+            type_name = set_nullability("DateTime");
             break;
 
         case SQL_INTERVAL_MONTH:
@@ -532,15 +537,12 @@ std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info) {
         case SQL_INTERVAL_HOUR_TO_MINUTE:
         case SQL_INTERVAL_HOUR_TO_SECOND:
         case SQL_INTERVAL_MINUTE_TO_SECOND:
-            type_name = "LowCardinality(String)";
+            type_name = "LowCardinality(" + set_nullability("String") + ")";
             break;
     }
 
     if (type_name.empty())
         throw std::runtime_error("Unable to deduce data source type from SQL type");
-
-    if (type_info.is_nullable)
-        type_name = "Nullable(" + type_name + ")";
 
     return type_name;
 }
