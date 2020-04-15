@@ -715,7 +715,7 @@ namespace value_manip {
             if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
                 throw std::runtime_error("Cannot interpret '" + src + "' as long integer: value out of range");
 
-            dest = static_cast<long>(tmp);
+            dest = static_cast<long_if_not_typedefed::type>(tmp);
         }
     };
 
@@ -794,7 +794,7 @@ namespace value_manip {
             if (std::numeric_limits<DestinationType>::max() < tmp || tmp < std::numeric_limits<DestinationType>::min())
                 throw std::runtime_error("Cannot interpret '" + src + "' as unsigned long integer: value out of range");
 
-            dest = static_cast<std::uint32_t>(tmp);
+            dest = static_cast<unsigned_long_if_not_typedefed::type>(tmp);
         }
     };
 
