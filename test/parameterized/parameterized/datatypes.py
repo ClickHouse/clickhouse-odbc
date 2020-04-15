@@ -69,7 +69,7 @@ def check_datatype(connection, datatype, values, nullable=False, quote=False, re
                     connection.query("DROP TABLE ps", fetch=False)
 
 @TestScenario
-def sanity_check(connection):
+def sanity_check(self, connection):
     """Check connection to the database.
     """
     with Given("PyODBC connection"):
@@ -82,7 +82,7 @@ def sanity_check(connection):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Int8("1.0"))
-def Int8(connection, nullable=False):
+def Int8(self, connection, nullable=False):
     """Verify support for Int8 data type."""
     check_datatype(connection, "Int8", [-128, 0, 127], expected={
             "all": "[(-128, ), (0, ), (127, )]",
@@ -93,7 +93,7 @@ def Int8(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Int16("1.0"))
-def Int16(connection, nullable=False):
+def Int16(self, connection, nullable=False):
     """Verify support for Int16 data type."""
     check_datatype(connection, "Int16", [-32768, 0, 32767], expected={
             "all": "[(-32768, ), (0, ), (32767, )]",
@@ -104,7 +104,7 @@ def Int16(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Int32("1.0"))
-def Int32(connection, nullable=False):
+def Int32(self, connection, nullable=False):
     """Verify support for Int32 data type."""
     check_datatype(connection, "Int32", [-2147483648, 0, 2147483647], expected={
             "all": "[(-2147483648, ), (0, ), (2147483647, )]",
@@ -115,7 +115,7 @@ def Int32(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Int64("1.0"))
-def Int64(connection, nullable=False):
+def Int64(self, connection, nullable=False):
     """Verify support for Int64 data type."""
     check_datatype(connection, "Int64", [-9223372036854775808, 0, 9223372036854775807], expected={
             "all": "[(-9223372036854775808, ), (0, ), (9223372036854775807, )]",
@@ -126,7 +126,7 @@ def Int64(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_UInt8("1.0"))
-def UInt8(connection, nullable=False):
+def UInt8(self, connection, nullable=False):
     """Verify support for UInt8 data type."""
     check_datatype(connection, "UInt8", [0, 255], expected={
             "all": "[(0, ), (255, )]",
@@ -136,7 +136,7 @@ def UInt8(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_UInt16("1.0"))
-def UInt16(connection, nullable=False):
+def UInt16(self, connection, nullable=False):
     """Verify support for UInt16 data type."""
     check_datatype(connection, "UInt16", [0, 65535], expected={
             "all": "[(0, ), (65535, )]",
@@ -146,7 +146,7 @@ def UInt16(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_UInt32("1.0"))
-def UInt32(connection, nullable=False):
+def UInt32(self, connection, nullable=False):
     """Verify support for UInt32 data type."""
     check_datatype(connection, "UInt32", [0, 4294967295], expected={
             "all": "[(0, ), (4294967295, )]",
@@ -156,7 +156,7 @@ def UInt32(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_UInt64("1.0"))
-def UInt64(connection, nullable=False):
+def UInt64(self, connection, nullable=False):
     """Verify support for UInt64 data type."""
     check_datatype(connection, "UInt64", [0, 18446744073709551615], expected={
             "all": "[(0, ), (18446744073709551615, )]",
@@ -170,7 +170,7 @@ def UInt64(connection, nullable=False):
     RQ_SRS_003_ParameterizedQueries_DataType_Select_Float32_Inf("1.0"),
     RQ_SRS_003_ParameterizedQueries_DataType_Select_Float32_NaN("1.0")
 )
-def Float32(connection, nullable=False):
+def Float32(self, connection, nullable=False):
     """Verify support for Float32 data type."""
     check_datatype(connection, "Float32", [-1, 0, float("inf"), float("-inf"), float("nan"), 13.26], expected={
             "all": "[(-inf, ), (-1.0, ), (0.0, ), (13.26, ), (inf, ), (nan, )]",
@@ -188,7 +188,7 @@ def Float32(connection, nullable=False):
     RQ_SRS_003_ParameterizedQueries_DataType_Select_Float64_Inf("1.0"),
     RQ_SRS_003_ParameterizedQueries_DataType_Select_Float64_NaN("1.0")
 )
-def Float64(connection, nullable=False):
+def Float64(self, connection, nullable=False):
     """Verify support for Float64 data type."""
     check_datatype(connection, "Float64", [-1, 0, float("inf"), 13.26, float("-inf"), float("nan")], expected={
             "all": "[(-inf, ), (-1.0, ), (0.0, ), (13.26, ), (inf, ), (nan, )]",
@@ -202,7 +202,7 @@ def Float64(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Decimal32("1.0"))
-def Decimal32(connection, nullable=False):
+def Decimal32(self, connection, nullable=False):
     """Verify support for Decimal32 data type."""
     expected = {
         "all": "[((Decimal('-99999.9999'), ), (Decimal('10.1234'), ), (Decimal('99999.9999'), )]",
@@ -219,7 +219,7 @@ def Decimal32(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Decimal64("1.0"))
-def Decimal64(connection, nullable=False):
+def Decimal64(self, connection, nullable=False):
     """Verify support for Decimal64 data type."""
     expected = {
         "all": "[((Decimal('-99999999999999.9999'), ), (Decimal('10.1234'), ), (Decimal('99999999999999.9999'), )]",
@@ -236,7 +236,7 @@ def Decimal64(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Decimal128("1.0"))
-def Decimal128(connection, nullable=False):
+def Decimal128(self, connection, nullable=False):
     """Verfiy support for Decimal128 data type."""
     expected = {
         "all": "[((Decimal('-9999999999999999999999999999999999.9999'), ), (Decimal('10.1234'), ), (Decimal('9999999999999999999999999999999999.9999'), )]",
@@ -253,7 +253,7 @@ def Decimal128(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_String("1.0"))
-def String(connection, nullable=False):
+def String(self, connection, nullable=False):
     """Verify support for String data type."""
 
     with Scenario("empty",
@@ -347,7 +347,7 @@ def String(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_FixedString("1.0"))
-def FixedString(connection, nullable=False):
+def FixedString(self, connection, nullable=False):
     """Verify support for FixedString data type."""
     with Scenario("utf8", flags=TE, description="UTF-8 encoding"):
         values = [
@@ -381,7 +381,7 @@ def FixedString(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Date("1.0"))
-def Date(connection, nullable=False):
+def Date(self, connection, nullable=False):
     """Verify support for Date date type."""
     values = [
         datetime.date(1970, 3, 3),
@@ -398,7 +398,7 @@ def Date(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_DateTime("1.0"))
-def DateTime(connection, nullable=False):
+def DateTime(self, connection, nullable=False):
     """Verify support for DateTime data type."""
     values = [
         datetime.datetime(1970, 3, 3, 0, 0, 0),
@@ -415,7 +415,7 @@ def DateTime(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Enum("1.0"))
-def Enum(connection, nullable=False):
+def Enum(self, connection, nullable=False):
     """Verify support for Enum data type."""
     with Scenario("utf8", flags=TE, description="UTF-8 encoding"):
         key0 = b'\xe5\x8d\xb0'.decode('utf-8')
@@ -435,7 +435,7 @@ def Enum(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_UUID("1.0"))
-def UUID(connection, nullable=False):
+def UUID(self, connection, nullable=False):
     """Verify support for UUID data type."""
     uuid0 = "417ddc5d-e556-4d27-95dd-a34d84e46a50"
     uuid1 = "417ddc5d-e556-4d27-95dd-a34d84e46a51"
@@ -452,7 +452,7 @@ def UUID(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_IPv4("1.0"))
-def IPv4(connection, nullable=False):
+def IPv4(self, connection, nullable=False):
     """Verify support for IPv4 data type."""
     ipv40 = "116.106.34.242"
     ipv41 = "116.253.40.133"
@@ -467,7 +467,7 @@ def IPv4(connection, nullable=False):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_IPv6("1.0"))
-def IPv6(connection, nullable=False):
+def IPv6(self, connection, nullable=False):
     """Verify support for IPv6 data type."""
     ipv60 = "2001:44c8:129:2632:33:0:252:2"
     ipv61 = "2a02:e980:1e::1"
@@ -482,13 +482,13 @@ def IPv6(connection, nullable=False):
 
 @TestFeature
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Nullable("1.0"))
-def nullable():
+def nullable(self):
     """Check support for Nullable data types."""
     datatypes(args={"nullable": True})
 
 @TestFeature
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataTypes("1.0"))
-def datatypes(nullable=False):
+def datatypes(self, nullable=False):
     """Check clickhouse-odbc driver support for parameterized
     queries with various data types using pyodbc connector.
     """

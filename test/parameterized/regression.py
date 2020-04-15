@@ -12,7 +12,7 @@ from requirements.QA_SRS003_ParameterizedQueries import *
     RQ_SRS_003_ParameterizedQueries_pyodbc("1.0"),
     RQ_SRS_003_ParameterizedQueries_Syntax_Select_Parameters("1.0")
 )
-def parameterized():
+def parameterized(self):
     """Test suite for clickhouse-odbc support of parameterized queries.
     """
     dsn = os.getenv("DSN", "ClickHouse DSN (ANSI)")
@@ -23,7 +23,7 @@ def parameterized():
         run(test=load("parameterized.funcvalues", test="funcvalues"), flags=TE)
 
 @TestModule
-def regression():
+def regression(self):
     """The regression module for clickhouse-odbc driver.
     """
     run(test=parameterized, flags=TE)
