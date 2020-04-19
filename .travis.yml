@@ -361,6 +361,8 @@ install: |-
     PY3_USER_SITE_PATH="$(py -3 -m site --user-site)"
     export PATH="${PY3_USER_SITE_PATH//\\//}/../Scripts:$PATH"
 
+    echo $PATH
+
     py -3 -m pip install --user conan
   fi
 
