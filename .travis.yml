@@ -313,6 +313,7 @@ before_install: |-
   if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     sudo apt-get update -q
   elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+    sudo installer -pkg /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_*.pkg -target /
     cd "$(brew --repo)" && git fetch && git reset --hard origin/master && cd -
     brew update
   elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
