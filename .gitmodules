@@ -18,3 +18,7 @@
     path = contrib/folly
     url = https://github.com/facebook/folly.git
     branch = master
+[submodule "cmake/conan"]
+	path = cmake/conan
+	url = https://github.com/conan-io/cmake-conan.git
+	branch = master
