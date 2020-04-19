@@ -326,8 +326,12 @@ install: |-
 
     sudo apt-get install -y build-essential cmake perl libdbi-perl libdbd-odbc-perl python python3 python-pip python-setuptools python3-pip python3-setuptools
 
-    pip install --user pyodbc
-    pip3 install --user pyodbc conan
+    if [[ "$ODBC_PROVIDER" == "UnixODBC" ]]; then
+      pip install --user pyodbc
+      pip3 install --user pyodbc
+    fi
+
+    pip3 install --user conan
   elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     # brew install cmake perl python
 
