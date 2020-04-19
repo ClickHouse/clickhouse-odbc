@@ -173,6 +173,7 @@ target_link_libraries (${libname}-impl
 if (CH_ODBC_USE_ICU)
     target_link_libraries (${libname}-impl
         PUBLIC ICU::uc
+        PUBLIC ICU::dt
     )
 endif ()
 
@@ -224,6 +225,6 @@ endfunction ()
 declare_odbc_lib_targets (clickhouse-odbc 0)
 declare_odbc_lib_targets (clickhouse-odbcw 1)
 
-if (CH_ODBC_ENABLE_TESTING)
+if (BUILD_TESTING)
     add_subdirectory (test)
 endif ()

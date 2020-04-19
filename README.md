@@ -142,23 +142,31 @@ See the exact steps for each platform in the corresponding section below:
 
 The list of configuration options recognized during the CMake generation step is as follows:
 
-|                 Option                 |                        Default value                         | Description                                                                              |
-| :------------------------------------: | :----------------------------------------------------------: | :--------------------------------------------------------------------------------------- |
-|           `CMAKE_BUILD_TYPE`           |                       `RelWithDebInfo`                       | Build type, one of: `Debug`, `Release`, `RelWithDebInfo`                                 |
-|    `CH_ODBC_ALLOW_UNSAFE_DISPATCH`     |                             `ON`                             | Allow unchecked handle dispatching (may slightly increase performance in some scenarios) |
-|          `CH_ODBC_ENABLE_SSL`          |                             `ON`                             | Enable TLS/SSL (required for utilizing `https://` interface, etc.)                       |
-|        `CH_ODBC_ENABLE_INSTALL`        |                             `ON`                             | Enable install targets (required for packaging)                                          |
-|        `CH_ODBC_ENABLE_TESTING`        |              inherits value of `BUILD_TESTING`               | Enable test targets                                                                      |
-| `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` |                             `ON`                             | Prefer bundled over system variants of third party libraries                             |
-|     `CH_ODBC_PREFER_BUNDLED_POCO`      |   inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES`   | Prefer bundled over system variants of Poco library                                      |
-|      `CH_ODBC_PREFER_BUNDLED_SSL`      |       inherits value of `CH_ODBC_PREFER_BUNDLED_POCO`        | Prefer bundled over system variants of TLS/SSL library                                   |
-|  `CH_ODBC_PREFER_BUNDLED_GOOGLETEST`   |   inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES`   | Prefer bundled over system variants of Google Test library                               |
-|    `CH_ODBC_PREFER_BUNDLED_NANODBC`    |   inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES`   | Prefer bundled over system variants of nanodbc library                                   |
-|     `CH_ODBC_RUNTIME_LINK_STATIC`      |                            `OFF`                             | Link with compiler and language runtime statically                                       |
-|   `CH_ODBC_THIRD_PARTY_LINK_STATIC`    |                             `ON`                             | Link with third party libraries statically                                               |
-|       `CH_ODBC_DEFAULT_DSN_ANSI`       |                   `ClickHouse DSN (ANSI)`                    | Default ANSI DSN name                                                                    |
-|     `CH_ODBC_DEFAULT_DSN_UNICODE`      |                  `ClickHouse DSN (Unicode)`                  | Default Unicode DSN name                                                                 |
-|            `TEST_DSN_LIST`             | `${CH_ODBC_DEFAULT_DSN_ANSI};${CH_ODBC_DEFAULT_DSN_UNICODE}` | `;`-separated list of DSNs, each test will be executed with each of these DSNs           |
+|               Option               |                        Default value                         | Description                                                                              |
+| :--------------------------------: | :----------------------------------------------------------: | :--------------------------------------------------------------------------------------- |
+|         `CMAKE_BUILD_TYPE`         |                       `RelWithDebInfo`                       | Build type, one of: `Debug`, `Release`, `RelWithDebInfo`                                 |
+|  `CH_ODBC_ALLOW_UNSAFE_DISPATCH`   |                             `ON`                             | Allow unchecked handle dispatching (may slightly increase performance in some scenarios) |
+|        `CH_ODBC_ENABLE_SSL`        |                             `ON`                             | Enable TLS/SSL (required for utilizing `https://` interface, etc.)                       |
+|      `CH_ODBC_ENABLE_INSTALL`      |                             `ON`                             | Enable install targets (required for packaging)                                          |
+|          `BUILD_TESTING`           |                             `ON`                             | Enable test targets                                                                      |
+|   `CH_ODBC_RUNTIME_LINK_STATIC`    |                            `OFF`                             | Link with compiler and language runtime statically                                       |
+| `CH_ODBC_USE_SYSTEM_THIRD_PARTIES` |                            `OFF`                             | Use system variants of third party libraries                                             |
+| `CH_ODBC_THIRD_PARTY_LINK_STATIC`  |                             `ON`                             | Link with third party libraries statically                                               |
+|      `CH_ODBC_USE_SYSTEM_ICU`      |     inherits value of `CH_ODBC_USE_SYSTEM_THIRD_PARTIES`     | Use system variant of ICU library                                                        |
+|     `CH_ODBC_USE_SYSTEM_POCO`      |     inherits value of `CH_ODBC_USE_SYSTEM_THIRD_PARTIES`     | Use system variant of Poco library                                                       |
+|      `CH_ODBC_USE_SYSTEM_SSL`      |         inherits value of `CH_ODBC_USE_SYSTEM_POCO`          | Use system variant of TLS/SSL library                                                    |
+|     `CH_ODBC_USE_SYSTEM_FOLLY`     |     inherits value of `CH_ODBC_USE_SYSTEM_THIRD_PARTIES`     | Use system variant of Folly library                                                      |
+|  `CH_ODBC_USE_SYSTEM_GOOGLETEST`   |     inherits value of `CH_ODBC_USE_SYSTEM_THIRD_PARTIES`     | Use system variant of Google Test library                                                |
+|    `CH_ODBC_USE_SYSTEM_NANODBC`    |     inherits value of `CH_ODBC_USE_SYSTEM_THIRD_PARTIES`     | Use system variant of nanodbc library                                                    |
+|     `CH_ODBC_ICU_LINK_STATIC`      |     inherits value of `CH_ODBC_THIRD_PARTY_LINK_STATIC`      | Link with ICU library statically                                                         |
+|     `CH_ODBC_POCO_LINK_STATIC`     |     inherits value of `CH_ODBC_THIRD_PARTY_LINK_STATIC`      | Link with Poco library statically                                                        |
+|     `CH_ODBC_SSL_LINK_STATIC`      |         inherits value of `CH_ODBC_POCO_LINK_STATIC`         | Link with TLS/SSL library statically                                                     |
+|    `CH_ODBC_FOLLY_LINK_STATIC`     |     inherits value of `CH_ODBC_THIRD_PARTY_LINK_STATIC`      | Link with Folly library statically                                                       |
+|  `CH_ODBC_GOOGLETEST_LINK_STATIC`  |     inherits value of `CH_ODBC_THIRD_PARTY_LINK_STATIC`      | Link with Google Test library statically                                                 |
+|   `CH_ODBC_NANODBC_LINK_STATIC`    |     inherits value of `CH_ODBC_THIRD_PARTY_LINK_STATIC`      | Link with nanodbc library statically                                                     |
+|     `CH_ODBC_DEFAULT_DSN_ANSI`     |                   `ClickHouse DSN (ANSI)`                    | Default ANSI DSN name                                                                    |
+|   `CH_ODBC_DEFAULT_DSN_UNICODE`    |                  `ClickHouse DSN (Unicode)`                  | Default Unicode DSN name                                                                 |
+|      `CH_ODBC_TEST_DSN_LIST`       | `${CH_ODBC_DEFAULT_DSN_ANSI};${CH_ODBC_DEFAULT_DSN_UNICODE}` | `;`-separated list of DSNs, each test will be executed with each of these DSNs           |
 
 Configuration options above can be specified in the first `cmake` command (generation step) in a form of `-Dopt=val`.
 
@@ -231,7 +239,7 @@ To configure already installed drivers and DSNs, or create new DSNs, use Microso
 - for 32-bit applications (and drivers) execute `%systemdrive%\Windows\SysWoW64\Odbcad32.exe`
 - for 64-bit applications (and drivers) execute `%systemdrive%\Windows\System32\Odbcad32.exe`
 
-For full description of ODBC configuration mechanism in Windows, as well as for the case when you want to learn how to manually register a driver and have a full control on configuration in general, see:
+For the full description of the ODBC configuration mechanism in Windows, as well as for the case when you want to learn how to manually register a driver and have a complete control over the configuration process in general, see:
 
 - [Installing and Configuring the ODBC Software](https://docs.microsoft.com/en-us/sql/odbc/reference/install/installing-and-configuring-the-odbc-software)
 

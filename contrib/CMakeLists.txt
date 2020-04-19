@@ -7,11 +7,7 @@ endif ()
 unset (_current_dir_name)
 
 if (CH_ODBC_ENABLE_SSL AND NOT MSVC)
-    if (CH_ODBC_PREFER_BUNDLED_SSL OR NOT OPENSSL_FOUND)
-        if (NOT OPENSSL_FOUND AND NOT CH_ODBC_PREFER_BUNDLED_SSL)
-            message (WARNING "SSL: unable to find system OpenSSL, falling back to using the bundled variant of SSL library")
-        endif ()
-
+    if (NOT CH_ODBC_USE_SYSTEM_SSL OR NOT OPENSSL_FOUND)
         set (USE_SHARED 0)
 
         if (XCODE)
@@ -31,11 +27,7 @@ if (CH_ODBC_ENABLE_SSL AND NOT MSVC)
     endif ()
 endif ()
 
-if (CH_ODBC_PREFER_BUNDLED_POCO OR NOT Poco_FOUND)
-    if (NOT Poco_FOUND AND NOT CH_ODBC_PREFER_BUNDLED_POCO)
-        message (WARNING "Poco: unable to find system Poco, falling back to using the bundled variant of the library")
-    endif ()
-
+if (NOT CH_ODBC_USE_SYSTEM_POCO OR NOT Poco_FOUND)
     if (CH_ODBC_ENABLE_SSL AND MSVC)
         set (ENABLE_NETSSL_WIN ON CACHE INTERNAL "")
     endif ()
@@ -90,21 +82,13 @@ if (MSVC)
     endif ()
 endif ()
 
-# if (CH_ODBC_PREFER_BUNDLED_FOLLY OR NOT Folly_FOUND)
-#     if (NOT Folly_FOUND AND NOT CH_ODBC_PREFER_BUNDLED_FOLLY)
-#         message (WARNING "Folly: unable to find system Folly, falling back to using the bundled variant of the library")
-#     endif ()
-#
+# if (NOT CH_ODBC_USE_SYSTEM_FOLLY OR NOT Folly_FOUND)
 #    add_subdirectory (folly)
     set (FOLLY_INLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/folly" CACHE INTERNAL "")
 # endif ()
 
-if (CH_ODBC_ENABLE_TESTING)
-    if (CH_ODBC_PREFER_BUNDLED_GOOGLETEST OR NOT GTEST_FOUND)
-        if (NOT GTEST_FOUND AND NOT CH_ODBC_PREFER_BUNDLED_GOOGLETEST)
-            message (WARNING "Google Test: unable to find system Google Test, falling back to using the bundled variant of the library")
-        endif ()
-
+if (BUILD_TESTING)
+    if (NOT CH_ODBC_USE_SYSTEM_GOOGLETEST OR NOT GTEST_FOUND)
         if (NOT CH_ODBC_RUNTIME_LINK_STATIC)
             set (gtest_force_shared_crt ON CACHE INTERNAL "")
         endif ()
@@ -124,10 +108,7 @@ if (CH_ODBC_ENABLE_TESTING)
         set_target_properties (gmock_main PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
     endif ()
 
-#   if (CH_ODBC_PREFER_BUNDLED_NANODBC OR NOT NANODBC_FOUND)
-#       if (NOT NANODBC_FOUND AND NOT CH_ODBC_PREFER_BUNDLED_NANODBC)
-#           message (WARNING "nanodbc: unable to find system nanodbc, falling back to using the bundled variant of the library")
-#       endif ()
+#   if (NOT CH_ODBC_USE_SYSTEM_NANODBC OR NOT NANODBC_FOUND)
 
         # Todo: test and fix in unicode iodbc
 

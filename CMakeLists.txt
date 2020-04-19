@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 3.13.5)
 
 set (CMAKE_MODULE_PATH_orig ${CMAKE_MODULE_PATH})
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
+
 include (cmake/prevent_in_source_builds.cmake)
 
 project (clickhouse-odbc VERSION 1.1.7.20200414 LANGUAGES C CXX)
@@ -20,6 +21,8 @@ set_property (GLOBAL PROPERTY USE_FOLDERS 1)
 set (CMAKE_BUILD_COLOR_MAKEFILE 1)
 set (CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ANSIDriver)
 
+get_property (IS_MULTI_CONFIG_GENERATOR GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG_GENERATOR)
+
 if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "RelWithDebInfo")
 endif ()
@@ -29,32 +32,48 @@ if (NOT CMAKE_CONFIGURATION_TYPES)
 endif ()
 
 message (STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+if (IS_MULTI_CONFIG_GENERATOR)
+    message (STATUS "CMAKE_CONFIGURATION_TYPES: ${CMAKE_CONFIGURATION_TYPES}")
+endif ()
 
 string (TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UC)
 string (TOUPPER "${CMAKE_CONFIGURATION_TYPES}" CMAKE_CONFIGURATION_TYPES_UC)
 
-include(CMakeDependentOption)
+set (CH_ODBC_DEFAULT_DSN_ANSI "ClickHouse DSN (ANSI)" CACHE INTERNAL "Default ANSI DSN")
+set (CH_ODBC_DEFAULT_DSN_UNICODE "ClickHouse DSN (Unicode)" CACHE INTERNAL "Default Unicode DSN")
+set (CH_ODBC_TEST_DSN_LIST "${CH_ODBC_DEFAULT_DSN_ANSI};${CH_ODBC_DEFAULT_DSN_UNICODE}" CACHE STRING ";-separated list of test DSNs, each test will be executed with each of these DSNs")
 
-option(BUILD_TESTING "Build test targets" ON)
-option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+include (CMakeDependentOption)
 
-option (CH_ODBC_ALLOW_UNSAFE_DISPATCH "Allow unchecked handle dispatching (may slightly increase performance in some scenarios)" ON)
-option (CH_ODBC_ENABLE_SSL "Enable SSL (required for utilizing https:// interface, etc.)" ON)
+option (BUILD_TESTING "Build test targets" ON)
+option (BUILD_SHARED_LIBS "Build shared libraries" OFF)
+
 option (CH_ODBC_ENABLE_INSTALL "Enable install targets (required for packaging)" ON)
-cmake_dependent_option (CH_ODBC_ENABLE_TESTING "Enable test targets" ON "BUILD_TESTING" OFF)
-cmake_dependent_option (CH_ODBC_USE_ICU "Use ICU library, instead of C++ STD, for Unicode conversions" ON "NOT MSVC" OFF)
-option (CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES "Prefer bundled over system variants of third party libraries" ON)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_POCO "Prefer bundled over system variants of Poco library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_SSL "Prefer bundled over system variants of SSL library" ON "CH_ODBC_PREFER_BUNDLED_POCO" OFF)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_FOLLY "Prefer bundled over system variants of Folly library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_ICU "Prefer bundled over system variants of ICU library" OFF "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_GOOGLETEST "Prefer bundled over system variants of Google Test library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_NANODBC "Prefer bundled over system variants of nanodbc library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
-option (CH_ODBC_RUNTIME_LINK_STATIC "Link with compiler and language runtime statically" OFF)
-option (CH_ODBC_THIRD_PARTY_LINK_STATIC "Link with third party libraries statically" ON)
+option (CH_ODBC_ALLOW_UNSAFE_DISPATCH "Allow unchecked handle dispatching (may slightly increase performance in some scenarios)" ON)
 
-set (CH_ODBC_DEFAULT_DSN_ANSI "ClickHouse DSN (ANSI)" CACHE STRING "Default ANSI DSN name")
-set (CH_ODBC_DEFAULT_DSN_UNICODE "ClickHouse DSN (Unicode)" CACHE STRING "Default Unicode DSN name")
+option (CH_ODBC_RUNTIME_LINK_STATIC "Link with compiler and language runtime statically" OFF)
+option (CH_ODBC_USE_SYSTEM_THIRD_PARTIES "Use system variants of third party libraries" OFF)
+cmake_dependent_option (CH_ODBC_THIRD_PARTY_LINK_STATIC "Link with third party libraries statically" OFF "CH_ODBC_USE_SYSTEM_THIRD_PARTIES" ON)
+
+option (CH_ODBC_USE_ICU "Use ICU library instead of deprecated functionality from C++ <codecvt> standard library for Unicode conversions" ON) # TODO: remove
+cmake_dependent_option (CH_ODBC_USE_SYSTEM_ICU "Use system variant of ICU library" ON "CH_ODBC_USE_SYSTEM_THIRD_PARTIES" OFF)
+cmake_dependent_option (CH_ODBC_ICU_LINK_STATIC "Link with ICU library statically" ON "CH_ODBC_THIRD_PARTY_LINK_STATIC" OFF)
+
+cmake_dependent_option (CH_ODBC_USE_SYSTEM_POCO "Use system variant of Poco library" ON "CH_ODBC_USE_SYSTEM_THIRD_PARTIES" OFF)
+cmake_dependent_option (CH_ODBC_POCO_LINK_STATIC "Link with Poco library statically" ON "CH_ODBC_THIRD_PARTY_LINK_STATIC" OFF)
+
+option (CH_ODBC_ENABLE_SSL "Enable SSL (required for utilizing https:// interface, etc.)" ON) # TODO: remove
+cmake_dependent_option (CH_ODBC_USE_SYSTEM_SSL "Use system variant of SSL library" ON "CH_ODBC_USE_SYSTEM_POCO" OFF)
+cmake_dependent_option (CH_ODBC_SSL_LINK_STATIC "Link with SSL library statically" ON "CH_ODBC_POCO_LINK_STATIC" OFF)
+
+cmake_dependent_option (CH_ODBC_USE_SYSTEM_FOLLY "Use system variant of Folly library" ON "CH_ODBC_USE_SYSTEM_THIRD_PARTIES" OFF)
+cmake_dependent_option (CH_ODBC_FOLLY_LINK_STATIC "Link with Folly library statically" ON "CH_ODBC_THIRD_PARTY_LINK_STATIC" OFF)
+
+cmake_dependent_option (CH_ODBC_USE_SYSTEM_GOOGLETEST "Use system variant of Google Test library" ON "CH_ODBC_USE_SYSTEM_THIRD_PARTIES" OFF)
+cmake_dependent_option (CH_ODBC_GOOGLETEST_LINK_STATIC "Link with Google Test library statically" ON "CH_ODBC_THIRD_PARTY_LINK_STATIC" OFF)
+
+cmake_dependent_option (CH_ODBC_USE_SYSTEM_NANODBC "Use system variant of nanodbc library" ON "CH_ODBC_USE_SYSTEM_THIRD_PARTIES" OFF)
+cmake_dependent_option (CH_ODBC_NANODBC_LINK_STATIC "Link with nanodbc library statically" ON "CH_ODBC_THIRD_PARTY_LINK_STATIC" OFF)
 
 if (MSVC)
     # This default encoding mode will be overriden by UNICODE, in the corresponding cases.
@@ -105,20 +124,53 @@ if (CH_ODBC_RUNTIME_LINK_STATIC)
             set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -static-libstdc++")
         endif ()
     else ()
-        message (WARNING "linking with compiler and language runtime statically is not supported in the current build environment")
+        message (FATAL_ERROR "linking with compiler and language runtime statically is not supported in the current build environment")
     endif()
 endif ()
 
 include (GNUInstallDirs)
 include (cmake/arch.cmake)
 include (cmake/sanitize.cmake)
+include (cmake/conan/conan.cmake)
+
+set (CONAN_REQUIRES_LIST)
+set (CONAN_OPTIONS_LIST)
+set (CONAN_SETTINGS_LIST)
+set (CONAN_THIRD_PARTY_LIBS_TO_REDISTRIBUTE)
+
+list (APPEND CONAN_SETTINGS_LIST "compiler.cppstd=${CMAKE_CXX_STANDARD}")
+
+if (CH_ODBC_RUNTIME_LINK_STATIC)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        list (APPEND CONAN_SETTINGS_LIST "compiler.runtime=MT")
+    else ()
+        list (APPEND CONAN_SETTINGS_LIST "compiler.runtime=MD")
+    endif ()
+endif ()
 
 find_package (Threads REQUIRED)
 find_package (ODBC REQUIRED)
 
+if (CH_ODBC_USE_ICU)
+    if (CH_ODBC_USE_SYSTEM_ICU)
+        if (CH_ODBC_ICU_LINK_STATIC)
+            message (FATAL_ERROR "ICU: using static system variant of the library currently not supported")
+        endif ()
+    else ()
+        list (APPEND CONAN_REQUIRES_LIST "icu/64.2")
+        if (CH_ODBC_ICU_LINK_STATIC)
+            list (APPEND CONAN_OPTIONS_LIST "icu:shared=False")
+        else ()
+            list (APPEND CONAN_OPTIONS_LIST "icu:shared=True")
+            list (APPEND CONAN_THIRD_PARTY_LIBS_TO_REDISTRIBUTE "$<TARGET_FILE:ICU::uc>")
+            list (APPEND CONAN_THIRD_PARTY_LIBS_TO_REDISTRIBUTE "$<TARGET_FILE:ICU::dt>")
+        endif ()
+    endif ()
+endif ()
+
 if (CH_ODBC_ENABLE_SSL)
-    if (NOT CH_ODBC_PREFER_BUNDLED_SSL)
-        if (CH_ODBC_THIRD_PARTY_LINK_STATIC)
+    if (CH_ODBC_USE_SYSTEM_SSL)
+        if (CH_ODBC_SSL_LINK_STATIC)
             set (OPENSSL_USE_STATIC_LIBS TRUE)
         endif ()
 
@@ -126,53 +178,75 @@ if (CH_ODBC_ENABLE_SSL)
             set (OPENSSL_MSVC_STATIC_RT TRUE)
         endif ()
 
-        find_package (OpenSSL)
+        find_package (OpenSSL REQUIRED)
     endif ()
 endif ()
 
-if (NOT CH_ODBC_PREFER_BUNDLED_POCO)
-    find_package (Poco COMPONENTS Foundation Net NetSSL)
+if (CH_ODBC_USE_SYSTEM_POCO)
+    find_package (Poco REQUIRED COMPONENTS Foundation Net NetSSL)
 endif ()
 
-if (NOT CH_ODBC_PREFER_BUNDLED_FOLLY)
-    message (WARNING "Folly: using system variant of the library currently not supported")
-#   find_package (Folly)
+if (CH_ODBC_USE_SYSTEM_FOLLY)
+    message (FATAL_ERROR "Folly: using system variant of the library currently not supported")
+#   find_package (Folly REQUIRED)
 endif ()
 
-if (CH_ODBC_USE_ICU)
-    if (CH_ODBC_PREFER_BUNDLED_ICU)
-        message (WARNING "ICU: using bundled variant of the library currently not supported")
-    endif ()
-    find_package (ICU COMPONENTS uc REQUIRED)
-endif ()
-
-if (CH_ODBC_ENABLE_TESTING)
-    if (NOT CH_ODBC_PREFER_BUNDLED_GOOGLETEST)
-        find_package (GTest)
-    endif ()
-
+if (BUILD_TESTING)
     if (CH_ODBC_RUNTIME_LINK_STATIC)
         set (GTEST_MSVC_SEARCH "MT")
     else ()
         set (GTEST_MSVC_SEARCH "MD")
     endif ()
 
-    if (NOT CH_ODBC_PREFER_BUNDLED_NANODBC)
-        message (WARNING "nanodbc: using system variant of the library currently not supported")
-#       find_package (nanodbc)
+    if (CH_ODBC_USE_SYSTEM_GOOGLETEST)
+        find_package (GTest REQUIRED)
+    endif ()
+
+    if (CH_ODBC_USE_SYSTEM_NANODBC)
+        message (FATAL_ERROR "nanodbc: using system variant of the library currently not supported")
+#       find_package (nanodbc REQUIRED)
     endif ()
 endif ()
 
+if (CONAN_REQUIRES_LIST)
+    conan_check (VERSION 1.24.0 REQUIRED)
+    if (IS_MULTI_CONFIG_GENERATOR)
+        conan_cmake_run (
+            REQUIRES "${CONAN_REQUIRES_LIST}"
+            OPTIONS "${CONAN_OPTIONS_LIST}"
+            SETTINGS "${CONAN_SETTINGS_LIST}"
+            CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}"
+            GENERATORS cmake_paths
+            UPDATE
+            BUILD missing
+        )
+    else ()
+        conan_cmake_run (
+            REQUIRES "${CONAN_REQUIRES_LIST}"
+            OPTIONS "${CONAN_OPTIONS_LIST}"
+            SETTINGS "${CONAN_SETTINGS_LIST}"
+            BUILD_TYPE "${CMAKE_BUILD_TYPE}"
+            GENERATORS cmake_paths
+            UPDATE
+            BUILD missing
+        )
+    endif ()
+endif ()
+
+include("${CMAKE_BINARY_DIR}/conan_paths.cmake")
+
+if (CONAN_ICU_ROOT)
+    set (ICU_ROOT "${CONAN_ICU_ROOT}")
+endif ()
+
+find_package (ICU COMPONENTS uc dt REQUIRED)
+
 add_subdirectory (contrib EXCLUDE_FROM_ALL)
 
-if (CH_ODBC_ENABLE_TESTING)
+if (BUILD_TESTING)
     include (CTest)
     enable_testing ()
     include (GoogleTest)
-
-    if (NOT TEST_DSN_LIST)
-        set (TEST_DSN_LIST "${CH_ODBC_DEFAULT_DSN_ANSI};${CH_ODBC_DEFAULT_DSN_UNICODE}")
-    endif ()
 endif ()
 
 foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
@@ -193,12 +267,12 @@ if (ipo_supported)
 endif ()
 
 add_subdirectory (driver)
-if (CH_ODBC_ENABLE_TESTING)
+if (BUILD_TESTING)
     add_subdirectory (test)
 endif ()
 
 if (CH_ODBC_ENABLE_INSTALL)
-    if (NOT WIN32)
+    if (NOT "${ODBC_PROVIDER}" STREQUAL "MDAC")
         install (
             FILES packaging/odbcinst.ini.sample packaging/odbc.ini.sample
             DESTINATION ${CMAKE_INSTALL_DOCDIR}/config
@@ -211,6 +285,14 @@ if (CH_ODBC_ENABLE_INSTALL)
         DESTINATION ${CMAKE_INSTALL_DOCDIR}/config
         COMPONENT Documentation
     )
+
+    if (CONAN_THIRD_PARTY_LIBS_TO_REDISTRIBUTE)
+        install (
+            FILES "${CONAN_THIRD_PARTY_LIBS_TO_REDISTRIBUTE}"
+            DESTINATION ${CMAKE_INSTALL_BINDIR}
+            COMPONENT ThirdPartyLibraries
+        )
+    endif ()
 
     set (CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT RuntimeLibraries)
     include (InstallRequiredSystemLibraries)
@@ -226,12 +308,14 @@ if (CH_ODBC_ENABLE_INSTALL)
         DESCRIPTION "ClickHouse ODBC Driver (ANSI, ${ARCH_BITS}-bit)"
         EXPANDED
     )
+
     cpack_add_component (ANSIDriver
         DISPLAY_NAME "Driver"
         DESCRIPTION "ClickHouse ODBC Driver (ANSI, ${ARCH_BITS}-bit)"
         REQUIRED
         GROUP ANSIGroup
     )
+
     cpack_add_component (ANSIDriverDebugSymbols
         DISPLAY_NAME "Debug symbols"
         DESCRIPTION "Debug symbols (PDB) for the Driver (ANSI, ${ARCH_BITS}-bit)"
@@ -239,17 +323,19 @@ if (CH_ODBC_ENABLE_INSTALL)
         DEPENDS ANSIDriver
         GROUP ANSIGroup
     )
+
     cpack_add_component_group (UnicodeGroup
         DISPLAY_NAME "Unicode ${ARCH_BITS}-bit Driver"
         DESCRIPTION "ClickHouse ODBC Driver (Unicode, ${ARCH_BITS}-bit)"
         EXPANDED
     )
+
     cpack_add_component (UnicodeDriver
         DISPLAY_NAME "Driver"
         DESCRIPTION "ClickHouse ODBC Driver (Unicode, ${ARCH_BITS}-bit)"
-        DEPENDS ANSIDriver
         GROUP UnicodeGroup
     )
+
     cpack_add_component (UnicodeDriverDebugSymbols
         DISPLAY_NAME "Debug symbols"
         DESCRIPTION "Debug symbols (PDB) for Driver (Unicode, ${ARCH_BITS}-bit)"
@@ -257,10 +343,10 @@ if (CH_ODBC_ENABLE_INSTALL)
         DEPENDS UnicodeDriver
         GROUP UnicodeGroup
     )
+
     cpack_add_component (RuntimeLibraries
         DISPLAY_NAME "Runtime Libraries"
         DESCRIPTION "System/language redistributable runtime libraries"
-        DEPENDS ANSIDriver
     )
 
     if (WIN32 AND NOT UNIX)

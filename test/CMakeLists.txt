@@ -49,7 +49,7 @@ if(PYTHON)
 endif()
 
 message(STATUS "Testing with:\n\t"
-    "TEST_DSN_LIST=${TEST_DSN_LIST}\n\t"
+    "CH_ODBC_TEST_DSN_LIST=${CH_ODBC_TEST_DSN_LIST}\n\t"
     "PERL=${PERL}\n\t"
     "PERL_USES_MDAC=${PERL_USES_MDAC}\n\t"
     "PERL_USES_UNIXODBC=${PERL_USES_UNIXODBC}\n\t"
@@ -69,7 +69,7 @@ set(SQL_QUERY "123456+456789" CACHE STRING "")
 set(SQL_ANSWER "580245" CACHE STRING "")
 
 set(test_dsn_counter 0)
-foreach (test_dsn ${TEST_DSN_LIST})
+foreach (test_dsn ${CH_ODBC_TEST_DSN_LIST})
     if (test_dsn)
         if(PERL AND (
                 ("${ODBC_PROVIDER}" STREQUAL "MDAC" AND PERL_USES_MDAC) OR

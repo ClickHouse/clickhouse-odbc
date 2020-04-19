@@ -20,7 +20,7 @@ RUN git clone --recursive https://github.com/ClickHouse/clickhouse-odbc.git
 RUN mkdir -p clickhouse-odbc/build \
     && cd clickhouse-odbc/build \
     && source scl_source enable devtoolset-7 \
-    && cmake3 -G Ninja -DTEST_DSN_LIST="clickhouse_localhost;clickhouse_localhost_w" .. \
+    && cmake3 -G Ninja -DCH_ODBC_TEST_DSN_LIST="clickhouse_localhost;clickhouse_localhost_w" .. \
     && ninja-build
 
 RUN ln -s /clickhouse-odbc/build/driver/libclickhouseodbc.so /usr/local/lib/libclickhouseodbc.so \
