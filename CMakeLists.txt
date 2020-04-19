@@ -62,9 +62,9 @@ cmake_dependent_option (CH_ODBC_ICU_LINK_STATIC "Link with ICU library staticall
 cmake_dependent_option (CH_ODBC_USE_SYSTEM_POCO "Use system variant of Poco library" ON "CH_ODBC_USE_SYSTEM_THIRD_PARTIES" OFF)
 cmake_dependent_option (CH_ODBC_POCO_LINK_STATIC "Link with Poco library statically" ON "CH_ODBC_THIRD_PARTY_LINK_STATIC" OFF)
 
-option (CH_ODBC_ENABLE_SSL "Enable SSL (required for utilizing https:// interface, etc.)" ON) # TODO: remove
-cmake_dependent_option (CH_ODBC_USE_SYSTEM_SSL "Use system variant of SSL library" ON "CH_ODBC_USE_SYSTEM_POCO" OFF)
-cmake_dependent_option (CH_ODBC_SSL_LINK_STATIC "Link with SSL library statically" ON "CH_ODBC_POCO_LINK_STATIC" OFF)
+option (CH_ODBC_ENABLE_SSL "Enable TLS/SSL (required for utilizing https:// interface, etc.)" ON) # TODO: remove
+cmake_dependent_option (CH_ODBC_USE_SYSTEM_SSL "Use system variant of TLS/SSL library" ON "CH_ODBC_USE_SYSTEM_POCO" OFF)
+cmake_dependent_option (CH_ODBC_SSL_LINK_STATIC "Link with TLS/SSL library statically" ON "CH_ODBC_POCO_LINK_STATIC" OFF)
 
 cmake_dependent_option (CH_ODBC_USE_SYSTEM_FOLLY "Use system variant of Folly library" ON "CH_ODBC_USE_SYSTEM_THIRD_PARTIES" OFF)
 cmake_dependent_option (CH_ODBC_FOLLY_LINK_STATIC "Link with Folly library statically" ON "CH_ODBC_THIRD_PARTY_LINK_STATIC" OFF)
@@ -210,6 +210,7 @@ endif ()
 
 if (CONAN_REQUIRES_LIST)
     conan_check (VERSION 1.24.0 REQUIRED)
+
     if (IS_MULTI_CONFIG_GENERATOR)
         conan_cmake_run (
             REQUIRES "${CONAN_REQUIRES_LIST}"
@@ -231,9 +232,9 @@ if (CONAN_REQUIRES_LIST)
             BUILD missing
         )
     endif ()
-endif ()
 
-include("${CMAKE_BINARY_DIR}/conan_paths.cmake")
+    include("${CMAKE_BINARY_DIR}/conan_paths.cmake")
+endif ()
 
 if (CONAN_ICU_ROOT)
     set (ICU_ROOT "${CONAN_ICU_ROOT}")
