@@ -340,6 +340,7 @@ install: |-
     powershell -Command Expand-Archive wix314-binaries.zip -DestinationPath wix314-binaries
     export WIX="$(cd wix314-binaries && pwd -W)"
   fi
+  pip3 install --user conan
 
 .clickhouse_start: &clickhouse_start |-
   if [[ "$TESTING" == "yes" ]] && [[ "$STANDALONE_TESTS_ONLY" != "yes" ]]; then
