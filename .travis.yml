@@ -322,18 +322,27 @@ before_install: |-
 install: |-
   if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
     export PATH=$(echo "$PATH" | sed -e 's|:/usr/local/cmake-[^:]*/bin:|:|')
-    sudo apt-get install -y build-essential cmake perl libdbi-perl libdbd-odbc-perl python python2 python3 python-pip python3-pip
+
+    sudo apt-get install -y build-essential cmake perl libdbi-perl libdbd-odbc-perl python python3 python-pip python3-pip
+
     pip install --user pyodbc
     pip3 install --user pyodbc conan
   elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     # brew install cmake perl python
+
     PERL_MM_USE_DEFAULT=1 cpan -T DBD::ODBC
     if [[ "$ODBC_PROVIDER" == "UnixODBC" ]]; then
       pip3 install --user pyodbc
     fi
+
+    PY3_USER_BASE_PATH="$(python3 -m site --user-base)"
+    export PATH="$PY3_USER_BASE_PATH/bin:$PATH"
+
     pip3 install --user conan
   elif [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
     export OLD_VSWHERE=yes
+
+    choco install visualstudio2017-workload-python
 
     # TODO: use choco instead of manual download/unpack/env setting, once 3.14+ version
     # is available, since starting from 3.14 WiX Toolset doesn't depend on .NET 3.5,
@@ -343,9 +352,8 @@ install: |-
     powershell -Command Expand-Archive wix314-binaries.zip -DestinationPath wix314-binaries
     export WIX="$(cd wix314-binaries && pwd -W)"
 
-    PY2_USER_SITE_PATH="$(py -2 -m site --user-site)"
     PY3_USER_SITE_PATH="$(py -3 -m site --user-site)"
-    export PATH="${PY3_USER_SITE_PATH//\\//}/../Scripts:${PY2_USER_SITE_PATH//\\//}/../Scripts:$PATH"
+    export PATH="${PY3_USER_SITE_PATH//\\//}/../Scripts:$PATH"
 
     py -3 -m pip install --user conan
   fi
