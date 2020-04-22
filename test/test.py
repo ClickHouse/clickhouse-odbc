@@ -6,6 +6,8 @@
 # sudo pkg install -y py36-pyodbc
 # pip install pyodbc
 
+from __future__ import print_function
+
 import pyodbc
 import sys
 import os
