@@ -12,8 +12,7 @@ use Data::Dumper;
 $Data::Dumper::Sortkeys = 1;
 $Data::Dumper::Useqq    = 1;
 
-my $config = {DSN => $ARGV[0] || $ENV{DSN} || 'clickhouse_localhost'};
-my $is_wide = 1 if $ARGV[1] eq 'w';
+my $config = {DSN => $ARGV[0] || $ENV{DSN} || 'ClickHouse DSN (ANSI)'};
 
 say 'Data sources: ', join '; ', DBI->data_sources('dbi:ODBC:DSN=' . $config->{DSN},);
 
@@ -26,8 +25,8 @@ my $dbh = DBI->connect(
         #HandleError=>sub{my ($msg) = @_; warn "connect error:", $msg; return 0;     },
     }
 );
-$dbh->{odbc_utf8_on} = 1 if $is_wide;
-say "DSN=$config->{DSN} odbc_has_unicode=$dbh->{odbc_has_unicode} is_wide=$is_wide";
+$dbh->{odbc_utf8_on} = 1;
+say "DSN=$config->{DSN} odbc_has_unicode=$dbh->{odbc_has_unicode} odbc_utf8_on=$dbh->{odbc_utf8_on}";
 
 sub prepare_execute_hash ($) {
     #warn "Executing: $_[0];";
@@ -151,26 +150,22 @@ test_one_value_as(fn('LCASE', "'abcDEFghj'"), 'abcdefghj');
 test_one_value_as(fn('UCASE', "'abcDEFghj'"), 'ABCDEFGHJ');
 test_one_value_as(fn('LOWER', "'abcDEFghj'"), 'abcdefghj');
 test_one_value_as(fn('UPPER', "'abcDEFghj'"), 'ABCDEFGHJ');
-if ($is_wide) {
-    test_one_value_as(fn('OCTET_LENGTH', "'йцукенгшщзхъ'"), 24);
-    test_one_value_as(fn('LCASE',        "'йцуКЕН'"),             'йцукен');
-    test_one_value_as(fn('UCASE',        "'йцуКЕН'"),             'ЙЦУКЕН');
-}
+test_one_value_as(fn('OCTET_LENGTH', "'йцукенгшщзхъ'"), 24);
+test_one_value_as(fn('LCASE',        "'йцуКЕН'"),       'йцукен');
+test_one_value_as(fn('UCASE',        "'йцуКЕН'"),       'ЙЦУКЕН');
 test_one_value_as(fn('REPLACE',   "'abc'",  "'b'", "'e'"), 'aec');
 test_one_value_as(fn('SUBSTRING', "'abcd'", 2,     2),     'bc');
 
 test_one_value_as(q{1+1}, 2);
 
-if ($is_wide) {
-    test_one_string_value(
+test_one_string_value(
     q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ},
     'skip_header' # TODO! fix header encoding and enable
-    );
+);
 
-    test_one_string_value_as(
-q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ}
-    );
-}
+test_one_string_value_as(
+    q{абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ}
+);
 
 #say Data::Dumper::Dumper prepare_execute_hash 'SELECT 1, sleep(25), sleep(15), 2'; # Default timeout is 30. Maximum allowed clickhouse sleep is 30s. We want to test 30+s
 

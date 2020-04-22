@@ -9,7 +9,7 @@ from utils import Logs, PyODBCConnection
 from requirements.QA_SRS003_ParameterizedQueries import *
 
 @TestScenario
-def isNull(connection):
+def isNull(self, connection):
     """Verify support for isNull function."""
     values = [
         "hello", b'\xe5\x8d\xb0'.decode('utf-8'),
@@ -28,7 +28,7 @@ def isNull(connection):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Nullable_NULL("1.0"))
-def Null(connection):
+def Null(self, connection):
     """Verify support for handling NULL value."""
     with Given("PyODBC connection"):
         query = "SELECT isNull(?)"
@@ -54,7 +54,7 @@ def Null(connection):
 
 @TestFeature
 @Name("functions and values")
-def funcvalues(nullable=False):
+def funcvalues(self, nullable=False):
     """Check clickhouse-odbc driver support for parameterized
     queries with functions and values using pyodbc connector.
     """

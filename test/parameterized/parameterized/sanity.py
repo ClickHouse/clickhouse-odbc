@@ -7,7 +7,7 @@ from testflows.core import TE, MAN
 from utils import PyODBCConnection
 
 @TestScenario
-def sanity():
+def sanity(self):
     """clickhouse-odbc driver sanity suite to check support of parameterized
     queries using pyodbc connector.
     """

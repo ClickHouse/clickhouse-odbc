@@ -15,11 +15,18 @@ const TypeInfo & Environment::getTypeInfo(const std::string & type_name, const s
         it = types_g.find(type_name_without_parameters);
 
     if (it == types_g.end()) {
-        it = types_g.find(
-            convertTypeIdToUnparametrizedCanonicalTypeName(
-                convertUnparametrizedTypeNameToTypeId(type_name_without_parameters)
-            )
-        );
+        const auto tmp_type_without_parameters_id = convertUnparametrizedTypeNameToTypeId(type_name_without_parameters);
+        auto tmp_type_name = convertTypeIdToUnparametrizedCanonicalTypeName(tmp_type_without_parameters_id);
+
+        if (
+            tmp_type_without_parameters_id == DataSourceTypeId::Decimal32 ||
+            tmp_type_without_parameters_id == DataSourceTypeId::Decimal64 ||
+            tmp_type_without_parameters_id == DataSourceTypeId::Decimal128
+        ) {
+            tmp_type_name = "Decimal";
+        }
+
+        it = types_g.find(tmp_type_name);
     }
 
     if (it != types_g.end())

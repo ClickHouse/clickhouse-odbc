@@ -12,19 +12,18 @@ from requirements.QA_SRS003_ParameterizedQueries import *
     RQ_SRS_003_ParameterizedQueries_pyodbc("1.0"),
     RQ_SRS_003_ParameterizedQueries_Syntax_Select_Parameters("1.0")
 )
-def parameterized():
+def parameterized(self):
     """Test suite for clickhouse-odbc support of parameterized queries.
     """
-    for dsn in ["clickhouse_localhost", "clickhouse_localhost_w"]:
-        with Feature(f"{dsn}", flags=TE):
-            os.environ["DSN"] = dsn
-            run(test=load("parameterized.sanity", test="sanity"), flags=TE)
-            run(test=load("parameterized.datatypes", test="datatypes"), flags=TE)
-            run(test=load("parameterized.datatypes", test="nullable"), flags=TE)
-            run(test=load("parameterized.funcvalues", test="funcvalues"), flags=TE)
+    dsn = os.getenv("DSN", "ClickHouse DSN (ANSI)")
+    with Feature(f"{dsn}", flags=TE):
+        run(test=load("parameterized.sanity", test="sanity"), flags=TE)
+        run(test=load("parameterized.datatypes", test="datatypes"), flags=TE)
+        run(test=load("parameterized.datatypes", test="nullable"), flags=TE)
+        run(test=load("parameterized.funcvalues", test="funcvalues"), flags=TE)
 
 @TestModule
-def regression():
+def regression(self):
     """The regression module for clickhouse-odbc driver.
     """
     run(test=parameterized, flags=TE)
@@ -104,11 +103,11 @@ if main():
             [ (Fail, "Known failure")],
         "/regression/parameterized/:/functions and values/Null":
             [ (Fail, "Known failure")],
-        "/regression/parameterized/clickhouse_localhost_w/datatypes/String/utf8":
+        "/regression/parameterized/:/datatypes/String/utf8":
             [ (Fail, "Known failure")],
-        "/regression/parameterized/clickhouse_localhost_w/datatypes/FixedString/utf8":
+        "/regression/parameterized/:/datatypes/FixedString/utf8":
             [ (Fail, "Known failure")],
-        "/regression/parameterized/clickhouse_localhost_w/datatypes/Enum/utf8":
+        "/regression/parameterized/:/datatypes/Enum/utf8":
             [ (Fail, "Known failure")]
     }
 
