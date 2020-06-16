@@ -94,6 +94,15 @@ namespace impl {
         SQLSMALLINT * out_message_size
     ) noexcept;
 
+    SQLRETURN BindCol(
+        SQLHSTMT       StatementHandle,
+        SQLUSMALLINT   ColumnNumber,
+        SQLSMALLINT    TargetType,
+        SQLPOINTER     TargetValuePtr,
+        SQLLEN         BufferLength,
+        SQLLEN *       StrLen_or_Ind
+    ) noexcept;
+
     SQLRETURN BindParameter(
         SQLHSTMT        handle,
         SQLUSMALLINT    parameter_number,
@@ -177,15 +186,22 @@ namespace impl {
     ) noexcept;
 
     SQLRETURN GetData(
-        Statement & statement,
-        SQLUSMALLINT column_or_param_number,
-        const BindingInfo & binding_info
-    );
+        SQLHSTMT       StatementHandle,
+        SQLUSMALLINT   Col_or_Param_Num,
+        SQLSMALLINT    TargetType,
+        SQLPOINTER     TargetValuePtr,
+        SQLLEN         BufferLength,
+        SQLLEN *       StrLen_or_IndPtr
+    ) noexcept;
+
+    SQLRETURN Fetch(
+        SQLHSTMT       StatementHandle
+    ) noexcept;
 
     SQLRETURN FetchScroll(
-        Statement & statement,
-        SQLSMALLINT orientation,
-        SQLLEN offset
-    );
+        SQLHSTMT      StatementHandle,
+        SQLSMALLINT   FetchOrientation,
+        SQLLEN        FetchOffset
+    ) noexcept;
 
 } // namespace impl

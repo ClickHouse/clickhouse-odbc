@@ -128,7 +128,7 @@ The general requirements for building the driver from sources are as follows:
 - C++17 and C11 capable compiler toolchain:
   - Clang 4 and later
   - GCC 7 and later
-  - Xcode 10 and later
+  - Xcode 10 and later (on macOS 10.14 and later)
   - Microsoft Visual Studio 2017 and later
 
 Additional requirements exist for each platform, which also depend on whether packaging and/or testing is performed.
@@ -361,7 +361,7 @@ cmake --open .
 
 #### Build-time dependencies <!-- omit in toc -->
 
-You will need Xcode 10 or later and Command Line Tools to be installed, as well as [Homebrew](https://brew.sh/).
+You will need macOS 10.14 or later, Xcode 10 or later with Command Line Tools installed, as well as up-to-date [Homebrew](https://brew.sh/) available in the system.
 
 #### Build-time dependencies: iODBC <!-- omit in toc -->
 

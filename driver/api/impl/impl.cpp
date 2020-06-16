@@ -640,6 +640,21 @@ SQLRETURN GetDiagField(
     return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, func);
 }
 
+SQLRETURN BindCol(
+    SQLHSTMT       StatementHandle,
+    SQLUSMALLINT   ColumnNumber,
+    SQLSMALLINT    TargetType,
+    SQLPOINTER     TargetValuePtr,
+    SQLLEN         BufferLength,
+    SQLLEN *       StrLen_or_Ind
+) noexcept {
+    auto func = [&] (Statement & statement) {
+        return SQL_SUCCESS;
+    };
+
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, StatementHandle, func);
+}
+
 SQLRETURN BindParameter(
     SQLHSTMT        handle,
     SQLUSMALLINT    parameter_number,
@@ -1164,31 +1179,15 @@ SQLRETURN fillBinding(
     }
 
     return result_set.extractField(row_idx, column_idx, binding_info);
+
+
+
+
+
+
 }
 
-SQLRETURN GetData(
-    Statement & statement,
-    SQLUSMALLINT column_or_param_number,
-    const BindingInfo & binding_info
-) {
-    if (!statement.hasResultSet())
-        throw SqlException("Column info is not available", "07005");
-
-    auto & result_set = statement.getResultSet();
-
-    if (result_set.getCurrentRowPosition() < 1)
-        throw SqlException("Invalid cursor state", "24000");
-
-    if (column_or_param_number < 1)
-        throw SqlException("Invalid descriptor index", "07009");
-
-    const auto column_idx = column_or_param_number - 1;
-    const auto row_idx = result_set.getCurrentRowPosition() - result_set.getCurrentRowSetPosition();
-
-    return fillBinding(statement, result_set, row_idx, column_idx, binding_info);
-}
-
-SQLRETURN FetchScroll(
+SQLRETURN fetchBindings(
     Statement & statement,
     SQLSMALLINT orientation,
     SQLLEN offset
@@ -1234,6 +1233,42 @@ SQLRETURN FetchScroll(
     }
 
     return res;
+}
+
+SQLRETURN GetData(
+    SQLHSTMT       StatementHandle,
+    SQLUSMALLINT   Col_or_Param_Num,
+    SQLSMALLINT    TargetType,
+    SQLPOINTER     TargetValuePtr,
+    SQLLEN         BufferLength,
+    SQLLEN *       StrLen_or_IndPtr
+) noexcept {
+    auto func = [&] (Statement & statement) {
+    };
+
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, StatementHandle, func);
+}
+
+SQLRETURN Fetch(
+    SQLHSTMT       StatementHandle
+) noexcept {
+    auto func = [&] (Statement & statement) {
+        return fetchBindings(statement, SQL_FETCH_NEXT, 0);
+    };
+
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, StatementHandle, func);
+}
+
+SQLRETURN FetchScroll(
+    SQLHSTMT      StatementHandle,
+    SQLSMALLINT   FetchOrientation,
+    SQLLEN        FetchOffset
+) noexcept {
+    auto func = [&] (Statement & statement) {
+        return fetchBindings(statement, FetchOrientation, FetchOffset);
+    };
+
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, StatementHandle, func);
 }
 
 } // namespace impl

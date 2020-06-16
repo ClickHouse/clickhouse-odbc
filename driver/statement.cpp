@@ -397,8 +397,6 @@ void Statement::closeCursor() {
 }
 
 void Statement::resetColBindings() {
-    bindings.clear();
-
     getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC).setAttr(SQL_DESC_COUNT, 0);
 }
 
