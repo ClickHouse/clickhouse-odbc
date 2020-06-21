@@ -100,7 +100,7 @@ bool isStreamParam(SQLSMALLINT param_io_type) noexcept;
 /// how to get or put values when reading or writing bound buffers.
 struct BindingInfo {
     SQLSMALLINT c_type = SQL_C_DEFAULT;
-    PTR value = nullptr;
+    SQLPOINTER value = nullptr;
     SQLLEN value_max_size = 0;
     SQLLEN * value_size = nullptr;
     SQLLEN * indicator = nullptr;
@@ -1813,6 +1813,9 @@ namespace value_manip {
         template <typename SourceType>
         struct from_value {
             static inline SQLRETURN convert(const SourceType & src, BindingInfo & dest) {
+                if (dest.indicator && dest.indicator != dest.value_size)
+                    *dest.indicator = 0; // Value is not null here...
+
                 if constexpr (std::is_same_v<SourceType, DestinationType>) {
                     return fillOutputPOD(src, dest.value, dest.value_size);
                 }
@@ -1834,6 +1837,9 @@ namespace value_manip {
         struct from_value {
             template <typename ConversionContext>
             static inline SQLRETURN convert(const SourceType & src, BindingInfo & dest, ConversionContext && context) {
+                if (dest.indicator && dest.indicator != dest.value_size)
+                    *dest.indicator = 0; // Value is not null here...
+
                 if constexpr (std::is_same_v<SourceType, std::string>) {
                     return fillOutputString<SQLCHAR>(src, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
                 }
@@ -1858,6 +1864,9 @@ namespace value_manip {
         struct from_value {
             template <typename ConversionContext>
             static inline SQLRETURN convert(const SourceType & src, BindingInfo & dest, ConversionContext && context) {
+                if (dest.indicator && dest.indicator != dest.value_size)
+                    *dest.indicator = 0; // Value is not null here...
+
                 if constexpr (std::is_same_v<SourceType, std::string>) {
                     return fillOutputString<SQLWCHAR>(src, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
                 }
@@ -1881,6 +1890,9 @@ namespace value_manip {
         template <typename SourceType>
         struct from_value {
             static inline SQLRETURN convert(const SourceType & src, BindingInfo & dest) {
+                if (dest.indicator && dest.indicator != dest.value_size)
+                    *dest.indicator = 0; // Value is not null here...
+
                 if constexpr (std::is_same_v<SourceType, DestinationType>) {
                     if (
                         src.precision == dest.precision &&

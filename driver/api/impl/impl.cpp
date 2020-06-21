@@ -377,6 +377,7 @@ SQLRETURN SetStmtAttr(
             CASE_SET_IN_DESC(SQL_ATTR_PARAM_STATUS_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
             CASE_SET_IN_DESC(SQL_ATTR_PARAMS_PROCESSED_PTR, SQL_ATTR_IMP_PARAM_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
             CASE_SET_IN_DESC(SQL_ATTR_PARAMSET_SIZE, SQL_ATTR_APP_PARAM_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
+            CASE_SET_IN_DESC(SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_SIZE, SQLULEN);
             CASE_SET_IN_DESC(SQL_ATTR_ROW_BIND_OFFSET_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_OFFSET_PTR, SQLULEN *);
             CASE_SET_IN_DESC(SQL_ATTR_ROW_BIND_TYPE, SQL_ATTR_APP_ROW_DESC, SQL_DESC_BIND_TYPE, SQLULEN);
             CASE_SET_IN_DESC(SQL_ATTR_ROW_OPERATION_PTR, SQL_ATTR_APP_ROW_DESC, SQL_DESC_ARRAY_STATUS_PTR, SQLUSMALLINT *);
@@ -384,15 +385,6 @@ SQLRETURN SetStmtAttr(
             CASE_SET_IN_DESC(SQL_ATTR_ROWS_FETCHED_PTR, SQL_ATTR_IMP_ROW_DESC, SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *);
 
 #undef CASE_SET_IN_DESC
-
-            case SQL_ATTR_ROW_ARRAY_SIZE: {
-                // TODO: implement arbitrary array size. Currently only the default (1) is supported.
-                if (reinterpret_cast<SQLULEN>(value) != 1)
-                    throw SqlException("Option value changed", "01S02", SQL_SUCCESS_WITH_INFO);
-
-                statement.getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC).setAttr(SQL_DESC_ARRAY_SIZE, reinterpret_cast<SQLULEN>(value));
-                return SQL_SUCCESS;
-            }
 
             case SQL_ATTR_NOSCAN:
                 statement.setAttr(SQL_ATTR_NOSCAN, value);
@@ -649,6 +641,69 @@ SQLRETURN BindCol(
     SQLLEN *       StrLen_or_Ind
 ) noexcept {
     auto func = [&] (Statement & statement) {
+        if (ColumnNumber < 1)
+            throw SqlException("Invalid descriptor index", "07009");
+
+        if (BufferLength < 0)
+            throw SqlException("Invalid string or buffer length", "HY090");
+
+        auto & ard_desc = statement.getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC);
+        const auto ard_record_count = ard_desc.getRecordCount();
+
+        // If TargetValuePtr and StrLen_or_Ind pointers are both NULL, then unbind the column,
+        // and if the column number is [greater than or] equal to the highest bound column number,
+        // then adjust SQL_DESC_COUNT to reflect that the highest bound column has chaged.
+        if (
+            TargetValuePtr == nullptr &&
+            StrLen_or_Ind == nullptr &&
+            ColumnNumber >= ard_record_count
+        ) {
+            auto nextHighestBoundColumnNumber = std::min<std::size_t>(ard_record_count, ColumnNumber - 1);
+
+            while (nextHighestBoundColumnNumber > 0) {
+                auto & ard_record = ard_desc.getRecord(nextHighestBoundColumnNumber, SQL_ATTR_APP_ROW_DESC);
+
+                if (
+                    ard_record.getAttrAs<SQLPOINTER>(SQL_DESC_DATA_PTR, 0) != nullptr ||
+                    ard_record.getAttrAs<SQLLEN *>(SQL_DESC_OCTET_LENGTH_PTR, 0) != nullptr ||
+                    ard_record.getAttrAs<SQLLEN *>(SQL_DESC_INDICATOR_PTR, 0) != nullptr
+                ) {
+                    break;
+                }
+
+                --nextHighestBoundColumnNumber;
+            }
+
+            ard_desc.setAttr(SQL_DESC_COUNT, nextHighestBoundColumnNumber);
+            return SQL_SUCCESS;
+        }
+
+        auto & ard_record = ard_desc.getRecord(ColumnNumber, SQL_ATTR_APP_ROW_DESC);
+
+        try {
+            // This will trigger automatic (re)setting of SQL_DESC_TYPE and SQL_DESC_DATETIME_INTERVAL_CODE,
+            // and resetting of SQL_DESC_DATA_PTR.
+            ard_record.setAttr(SQL_DESC_CONCISE_TYPE, TargetType);
+
+            switch (TargetType) {
+                case SQL_C_CHAR:
+                case SQL_C_WCHAR:
+                case SQL_C_BINARY:
+//              case SQL_C_VARBOOKMARK:
+                    ard_record.setAttr(SQL_DESC_LENGTH, BufferLength);
+                    break;
+            }
+
+            ard_record.setAttr(SQL_DESC_OCTET_LENGTH, BufferLength);
+            ard_record.setAttr(SQL_DESC_OCTET_LENGTH_PTR, StrLen_or_Ind);
+            ard_record.setAttr(SQL_DESC_INDICATOR_PTR, StrLen_or_Ind);
+            ard_record.setAttr(SQL_DESC_DATA_PTR, TargetValuePtr);
+        }
+        catch (...) {
+            ard_desc.setAttr(SQL_DESC_COUNT, ard_record_count);
+            throw;
+        }
+
         return SQL_SUCCESS;
     };
 
@@ -673,6 +728,34 @@ SQLRETURN BindParameter(
 
         const auto apd_record_count = apd_desc.getRecordCount();
         const auto ipd_record_count = ipd_desc.getRecordCount();
+
+        // If parameter_value_ptr and StrLen_or_IndPtr pointers are both NULL, then unbind the parameter,
+        // and if the parameter number is [greater than or] equal to the highest bound parameter number,
+        // then adjust SQL_DESC_COUNT to reflect that the highest bound parameter has chaged.
+        if (
+            parameter_value_ptr == nullptr &&
+            StrLen_or_IndPtr == nullptr &&
+            parameter_number >= apd_record_count
+        ) {
+            auto nextHighestBoundParameterNumber = std::min<std::size_t>(apd_record_count, parameter_number - 1);
+
+            while (nextHighestBoundParameterNumber > 0) {
+                auto & apd_record = apd_desc.getRecord(nextHighestBoundParameterNumber, SQL_ATTR_APP_PARAM_DESC);
+
+                if (
+                    apd_record.getAttrAs<SQLPOINTER>(SQL_DESC_DATA_PTR, 0) != nullptr ||
+                    apd_record.getAttrAs<SQLLEN *>(SQL_DESC_OCTET_LENGTH_PTR, 0) != nullptr ||
+                    apd_record.getAttrAs<SQLLEN *>(SQL_DESC_INDICATOR_PTR, 0) != nullptr
+                ) {
+                    break;
+                }
+
+                --nextHighestBoundParameterNumber;
+            }
+
+            apd_desc.setAttr(SQL_DESC_COUNT, nextHighestBoundParameterNumber);
+            return SQL_SUCCESS;
+        }
 
         auto & apd_record = apd_desc.getRecord(parameter_number, SQL_ATTR_APP_PARAM_DESC);
         auto & ipd_record = ipd_desc.getRecord(parameter_number, SQL_ATTR_IMP_PARAM_DESC);
@@ -825,13 +908,13 @@ SQLRETURN GetDescField(
 #define CASE_FIELD_NUM_DEF(NAME, TYPE, DEFAULT) \
             case NAME: return fillOutputPOD<TYPE>(descriptor.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, StringLengthPtr);
 
-            CASE_FIELD_NUM     ( SQL_DESC_ALLOC_TYPE,         SQLSMALLINT                       );
-            CASE_FIELD_NUM_DEF ( SQL_DESC_ARRAY_SIZE,         SQLULEN,       1                  );
-            CASE_FIELD_NUM     ( SQL_DESC_ARRAY_STATUS_PTR,   SQLUSMALLINT *                    );
-            CASE_FIELD_NUM     ( SQL_DESC_BIND_OFFSET_PTR,    SQLLEN *                          );
-            CASE_FIELD_NUM_DEF ( SQL_DESC_BIND_TYPE,          SQLUINTEGER,   SQL_BIND_BY_COLUMN );
-            CASE_FIELD_NUM     ( SQL_DESC_COUNT,              SQLSMALLINT                       );
-            CASE_FIELD_NUM     ( SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *                         );
+            CASE_FIELD_NUM     ( SQL_DESC_ALLOC_TYPE,         SQLSMALLINT                          );
+            CASE_FIELD_NUM_DEF ( SQL_DESC_ARRAY_SIZE,         SQLULEN,       1                     );
+            CASE_FIELD_NUM     ( SQL_DESC_ARRAY_STATUS_PTR,   SQLUSMALLINT *                       );
+            CASE_FIELD_NUM     ( SQL_DESC_BIND_OFFSET_PTR,    SQLLEN *                             );
+            CASE_FIELD_NUM_DEF ( SQL_DESC_BIND_TYPE,          SQLUINTEGER,   SQL_BIND_TYPE_DEFAULT );
+            CASE_FIELD_NUM     ( SQL_DESC_COUNT,              SQLSMALLINT                          );
+            CASE_FIELD_NUM     ( SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *                            );
                 
 #undef CASE_FIELD_NUM_DEF
 #undef CASE_FIELD_NUM
@@ -1142,16 +1225,11 @@ SQLRETURN fillBinding(
     std::size_t column_idx,
     BindingInfo binding_info
 ) {
-
-
-    // TODO: revisit the code, use descriptors for all cases, add support for row sets of size > 1.
-
-
     SQLINTEGER desc_type = SQL_ATTR_APP_ROW_DESC;
 
 //  if (binding_info.c_type == SQL_APD_TYPE) {
 //      desc_type = SQL_ATTR_APP_PARAM_DESC;
-//      throw SqlException("Unable to read parameter data using SQLGetData");
+//      throw SqlException("Unable to read output parameter data");
 //  }
 
     if (
@@ -1164,6 +1242,10 @@ SQLRETURN fillBinding(
         auto & record = desc.getRecord(column_num, desc_type);
 
         binding_info.c_type = record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
+    }
+
+    if (binding_info.c_type == SQL_C_DEFAULT) {
+        binding_info.c_type = convertSQLTypeToCType(statement.getTypeInfo(result_set.getColumnInfo(column_idx).type_without_parameters).sql_type);
     }
 
     if (
@@ -1179,12 +1261,6 @@ SQLRETURN fillBinding(
     }
 
     return result_set.extractField(row_idx, column_idx, binding_info);
-
-
-
-
-
-
 }
 
 SQLRETURN fetchBindings(
@@ -1192,47 +1268,130 @@ SQLRETURN fetchBindings(
     SQLSMALLINT orientation,
     SQLLEN offset
 ) {
-    const auto row_set_size = statement.getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
-    auto * rows_fetched_ptr = statement.getEffectiveDescriptor(SQL_ATTR_IMP_ROW_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
+    auto & ard_desc = statement.getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC);
+    auto & ird_desc = statement.getEffectiveDescriptor(SQL_ATTR_IMP_ROW_DESC);
+
+    const auto row_set_size = ard_desc.getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
+    auto * rows_fetched_ptr = ird_desc.getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
+    auto * array_status_ptr = ird_desc.getAttrAs<SQLUSMALLINT *>(SQL_DESC_ARRAY_STATUS_PTR, 0);
 
     if (rows_fetched_ptr)
         *rows_fetched_ptr = 0;
 
-    if (!statement.hasResultSet())
+    if (!statement.hasResultSet() || row_set_size == 0) {
+        if (array_status_ptr) {
+            for (std::size_t row_idx = 0; row_idx < row_set_size; ++row_idx) {
+                array_status_ptr[row_idx] = SQL_ROW_NOROW;
+            }
+        }
+
         return SQL_NO_DATA;
+    }
 
     auto & result_set = statement.getResultSet();
-
     const auto rows_fetched = result_set.fetchRowSet(orientation, offset, row_set_size);
 
     if (rows_fetched == 0) {
         statement.getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, result_set.getAffectedRowCount());
+
+        if (array_status_ptr) {
+            for (std::size_t row_idx = 0; row_idx < row_set_size; ++row_idx) {
+                array_status_ptr[row_idx] = SQL_ROW_NOROW;
+            }
+        }
+
         return SQL_NO_DATA;
     }
 
     if (rows_fetched_ptr)
         *rows_fetched_ptr = rows_fetched;
 
-    auto res = SQL_SUCCESS;
+    const auto ard_record_count = ard_desc.getRecordCount();
+    ard_desc.getRecord(ard_record_count, SQL_ATTR_APP_ROW_DESC); // ...just to make sure that record container is in sync with SQL_DESC_COUNT.
+    const auto & ard_records = ard_desc.getRecordContainer(); // ...only for faster access in a loop.
 
-    for (std::size_t i = 0; i < rows_fetched; ++i) {
-        for (auto & col_num_binding : statement.bindings) {
-            const auto code = fillBinding(
-                statement,
-                result_set,
-                i,
-                col_num_binding.first - 1,
-                col_num_binding.second
-            );
+    const auto bind_type = ard_desc.getAttrAs<SQLULEN>(SQL_DESC_BIND_TYPE, SQL_BIND_TYPE_DEFAULT);
+    const auto * bind_offset_ptr = ard_desc.getAttrAs<SQLULEN *>(SQL_DESC_BIND_OFFSET_PTR, 0);
+    const auto bind_offset = (bind_offset_ptr ? *bind_offset_ptr : 0);
 
-            if (code == SQL_SUCCESS_WITH_INFO)
-                res = code;
-            else if (code != SQL_SUCCESS)
-                return code;
+    bool success_with_info_met = false;
+    std::size_t error_num = 0;
+
+    for (std::size_t row_idx = 0; row_idx < rows_fetched; ++row_idx) {
+        for (std::size_t column_num = 1; column_num <= ard_record_count; ++column_num) { // Skipping the bookmark (0) column.
+            const auto column_idx = column_num - 1;
+            const auto & ard_record = ard_records[column_num];
+
+            const auto * data_ptr = ard_record.getAttrAs<SQLPOINTER>(SQL_DESC_DATA_PTR, 0);
+            const auto * sz_ptr = ard_record.getAttrAs<SQLLEN *>(SQL_DESC_OCTET_LENGTH_PTR, 0);
+            const auto * ind_ptr = ard_record.getAttrAs<SQLLEN *>(SQL_DESC_INDICATOR_PTR, 0);
+
+            SQLRETURN code = SQL_SUCCESS;
+
+            if (data_ptr || sz_ptr || ind_ptr) { // Only if the column is bound...
+                BindingInfo binding_info;
+                binding_info.c_type = ard_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
+                binding_info.value_max_size = ard_record.getAttrAs<SQLLEN>(SQL_DESC_OCTET_LENGTH, 0);
+
+                const auto next_value_ptr_increment = (bind_type == SQL_BIND_BY_COLUMN ? binding_info.value_max_size : bind_type);
+                const auto next_sz_ind_ptr_increment = (bind_type == SQL_BIND_BY_COLUMN ? sizeof(SQLLEN) : bind_type);
+
+                binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + row_idx * next_value_ptr_increment + bind_offset) : 0);
+                binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + row_idx * next_sz_ind_ptr_increment + bind_offset) : 0);
+                binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + row_idx * next_sz_ind_ptr_increment + bind_offset) : 0);
+
+                // TODO: fill per-row and per-column diagnostics on (some soft?) errors.
+                const auto code = fillBinding(
+                    statement,
+                    result_set,
+                    row_idx,
+                    column_idx,
+                    binding_info
+                );
+            }
+
+            switch (code) {
+                case SQL_SUCCESS: {
+                    if (array_status_ptr)
+                        array_status_ptr[row_idx] = SQL_ROW_SUCCESS;
+
+                    break;
+                }
+
+                case SQL_SUCCESS_WITH_INFO: {
+                    success_with_info_met = true;
+
+                    if (array_status_ptr)
+                        array_status_ptr[row_idx] = SQL_ROW_SUCCESS_WITH_INFO;
+
+                    break;
+                }
+
+                default: {
+                    ++error_num;
+
+                    if (array_status_ptr)
+                        array_status_ptr[row_idx] = SQL_ROW_ERROR;
+
+                    break;
+                }
+            }
         }
     }
 
-    return res;
+    if (array_status_ptr) {
+        for (std::size_t row_idx = rows_fetched; row_idx < row_set_size; ++row_idx) {
+            array_status_ptr[row_idx] = SQL_ROW_NOROW;
+        }
+    }
+
+    if (error_num >= rows_fetched)
+        return SQL_ERROR;
+
+    if (error_num > 0 || success_with_info_met)
+        return SQL_SUCCESS_WITH_INFO;
+
+    return SQL_SUCCESS;
 }
 
 SQLRETURN GetData(
@@ -1244,6 +1403,28 @@ SQLRETURN GetData(
     SQLLEN *       StrLen_or_IndPtr
 ) noexcept {
     auto func = [&] (Statement & statement) {
+        if (!statement.hasResultSet())
+            throw SqlException("Column info is not available", "07005");
+
+        auto & result_set = statement.getResultSet();
+
+        if (result_set.getCurrentRowPosition() < 1)
+            throw SqlException("Invalid cursor state", "24000");
+
+        if (Col_or_Param_Num < 1)
+            throw SqlException("Invalid descriptor index", "07009");
+
+        const auto row_idx = result_set.getCurrentRowPosition() - result_set.getCurrentRowSetPosition();
+        const auto column_idx = Col_or_Param_Num - 1;
+
+        BindingInfo binding_info;
+        binding_info.c_type = TargetType;
+        binding_info.value = TargetValuePtr;
+        binding_info.value_max_size = BufferLength;
+        binding_info.value_size = StrLen_or_IndPtr;
+        binding_info.indicator = StrLen_or_IndPtr;
+
+        return fillBinding(statement, result_set, row_idx, column_idx, binding_info);
     };
 
     return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, StatementHandle, func);

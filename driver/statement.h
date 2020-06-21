@@ -105,5 +105,5 @@ private:
     std::unique_ptr<Poco::Net::HTTPResponse> response;
     std::istream* in = nullptr;
     std::unique_ptr<ResultReader> result_reader;
-    std::size_t next_param_set = 0;
+    std::size_t next_param_set_idx = 0;
 };
