@@ -3,7 +3,7 @@ import decimal
 import uuid
 
 from testflows.core import TestFeature, TestScenario
-from testflows.core import Requirements, Scenario, Given, When, Then, TE, run
+from testflows.core import Requirements, Scenario, Given, When, Then, TE
 from testflows.asserts import error
 from requirements.QA_SRS003_ParameterizedQueries import *
 from utils import Logs, PyODBCConnection
@@ -484,7 +484,7 @@ def IPv6(self, connection, nullable=False):
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Nullable("1.0"))
 def nullable(self):
     """Check support for Nullable data types."""
-    datatypes(args={"nullable": True})
+    datatypes(nullable=True)
 
 @TestFeature
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataTypes("1.0"))
@@ -495,25 +495,25 @@ def datatypes(self, nullable=False):
     with Logs() as logs, PyODBCConnection(logs=logs) as connection:
         args = {"connection": connection, "nullable": nullable}
 
-        run("Sanity check", sanity_check, args={"connection": connection})
-        run("Check support for Int8", Int8, args=args, flags=TE)
-        run("Check support for Int16", Int16, args=args, flags=TE)
-        run("Check support for Int32", Int32, args=args, flags=TE)
-        run("Check support for Int64", Int64, args=args, flags=TE)
-        run("Check support for UInt8", UInt8, args=args, flags=TE)
-        run("Check support for UInt16", UInt16, args=args, flags=TE)
-        run("Check support for UInt32", UInt32, args=args, flags=TE)
-        run("Check support for UInt64", UInt64, args=args, flags=TE)
-        run("Check support for Float32", Float32, args=args, flags=TE)
-        run("Check support for Float64", Float64, args=args, flags=TE)
-        run("Check support for Decimal32", Decimal32, args=args, flags=TE)
-        run("Check support for Decimal64", Decimal64, args=args, flags=TE)
-        run("Check support for Decimal128", Decimal128, args=args, flags=TE)
-        run("Check support for String", String, args=args, flags=TE)
-        run("Check support for FixedString", FixedString, args=args, flags=TE)
-        run("Check support for Date", Date, args=args, flags=TE)
-        run("Check support for DateTime", DateTime, args=args, flags=TE)
-        run("Check support for Enum", Enum, args=args, flags=TE)
-        run("Check support for UUID", UUID, args=args, flags=TE)
-        run("Check support for IPv4", IPv4, args=args, flags=TE)
-        run("Check support for IPv6", IPv6, args=args, flags=TE)
+        Scenario("Sanity check", run=sanity_check, args={"connection": connection})
+        Scenario("Check support for Int8", run=Int8, args=args, flags=TE)
+        Scenario("Check support for Int16", run=Int16, args=args, flags=TE)
+        Scenario("Check support for Int32", run=Int32, args=args, flags=TE)
+        Scenario("Check support for Int64", run=Int64, args=args, flags=TE)
+        Scenario("Check support for UInt8", run=UInt8, args=args, flags=TE)
+        Scenario("Check support for UInt16", run=UInt16, args=args, flags=TE)
+        Scenario("Check support for UInt32", run=UInt32, args=args, flags=TE)
+        Scenario("Check support for UInt64", run=UInt64, args=args, flags=TE)
+        Scenario("Check support for Float32", run=Float32, args=args, flags=TE)
+        Scenario("Check support for Float64", run=Float64, args=args, flags=TE)
+        Scenario("Check support for Decimal32", run=Decimal32, args=args, flags=TE)
+        Scenario("Check support for Decimal64", run=Decimal64, args=args, flags=TE)
+        Scenario("Check support for Decimal128", run=Decimal128, args=args, flags=TE)
+        Scenario("Check support for String", run=String, args=args, flags=TE)
+        Scenario("Check support for FixedString", run=FixedString, args=args, flags=TE)
+        Scenario("Check support for Date", run=Date, args=args, flags=TE)
+        Scenario("Check support for DateTime", run=DateTime, args=args, flags=TE)
+        Scenario("Check support for Enum", run=Enum, args=args, flags=TE)
+        Scenario("Check support for UUID", run=UUID, args=args, flags=TE)
+        Scenario("Check support for IPv4", run=IPv4, args=args, flags=TE)
+        Scenario("Check support for IPv6", run=IPv6, args=args, flags=TE)

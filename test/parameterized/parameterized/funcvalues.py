@@ -2,7 +2,7 @@ import datetime
 
 from testflows.core import TestFeature, TestScenario
 from testflows.core import Scenario, Given, When, Then
-from testflows.core import Requirements, Name, TE, run
+from testflows.core import Requirements, Name, TE
 from testflows.asserts import error
 from utils import Logs, PyODBCConnection
 
@@ -61,5 +61,5 @@ def funcvalues(self, nullable=False):
     with Logs() as logs, PyODBCConnection(logs=logs) as connection:
         args = {"connection": connection}
 
-        run("Check support for isNull function", isNull, args=args, flags=TE)
-        run("Check support for handling NULL value", Null, args=args, flags=TE)
+        Scenario("Check support for isNull function", run=isNull, args=args, flags=TE)
+        Scenario("Check support for handling NULL value", run=Null, args=args, flags=TE)

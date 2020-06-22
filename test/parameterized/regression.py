@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import os
 
-from testflows.core import TestModule, TestFeature, Feature, Requirements
-from testflows.core import Name, Fail, Error, load, run
+from testflows.core import TestModule, TestFeature, Module, Feature, Scenario, Requirements
+from testflows.core import Name, Fail, Error, load
 from testflows.core import main, TE
 from requirements.QA_SRS003_ParameterizedQueries import *
 
@@ -17,16 +17,16 @@ def parameterized(self):
     """
     dsn = os.getenv("DSN", "ClickHouse DSN (ANSI)")
     with Feature(f"{dsn}", flags=TE):
-        run(test=load("parameterized.sanity", test="sanity"), flags=TE)
-        run(test=load("parameterized.datatypes", test="datatypes"), flags=TE)
-        run(test=load("parameterized.datatypes", test="nullable"), flags=TE)
-        run(test=load("parameterized.funcvalues", test="funcvalues"), flags=TE)
+        Scenario(run=load("parameterized.sanity", test="sanity"), flags=TE)
+        Feature(run=load("parameterized.datatypes", test="datatypes"), flags=TE)
+        Feature(run=load("parameterized.datatypes", test="nullable"), flags=TE)
+        Feature(run=load("parameterized.funcvalues", test="funcvalues"), flags=TE)
 
 @TestModule
 def regression(self):
     """The regression module for clickhouse-odbc driver.
     """
-    run(test=parameterized, flags=TE)
+    Feature(run=parameterized, flags=TE)
 
 if main():
     xfails = {
@@ -111,4 +111,4 @@ if main():
             [ (Fail, "Known failure")]
     }
 
-    run(test=regression, xfails=xfails)
+    Module(run=regression, xfails=xfails)
