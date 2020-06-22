@@ -205,10 +205,10 @@ def Float64(self, connection, nullable=False):
 def Decimal32(self, connection, nullable=False):
     """Verify support for Decimal32 data type."""
     expected = {
-        "all": "[((Decimal('-99999.9999'), ), (Decimal('10.1234'), ), (Decimal('99999.9999'), )]",
-        decimal.Decimal('-99999.9999'): "[((Decimal('-99999.9999'), )]",
+        "all": "[(Decimal('-99999.9999'), ), (Decimal('10.1234'), ), (Decimal('99999.9999'), )]",
+        decimal.Decimal('-99999.9999'): "[(Decimal('-99999.9999'), )]",
         decimal.Decimal('10.1234'): "[(Decimal('10.1234'), )]",
-        decimal.Decimal('99999.9999'): "[(Decimal('99999.9999'), ]"
+        decimal.Decimal('99999.9999'): "[(Decimal('99999.9999'), )]"
     }
 
     check_datatype(connection, "Decimal32(4)", [
@@ -222,10 +222,10 @@ def Decimal32(self, connection, nullable=False):
 def Decimal64(self, connection, nullable=False):
     """Verify support for Decimal64 data type."""
     expected = {
-        "all": "[((Decimal('-99999999999999.9999'), ), (Decimal('10.1234'), ), (Decimal('99999999999999.9999'), )]",
-        decimal.Decimal('-99999999999999.9999'): "[((Decimal('-99999999999999.9999'), )]",
+        "all": "[(Decimal('-99999999999999.9999'), ), (Decimal('10.1234'), ), (Decimal('99999999999999.9999'), )]",
+        decimal.Decimal('-99999999999999.9999'): "[(Decimal('-99999999999999.9999'), )]",
         decimal.Decimal('10.1234'): "[(Decimal('10.1234'), )]",
-        decimal.Decimal('99999999999999.9999'): "[(Decimal('99999999999999.9999'), ]"
+        decimal.Decimal('99999999999999.9999'): "[(Decimal('99999999999999.9999'), )]"
     }
 
     check_datatype(connection, "Decimal64(4)", [
@@ -239,10 +239,10 @@ def Decimal64(self, connection, nullable=False):
 def Decimal128(self, connection, nullable=False):
     """Verfiy support for Decimal128 data type."""
     expected = {
-        "all": "[((Decimal('-9999999999999999999999999999999999.9999'), ), (Decimal('10.1234'), ), (Decimal('9999999999999999999999999999999999.9999'), )]",
-        decimal.Decimal('-9999999999999999999999999999999999.9999'): "[((Decimal('-9999999999999999999999999999999999.9999'), )]",
+        "all": "[(Decimal('-9999999999999999999999999999999999.9999'), ), (Decimal('10.1234'), ), (Decimal('9999999999999999999999999999999999.9999'), )]",
+        decimal.Decimal('-9999999999999999999999999999999999.9999'): "[(Decimal('-9999999999999999999999999999999999.9999'), )]",
         decimal.Decimal('10.1234'): "[(Decimal('10.1234'), )]",
-        decimal.Decimal('9999999999999999999999999999999999.9999'): "[(Decimal('9999999999999999999999999999999999.9999'), ]"
+        decimal.Decimal('9999999999999999999999999999999999.9999'): "[(Decimal('9999999999999999999999999999999999.9999'), )]"
     }
 
     check_datatype(connection, "Decimal128(4)", [

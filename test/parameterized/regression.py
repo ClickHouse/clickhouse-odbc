@@ -56,9 +56,6 @@ if main():
         "I have values:/I select value:":
             [(Fail, "Selecting FixedString is not supported due to lack of toFixedString conversion")],
 
-        "/regression/parameterized/*/datatypes/Decimal:":
-            [(Fail, "Decimal type still not supported")],
-
         "*/I select value 18446744073709551615":
             [(Error, "UInt64 large value not supported")],
 
