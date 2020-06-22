@@ -61,5 +61,5 @@ def funcvalues(self, nullable=False):
     with Logs() as logs, PyODBCConnection(logs=logs) as connection:
         args = {"connection": connection}
 
-        Scenario("Check support for isNull function", run=isNull, args=args, flags=TE)
-        Scenario("Check support for handling NULL value", run=Null, args=args, flags=TE)
+        Scenario("isNull", run=isNull, args=args, flags=TE)
+        Scenario("Null", run=Null, args=args, flags=TE)
