@@ -33,7 +33,7 @@ def check_datatype(connection, datatype, values, nullable=False, quote=False, re
         with Given(f"parameters", description=f"""
             values {values}
             expected data {expected}
-            """):
+            """, format_description=False):
 
             with Given(f"table with a column of data type {datatype}"):
                 connection.query("DROP TABLE IF EXISTS ps", fetch=False)
