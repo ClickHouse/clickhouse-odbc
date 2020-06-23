@@ -15,43 +15,43 @@ TEST_F(MiscellaneousTest, RowArraySizeAttribute) {
 
     {
         size = 123;
-        rc = ODBC_CALL_ON_DBC_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
         ASSERT_EQ(size, 1);
     }
     
     {
         size = 0;
-        rc = ODBC_CALL_ON_DBC_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));
         ASSERT_EQ(rc, SQL_SUCCESS);
     }
 
     {
         size = 123;
-        rc = ODBC_CALL_ON_DBC_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
         ASSERT_EQ(size, 0);
     }
 
     {
         size = 1;
-        rc = ODBC_CALL_ON_DBC_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));
         ASSERT_EQ(rc, SQL_SUCCESS);
     }
 
     {
         size = 123;
-        rc = ODBC_CALL_ON_DBC_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
         ASSERT_EQ(size, 1);
     }
 
     {
         size = 456;
-        rc = ODBC_CALL_ON_DBC_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));
         ASSERT_EQ(rc, SQL_SUCCESS);
     }
 
     {
         size = 0;
-        rc = ODBC_CALL_ON_DBC_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
         ASSERT_EQ(size, 456);
     }
 }

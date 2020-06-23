@@ -899,7 +899,7 @@ SQLRETURN GetDescField(
 ) noexcept {
     auto func = [&] (Descriptor & descriptor) -> SQLRETURN {
 
-        // Process header fields first, withour running cheecks on record number.
+        // Process header fields first, withour running checks on record number.
         switch (FieldIdentifier) {
 
 #define CASE_FIELD_NUM(NAME, TYPE) \
@@ -1045,7 +1045,7 @@ SQLRETURN SetDescField(
 ) noexcept {
     auto func = [&] (Descriptor & descriptor) -> SQLRETURN {
 
-        // Process header fields first, withour running cheecks on record number.
+        // Process header fields first, withour running checks on record number.
         switch (FieldIdentifier) {
 
 #define CASE_FIELD_NUM(NAME, TYPE) \
