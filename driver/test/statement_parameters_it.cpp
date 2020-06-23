@@ -547,9 +547,9 @@ INSTANTIATE_TEST_SUITE_P(TypeConversion, DISABLED_ParameterColumnRoundTripGUIDSy
 );
 
 
-using ParameterColumnRoundTripNumericSymmetric  = ParameterColumnRoundTripSymmetric<SQL_NUMERIC_STRUCT>;
+using ParameterColumnRoundTripNumericSymmetric = ParameterColumnRoundTripSymmetric<SQL_NUMERIC_STRUCT>;
 
-TEST_P(ParameterColumnRoundTripNumericSymmetric,  Execute) {
+TEST_P(ParameterColumnRoundTripNumericSymmetric, Execute) {
     execute<DataType>(GetParam(), GetParam(), type_info_for("Decimal"));
 }
 
@@ -593,7 +593,7 @@ INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripNumericAsymmetr
 );
 
 
-using ParameterColumnRoundTripDecimalAsStringSymmetric  = ParameterColumnRoundTripSymmetric<void>;
+using ParameterColumnRoundTripDecimalAsStringSymmetric = ParameterColumnRoundTripSymmetric<void>;
 
 TEST_P(ParameterColumnRoundTripDecimalAsStringSymmetric, Execute) {
     execute_with_decimal_as_string(GetParam(), GetParam());
