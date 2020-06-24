@@ -307,7 +307,7 @@ std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& para
         std::string param_type;
 
         if (param_bindings.size() <= i) {
-            param_type = "Nullable(String)";
+            param_type = "Nullable(Nothing)";
         }
         else {
             const auto & binding_info = param_bindings[i];
@@ -432,7 +432,7 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
     const auto fully_bound_param_count = std::min(apd_record_count, ipd_record_count);
 
     // We allow (apd_record_count < ipd_record_count) here, since we will set
-    // all unbound parameters to 'Null' and their types to 'Nullable(String)'.
+    // all unbound parameters to 'Null' and their types to 'Nullable(Nothing)'.
 
     if (fully_bound_param_count > 0)
         param_bindings.reserve(fully_bound_param_count);
