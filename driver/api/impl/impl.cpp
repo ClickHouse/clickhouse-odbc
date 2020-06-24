@@ -9,6 +9,7 @@
 #include <Poco/Net/HTTPClientSession.h>
 
 #include <type_traits>
+#include <new>
 
 namespace impl {
 
@@ -1317,28 +1318,47 @@ SQLRETURN fetchBindings(
     bool success_with_info_met = false;
     std::size_t error_num = 0;
 
+    BindingInfo * base_bindings = nullptr;
+    if (ard_record_count > 0) {
+        base_bindings = static_cast<BindingInfo *>(stack_alloc(ard_record_count * sizeof(BindingInfo)));
+        if (base_bindings == nullptr)
+            throw std::bad_alloc();
+        std::fill(base_bindings, base_bindings + ard_record_count, BindingInfo{});
+    }
+
+    // Prepare the base binding info for all columns before iterating over the row set.
+    for (std::size_t column_num = 1; column_num <= ard_record_count; ++column_num) { // Skipping the bookmark (0) column.
+        const auto column_idx = column_num - 1;
+        const auto & ard_record = ard_records[column_num];
+        auto & base_binding = base_bindings[column_idx];
+
+        base_binding.c_type = ard_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
+        base_binding.value = ard_record.getAttrAs<SQLPOINTER>(SQL_DESC_DATA_PTR, 0);
+        base_binding.value_max_size = ard_record.getAttrAs<SQLLEN>(SQL_DESC_OCTET_LENGTH, 0);
+        base_binding.value_size = ard_record.getAttrAs<SQLLEN *>(SQL_DESC_OCTET_LENGTH_PTR, 0);
+        base_binding.indicator = ard_record.getAttrAs<SQLLEN *>(SQL_DESC_INDICATOR_PTR, 0);
+    }
+
     for (std::size_t row_idx = 0; row_idx < rows_fetched; ++row_idx) {
         for (std::size_t column_num = 1; column_num <= ard_record_count; ++column_num) { // Skipping the bookmark (0) column.
             const auto column_idx = column_num - 1;
-            const auto & ard_record = ard_records[column_num];
-
-            const auto * data_ptr = ard_record.getAttrAs<SQLPOINTER>(SQL_DESC_DATA_PTR, 0);
-            const auto * sz_ptr = ard_record.getAttrAs<SQLLEN *>(SQL_DESC_OCTET_LENGTH_PTR, 0);
-            const auto * ind_ptr = ard_record.getAttrAs<SQLLEN *>(SQL_DESC_INDICATOR_PTR, 0);
-
+            auto & base_binding = base_bindings[column_idx];
             SQLRETURN code = SQL_SUCCESS;
 
-            if (data_ptr || sz_ptr || ind_ptr) { // Only if the column is bound...
-                BindingInfo binding_info;
-                binding_info.c_type = ard_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
-                binding_info.value_max_size = ard_record.getAttrAs<SQLLEN>(SQL_DESC_OCTET_LENGTH, 0);
-
-                const auto next_value_ptr_increment = (bind_type == SQL_BIND_BY_COLUMN ? binding_info.value_max_size : bind_type);
+            if (
+                base_binding.value ||
+                base_binding.value_size ||
+                base_binding.indicator
+            ) { // Only if the column is bound...
+                const auto next_value_ptr_increment = (bind_type == SQL_BIND_BY_COLUMN ? base_binding.value_max_size : bind_type);
                 const auto next_sz_ind_ptr_increment = (bind_type == SQL_BIND_BY_COLUMN ? sizeof(SQLLEN) : bind_type);
 
-                binding_info.value = (SQLPOINTER)(data_ptr ? ((char *)(data_ptr) + row_idx * next_value_ptr_increment + bind_offset) : 0);
-                binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + row_idx * next_sz_ind_ptr_increment + bind_offset) : 0);
-                binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + row_idx * next_sz_ind_ptr_increment + bind_offset) : 0);
+                BindingInfo binding_info;
+                binding_info.c_type = base_binding.c_type;
+                binding_info.value_max_size = base_binding.value_max_size;
+                binding_info.value = (SQLPOINTER)(base_binding.value ? ((char *)(base_binding.value) + row_idx * next_value_ptr_increment + bind_offset) : 0);
+                binding_info.value_size = (SQLLEN *)(base_binding.value_size ? ((char *)(base_binding.value_size) + row_idx * next_sz_ind_ptr_increment + bind_offset) : 0);
+                binding_info.indicator = (SQLLEN *)(base_binding.indicator ? ((char *)(base_binding.indicator) + row_idx * next_sz_ind_ptr_increment + bind_offset) : 0);
 
                 // TODO: fill per-row and per-column diagnostics on (some soft?) errors.
                 const auto code = fillBinding(
