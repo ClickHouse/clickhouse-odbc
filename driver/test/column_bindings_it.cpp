@@ -151,6 +151,8 @@ FROM numbers(
     std::size_t total_rows = 0;
 
     while (true) {
+        // Must not reallocate the underlying buffers.
+
         std::fill(col1.begin(), col1.end(), -123);
         std::fill(col1_ind.begin(), col1_ind.end(), -123);
 
@@ -187,7 +189,7 @@ FROM numbers(
 
         ASSERT_LE(rows_processed, array_size);
 
-        for (std::size_t i = 0; i < col1.size(); ++i) {
+        for (std::size_t i = 0; i < array_size; ++i) {
             if (i < rows_processed) {
                 const std::int64_t number = total_rows + i;
                 const auto number_str = std::to_string(number);
@@ -243,6 +245,221 @@ FROM numbers(
 
                 EXPECT_FLOAT_EQ(col6[i], -123);
                 EXPECT_EQ(col6_ind[i], -123);
+            }
+        }
+
+        total_rows += rows_processed;
+    }
+
+    ASSERT_EQ(total_rows, total_rows_expected);
+}
+
+TEST_P(ColumnArrayBindingsTest, RowWise) {
+    const std::size_t total_rows_expected = std::get<1>(GetParam());
+    const std::string query_orig = R"SQL(
+SELECT
+    CAST(number, 'Int32') AS col1,
+    CAST(CAST(number, 'String'), 'FixedString(30)') AS col2,
+    CAST(number, 'Float64') AS col3,
+    CAST(if((number % 8) = 3, NULL, repeat('x', number % 41)), 'Nullable(String)') AS col4,
+    CAST(number, 'UInt64') AS col5,
+    CAST(number, 'Float32') AS col6
+FROM numbers(
+    )SQL" + std::to_string(total_rows_expected) + ")";
+
+    const auto query = fromUTF8<SQLTCHAR>(query_orig);
+    auto * query_wptr = const_cast<SQLTCHAR *>(query.c_str());
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+    struct Bindings {
+        SQLINTEGER col1 = -123;
+        SQLLEN col1_ind = -123;
+
+        FixedStringBuffer<SQLCHAR, 31> col2;
+        SQLLEN col2_ind = -123;
+
+        SQLDOUBLE col3 = -123;
+        SQLLEN col3_ind = -123;
+
+        FixedStringBuffer<SQLCHAR, 41> col4;
+        SQLLEN col4_ind = -123;
+
+        SQLUBIGINT col5 = 123456789;
+        SQLLEN col5_ind = -123;
+
+        SQLREAL col6 = -123;
+        SQLLEN col6_ind = -123;
+    };
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_BIND_TYPE, (SQLPOINTER)sizeof(Bindings), 0));
+
+    SQLULEN rows_processed = 0;
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROWS_FETCHED_PTR, (SQLPOINTER)&rows_processed, 0));
+
+    const SQLULEN binding_offset = std::get<0>(GetParam());
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_BIND_OFFSET_PTR, (SQLPOINTER)&binding_offset, 0));
+
+    const std::size_t array_size = std::get<2>(GetParam());
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)array_size, 0));
+
+    const auto adjsut_ptr = [&] (auto * ptr) {
+        return reinterpret_cast<char *>(ptr) - binding_offset;
+    };
+
+    const auto adjsut_ind_ptr = [&] (auto * ptr) {
+        return reinterpret_cast<SQLLEN *>(adjsut_ptr(ptr));
+    };
+
+    std::vector<Bindings> buf(array_size);
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            1,
+            getCTypeFor<std::decay_t<decltype(buf[0].col1)>>(),
+            adjsut_ptr(&(buf[0].col1)),
+            sizeof(buf[0].col1),
+            adjsut_ind_ptr(&(buf[0].col1_ind))
+        )
+    );
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            2,
+            getCTypeFor<SQLCHAR *>(),
+            adjsut_ptr(&(buf[0].col2)),
+            sizeof(buf[0].col2.data) * sizeof(buf[0].col2.data[0]),
+            adjsut_ind_ptr(&(buf[0].col2_ind))
+        )
+    );
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            3,
+            getCTypeFor<std::decay_t<decltype(buf[0].col3)>>(),
+            adjsut_ptr(&(buf[0].col3)),
+            sizeof(buf[0].col3),
+            adjsut_ind_ptr(&(buf[0].col3_ind))
+        )
+    );
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            4,
+            getCTypeFor<SQLCHAR *>(),
+            adjsut_ptr(&(buf[0].col4)),
+            sizeof(buf[0].col4.data) * sizeof(buf[0].col4.data[0]),
+            adjsut_ind_ptr(&(buf[0].col4_ind))
+        )
+    );
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            5,
+            getCTypeFor<std::decay_t<decltype(buf[0].col5)>>(),
+            adjsut_ptr(&(buf[0].col5)),
+            sizeof(buf[0].col5),
+            adjsut_ind_ptr(&(buf[0].col5_ind))
+        )
+    );
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            6,
+            getCTypeFor<std::decay_t<decltype(buf[0].col6)>>(),
+            adjsut_ptr(&(buf[0].col6)),
+            sizeof(buf[0].col6),
+            adjsut_ind_ptr(&(buf[0].col6_ind))
+        )
+    );
+
+    std::size_t total_rows = 0;
+
+    while (true) {
+        // Must not reallocate the underlying buffer.
+        std::fill(buf.begin(), buf.end(), Bindings{});
+
+        rows_processed = 0;
+
+        const SQLRETURN rc = SQLFetch(hstmt);
+
+        if (rc == SQL_NO_DATA)
+            break;
+
+        if (rc == SQL_ERROR)
+            throw std::runtime_error(extract_diagnostics(hstmt, SQL_HANDLE_STMT));
+
+        if (rc == SQL_SUCCESS_WITH_INFO)
+            std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+
+        if (!SQL_SUCCEEDED(rc))
+            throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
+
+        ASSERT_LE(rows_processed, array_size);
+
+        for (std::size_t i = 0; i < array_size; ++i) {
+            if (i < rows_processed) {
+                const std::int64_t number = total_rows + i;
+                const auto number_str = std::to_string(number);
+
+                EXPECT_EQ(buf[i].col1, number);
+                EXPECT_EQ(buf[i].col1_ind, sizeof(buf[i].col1));
+
+                {
+                    auto number_str_col2 = number_str;
+                    number_str_col2.resize(31, '\0'); // Because the column is 'FixedString(30)' + \0 from ODBC.
+
+                    EXPECT_THAT(buf[i].col2.data, ::testing::ElementsAreArray(number_str_col2));
+                    EXPECT_EQ(buf[i].col2_ind, 30); // Because the column is 'FixedString(30)'.
+                }
+
+                EXPECT_DOUBLE_EQ(buf[i].col3, number);
+                EXPECT_EQ(buf[i].col3_ind, sizeof(buf[i].col3));
+
+                if ((number % 8) == 3) {
+                    EXPECT_THAT(buf[i].col4.data, ::testing::Each(0b11011011));
+                    EXPECT_EQ(buf[i].col4_ind, SQL_NULL_DATA);
+                }
+                else {
+                    std::string number_str_col4(number % 41, 'x');
+                    number_str_col4.push_back('\0');
+                    number_str_col4.resize(sizeof(buf[i].col4.data), 0b11011011);
+
+                    EXPECT_THAT(buf[i].col4.data, ::testing::ElementsAreArray(number_str_col4));
+                    EXPECT_EQ(buf[i].col4_ind, number % 41);
+                }
+
+                EXPECT_EQ(buf[i].col5, number);
+                EXPECT_EQ(buf[i].col5_ind, sizeof(buf[i].col5));
+
+                EXPECT_FLOAT_EQ(buf[i].col6, number);
+                EXPECT_EQ(buf[i].col6_ind, sizeof(buf[i].col6));
+            }
+            else {
+                EXPECT_EQ(buf[i].col1, -123);
+                EXPECT_EQ(buf[i].col1_ind, -123);
+
+                EXPECT_THAT(buf[i].col2.data, ::testing::Each(0b11011011));
+                EXPECT_EQ(buf[i].col2_ind, -123);
+
+                EXPECT_DOUBLE_EQ(buf[i].col3, -123);
+                EXPECT_EQ(buf[i].col3_ind, -123);
+
+                EXPECT_THAT(buf[i].col4.data, ::testing::Each(0b11011011));
+                EXPECT_EQ(buf[i].col4_ind, -123);
+
+                EXPECT_EQ(buf[i].col5, 123456789);
+                EXPECT_EQ(buf[i].col5_ind, -123);
+
+                EXPECT_FLOAT_EQ(buf[i].col6, -123);
+                EXPECT_EQ(buf[i].col6_ind, -123);
             }
         }
 
