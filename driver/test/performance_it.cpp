@@ -566,14 +566,11 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchArrayBindColSingle
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
-    constexpr std::size_t array_size = 1'000;
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)array_size, 0));
-
-    SQLHDESC ird = nullptr;
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_IMP_ROW_DESC, &ird, 0, nullptr));
-
     SQLULEN rows_processed = 0;
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetDescField(ird, 0, SQL_DESC_ROWS_PROCESSED_PTR, &rows_processed, 0));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROWS_FETCHED_PTR, (SQLPOINTER)&rows_processed, 0));
+
+    const std::size_t array_size = 1'000;
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)array_size, 0));
 
     SQLINTEGER col[array_size] = {};
     SQLLEN col_ind[array_size] = {};
