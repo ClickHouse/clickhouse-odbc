@@ -109,7 +109,7 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
         std::string value;
 
         if (param_bindings.size() <= i) {
-            value = "Null";
+            value = "\\N";
         }
         else {
             const auto & binding_info = param_bindings[i];
@@ -118,7 +118,7 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
                 throw std::runtime_error("Unable to extract data from bound param buffer: param IO type is not supported");
 
             if (binding_info.value == nullptr)
-                value = "Null";
+                value = "\\N";
             else
                 readReadyDataTo(binding_info, value);
         }

@@ -17,12 +17,13 @@ echo 1. Prepare folders
 mkdir -p usr/bin etc/clickhouse-server var/lib/clickhouse
 
 echo 2. Download binaries
-curl https://clickhouse-builds.s3.yandex.net/0/381947509a4f66236f943beaefb0b1f5c2fd979d/1570028580_binary/clickhouse -o usr/bin/clickhouse
-curl https://clickhouse-builds.s3.yandex.net/0/381947509a4f66236f943beaefb0b1f5c2fd979d/1570028580_binary/clickhouse-odbc-bridge -o usr/bin/clickhouse-odbc-bridge
+# TODO: switch to actual 20.3 binaries once available. Currently, this is master branch.
+curl https://clickhouse-builds.s3.yandex.net/0/d147cd646a1e6cc41d42f92d57f016a5c49d04de/clang-10-darwin_relwithdebuginfo_none_bundled_unsplitted_disable_False_binary/clickhouse -o usr/bin/clickhouse
+curl https://clickhouse-builds.s3.yandex.net/0/d147cd646a1e6cc41d42f92d57f016a5c49d04de/clang-10-darwin_relwithdebuginfo_none_bundled_unsplitted_disable_False_binary/clickhouse-odbc-bridge -o usr/bin/clickhouse-odbc-bridge
 
 echo 3. Download configs
-curl https://raw.githubusercontent.com/ClickHouse/ClickHouse/v20.1.9.54-stable/dbms/programs/server/config.xml -o etc/clickhouse-server/config.xml
-curl https://raw.githubusercontent.com/ClickHouse/ClickHouse/v20.1.9.54-stable/dbms/programs/server/users.xml -o etc/clickhouse-server/users.xml
+curl https://raw.githubusercontent.com/ClickHouse/ClickHouse/20.5/programs/server/config.xml -o etc/clickhouse-server/config.xml
+curl https://raw.githubusercontent.com/ClickHouse/ClickHouse/20.5/programs/server/users.xml -o etc/clickhouse-server/users.xml
 
 echo 4. Setup executables
 pushd usr/bin/
