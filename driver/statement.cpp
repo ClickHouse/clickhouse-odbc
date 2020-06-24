@@ -459,7 +459,7 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
         const auto next_value_ptr_increment = (bind_type == SQL_PARAM_BIND_BY_COLUMN ? binding_info.value_max_size : bind_type);
         const auto next_sz_ind_ptr_increment = (bind_type == SQL_PARAM_BIND_BY_COLUMN ? sizeof(SQLLEN) : bind_type);
 
-        binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + param_set_idx * next_value_ptr_increment + bind_offset) : 0);
+        binding_info.value = (SQLPOINTER)(data_ptr ? ((char *)(data_ptr) + param_set_idx * next_value_ptr_increment + bind_offset) : 0);
         binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + param_set_idx * next_sz_ind_ptr_increment + bind_offset) : 0);
         binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + param_set_idx * next_sz_ind_ptr_increment + bind_offset) : 0);
 
