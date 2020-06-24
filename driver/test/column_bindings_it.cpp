@@ -12,7 +12,7 @@ class ColumnBindingsTest
 
 class ColumnArrayBindingsTest
     : public ColumnBindingsTest
-    , public ::testing::WithParamInterface<std::tuple<std::size_t, std::size_t>>
+    , public ::testing::WithParamInterface<std::tuple<std::uintptr_t, std::size_t, std::size_t>>
 {
 };
 
@@ -27,7 +27,7 @@ struct FixedStringBuffer {
 };
 
 TEST_P(ColumnArrayBindingsTest, ColumnWise) {
-    const std::size_t total_rows_expected = std::get<0>(GetParam());
+    const std::size_t total_rows_expected = std::get<1>(GetParam());
     const std::string query_orig = R"SQL(
 SELECT
     CAST(number, 'Int32') AS col1,
@@ -39,20 +39,30 @@ SELECT
 FROM numbers(
     )SQL" + std::to_string(total_rows_expected) + ")";
 
-    const auto query = fromUTF8<SQLCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLCHAR *>(query.c_str());
+    const auto query = fromUTF8<SQLTCHAR>(query_orig);
+    auto * query_wptr = const_cast<SQLTCHAR *>(query.c_str());
 
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
-    const std::size_t array_size = std::get<1>(GetParam());
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)array_size, 0));
-
-    SQLHDESC ird = nullptr;
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_IMP_ROW_DESC, &ird, 0, nullptr));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_BIND_TYPE, (SQLPOINTER)SQL_BIND_BY_COLUMN, 0));
 
     SQLULEN rows_processed = 0;
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetDescField(ird, 0, SQL_DESC_ROWS_PROCESSED_PTR, &rows_processed, 0));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROWS_FETCHED_PTR, (SQLPOINTER)&rows_processed, 0));
+
+    const SQLULEN binding_offset = std::get<0>(GetParam());
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_BIND_OFFSET_PTR, (SQLPOINTER)&binding_offset, 0));
+
+    const std::size_t array_size = std::get<2>(GetParam());
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)array_size, 0));
+
+    const auto adjsut_ptr = [&] (auto * ptr) {
+        return reinterpret_cast<char *>(ptr) - binding_offset;
+    };
+
+    const auto adjsut_ind_ptr = [&] (auto * ptr) {
+        return reinterpret_cast<SQLLEN *>(adjsut_ptr(ptr));
+    };
 
     std::vector<SQLINTEGER> col1(array_size);
     std::vector<SQLLEN> col1_ind(array_size);
@@ -62,9 +72,9 @@ FROM numbers(
             hstmt,
             1,
             getCTypeFor<std::decay_t<decltype(col1[0])>>(),
-            &col1[0],
+            adjsut_ptr(&col1[0]),
             sizeof(col1[0]),
-            &col1_ind[0]
+            adjsut_ind_ptr(&col1_ind[0])
         )
     );
 
@@ -76,9 +86,9 @@ FROM numbers(
             hstmt,
             2,
             getCTypeFor<SQLCHAR *>(),
-            &col2[0],
+            adjsut_ptr(&col2[0]),
             sizeof(col2[0].data) * sizeof(col2[0].data[0]),
-            &col2_ind[0]
+            adjsut_ind_ptr(&col2_ind[0])
         )
     );
 
@@ -90,9 +100,9 @@ FROM numbers(
             hstmt,
             3,
             getCTypeFor<std::decay_t<decltype(col3[0])>>(),
-            &col3[0],
+            adjsut_ptr(&col3[0]),
             sizeof(col3[0]),
-            &col3_ind[0]
+            adjsut_ind_ptr(&col3_ind[0])
         )
     );
 
@@ -104,9 +114,9 @@ FROM numbers(
             hstmt,
             4,
             getCTypeFor<SQLCHAR *>(),
-            &col4[0],
+            adjsut_ptr(&col4[0]),
             sizeof(col4[0].data) * sizeof(col4[0].data[0]),
-            &col4_ind[0]
+            adjsut_ind_ptr(&col4_ind[0])
         )
     );
 
@@ -118,9 +128,9 @@ FROM numbers(
             hstmt,
             5,
             getCTypeFor<std::decay_t<decltype(col5[0])>>(),
-            &col5[0],
+            adjsut_ptr(&col5[0]),
             sizeof(col5[0]),
-            &col5_ind[0]
+            adjsut_ind_ptr(&col5_ind[0])
         )
     );
 
@@ -132,9 +142,9 @@ FROM numbers(
             hstmt,
             6,
             getCTypeFor<std::decay_t<decltype(col6[0])>>(),
-            &col6[0],
+            adjsut_ptr(&col6[0]),
             sizeof(col6[0]),
-            &col6_ind[0]
+            adjsut_ind_ptr(&col6_ind[0])
         )
     );
 
@@ -244,14 +254,17 @@ FROM numbers(
 
 INSTANTIATE_TEST_SUITE_P(ArrayBindings, ColumnArrayBindingsTest,
     ::testing::Combine(
-        ::testing::Values(1, 2, 10, 75, 377, 1000, 2053, 4289),   // Result set sizes.
+        ::testing::Values(0, 1, 1234),                            // Binding offset.
+        ::testing::Values(1, 2, 10, 75, 377, 4289),               // Result set sizes.
         ::testing::Values(1, 2, 3, 5, 10, 30, 47, 111, 500, 1000) // Row set sizes.
     ),
     [] (const auto & param_info) {
         return (
-            "ResultSet_" +std::to_string(std::get<0>(param_info.param))
+            "BindingOffset_" +std::to_string(std::get<0>(param_info.param))
             + "_vs_" +
-            "RowSet_" +std::to_string(std::get<1>(param_info.param))
+            "ResultSet_" +std::to_string(std::get<1>(param_info.param))
+            + "_vs_" +
+            "RowSet_" +std::to_string(std::get<2>(param_info.param))
         );
     }
 );
