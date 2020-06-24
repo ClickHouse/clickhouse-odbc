@@ -122,7 +122,7 @@ TEST_F(StatementParametersTest, BindingNullStringValueForInteger) {
 #    define SQL_C_myTCHAR SQL_C_TCHAR
 #endif
 
-    auto param = fromUTF8<SQLmyTCHAR>("Null");
+    auto param = fromUTF8<SQLmyTCHAR>("\\N");
     SQLLEN param_ind = 0;
 
     auto * param_wptr = const_cast<SQLmyTCHAR *>(param.c_str());
@@ -201,7 +201,7 @@ TEST_F(StatementParametersTest, BindingNullStringValueForString) {
 #    define SQL_C_myTCHAR SQL_C_TCHAR
 #endif
 
-    auto param = fromUTF8<SQLmyTCHAR>("Null");
+    auto param = fromUTF8<SQLmyTCHAR>("\\N");
     SQLLEN param_ind = 0;
 
     auto * param_wptr = const_cast<SQLmyTCHAR *>(param.c_str());

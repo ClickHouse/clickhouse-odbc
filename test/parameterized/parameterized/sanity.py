@@ -3,7 +3,7 @@ import datetime
 import decimal
 
 from testflows.core import TestScenario, Given, When, Then
-from testflows.core import TE, MAN
+from testflows.core import TE
 from utils import PyODBCConnection
 
 @TestScenario
@@ -29,7 +29,7 @@ def sanity(self):
                 "f Float32, dc Decimal32(3), fs FixedString(8)) ENGINE = Memory"
             )
 
-            with Given("table", description=f"Table schema {table_schema}", flags=MAN):
+            with Given("table", description=f"Table schema {table_schema}", format_description=False):
                 query("DROP TABLE IF EXISTS ps", fetch=False)
                 query(table_schema, fetch=False)
                 try:
