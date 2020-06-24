@@ -432,7 +432,7 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
     const auto fully_bound_param_count = std::min(apd_record_count, ipd_record_count);
 
     // We allow (apd_record_count < ipd_record_count) here, since we will set
-    // all unbound parameters to 'Null' and their types to 'Nullable(Nothing)'.
+    // all unbound parameters to 'Null' and their types to 'Nullable(String)'.
 
     if (fully_bound_param_count > 0)
         param_bindings.reserve(fully_bound_param_count);
