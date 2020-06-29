@@ -30,6 +30,8 @@ const TypeInfo & Statement::getTypeInfo(const std::string & type_name, const std
 
 void Statement::prepareQuery(const std::string & q) {
     closeCursor();
+
+    is_prepared = false;
     query = q;
     processEscapeSequences();
     extractParametersinfo();
@@ -390,11 +392,8 @@ void Statement::closeCursor() {
     in = nullptr;
     response.reset();
 
-    parameters.clear();
-    query.clear();
     is_executed = false;
     is_forward_executed = false;
-    is_prepared = false;
 }
 
 void Statement::resetColBindings() {
