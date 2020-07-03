@@ -1814,7 +1814,7 @@ namespace value_manip {
         struct from_value {
             static inline SQLRETURN convert(const SourceType & src, BindingInfo & dest) {
                 if (dest.indicator && dest.indicator != dest.value_size)
-                    *dest.indicator = 0; // Value is not null here...
+                    *dest.indicator = 0; // (Null) indicator pointer of the binding. Value is not null here so we store 0 in it.
 
                 if constexpr (std::is_same_v<SourceType, DestinationType>) {
                     return fillOutputPOD(src, dest.value, dest.value_size);
@@ -1838,7 +1838,7 @@ namespace value_manip {
             template <typename ConversionContext>
             static inline SQLRETURN convert(const SourceType & src, BindingInfo & dest, ConversionContext && context) {
                 if (dest.indicator && dest.indicator != dest.value_size)
-                    *dest.indicator = 0; // Value is not null here...
+                    *dest.indicator = 0; // (Null) indicator pointer of the binding. Value is not null here so we store 0 in it.
 
                 if constexpr (std::is_same_v<SourceType, std::string>) {
                     return fillOutputString<SQLCHAR>(src, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
@@ -1865,7 +1865,7 @@ namespace value_manip {
             template <typename ConversionContext>
             static inline SQLRETURN convert(const SourceType & src, BindingInfo & dest, ConversionContext && context) {
                 if (dest.indicator && dest.indicator != dest.value_size)
-                    *dest.indicator = 0; // Value is not null here...
+                    *dest.indicator = 0; // (Null) indicator pointer of the binding. Value is not null here so we store 0 in it.
 
                 if constexpr (std::is_same_v<SourceType, std::string>) {
                     return fillOutputString<SQLWCHAR>(src, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
@@ -1891,7 +1891,7 @@ namespace value_manip {
         struct from_value {
             static inline SQLRETURN convert(const SourceType & src, BindingInfo & dest) {
                 if (dest.indicator && dest.indicator != dest.value_size)
-                    *dest.indicator = 0; // Value is not null here...
+                    *dest.indicator = 0; // (Null) indicator pointer of the binding. Value is not null here so we store 0 in it.
 
                 if constexpr (std::is_same_v<SourceType, DestinationType>) {
                     if (

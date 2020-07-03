@@ -27,6 +27,10 @@ struct FixedStringBuffer {
 };
 
 TEST_P(ColumnArrayBindingsTest, ColumnWise) {
+    // The test executes a query and bings array buffers (column-wise), then fetches and tests values in that buffers.
+
+    // A query that generates columns with increasing values and strings of increasing/cycling lengths,
+    // the resulting values are predictable and will be tested after SQLFetch calls.
     const std::size_t total_rows_expected = std::get<1>(GetParam());
     const std::string query_orig = R"SQL(
 SELECT
@@ -41,6 +45,8 @@ FROM numbers(
 
     const auto query = fromUTF8<SQLTCHAR>(query_orig);
     auto * query_wptr = const_cast<SQLTCHAR *>(query.c_str());
+
+    // Prepare, execute, and set attribues on te statement.
 
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
@@ -63,6 +69,9 @@ FROM numbers(
     const auto adjsut_ind_ptr = [&] (auto * ptr) {
         return reinterpret_cast<SQLLEN *>(adjsut_ptr(ptr));
     };
+
+    // Define the vectors underlying storage of whose will be used as bound buffers (both, value and size/indicator buffers),
+    // and bind them.
 
     std::vector<SQLINTEGER> col1(array_size);
     std::vector<SQLLEN> col1_ind(array_size);
@@ -151,7 +160,9 @@ FROM numbers(
     std::size_t total_rows = 0;
 
     while (true) {
-        // Must not reallocate the underlying buffers.
+        // Fill the bound buffers with a specific value, that will be considered as an "original garbage" here by us.
+        // Must not reallocate the underlying buffers, since pointers to them are stored as binding addresses
+        // by the driver during SQLBindCol calls.
 
         std::fill(col1.begin(), col1.end(), -123);
         std::fill(col1_ind.begin(), col1_ind.end(), -123);
@@ -170,6 +181,9 @@ FROM numbers(
 
         std::fill(col6.begin(), col6.end(), -123);
         std::fill(col6_ind.begin(), col6_ind.end(), -123);
+
+        // Perform a fetch and verify everything: the number of processed rows, values in the bound buffers,
+        // values in size/indicator buffers etc.
 
         rows_processed = 0;
 
@@ -190,6 +204,9 @@ FROM numbers(
         ASSERT_LE(rows_processed, array_size);
 
         for (std::size_t i = 0; i < array_size; ++i) {
+            // Check the fetched values, and also make sure that anything that should not be modified is not modified.
+            // The values can be deterministically deduced and are in sync with the query we executed.
+
             if (i < rows_processed) {
                 const std::int64_t number = total_rows + i;
                 const auto number_str = std::to_string(number);
@@ -255,6 +272,10 @@ FROM numbers(
 }
 
 TEST_P(ColumnArrayBindingsTest, RowWise) {
+    // The test executes a query and bings array buffers (row-wise), then fetches and tests values in that buffers.
+
+    // A query that generates columns with increasing values and strings of increasing/cycling lengths,
+    // the resulting values are predictable and will be tested after SQLFetch calls.
     const std::size_t total_rows_expected = std::get<1>(GetParam());
     const std::string query_orig = R"SQL(
 SELECT
@@ -269,6 +290,8 @@ FROM numbers(
 
     const auto query = fromUTF8<SQLTCHAR>(query_orig);
     auto * query_wptr = const_cast<SQLTCHAR *>(query.c_str());
+
+    // Prepare, execute, and set attribues on te statement.
 
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
@@ -311,6 +334,10 @@ FROM numbers(
     const auto adjsut_ind_ptr = [&] (auto * ptr) {
         return reinterpret_cast<SQLLEN *>(adjsut_ptr(ptr));
     };
+
+    // Define the vector underlying storage of which will be used as bound buffers (both, value and size/indicator buffers),
+    // and bind them, using pinters to each struct member. The value of SQL_ATTR_ROW_BIND_TYPE will tell the driver
+    // what offset to use to calculate the next elemet location in each bound buffer.
 
     std::vector<Bindings> buf(array_size);
 
@@ -383,8 +410,13 @@ FROM numbers(
     std::size_t total_rows = 0;
 
     while (true) {
-        // Must not reallocate the underlying buffer.
+        // Fill the bound buffer with a specific value, that will be considered as an "original garbage" here by us.
+        // Must not reallocate the underlying buffer, since the pointer to it is stored as binding addresses
+        // by the driver during SQLBindCol calls.
         std::fill(buf.begin(), buf.end(), Bindings{});
+
+        // Perform a fetch and verify everything: the number of processed rows, values in the bound buffers,
+        // values in size/indicator buffers etc.
 
         rows_processed = 0;
 
@@ -405,6 +437,9 @@ FROM numbers(
         ASSERT_LE(rows_processed, array_size);
 
         for (std::size_t i = 0; i < array_size; ++i) {
+            // Check the fetched values, and also make sure that anything that should not be modified is not modified.
+            // The values can be deterministically deduced and are in sync with the query we executed.
+
             if (i < rows_processed) {
                 const std::int64_t number = total_rows + i;
                 const auto number_str = std::to_string(number);
@@ -471,9 +506,9 @@ FROM numbers(
 
 INSTANTIATE_TEST_SUITE_P(ArrayBindings, ColumnArrayBindingsTest,
     ::testing::Combine(
-        ::testing::Values(0, 1, 1234),                            // Binding offset.
-        ::testing::Values(1, 2, 10, 75, 377, 4289),               // Result set sizes.
-        ::testing::Values(1, 2, 3, 5, 10, 30, 47, 111, 500, 1000) // Row set sizes.
+        ::testing::Values(0, 1, 1234),                     // Binding offset.
+        ::testing::Values(1, 2, 10, 75, 377, 4289),        // Result set sizes.
+        ::testing::Values(1, 2, 3, 10, 47, 111, 500, 1000) // Row set sizes.
     ),
     [] (const auto & param_info) {
         return (
