@@ -1,7 +1,7 @@
 [submodule "contrib/poco"]
     path = contrib/poco
-    url = https://github.com/pocoproject/poco.git
-    branch = master
+    url = https://github.com/ClickHouse-Extras/poco.git
+    branch = clickhouse-odbc
 [submodule "contrib/ssl"]
     path = contrib/ssl
     url = https://github.com/ClickHouse-Extras/ssl.git
