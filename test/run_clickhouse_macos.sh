@@ -29,6 +29,7 @@ echo "<?xml version=\"1.0\"?>
     <tmp_path replace=\"replace\">${CLICKHOUSE_DATADIR}/tmp/</tmp_path>
     <user_files_path replace=\"replace\">${CLICKHOUSE_DATADIR}/user_files/</user_files_path>
     <format_schema_path replace=\"replace\">${CLICKHOUSE_DATADIR}/format_schemas/</format_schema_path>
+    <access_control_path>${CLICKHOUSE_DATADIR}/access/</access_control_path>
 </yandex>
 " > $CLICKHOUSE_CONFDIR/conf.d/paths.xml
 

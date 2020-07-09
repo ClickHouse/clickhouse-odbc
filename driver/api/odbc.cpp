@@ -700,92 +700,64 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_hand
     return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
 }
 
-SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFetch)(HSTMT statement_handle) {
-    auto func = [&] (Statement & statement) {
-        return impl::FetchScroll(statement, SQL_FETCH_NEXT, 0);
-    };
-
-    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFetch)(
+    SQLHSTMT     StatementHandle
+) {
+    LOG(__FUNCTION__);
+    return impl::Fetch(
+        StatementHandle
+    );
 }
 
-SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFetchScroll)(HSTMT statement_handle, SQLSMALLINT orientation, SQLLEN offset) {
-    auto func = [&] (Statement & statement) {
-        return impl::FetchScroll(statement, orientation, offset);
-    };
-
-    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
+SQLRETURN SQL_API EXPORTED_FUNCTION(SQLFetchScroll)(
+    SQLHSTMT      StatementHandle,
+    SQLSMALLINT   FetchOrientation,
+    SQLLEN        FetchOffset
+) {
+    LOG(__FUNCTION__);
+    return impl::FetchScroll(
+        StatementHandle,
+        FetchOrientation,
+        FetchOffset
+    );
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetData)(
-    HSTMT statement_handle,
-    SQLUSMALLINT column_or_param_number,
-    SQLSMALLINT target_type,
-    PTR out_value,
-    SQLLEN out_value_max_size,
-    SQLLEN * out_value_size_or_indicator
+    SQLHSTMT       StatementHandle,
+    SQLUSMALLINT   Col_or_Param_Num,
+    SQLSMALLINT    TargetType,
+    SQLPOINTER     TargetValuePtr,
+    SQLLEN         BufferLength,
+    SQLLEN *       StrLen_or_IndPtr
 ) {
-    auto func = [&] (Statement & statement) {
-        BindingInfo binding_info;
-        binding_info.c_type = target_type;
-        binding_info.value = out_value;
-        binding_info.value_max_size = out_value_max_size;
-        binding_info.value_size = out_value_size_or_indicator;
-        binding_info.indicator = out_value_size_or_indicator;
-
-        return impl::GetData(
-            statement,
-            column_or_param_number,
-            binding_info
-        );
-    };
-
-    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
+    LOG(__FUNCTION__);
+    return impl::GetData(
+        StatementHandle,
+        Col_or_Param_Num,
+        TargetType,
+        TargetValuePtr,
+        BufferLength,
+        StrLen_or_IndPtr
+    );
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLBindCol)(
-    HSTMT statement_handle,
-    SQLUSMALLINT column_number,
-    SQLSMALLINT target_type,
-    PTR out_value,
-    SQLLEN out_value_max_size,
-    SQLLEN * out_value_size_or_indicator
+    SQLHSTMT       StatementHandle,
+    SQLUSMALLINT   ColumnNumber,
+    SQLSMALLINT    TargetType,
+    SQLPOINTER     TargetValuePtr,
+    SQLLEN         BufferLength,
+    SQLLEN *       StrLen_or_Ind
 ) {
-    auto func = [&] (Statement & statement) {
-        if (out_value_max_size < 0)
-            throw SqlException("Invalid string or buffer length", "HY090");
-
-        if (!statement.hasResultSet())
-            throw SqlException("Column info is not available", "07005");
-
-        auto & result_set = statement.getResultSet();
-
-        if (column_number < 1)
-            throw SqlException("Invalid descriptor index", "07009");
-
-        // Unbinding column
-        if (out_value_size_or_indicator == nullptr) {
-            statement.bindings.erase(column_number);
-            return SQL_SUCCESS;
-        }
-
-        const auto column_idx = column_number - 1;
-
-        if (target_type == SQL_C_DEFAULT)
-            target_type = statement.getTypeInfo(result_set.getColumnInfo(column_idx).type_without_parameters).sql_type;
-
-        BindingInfo binding;
-        binding.c_type = target_type;
-        binding.value = out_value;
-        binding.value_max_size = out_value_max_size;
-        binding.value_size = out_value_size_or_indicator;
-        binding.indicator = out_value_size_or_indicator;
-
-        statement.bindings[column_number] = binding;
-
-        return SQL_SUCCESS;
-    };
-
-    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
+    LOG(__FUNCTION__);
+    return impl::BindCol(
+        StatementHandle,
+        ColumnNumber,
+        TargetType,
+        TargetValuePtr,
+        BufferLength,
+        StrLen_or_Ind
+    );
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLRowCount)(HSTMT statement_handle, SQLLEN * out_row_count) {

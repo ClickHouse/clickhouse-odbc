@@ -553,3 +553,62 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColSingleType_
 
     ASSERT_EQ(total_rows, total_rows_expected);
 }
+
+TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchArrayBindColSingleType_Int)) {
+    constexpr std::size_t total_rows_expected = 10'000'000;
+    const std::string query_orig = "SELECT CAST('12345', 'Int') AS col FROM numbers(" + std::to_string(total_rows_expected) + ")";
+
+    std::cout << "Executing query:\n\t" << query_orig << std::endl;
+
+    const auto query = fromUTF8<SQLTCHAR>(query_orig);
+    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+    SQLULEN rows_processed = 0;
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROWS_FETCHED_PTR, (SQLPOINTER)&rows_processed, 0));
+
+    const std::size_t array_size = 1'000;
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)array_size, 0));
+
+    SQLINTEGER col[array_size] = {};
+    SQLLEN col_ind[array_size] = {};
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindCol(
+            hstmt,
+            1,
+            getCTypeFor<std::decay_t<decltype(*col)>>(),
+            col,
+            sizeof(*col),
+            col_ind
+        )
+    );
+
+    std::size_t total_rows = 0;
+
+    START_MEASURING_TIME();
+
+    while (true) {
+        const SQLRETURN rc = SQLFetch(hstmt);
+
+        if (rc == SQL_NO_DATA)
+            break;
+
+        if (rc == SQL_ERROR)
+            throw std::runtime_error(extract_diagnostics(hstmt, SQL_HANDLE_STMT));
+
+        if (rc == SQL_SUCCESS_WITH_INFO)
+            std::cout << extract_diagnostics(hstmt, SQL_HANDLE_STMT) << std::endl;
+
+        if (!SQL_SUCCEEDED(rc))
+            throw std::runtime_error("SQLFetch return code: " + std::to_string(rc));
+
+        total_rows += rows_processed;
+    }
+
+    STOP_MEASURING_TIME_AND_REPORT(total_rows);
+
+    ASSERT_EQ(total_rows, total_rows_expected);
+}

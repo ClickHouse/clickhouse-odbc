@@ -105,9 +105,5 @@ private:
     std::unique_ptr<Poco::Net::HTTPResponse> response;
     std::istream* in = nullptr;
     std::unique_ptr<ResultReader> result_reader;
-    std::size_t next_param_set = 0;
-
-public:
-    // TODO: switch to using the corresponding descriptor attributes.
-    std::map<SQLUSMALLINT, BindingInfo> bindings;
+    std::size_t next_param_set_idx = 0;
 };

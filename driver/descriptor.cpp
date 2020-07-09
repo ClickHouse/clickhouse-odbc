@@ -105,7 +105,7 @@ void DescriptorRecord::onAttrChange(int attr) {
             break;
         }
         case SQL_DESC_DATA_PTR: {
-            if (getAttrAs<SQLPOINTER>(SQL_DESC_DATA_PTR, nullptr))
+            if (getAttrAs<SQLPOINTER>(SQL_DESC_DATA_PTR, 0))
                 consistencyCheck();
             break;
         }
@@ -221,4 +221,8 @@ DescriptorRecord & Descriptor::getRecord(std::size_t num, SQLINTEGER current_rol
     }
 
     return records[num];
+}
+
+const std::vector<DescriptorRecord> & Descriptor::getRecordContainer() const {
+    return records;
 }
