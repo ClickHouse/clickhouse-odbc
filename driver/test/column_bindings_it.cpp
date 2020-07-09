@@ -506,9 +506,9 @@ FROM numbers(
 
 INSTANTIATE_TEST_SUITE_P(ArrayBindings, ColumnArrayBindingsTest,
     ::testing::Combine(
-        ::testing::Values(0, 1, 1234),                     // Binding offset.
-        ::testing::Values(1, 2, 10, 75, 377, 4289),        // Result set sizes.
-        ::testing::Values(1, 2, 3, 10, 47, 111, 500, 1000) // Row set sizes.
+        ::testing::Values(0, 1, 1234),                  // Binding offset.
+        ::testing::Values(1, 2, 10, 75, 377, 4289),     // Result set sizes.
+        ::testing::Values(1, 2, 10, 47, 111, 500, 1000) // Row set sizes.
     ),
     [] (const auto & param_info) {
         return (
