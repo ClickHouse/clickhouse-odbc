@@ -30,6 +30,8 @@ const TypeInfo & Statement::getTypeInfo(const std::string & type_name, const std
 
 void Statement::prepareQuery(const std::string & q) {
     closeCursor();
+
+    is_prepared = false;
     query = q;
     processEscapeSequences();
     extractParametersinfo();
@@ -57,7 +59,7 @@ void Statement::executeQuery(std::unique_ptr<ResultMutator> && mutator) {
     if (param_set_processed_ptr)
         *param_set_processed_ptr = 0;
 
-    next_param_set = 0;
+    next_param_set_idx = 0;
     requestNextPackOfResultSets(std::move(mutator));
     is_executed = true;
 }
@@ -66,7 +68,7 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     result_reader.reset();
 
     const auto param_set_array_size = getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
-    if (next_param_set >= param_set_array_size)
+    if (next_param_set_idx >= param_set_array_size)
         return;
 
     getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, 0);
@@ -103,13 +105,13 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     if (!database_set)
         uri.addQueryParameter("database", connection.database);
 
-    const auto param_bindings = getParamsBindingInfo(next_param_set);
+    const auto param_bindings = getParamsBindingInfo(next_param_set_idx);
 
     for (std::size_t i = 0; i < parameters.size(); ++i) {
         std::string value;
 
         if (param_bindings.size() <= i) {
-            value = "Null";
+            value = "\\N";
         }
         else {
             const auto & binding_info = param_bindings[i];
@@ -118,7 +120,7 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
                 throw std::runtime_error("Unable to extract data from bound param buffer: param IO type is not supported");
 
             if (binding_info.value == nullptr)
-                value = "Null";
+                value = "\\N";
             else
                 readReadyDataTo(binding_info, value);
         }
@@ -132,7 +134,7 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     // TODO: set this only after this single query is fully fetched (when output parameter support is added)
     auto * param_set_processed_ptr = getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
     if (param_set_processed_ptr)
-        *param_set_processed_ptr = next_param_set;
+        *param_set_processed_ptr = next_param_set_idx;
 
     Poco::Net::HTTPRequest request;
     request.setMethod(Poco::Net::HTTPRequest::HTTP_POST);
@@ -190,7 +192,7 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     }
 
     result_reader = make_result_reader(response->get("X-ClickHouse-Format", connection.default_format), *in, std::move(mutator));
-    ++next_param_set;
+    ++next_param_set_idx;
 }
 
 void Statement::processEscapeSequences() {
@@ -205,7 +207,7 @@ void Statement::extractParametersinfo() {
     const auto apd_record_count = apd_desc.getRecordCount();
     auto ipd_record_count = ipd_desc.getRecordCount();
 
-    // Reset IPD records but preserve possible info set by SQLBindParameter.
+    // Reset IPD records but preserve those that may have been modified by SQLBindParameter and are still relevant.
     ipd_record_count = std::min(ipd_record_count, apd_record_count);
     ipd_desc.setAttr(SQL_DESC_COUNT, ipd_record_count);
 
@@ -295,8 +297,9 @@ void Statement::extractParametersinfo() {
         }
     }
 
-    ipd_record_count = std::max(ipd_record_count, parameters.size());
-    ipd_desc.setAttr(SQL_DESC_COUNT, ipd_record_count);
+    // Access the biggest record to [possibly] create all missing ones.
+    if (ipd_record_count < parameters.size())
+        ipd_desc.getRecord(parameters.size(), SQL_ATTR_IMP_PARAM_DESC);
 }
 
 std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings) {
@@ -389,16 +392,11 @@ void Statement::closeCursor() {
     in = nullptr;
     response.reset();
 
-    parameters.clear();
-    query.clear();
     is_executed = false;
     is_forward_executed = false;
-    is_prepared = false;
 }
 
 void Statement::resetColBindings() {
-    bindings.clear();
-
     getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC).setAttr(SQL_DESC_COUNT, 0);
 }
 
@@ -437,27 +435,32 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
     if (fully_bound_param_count > 0)
         param_bindings.reserve(fully_bound_param_count);
 
-    const auto single_set_struct_size = apd_desc.getAttrAs<SQLULEN>(SQL_DESC_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN);
+    auto * array_status_ptr = ipd_desc.getAttrAs<SQLUSMALLINT *>(SQL_DESC_ARRAY_STATUS_PTR, 0);
+
+    const auto bind_type = apd_desc.getAttrAs<SQLULEN>(SQL_DESC_BIND_TYPE, SQL_PARAM_BIND_TYPE_DEFAULT);
     const auto * bind_offset_ptr = apd_desc.getAttrAs<SQLULEN *>(SQL_DESC_BIND_OFFSET_PTR, 0);
     const auto bind_offset = (bind_offset_ptr ? *bind_offset_ptr : 0);
 
-    for (std::size_t i = 1; i <= fully_bound_param_count; ++i) {
-        ParamBindingInfo binding_info;
-
-        auto & apd_record = apd_desc.getRecord(i, SQL_ATTR_APP_PARAM_DESC);
-        auto & ipd_record = ipd_desc.getRecord(i, SQL_ATTR_IMP_PARAM_DESC);
+    for (std::size_t param_num = 1; param_num <= fully_bound_param_count; ++param_num) {
+        auto & apd_record = apd_desc.getRecord(param_num, SQL_ATTR_APP_PARAM_DESC);
+        auto & ipd_record = ipd_desc.getRecord(param_num, SQL_ATTR_IMP_PARAM_DESC);
 
         const auto * data_ptr = apd_record.getAttrAs<SQLPOINTER>(SQL_DESC_DATA_PTR, 0);
         const auto * sz_ptr = apd_record.getAttrAs<SQLLEN *>(SQL_DESC_OCTET_LENGTH_PTR, 0);
         const auto * ind_ptr = apd_record.getAttrAs<SQLLEN *>(SQL_DESC_INDICATOR_PTR, 0);
 
+        ParamBindingInfo binding_info;
         binding_info.io_type = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_PARAMETER_TYPE, SQL_PARAM_INPUT);
         binding_info.c_type = apd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
         binding_info.sql_type = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_UNKNOWN_TYPE);
-        binding_info.value_max_size = ipd_record.getAttrAs<SQLULEN>(SQL_DESC_LENGTH, 0); // TODO: or SQL_DESC_OCTET_LENGTH ?
-        binding_info.value = (void *)(data_ptr ? ((char *)(data_ptr) + param_set_idx * single_set_struct_size + bind_offset) : 0);
-        binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
-        binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + param_set_idx * sizeof(SQLLEN) + bind_offset) : 0);
+        binding_info.value_max_size = ipd_record.getAttrAs<SQLLEN>(SQL_DESC_OCTET_LENGTH, 0);
+
+        const auto next_value_ptr_increment = (bind_type == SQL_PARAM_BIND_BY_COLUMN ? binding_info.value_max_size : bind_type);
+        const auto next_sz_ind_ptr_increment = (bind_type == SQL_PARAM_BIND_BY_COLUMN ? sizeof(SQLLEN) : bind_type);
+
+        binding_info.value = (SQLPOINTER)(data_ptr ? ((char *)(data_ptr) + param_set_idx * next_value_ptr_increment + bind_offset) : 0);
+        binding_info.value_size = (SQLLEN *)(sz_ptr ? ((char *)(sz_ptr) + param_set_idx * next_sz_ind_ptr_increment + bind_offset) : 0);
+        binding_info.indicator = (SQLLEN *)(ind_ptr ? ((char *)(ind_ptr) + param_set_idx * next_sz_ind_ptr_increment + bind_offset) : 0);
 
         // TODO: always use SQL_NULLABLE as a default when https://github.com/ClickHouse/ClickHouse/issues/7488 is fixed.
         binding_info.is_nullable = (
@@ -473,6 +476,9 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
 
         param_bindings.emplace_back(binding_info);
     }
+
+    if (array_status_ptr)
+        array_status_ptr[param_set_idx] = SQL_PARAM_SUCCESS; // TODO: elaborate?
 
     return param_bindings;
 }

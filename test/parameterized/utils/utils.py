@@ -50,7 +50,7 @@ def Logs():
 def PyODBCConnection(encoding="utf-8", logs=None):
     """PyODBC connector context manager.
     """
-    dsn = os.getenv("DSN", "clickhouse_localhost")
+    dsn = os.getenv("DSN", "ClickHouse DSN (ANSI)")
     note(f"Using DNS={dsn}")
     connection = pyodbc.connect(f"DSN={dsn};")
     try:

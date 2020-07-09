@@ -70,16 +70,6 @@ void ColumnInfo::assignTypeInfo(const TypeAst & ast) {
 void ColumnInfo::updateTypeInfo() {
     type_without_parameters_id = convertUnparametrizedTypeNameToTypeId(type_without_parameters);
 
-    auto tmp_type_name = convertTypeIdToUnparametrizedCanonicalTypeName(type_without_parameters_id);
-
-    if (
-        type_without_parameters_id == DataSourceTypeId::Decimal32 ||
-        type_without_parameters_id == DataSourceTypeId::Decimal64 ||
-        type_without_parameters_id == DataSourceTypeId::Decimal128
-    ) {
-        tmp_type_name = "Decimal";
-    }
-
     switch (type_without_parameters_id) {
         case DataSourceTypeId::FixedString: {
             display_size = fixed_size;
@@ -92,6 +82,16 @@ void ColumnInfo::updateTypeInfo() {
         }
 
         default: {
+            auto tmp_type_name = convertTypeIdToUnparametrizedCanonicalTypeName(type_without_parameters_id);
+
+            if (
+                type_without_parameters_id == DataSourceTypeId::Decimal32 ||
+                type_without_parameters_id == DataSourceTypeId::Decimal64 ||
+                type_without_parameters_id == DataSourceTypeId::Decimal128
+            ) {
+                tmp_type_name = "Decimal";
+            }
+
             auto & type_info = type_info_for(tmp_type_name);
             display_size = type_info.column_size;
             break;

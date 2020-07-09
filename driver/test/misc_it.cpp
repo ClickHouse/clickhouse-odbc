@@ -14,33 +14,44 @@ TEST_F(MiscellaneousTest, RowArraySizeAttribute) {
     SQLULEN size = 0;
 
     {
-        size = 0;
-        rc = ODBC_CALL_ON_DBC_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
+        size = 123;
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
         ASSERT_EQ(size, 1);
     }
     
     {
+        size = 0;
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    {
+        size = 123;
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
+        ASSERT_EQ(size, 0);
+    }
+
+    {
         size = 1;
-        rc = ODBC_CALL_ON_DBC_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));
+        ASSERT_EQ(rc, SQL_SUCCESS);
+    }
+
+    {
+        size = 123;
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
+        ASSERT_EQ(size, 1);
+    }
+
+    {
+        size = 456;
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));
         ASSERT_EQ(rc, SQL_SUCCESS);
     }
 
     {
         size = 0;
-        rc = ODBC_CALL_ON_DBC_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
-        ASSERT_EQ(size, 1);
-    }
-
-    {
-        size = 1234;
-        rc = ODBC_CALL_ON_DBC_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));
-        ASSERT_EQ(rc, SQL_SUCCESS_WITH_INFO); // TODO: remove this when row arrays bigger than 1 are allowed.
-    }
-
-    {
-        size = 0;
-        rc = ODBC_CALL_ON_DBC_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
-        ASSERT_EQ(size, 1); // TODO: remove this when row arrays bigger than 1 are allowed.
-//      ASSERT_EQ(size, 1234); // TODO: uncomment this, when row arrays bigger than 1 are allowed.
+        rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
+        ASSERT_EQ(size, 456);
     }
 }

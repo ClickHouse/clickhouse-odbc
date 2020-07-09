@@ -35,6 +35,8 @@ public:
     std::size_t getRecordCount() const;
     DescriptorRecord& getRecord(std::size_t num, SQLINTEGER current_role);
 
+    const std::vector<DescriptorRecord> & getRecordContainer() const;
+
 private:
     std::vector<DescriptorRecord> records;
 };

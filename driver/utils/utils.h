@@ -34,6 +34,12 @@
 
 #include <cstring>
 
+#ifdef _win_
+#   define stack_alloc _alloca
+#else
+#   define stack_alloc alloca
+#endif
+
 class Environment;
 class Connection;
 class Descriptor;

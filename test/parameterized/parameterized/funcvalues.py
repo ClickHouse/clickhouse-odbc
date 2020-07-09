@@ -2,14 +2,14 @@ import datetime
 
 from testflows.core import TestFeature, TestScenario
 from testflows.core import Scenario, Given, When, Then
-from testflows.core import Requirements, Name, TE, run
+from testflows.core import Requirements, Name, TE
 from testflows.asserts import error
 from utils import Logs, PyODBCConnection
 
 from requirements.QA_SRS003_ParameterizedQueries import *
 
 @TestScenario
-def isNull(connection):
+def isNull(self, connection):
     """Verify support for isNull function."""
     values = [
         "hello", b'\xe5\x8d\xb0'.decode('utf-8'),
@@ -28,7 +28,7 @@ def isNull(connection):
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Nullable_NULL("1.0"))
-def Null(connection):
+def Null(self, connection):
     """Verify support for handling NULL value."""
     with Given("PyODBC connection"):
         query = "SELECT isNull(?)"
@@ -54,12 +54,12 @@ def Null(connection):
 
 @TestFeature
 @Name("functions and values")
-def funcvalues(nullable=False):
+def funcvalues(self, nullable=False):
     """Check clickhouse-odbc driver support for parameterized
     queries with functions and values using pyodbc connector.
     """
     with Logs() as logs, PyODBCConnection(logs=logs) as connection:
         args = {"connection": connection}
 
-        run("Check support for isNull function", isNull, args=args, flags=TE)
-        run("Check support for handling NULL value", Null, args=args, flags=TE)
+        Scenario("isNull", run=isNull, args=args, flags=TE)
+        Scenario("Null", run=Null, args=args, flags=TE)
