@@ -81,11 +81,17 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
 
     Poco::URI uri(connection.url);
 
-    if (connection.port != 0)
-        uri.setPort(connection.port);
+    if (!connection.proto.empty())
+        uri.setScheme(connection.proto);
 
     if (!connection.server.empty())
         uri.setHost(connection.server);
+
+    if (connection.port != 0)
+        uri.setPort(connection.port);
+
+    if (!connection.path.empty())
+        uri.setPath(connection.path);
 
     bool database_set = false;
     bool default_format_set = false;
@@ -142,13 +148,12 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     request.setKeepAlive(true);
     request.setChunkedTransferEncoding(true);
     request.setCredentials("Basic", connection.buildCredentialsString());
+    request.setHost(uri.getHost());
     request.setURI(uri.getPathEtc());
     request.set("User-Agent", connection.buildUserAgentString());
 
-    LOG(request.getMethod() << " " << connection.session->getHost() << request.getURI() << " body=" << prepared_query
+    LOG(request.getMethod() << " " << request.getHost() << request.getURI() << " body=" << prepared_query
                             << " UA=" << request.get("User-Agent"));
-
-    // LOG("curl 'http://" << connection.session->getHost() << ":" << connection.session->getPort() << request.getURI() << "' -d '" << prepared_query << "'");
 
     int redirect_count = 0;
     // Send request to server with finite count of retries.
@@ -168,6 +173,7 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
                 uri = newLocation;
                 connection.session->setHost(uri.getHost());
                 connection.session->setPort(uri.getPort());
+                request.setHost(uri.getHost());
                 request.setURI(uri.getPathEtc());
             }
             break;
