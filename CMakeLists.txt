@@ -4,7 +4,13 @@ set (CMAKE_MODULE_PATH_orig ${CMAKE_MODULE_PATH})
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 include (cmake/prevent_in_source_builds.cmake)
 
-project (clickhouse-odbc VERSION 1.1.8.20200710 LANGUAGES C CXX)
+project (
+    clickhouse-odbc
+    VERSION 1.1.8.20200710
+    DESCRIPTION "ClickHouse ODBC Driver"
+    HOMEPAGE_URL "https://github.com/ClickHouse/clickhouse-odbc"
+    LANGUAGES C CXX
+)
 
 set (CMAKE_C_STANDARD 11)
 #set (CMAKE_C_EXTENSIONS 0)
@@ -226,12 +232,14 @@ if (CH_ODBC_ENABLE_INSTALL)
         DESCRIPTION "ClickHouse ODBC Driver (ANSI, ${ARCH_BITS}-bit)"
         EXPANDED
     )
+
     cpack_add_component (ANSIDriver
         DISPLAY_NAME "Driver"
         DESCRIPTION "ClickHouse ODBC Driver (ANSI, ${ARCH_BITS}-bit)"
         REQUIRED
         GROUP ANSIGroup
     )
+
     cpack_add_component (ANSIDriverDebugSymbols
         DISPLAY_NAME "Debug symbols"
         DESCRIPTION "Debug symbols (PDB) for the Driver (ANSI, ${ARCH_BITS}-bit)"
@@ -239,17 +247,20 @@ if (CH_ODBC_ENABLE_INSTALL)
         DEPENDS ANSIDriver
         GROUP ANSIGroup
     )
+
     cpack_add_component_group (UnicodeGroup
         DISPLAY_NAME "Unicode ${ARCH_BITS}-bit Driver"
         DESCRIPTION "ClickHouse ODBC Driver (Unicode, ${ARCH_BITS}-bit)"
         EXPANDED
     )
+
     cpack_add_component (UnicodeDriver
         DISPLAY_NAME "Driver"
         DESCRIPTION "ClickHouse ODBC Driver (Unicode, ${ARCH_BITS}-bit)"
         DEPENDS ANSIDriver
         GROUP UnicodeGroup
     )
+
     cpack_add_component (UnicodeDriverDebugSymbols
         DISPLAY_NAME "Debug symbols"
         DESCRIPTION "Debug symbols (PDB) for Driver (Unicode, ${ARCH_BITS}-bit)"
@@ -257,6 +268,7 @@ if (CH_ODBC_ENABLE_INSTALL)
         DEPENDS UnicodeDriver
         GROUP UnicodeGroup
     )
+
     cpack_add_component (RuntimeLibraries
         DISPLAY_NAME "Runtime Libraries"
         DESCRIPTION "System/language redistributable runtime libraries"
@@ -267,10 +279,10 @@ if (CH_ODBC_ENABLE_INSTALL)
         set (CPACK_GENERATOR "ZIP;WIX")
     elseif (APPLE)
         set (CPACK_GENERATOR "TXZ")
-    elseif (UNIX_RHEL OR UNIX_FEDORA)
+    elseif (UNIX_RHEL OR UNIX_FEDORA OR UNIX_CENTOS)
         set (CPACK_GENERATOR "TXZ;RPM")
     elseif (UNIX_DEBIAN OR UNIX_UBUNTU)
-        set (CPACK_GENERATOR "TXZ;DEB")
+        set (CPACK_GENERATOR "TXZ") # TODO: add DEB
     else ()
         set (CPACK_GENERATOR "TGZ")
     endif ()
@@ -280,13 +292,31 @@ if (CH_ODBC_ENABLE_INSTALL)
     else ()
         set (CPACK_PACKAGE_INSTALL_DIRECTORY "/usr/local")
     endif ()
+    set (CPACK_PACKAGING_INSTALL_PREFIX "${CPACK_PACKAGE_INSTALL_DIRECTORY}")
 
     set (CPACK_PACKAGE_VENDOR "Yandex LLC")
     set (CPACK_PACKAGE_DESCRIPTION "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
     set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
     set (CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/packaging/Readme.rtf")
     set (CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/License.rtf")
-    set (CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/ClickHouse/clickhouse-odbc")
+    set (CPACK_PACKAGE_CHECKSUM "SHA256")
+    set (CPACK_PACKAGE_RELOCATABLE ON)
+
+    set (CPACK_RPM_COMPONENT_INSTALL OFF)
+    set (CPACK_RPM_FILE_NAME RPM-DEFAULT)
+    set (CPACK_RPM_PACKAGE_RELEASE_DIST ON)
+    set (CPACK_RPM_PACKAGE_LICENSE "ASL 2.0")
+    set (CPACK_RPM_PACKAGE_GROUP "Applications/Databases")
+    set (CPACK_RPM_COMPRESSION_TYPE "gzip")
+
+    if ("${ODBC_PROVIDER}" STREQUAL "UnixODBC")
+        set (CPACK_RPM_PACKAGE_REQUIRES "unixODBC")
+    elseif ("${ODBC_PROVIDER}" STREQUAL "iODBC")
+        set (CPACK_RPM_PACKAGE_REQUIRES "libiodbc")
+    endif ()
+
+    set (CPACK_RPM_DEBUGINFO_PACKAGE OFF)
+    set (CPACK_RPM_PACKAGE_SOURCES OFF)
 
     set (CPACK_WIX_ROOT_FEATURE_TITLE "ClickHouse ODBC Driver")
     set (CPACK_WIX_ROOT_FEATURE_DESCRIPTION "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
