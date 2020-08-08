@@ -261,6 +261,13 @@ You can find sample configuration for this driver here:
 - [odbcinst.ini.sample](packaging/odbcinst.ini.sample)
 - [odbc.ini.sample](packaging/odbc.ini.sample)
 
+These samples can be added to the corresponding configuration files using the `odbcinst` tool (assuming the package is installed under `/usr/local`):
+
+```sh
+odbcinst -i -d -f /usr/local/share/doc/clickhouse-odbc/config/odbcinst.ini.sample
+odbcinst -i -s -l -f /usr/local/share/doc/clickhouse-odbc/config/odbc.ini.sample
+```
+
 ### Configuration: iODBC
 
 In short, usually you will end up editing `/etc/odbcinst.ini` and `/etc/odbc.ini` for system-wide driver and DSN entries, and `~/.odbcinst.ini` and `~/.odbc.ini` for user-wide driver and DSN entries.

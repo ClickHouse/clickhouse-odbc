@@ -1,0 +1,9 @@
+
+# This file will be included at CPack-time, once per generator after CPack has set CPACK_GENERATOR to the actual generator being used.
+
+if (
+    CPACK_GENERATOR MATCHES "RPM" OR
+    CPACK_GENERATOR MATCHES "DEB"
+)
+    set (CPACK_PACKAGING_INSTALL_PREFIX "${CPACK_PACKAGE_INSTALL_DIRECTORY}")
+endif ()

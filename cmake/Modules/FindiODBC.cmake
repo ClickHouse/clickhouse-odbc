@@ -8,6 +8,7 @@
 #     ODBC_IODBC_SKIP_BREW
 #
 # Defines (some of) the following vars:
+#     iODBC_FOUND
 #     ODBC_IODBC_FOUND
 #
 #     ODBC_IODBC_DIR
@@ -353,4 +354,6 @@ unset (_role_lc)
 unset (_role_uc)
 
 include (FindPackageHandleStandardArgs)
-find_package_handle_standard_args (ODBC_IODBC REQUIRED_VARS ODBC_IODBC_FOUND)
+find_package_handle_standard_args (iODBC REQUIRED_VARS ODBC_IODBC_FOUND)
+
+set (ODBC_IODBC_FOUND "${iODBC_FOUND}")

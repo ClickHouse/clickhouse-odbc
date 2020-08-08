@@ -43,7 +43,6 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     set (COMPILER_CLANG 1)
 endif ()
 
-
 if (ARCH_LINUX)
     if (EXISTS "/etc/os-release")
         find_program (AWK awk)

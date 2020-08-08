@@ -8,6 +8,7 @@
 #     ODBC_UNIXODBC_SKIP_BREW
 #
 # Defines (some of) the following vars:
+#     UnixODBC_FOUND
 #     ODBC_UNIXODBC_FOUND
 #
 #     ODBC_UNIXODBC_DIR
@@ -407,4 +408,6 @@ unset (_role_lc)
 unset (_role_uc)
 
 include (FindPackageHandleStandardArgs)
-find_package_handle_standard_args (ODBC_UNIXODBC REQUIRED_VARS ODBC_UNIXODBC_FOUND)
+find_package_handle_standard_args (UnixODBC REQUIRED_VARS ODBC_UNIXODBC_FOUND)
+
+set (ODBC_UNIXODBC_FOUND  "${UnixODBC_FOUND}")

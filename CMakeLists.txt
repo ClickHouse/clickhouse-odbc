@@ -7,7 +7,7 @@ include (cmake/prevent_in_source_builds.cmake)
 project (
     clickhouse-odbc
     VERSION 1.1.8.20200710
-    DESCRIPTION "ClickHouse ODBC Driver"
+    DESCRIPTION "The official ODBC driver implementation for accessing ClickHouse as a data source."
     HOMEPAGE_URL "https://github.com/ClickHouse/clickhouse-odbc"
     LANGUAGES C CXX
 )
@@ -280,9 +280,9 @@ if (CH_ODBC_ENABLE_INSTALL)
     elseif (APPLE)
         set (CPACK_GENERATOR "TXZ")
     elseif (UNIX_RHEL OR UNIX_FEDORA OR UNIX_CENTOS)
-        set (CPACK_GENERATOR "TXZ;RPM")
+        set (CPACK_GENERATOR "TGZ;TXZ;RPM")
     elseif (UNIX_DEBIAN OR UNIX_UBUNTU)
-        set (CPACK_GENERATOR "TXZ") # TODO: add DEB
+        set (CPACK_GENERATOR "TGZ;TXZ") # TODO: add DEB
     else ()
         set (CPACK_GENERATOR "TGZ")
     endif ()
@@ -292,10 +292,11 @@ if (CH_ODBC_ENABLE_INSTALL)
     else ()
         set (CPACK_PACKAGE_INSTALL_DIRECTORY "/usr/local")
     endif ()
-    set (CPACK_PACKAGING_INSTALL_PREFIX "${CPACK_PACKAGE_INSTALL_DIRECTORY}")
+
+    set (CPACK_PROJECT_CONFIG_FILE "${PROJECT_SOURCE_DIR}/CPackLists.txt")
 
     set (CPACK_PACKAGE_VENDOR "Yandex LLC")
-    set (CPACK_PACKAGE_DESCRIPTION "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
+    set (CPACK_PACKAGE_DESCRIPTION "The official ODBC driver implementation for accessing ClickHouse as a data source.")
     set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
     set (CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/packaging/Readme.rtf")
     set (CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/packaging/License.rtf")
@@ -308,6 +309,8 @@ if (CH_ODBC_ENABLE_INSTALL)
     set (CPACK_RPM_PACKAGE_LICENSE "ASL 2.0")
     set (CPACK_RPM_PACKAGE_GROUP "Applications/Databases")
     set (CPACK_RPM_COMPRESSION_TYPE "gzip")
+    set (CPACK_RPM_PACKAGE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION}")
+    set (CPACK_RPM_CHANGELOG_FILE "${PROJECT_SOURCE_DIR}/packaging/Changelog.txt")
 
     if ("${ODBC_PROVIDER}" STREQUAL "UnixODBC")
         set (CPACK_RPM_PACKAGE_REQUIRES "unixODBC")
@@ -319,7 +322,7 @@ if (CH_ODBC_ENABLE_INSTALL)
     set (CPACK_RPM_PACKAGE_SOURCES OFF)
 
     set (CPACK_WIX_ROOT_FEATURE_TITLE "ClickHouse ODBC Driver")
-    set (CPACK_WIX_ROOT_FEATURE_DESCRIPTION "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
+    set (CPACK_WIX_ROOT_FEATURE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}")
     set (CPACK_WIX_PATCH_FILE "${PROJECT_SOURCE_DIR}/packaging/RegConfig.patch.wxs")
     if ("${ARCH_BITS}" STREQUAL "32")
         set (CPACK_WIX_PRODUCT_GUID "9FCA44DB-6963-4EBF-87A6-279331C139EB")
