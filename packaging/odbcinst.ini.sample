@@ -1,5 +1,5 @@
 # Insert the content of this file into ~/.odbcinst.ini or /etc/odbcinst.ini files,
-# and append absolute paths to libclickhouseodbc.so and libclickhouseodbcw.so files.
+# and fix the absolute paths to libclickhouseodbc.so and libclickhouseodbcw.so files.
 
 [ODBC Drivers]
 ClickHouse ODBC Driver (ANSI)    = Installed
@@ -7,12 +7,12 @@ ClickHouse ODBC Driver (Unicode) = Installed
 
 [ClickHouse ODBC Driver (ANSI)]
 Description = ODBC Driver (ANSI) for ClickHouse
-Driver      = libclickhouseodbc.so
-Setup       = libclickhouseodbc.so
+Driver      = /usr/local/lib64/libclickhouseodbc.so
+Setup       = /usr/local/lib64/libclickhouseodbc.so
 UsageCount  = 1
 
 [ClickHouse ODBC Driver (Unicode)]
 Description = ODBC Driver (Unicode) for ClickHouse
-Driver      = libclickhouseodbcw.so
-Setup       = libclickhouseodbcw.so
+Driver      = /usr/local/lib64/libclickhouseodbcw.so
+Setup       = /usr/local/lib64/libclickhouseodbcw.so
 UsageCount  = 1
