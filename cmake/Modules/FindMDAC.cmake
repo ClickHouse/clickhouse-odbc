@@ -3,6 +3,7 @@
 #     ODBC_MDAC_DIR
 #
 # Defines (some of) the following vars:
+#     MDAC_FOUND
 #     ODBC_MDAC_FOUND
 #
 #     ODBC_MDAC_APP_DEFINES
@@ -130,4 +131,6 @@ unset (_role_lc)
 unset (_role_uc)
 
 include (FindPackageHandleStandardArgs)
-find_package_handle_standard_args (ODBC_MDAC REQUIRED_VARS ODBC_MDAC_FOUND)
+find_package_handle_standard_args (MDAC REQUIRED_VARS ODBC_MDAC_FOUND)
+
+set (ODBC_MDAC "${MDAC_FOUND}")
