@@ -160,7 +160,7 @@ inline void fillOutputBufferInternal(
 
         auto bytes_to_copy = in_value_length;
 
-        if (out_value_max_length > 0 && out_value_max_length < bytes_to_copy)
+        if (out_value_max_length >= 0 && out_value_max_length < bytes_to_copy)
             bytes_to_copy = out_value_max_length;
 
         std::memcpy(out_value, in_value, bytes_to_copy);
@@ -207,7 +207,7 @@ inline SQLRETURN fillOutputString(
     ConversionContext && context
 ) {
     if (out_value) {
-        if (out_value_max_length <= 0)
+        if (out_value_max_length < 0)
             throw SqlException("Invalid string or buffer length", "HY090");
 
         if (out_length_in_bytes && (out_value_max_length % sizeof(CharType)) != 0)
@@ -242,8 +242,6 @@ inline SQLRETURN fillOutputString(
             reinterpret_cast<CharType *>(out_value)[converted_length_in_symbols] = CharType{};
         else if (out_value_max_length_in_symbols > 0)
             reinterpret_cast<CharType *>(out_value)[out_value_max_length_in_symbols - 1] = CharType{};
-        else
-            throw SqlException("Invalid string or buffer length", "HY090");
     }
 
     if ((converted_length_in_symbols + 1) > out_value_max_length_in_symbols) // +1 for null terminating character
