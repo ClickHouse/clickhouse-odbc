@@ -78,6 +78,8 @@ template <typename T>
 inline void AttributeContainer::setAttrSilent(int attr, const T& value) {
     if constexpr (std::is_pointer_v<T>)
         attributes.insert_or_assign(attr, reinterpret_cast<std::intptr_t>(value));
+    else if constexpr (std::is_integral_v<T>)
+        attributes.insert_or_assign(attr, static_cast<std::intptr_t>(value));
     else
         attributes.insert_or_assign(attr, value);
 }
@@ -89,6 +91,8 @@ inline void AttributeContainer::setAttr(int attr, const T& value) {
     if (it == attributes.end()) {
         if constexpr (std::is_pointer_v<T>)
             attributes.emplace(attr, reinterpret_cast<std::intptr_t>(value));
+        else if constexpr (std::is_integral_v<T>)
+            attributes.emplace(attr, static_cast<std::intptr_t>(value));
         else
             attributes.emplace(attr, value);
 
@@ -119,6 +123,8 @@ inline void AttributeContainer::setAttr(int attr, const T& value) {
         if (changed) {
             if constexpr (std::is_pointer_v<T>)
                 it->second = reinterpret_cast<std::intptr_t>(value);
+            else if constexpr (std::is_integral_v<T>)
+                it->second = static_cast<std::intptr_t>(value);
             else
                 it->second = value;
 
