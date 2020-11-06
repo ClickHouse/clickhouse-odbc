@@ -2143,6 +2143,40 @@ template <> constexpr inline SQLSMALLINT getCTypeFor< SQL_DATE_STRUCT      >() {
 template <> constexpr inline SQLSMALLINT getCTypeFor< SQL_TIME_STRUCT      >() { return SQL_C_TYPE_TIME;      }
 template <> constexpr inline SQLSMALLINT getCTypeFor< SQL_TIMESTAMP_STRUCT >() { return SQL_C_TYPE_TIMESTAMP; }
 
+inline auto getCTypeOctetLength(SQLSMALLINT c_type) {
+    switch (c_type) {
+        case SQL_C_BIT:            return sizeof( SQLCHAR              );
+        case SQL_C_TINYINT:        return sizeof( SQLSCHAR             );
+        case SQL_C_STINYINT:       return sizeof( SQLSCHAR             );
+        case SQL_C_UTINYINT:       return sizeof( SQLCHAR              );
+        case SQL_C_SHORT:          return sizeof( SQLSMALLINT          );
+        case SQL_C_SSHORT:         return sizeof( SQLSMALLINT          );
+        case SQL_C_USHORT:         return sizeof( SQLUSMALLINT         );
+        case SQL_C_LONG:           return sizeof( SQLINTEGER           );
+        case SQL_C_SLONG:          return sizeof( SQLINTEGER           );
+        case SQL_C_ULONG:          return sizeof( SQLUINTEGER          );
+        case SQL_C_SBIGINT:        return sizeof( SQLBIGINT            );
+        case SQL_C_UBIGINT:        return sizeof( SQLUBIGINT           );
+        case SQL_C_FLOAT:          return sizeof( SQLREAL              );
+        case SQL_C_DOUBLE:         return sizeof( SQLDOUBLE            );
+        case SQL_C_GUID:           return sizeof( SQLGUID              );
+
+        case SQL_C_NUMERIC:        return sizeof( SQL_NUMERIC_STRUCT   );
+
+        case SQL_C_DATE:
+        case SQL_C_TYPE_DATE:      return sizeof( SQL_DATE_STRUCT      );
+
+        case SQL_C_TIME:
+        case SQL_C_TYPE_TIME:      return sizeof( SQL_TIME_STRUCT      );
+
+        case SQL_C_TIMESTAMP:
+        case SQL_C_TYPE_TIMESTAMP: return sizeof( SQL_TIMESTAMP_STRUCT );
+
+        default:
+            throw std::runtime_error("Unable to determine octet length of C data type");
+    }
+}
+
 template <typename T>
 inline auto readReadyDataTo(const BindingInfo & src, T & dest) {
     switch (src.c_type) {

@@ -459,7 +459,7 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
         binding_info.io_type = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_PARAMETER_TYPE, SQL_PARAM_INPUT);
         binding_info.c_type = apd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_C_DEFAULT);
         binding_info.sql_type = ipd_record.getAttrAs<SQLSMALLINT>(SQL_DESC_CONCISE_TYPE, SQL_UNKNOWN_TYPE);
-        binding_info.value_max_size = ipd_record.getAttrAs<SQLLEN>(SQL_DESC_OCTET_LENGTH, 0);
+        binding_info.value_max_size = apd_record.getAttrAs<SQLLEN>(SQL_DESC_OCTET_LENGTH, 0);
 
         const auto next_value_ptr_increment = (bind_type == SQL_PARAM_BIND_BY_COLUMN ? binding_info.value_max_size : bind_type);
         const auto next_sz_ind_ptr_increment = (bind_type == SQL_PARAM_BIND_BY_COLUMN ? sizeof(SQLLEN) : bind_type);
