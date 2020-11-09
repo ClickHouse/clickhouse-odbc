@@ -645,9 +645,6 @@ SQLRETURN BindCol(
         if (ColumnNumber < 1)
             throw SqlException("Invalid descriptor index", "07009");
 
-        if (BufferLength < 0)
-            throw SqlException("Invalid string or buffer length", "HY090");
-
         auto & ard_desc = statement.getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC);
         const auto ard_record_count = ard_desc.getRecordCount();
 
@@ -691,7 +688,7 @@ SQLRETURN BindCol(
                 case SQL_C_WCHAR:
                 case SQL_C_BINARY:
 //              case SQL_C_VARBOOKMARK:
-                    if (BufferLength == 0)
+                    if (BufferLength < 0)
                         throw SqlException("Invalid string or buffer length", "HY090");
 
                     ard_record.setAttr(SQL_DESC_LENGTH, BufferLength);
@@ -841,7 +838,7 @@ SQLRETURN BindParameter(
                 case SQL_C_WCHAR:
                 case SQL_C_BINARY:
 //              case SQL_C_VARBOOKMARK:
-                    if (buffer_length <= 0)
+                    if (buffer_length < 0)
                         throw SqlException("Invalid string or buffer length", "HY090");
 
                     apd_record.setAttr(SQL_DESC_OCTET_LENGTH, buffer_length);
