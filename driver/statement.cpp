@@ -390,7 +390,7 @@ bool Statement::advanceToNextResultSet() {
 void Statement::closeCursor() {
     auto & connection = getParent();
     if (connection.session && response && in) {
-        if (!*in || in->peek() != EOF)
+        if (!*in || !in->eof())
             connection.session->reset();
     }
 
