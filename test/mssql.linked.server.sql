@@ -10,8 +10,11 @@ EXEC master.dbo.sp_addlinkedserver
 
 EXEC sp_serveroption 'clickhouse_link_test','rpc','true';
 EXEC sp_serveroption 'clickhouse_link_test','rpc out','true';
+
 EXEC('select * from system.numbers limit 10;') at [clickhouse_link_test];
---EXEC("select 'Just string'") at [clickhouse_link_test];
+select count(*) as cnt from OPENQUERY(clickhouse_link_test, 'select * from system.numbers limit 10;') 
+
+EXEC('select ''Just string''') at [clickhouse_link_test];
 EXEC('select name from system.databases;') at [clickhouse_link_test];
 EXEC('select * from system.build_options;') at [clickhouse_link_test];
 
