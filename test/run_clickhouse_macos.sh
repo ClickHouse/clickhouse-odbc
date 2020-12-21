@@ -30,6 +30,11 @@ echo "<?xml version=\"1.0\"?>
     <user_files_path replace=\"replace\">${CLICKHOUSE_DATADIR}/user_files/</user_files_path>
     <format_schema_path replace=\"replace\">${CLICKHOUSE_DATADIR}/format_schemas/</format_schema_path>
     <access_control_path>${CLICKHOUSE_DATADIR}/access/</access_control_path>
+    <user_directories>
+        <local_directory>
+            <path>${CLICKHOUSE_DATADIR}/access/</path>
+        </local_directory>
+    </user_directories>
 </yandex>
 " > $CLICKHOUSE_CONFDIR/conf.d/paths.xml
 
