@@ -645,9 +645,6 @@ SQLRETURN BindCol(
         if (ColumnNumber < 1)
             throw SqlException("Invalid descriptor index", "07009");
 
-        if (BufferLength < 0)
-            throw SqlException("Invalid string or buffer length", "HY090");
-
         auto & ard_desc = statement.getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC);
         const auto ard_record_count = ard_desc.getRecordCount();
 
@@ -691,11 +688,18 @@ SQLRETURN BindCol(
                 case SQL_C_WCHAR:
                 case SQL_C_BINARY:
 //              case SQL_C_VARBOOKMARK:
+                    if (BufferLength < 0)
+                        throw SqlException("Invalid string or buffer length", "HY090");
+
                     ard_record.setAttr(SQL_DESC_LENGTH, BufferLength);
+                    ard_record.setAttr(SQL_DESC_OCTET_LENGTH, BufferLength);
+                    break;
+
+                default:
+                    ard_record.setAttr(SQL_DESC_OCTET_LENGTH, getCTypeOctetLength(TargetType));
                     break;
             }
 
-            ard_record.setAttr(SQL_DESC_OCTET_LENGTH, BufferLength);
             ard_record.setAttr(SQL_DESC_OCTET_LENGTH_PTR, StrLen_or_Ind);
             ard_record.setAttr(SQL_DESC_INDICATOR_PTR, StrLen_or_Ind);
             ard_record.setAttr(SQL_DESC_DATA_PTR, TargetValuePtr);
@@ -724,6 +728,9 @@ SQLRETURN BindParameter(
     SQLLEN *        StrLen_or_IndPtr
 ) noexcept {
     auto func = [&] (Statement & statement) {
+        if (parameter_number < 1)
+            throw SqlException("Invalid descriptor index", "07009");
+
         auto & apd_desc = statement.getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC);
         auto & ipd_desc = statement.getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC);
 
@@ -825,7 +832,23 @@ SQLRETURN BindParameter(
                     break;
             }
 
-            apd_record.setAttr(SQL_DESC_OCTET_LENGTH, buffer_length);
+            const auto parameter_c_type = convertSQLTypeToCType(parameter_type);
+            switch (parameter_c_type) {
+                case SQL_C_CHAR:
+                case SQL_C_WCHAR:
+                case SQL_C_BINARY:
+//              case SQL_C_VARBOOKMARK:
+                    if (buffer_length < 0)
+                        throw SqlException("Invalid string or buffer length", "HY090");
+
+                    apd_record.setAttr(SQL_DESC_OCTET_LENGTH, buffer_length);
+                    break;
+
+                default:
+                    apd_record.setAttr(SQL_DESC_OCTET_LENGTH, getCTypeOctetLength(parameter_c_type));
+                    break;
+            }
+
             apd_record.setAttr(SQL_DESC_OCTET_LENGTH_PTR, StrLen_or_IndPtr);
             apd_record.setAttr(SQL_DESC_INDICATOR_PTR, StrLen_or_IndPtr);
             apd_record.setAttr(SQL_DESC_DATA_PTR, parameter_value_ptr);
