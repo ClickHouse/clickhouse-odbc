@@ -283,7 +283,7 @@ TEST_F(StatementParameterBindingsTest, IntArray) {
             0,
             0,
             param,
-            -1,
+            0,
             param_ind
         )
     );
