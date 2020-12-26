@@ -76,7 +76,7 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     auto & connection = getParent();
 
     if (connection.session && response && in)
-        if (!*in || in->peek() != EOF)
+        if (in->fail() || !in->eof())
             connection.session->reset();
 
     Poco::URI uri(connection.url);
@@ -390,7 +390,7 @@ bool Statement::advanceToNextResultSet() {
 void Statement::closeCursor() {
     auto & connection = getParent();
     if (connection.session && response && in) {
-        if (!*in || !in->eof())
+        if (in->fail() || !in->eof())
             connection.session->reset();
     }
 
