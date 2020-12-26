@@ -419,10 +419,10 @@ cmake --build . --config RelWithDebInfo --target package
 ...and, optionally, run tests (note, that for non-unit tests, preconfigured driver and DSN entries must exist, that point to the binaries generated in this build folder):
 
 ```sh
-cmake --build . --config RelWithDebInfo --target test
+cmake --build . --config RelWithDebInfo --target run_tests
 ```
 
-...or, if you configured the project with '-G Xcode' initially, open the IDE and build `all`, `package`, and `test` targets manually from there:
+...or, if you configured the project with '-G Xcode' initially, open the IDE and build `all`, `package`, and `run_tests` targets manually from there:
 
 ```sh
 cmake --open .
