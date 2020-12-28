@@ -52,7 +52,7 @@ def error_timeout_test(dsn):
     if timeout <= end - start:
         raise ValueError("Timeout for getting error is {} sec long - such delay isn't expected!".format(timeout))
     else:
-        print("[SUCCEEDED] Got expected error within {} sec".format(timeout))
+        print("[SUCCEEDED] Got expected error within {:.3f} sec".format(end - start))
 
 
 def getConnection(connectionString):
