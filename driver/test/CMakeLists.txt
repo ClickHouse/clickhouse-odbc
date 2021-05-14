@@ -110,6 +110,10 @@ function (declare_odbc_test_targets libname UNICODE)
     endforeach ()
 
     if (TARGET nanodbc
+
+        # Todo: enable once nanodbc compilation is fixed for recent AppleClang.
+        AND NOT ${CMAKE_CXX_COMPILER_ID} STREQUAL AppleClang
+
 #        AND (
 #            (NANODBC_ENABLE_UNICODE AND UNICODE) OR
 #            (NOT NANODBC_ENABLE_UNICODE AND NOT UNICODE)
