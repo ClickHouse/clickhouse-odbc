@@ -12,7 +12,7 @@ The canonical repo for this driver is located at [https://github.com/ClickHouse/
 
 See [LICENSE](LICENSE) file for licensing information.
 
-## Table of content <!-- omit in toc -->
+## Table of contents <!-- omit in toc -->
 
 - [Installation](#installation)
 - [Configuration](#configuration)
@@ -53,7 +53,7 @@ If you don't see a package that matches your platforms, or the version of your s
 
 - [Building from sources](#building-from-sources)
 
-Note, that it is always a good idea to install the driver from the corresponding **native** package (<!-- `.deb`, `.rpm`, -->`.msi`, etc., which you can also easily create if you are building from sources), than use the binaries that were manually copied to some folder.
+Note, that it is always a good idea to install the driver from the corresponding **native** package (if one is supported for your platform, like <!-- `.deb`, `.rpm`, -->`.msi`, etc., which you can also easily create if you are building from sources), than use the binaries that were manually copied to a destination folder.
 
 Native packages will have all the dependency information so when you install the driver using a native package, all required run-time packages will be installed automatically. If you use manual packaging, i.e., just extract driver binaries to some folder, you also have to make sure that all the run-time dependencies are satisfied in your system manually:
 
@@ -70,7 +70,7 @@ The next step is defining one or more DSNs, associated with the newly registered
 
 All this involves modifying a dedicated registry keys in case of MDAC, or editing `odbcinst.ini` (for driver registration) and `odbc.ini` (for DSN definition) files for UnixODBC or iODBC, directly or indirectly.
 
-This will be done automatically using some default values if you are installing the driver using native installers.
+This will be performed automatically using some default values if you are installing the driver using native installers.
 
 Otherwise, if you are configuring manually, or need to modify the default configuration created by the installer, please see the exact locations of files (or registry keys) that need to be modified in the corresponding section below:
 
@@ -170,23 +170,25 @@ Configuration options above can be specified in the first `cmake` command (gener
 
 All modern Windows systems come with preinstalled MDAC driver manager.
 
-Another run-time dependecies are `C++ Redistributable for Visual Studio 2017` or same for `2019`, etc., depending on the package being installed, however the required DLL's are redistributed with the `.msi` installer, and you can choose to install them from there, if you don't already have them installed in your system.
+Another run-time dependecies are `C++ Redistributable for Visual Studio 2017` or same for `2019`, etc., depending on the package being installed, however the required DLL's are redistributed with the `.msi` installer, and you can choose to install them from there, if you don't have them installed in your system already.
 
 ### Run-time dependencies: macOS
 
 #### iODBC <!-- omit in toc -->
 
-Homebrew: execute the following in the terminal (assuming you have [Homebrew](https://brew.sh/) installed):
+Execute the following in the terminal (assuming you have [Homebrew](https://brew.sh/) installed):
 
 ```sh
+brew update
 brew install poco openssl icu4c libiodbc
 ```
 
 #### UnixODBC <!-- omit in toc -->
 
-Homebrew: execute the following in the terminal (assuming you have [Homebrew](https://brew.sh/) installed):
+Execute the following in the terminal (assuming you have [Homebrew](https://brew.sh/) installed):
 
 ```sh
+brew update
 brew install poco openssl icu4c unixodbc
 ```
 
@@ -370,27 +372,46 @@ cmake --open .
 
 #### Build-time dependencies <!-- omit in toc -->
 
-You will need macOS 10.14 or later, Xcode 10 or later with Command Line Tools installed, as well as up-to-date [Homebrew](https://brew.sh/) available in the system.
+You will need macOS 10.14 or later, Xcode 10 or later with Command Line Tools installed, as well as up-to-date Homebrew available in the system.
+
+Install [Homebrew](https://brew.sh/) using the following command, and follow the printed instructions on any additional steps required to complete the installation:
+
+```sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Then, install the latest [Xcode](https://apps.apple.com/am/app/xcode/id497799835?mt=12) from App Store. Open it at least once to accept the end-user license agreement and automatically install the required components.
+
+Then, make sure that the latest Command Line Tools are installed and selected in the system:
+
+```sh
+sudo rm -rf /Library/Developer/CommandLineTools
+sudo xcode-select --install
+```
+
+Reboot.
 
 #### Build-time dependencies: iODBC <!-- omit in toc -->
 
-Homebrew: execute the following in the terminal (assuming you have [Homebrew](https://brew.sh/) installed):
+Execute the following in the terminal:
 
 ```sh
+brew update
 brew install git cmake make poco openssl icu4c libiodbc
 ```
 
 #### Build-time dependencies: UnixODBC <!-- omit in toc -->
 
-Homebrew: execute the following in the terminal (assuming you have [Homebrew](https://brew.sh/) installed):
+Execute the following in the terminal:
 
 ```sh
+brew update
 brew install git cmake make poco openssl icu4c unixodbc
 ```
 
 #### Build steps <!-- omit in toc -->
 
-Clone the repo with submodules:
+Clone the repo recursively with submodules:
 
 ```sh
 git clone --recursive git@github.com:ClickHouse/clickhouse-odbc.git
