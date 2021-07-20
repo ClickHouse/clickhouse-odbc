@@ -25,7 +25,7 @@ TestEnvironment & TestEnvironment::getInstance() {
     return *environment_;
 }
 
-const std::string& TestEnvironment::getDSN() {
+const std::string & TestEnvironment::getDSN() {
     if (command_line_params_.size() != 1)
         throw std::runtime_error("Unable to extract positional command-line parameter value for DSN");
 

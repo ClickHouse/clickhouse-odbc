@@ -6,11 +6,12 @@
 
 #include <gtest/gtest.h>
 
-class ClientTestBase
-    : public ::testing::Test
+template <typename Base>
+class ClientTestBaseMixin
+    : public Base
 {
 public:
-    virtual ~ClientTestBase() {
+    virtual ~ClientTestBaseMixin() {
         if (hstmt) {
             SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
             hstmt = nullptr;
@@ -49,7 +50,7 @@ protected:
         }
 
         if (hdbc) {
-            ODBC_CALL_ON_DBC_LOG(hdbc, SQLDisconnect(hdbc));
+            /*ODBC_CALL_ON_DBC_LOG(hdbc, */SQLDisconnect(hdbc)/*)*/;
             ODBC_CALL_ON_DBC_THROW(hdbc, SQLFreeHandle(SQL_HANDLE_DBC, hdbc));
             hdbc = nullptr;
         }
@@ -65,3 +66,8 @@ protected:
     SQLHDBC hdbc = nullptr;
     SQLHSTMT hstmt = nullptr;
 };
+
+using ClientTestBase = ClientTestBaseMixin<::testing::Test>;
+
+template <typename Params>
+using ClientTestWithParamBase = ClientTestBaseMixin<::testing::TestWithParam<Params>>;
