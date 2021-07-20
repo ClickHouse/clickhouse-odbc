@@ -51,6 +51,7 @@ void readDSNinfo(ConnInfo * ci, bool overwrite) {
     GET_CONFIG(server,          INI_SERVER,          INI_SERVER_DEFAULT);
     GET_CONFIG(port,            INI_PORT,            INI_PORT_DEFAULT);
     GET_CONFIG(timeout,         INI_TIMEOUT,         INI_TIMEOUT_DEFAULT);
+    GET_CONFIG(verify_connection_early, INI_VERIFYCONNECTIONEARLY, INI_VERIFYCONNECTIONEARLY_DEFAULT);
     GET_CONFIG(sslmode,         INI_SSLMODE,         INI_SSLMODE_DEFAULT);
     GET_CONFIG(database,        INI_DATABASE,        INI_DATABASE_DEFAULT);
     GET_CONFIG(stringmaxlength, INI_STRINGMAXLENGTH, INI_STRINGMAXLENGTH_DEFAULT);
@@ -90,6 +91,7 @@ void writeDSNinfo(const ConnInfo * ci) {
     WRITE_CONFIG(server,          INI_SERVER);
     WRITE_CONFIG(port,            INI_PORT);
     WRITE_CONFIG(timeout,         INI_TIMEOUT);
+    WRITE_CONFIG(verify_connection_early, INI_VERIFYCONNECTIONEARLY);
     WRITE_CONFIG(sslmode,         INI_SSLMODE);
     WRITE_CONFIG(database,        INI_DATABASE);
     WRITE_CONFIG(stringmaxlength, INI_STRINGMAXLENGTH);
@@ -329,6 +331,7 @@ key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
             INI_HOST,
             INI_PORT,
             INI_TIMEOUT,
+            INI_VERIFYCONNECTIONEARLY,
             INI_SSLMODE,
             INI_PRIVATEKEYFILE,
             INI_CERTIFICATEFILE,

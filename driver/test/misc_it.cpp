@@ -101,3 +101,115 @@ TEST_F(MiscellaneousTest, SQLGetData_ZeroOutputBufferSize) {
 
     ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
 }
+
+enum class FailOn {
+    Connect,
+    Execute,
+    Never
+};
+
+// First parameter - parameter set name.
+// Second parameter - extra name=value semicolon-separated string to append to the connection string.
+// Third parameter - when to expect the failure, if any.
+class ConnectionFailureReporing
+    : public ClientTestWithParamBase<std::tuple<std::string, std::string, FailOn>>
+{
+protected:
+    virtual void SetUp() override {
+        using Base = ClientTestWithParamBase<std::tuple<std::string, std::string, FailOn>>;
+        Base::SetUp();
+
+        // As a precondition, check that by default the server is reachable,
+        // and we are able connect, authenticate, and execute queries successfully.
+
+        const std::string query_orig = "SELECT 1";
+
+        const auto query = fromUTF8<SQLTCHAR>(query_orig);
+        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+        // Free the original Connection and Statement instances, and create a new Connection,
+        // but don't connect it yet - each test will do it on its own.
+
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLFreeHandle(SQL_HANDLE_STMT, hstmt));
+        hstmt = nullptr;
+
+        SQLDisconnect(hdbc);
+        ODBC_CALL_ON_DBC_THROW(hdbc, SQLFreeHandle(SQL_HANDLE_DBC, hdbc));
+
+        ODBC_CALL_ON_ENV_THROW(henv, SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc));
+    }
+};
+
+TEST_P(ConnectionFailureReporing, TryQuery) {
+    const auto & [/* unused */name, cs_extras, fail_on] = GetParam();
+
+    {
+        const auto & dsn_orig = TestEnvironment::getInstance().getDSN();
+        std::string cs_orig = "DSN={" + dsn_orig + "};" + cs_extras;
+        const auto cs = fromUTF8<SQLTCHAR>(cs_orig);
+        auto * cs_wptr = const_cast<SQLTCHAR *>(cs.c_str());
+
+        const auto rc = SQLDriverConnect(hdbc, NULL, cs_wptr, SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT);
+
+        if (fail_on == FailOn::Connect) {
+            ASSERT_EQ(rc, SQL_ERROR) << "Expected to fail on Connect!";
+            return;
+        }
+        else {
+            ODBC_CALL_ON_DBC_THROW(hdbc, rc);
+        }
+    }
+
+    ODBC_CALL_ON_DBC_THROW(hdbc, SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt));
+
+    {
+        const std::string query_orig = "SELECT 1";
+
+        const auto query = fromUTF8<SQLTCHAR>(query_orig);
+        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+
+        const auto rc = SQLExecute(hstmt);
+
+        if (fail_on == FailOn::Execute) {
+            ASSERT_EQ(rc, SQL_ERROR) << "Expected to fail on Execute!";
+            return;
+        }
+        else {
+            ODBC_CALL_ON_STMT_THROW(hstmt, rc);
+        }
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    MiscellaneousTest,
+    ConnectionFailureReporing,
+    ::testing::Values(
+        std::make_tuple("BadHost_FailOnConnect",     "Host=some_bad_hostname;VerifyConnectionEarly=true", FailOn::Connect),
+        std::make_tuple("BadUsername_FailOnConnect", "UID=some_bad_username;VerifyConnectionEarly=true",  FailOn::Connect),
+        std::make_tuple("BadPassword_FailOnConnect", "PWD=some_bad_password;VerifyConnectionEarly=true",  FailOn::Connect),
+
+        std::make_tuple("BadHost_FailOnExecute",     "Host=some_bad_hostname;VerifyConnectionEarly=false", FailOn::Execute),
+        std::make_tuple("BadUsername_FailOnExecute", "UID=some_bad_username;VerifyConnectionEarly=false",  FailOn::Execute),
+        std::make_tuple("BadPassword_FailOnExecute", "PWD=some_bad_password;VerifyConnectionEarly=false",  FailOn::Execute),
+
+        std::make_tuple("BadHost_FailOnExecuteByDefault",     "Host=some_bad_hostname", FailOn::Execute),
+        std::make_tuple("BadUsername_FailOnExecuteByDefault", "UID=some_bad_username",  FailOn::Execute),
+        std::make_tuple("BadPassword_FailOnExecuteByDefault", "PWD=some_bad_password",  FailOn::Execute),
+
+        std::make_tuple("BadHost_FailOnExecuteByDefault2",     "Host=some_bad_hostname;VerifyConnectionEarly=", FailOn::Execute),
+        std::make_tuple("BadUsername_FailOnExecuteByDefault2", "UID=some_bad_username;VerifyConnectionEarly=",  FailOn::Execute),
+        std::make_tuple("BadPassword_FailOnExecuteByDefault2", "PWD=some_bad_password;VerifyConnectionEarly=",  FailOn::Execute),
+
+        std::make_tuple("AllGood_VerifyConnectionEarly_Empty", "VerifyConnectionEarly=",       FailOn::Never),
+        std::make_tuple("AllGood_VerifyConnectionEarly_True",  "VerifyConnectionEarly=true",   FailOn::Never),
+        std::make_tuple("AllGood_VerifyConnectionEarly_False", "VerifyConnectionEarly=false",  FailOn::Never)
+    ),
+    [] (const auto & param_info) {
+        return std::get<0>(param_info.param);
+    }
+);

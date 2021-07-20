@@ -132,6 +132,10 @@ void Connection::connect(const std::string & connection_string) {
     session->setKeepAlive(true);
     session->setTimeout(Poco::Timespan(connection_timeout, 0), Poco::Timespan(timeout, 0), Poco::Timespan(timeout, 0));
     session->setKeepAliveTimeout(Poco::Timespan(86400, 0));
+
+    if (verify_connection_early) {
+        verifyConnection();
+    }
 }
 
 void Connection::resetConfiguration() {
@@ -236,6 +240,13 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
             ));
             if (valid_value) {
                 timeout = typed_value;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_VERIFYCONNECTIONEARLY) == 0) {
+            recognized_key = true;
+            valid_value = (value.empty() || isYesOrNo(value));
+            if (valid_value) {
+                verify_connection_early = isYes(value);
             }
         }
         else if (Poco::UTF8::icompare(key, INI_SSLMODE) == 0) {
@@ -443,6 +454,13 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
 
     if (stringmaxlength == 0)
         stringmaxlength = TypeInfo::string_max_size;
+}
+
+void Connection::verifyConnection() {
+    LOG("Verifying connection and credentials...");
+    auto & statement = allocateChild<Statement>();
+    statement.executeQuery("SELECT 1");
+    statement.deallocateSelf();
 }
 
 std::string Connection::buildCredentialsString() const {

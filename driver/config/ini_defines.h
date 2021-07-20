@@ -20,6 +20,7 @@
 #define INI_HOST            "Host"
 #define INI_PORT            "Port"            /* Port on which the ClickHouse is listening */
 #define INI_TIMEOUT         "Timeout"         /* Connection timeout */
+#define INI_VERIFYCONNECTIONEARLY "VerifyConnectionEarly"
 #define INI_SSLMODE         "SSLMode"         /* Use 'require' for https connections */
 #define INI_PRIVATEKEYFILE  "PrivateKeyFile"
 #define INI_CERTIFICATEFILE "CertificateFile"
@@ -43,6 +44,7 @@
 #define INI_SERVER_DEFAULT          ""
 #define INI_PORT_DEFAULT            ""
 #define INI_TIMEOUT_DEFAULT         "30"
+#define INI_VERIFYCONNECTIONEARLY_DEFAULT "no"
 #define INI_SSLMODE_DEFAULT         ""
 #define INI_DATABASE_DEFAULT        ""
 #define INI_STRINGMAXLENGTH_DEFAULT "1048575"

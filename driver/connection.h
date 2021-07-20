@@ -29,6 +29,7 @@ public: // Configuration fields.
     std::uint16_t port = 0;
     std::uint32_t connection_timeout = 0;
     std::uint32_t timeout = 0;
+    bool verify_connection_early = false;
     std::string sslmode;
     std::string privateKeyFile;
     std::string certificateFile;
@@ -83,6 +84,9 @@ private:
     //     b) values from DSN, if unintialized, or
     //     c) values deduced from values of other fields, if unintialized.
     void setConfiguration(const key_value_map_t & cs_fields, const key_value_map_t & dsn_fields);
+
+    // Verify the connection and credentials by trying to remotely execute a simple "SELECT 1" query.
+    void verifyConnection();
 
 private:
     std::unordered_map<SQLHANDLE, std::shared_ptr<Descriptor>> descriptors;
