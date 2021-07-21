@@ -37,6 +37,7 @@ public: // Configuration fields.
     std::string path;
     std::string default_format;
     std::string database;
+    bool huge_int_as_string = false;
     std::int32_t stringmaxlength = 0;
 
 public:
@@ -48,6 +49,9 @@ public:
 
 public:
     explicit Connection(Environment & environment);
+
+    // Lookup TypeInfo for given name of type.
+    const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters) const;
 
     void connect(const std::string & connection_string);
 

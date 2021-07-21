@@ -25,7 +25,7 @@ Statement::~Statement() {
 }
 
 const TypeInfo & Statement::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters) const {
-    return getParent().getParent().getTypeInfo(type_name, type_name_without_parameters);
+    return getParent().getTypeInfo(type_name, type_name_without_parameters);
 }
 
 void Statement::prepareQuery(const std::string & q) {

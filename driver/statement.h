@@ -23,7 +23,7 @@ public:
     virtual ~Statement();
 
     /// Lookup TypeInfo for given name of type.
-    const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters = "") const;
+    const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters) const;
 
     bool isPrepared() const;
 

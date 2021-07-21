@@ -20,13 +20,14 @@
 #define INI_HOST            "Host"
 #define INI_PORT            "Port"            /* Port on which the ClickHouse is listening */
 #define INI_TIMEOUT         "Timeout"         /* Connection timeout */
-#define INI_VERIFYCONNECTIONEARLY "VerifyConnectionEarly"
+#define INI_VERIFY_CONNECTION_EARLY "VerifyConnectionEarly"
 #define INI_SSLMODE         "SSLMode"         /* Use 'require' for https connections */
 #define INI_PRIVATEKEYFILE  "PrivateKeyFile"
 #define INI_CERTIFICATEFILE "CertificateFile"
 #define INI_CALOCATION      "CALocation"
 #define INI_PATH            "Path"            /* Path portion of the URL */
 #define INI_DATABASE        "Database"        /* Database Name */
+#define INI_HUGE_INT_AS_STRING "HugeIntAsString"
 #define INI_STRINGMAXLENGTH "StringMaxLength"
 #define INI_DRIVERLOG       "DriverLog"
 #define INI_DRIVERLOGFILE   "DriverLogFile"
@@ -44,9 +45,10 @@
 #define INI_SERVER_DEFAULT          ""
 #define INI_PORT_DEFAULT            ""
 #define INI_TIMEOUT_DEFAULT         "30"
-#define INI_VERIFYCONNECTIONEARLY_DEFAULT "off"
+#define INI_VERIFY_CONNECTION_EARLY_DEFAULT "off"
 #define INI_SSLMODE_DEFAULT         ""
 #define INI_DATABASE_DEFAULT        ""
+#define INI_HUGE_INT_AS_STRING_DEFAULT "off"
 #define INI_STRINGMAXLENGTH_DEFAULT "1048575"
 
 #ifdef NDEBUG

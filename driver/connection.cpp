@@ -53,6 +53,20 @@ Connection::Connection(Environment & environment)
     resetConfiguration();
 }
 
+const TypeInfo & Connection::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters) const {
+    auto tmp_type_name = type_name;
+    auto tmp_type_name_without_parameters = type_name_without_parameters;
+
+    const auto tmp_type_without_parameters_id = convertUnparametrizedTypeNameToTypeId(tmp_type_name_without_parameters);
+
+    if (huge_int_as_string && tmp_type_without_parameters_id == DataSourceTypeId::UInt64) {
+        tmp_type_name = "String";
+        tmp_type_name_without_parameters = "String";
+    }
+
+    return getParent().getTypeInfo(tmp_type_name, tmp_type_name_without_parameters);
+}
+
 void Connection::connect(const std::string & connection_string) {
     if (session && session->connected())
         throw SqlException("Connection name in use", "08002");
@@ -242,7 +256,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
                 timeout = typed_value;
             }
         }
-        else if (Poco::UTF8::icompare(key, INI_VERIFYCONNECTIONEARLY) == 0) {
+        else if (Poco::UTF8::icompare(key, INI_VERIFY_CONNECTION_EARLY) == 0) {
             recognized_key = true;
             valid_value = (value.empty() || isYesOrNo(value));
             if (valid_value) {
@@ -294,6 +308,13 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
             valid_value = true;
             if (valid_value) {
                 database = value;
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_HUGE_INT_AS_STRING) == 0) {
+            recognized_key = true;
+            valid_value = (value.empty() || isYesOrNo(value));
+            if (valid_value) {
+                huge_int_as_string = isYes(value);
             }
         }
         else if (Poco::UTF8::icompare(key, INI_STRINGMAXLENGTH) == 0) {

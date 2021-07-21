@@ -968,8 +968,8 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
         : public ResultMutator
     {
     public:
-        explicit ColumnsMutator(Environment & env_)
-            : env(env_)
+        explicit ColumnsMutator(Statement & statement_)
+            : statement(statement_)
         {
         }
 
@@ -999,7 +999,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
                 tmp_column_info.updateTypeInfo();
             }, row.fields.at(5).data);
 
-            const TypeInfo & type_info = env.getTypeInfo(tmp_column_info.type, tmp_column_info.type_without_parameters);
+            const TypeInfo & type_info = statement.getTypeInfo(tmp_column_info.type, tmp_column_info.type_without_parameters);
 
             row.fields.at(4).data = DataSourceType<DataSourceTypeId::Int16>{type_info.sql_type};
             row.fields.at(5).data = DataSourceType<DataSourceTypeId::String>{type_info.sql_type_name};
@@ -1009,7 +1009,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
         }
 
     private:
-        Environment & env;
+        Statement & statement;
     };
 
     auto func = [&](Statement & statement) {
@@ -1093,7 +1093,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
         }
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
-        statement.executeQuery(query.str(), std::make_unique<ColumnsMutator>(statement.getParent().getParent()));
+        statement.executeQuery(query.str(), std::make_unique<ColumnsMutator>(statement));
 
         return SQL_SUCCESS;
     };
@@ -1171,13 +1171,13 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetTypeInfo)(
         //      are SQL_TYPE_DATE, SQL_TYPE_TIME, and SQL_TYPE_TIMESTAMP, respectively;
         //      in ODBC 2.x, the data types are SQL_DATE, SQL_TIME, and SQL_TIMESTAMP.
         {
-            auto info = statement.getParent().getParent().getTypeInfo("Date");
+            auto info = statement.getTypeInfo("Date", "Date");
             info.sql_type = SQL_DATE;
             add_query_for_type("Date", info);
         }
 
         {
-            auto info = statement.getParent().getParent().getTypeInfo("DateTime");
+            auto info = statement.getTypeInfo("DateTime", "DateTime");
             info.sql_type = SQL_TIMESTAMP;
             add_query_for_type("DateTime", info);
         }

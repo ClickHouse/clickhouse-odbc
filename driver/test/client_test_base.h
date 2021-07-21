@@ -11,6 +11,11 @@ class ClientTestBaseMixin
     : public Base
 {
 public:
+    ClientTestBaseMixin(bool skip_connect = false)
+        : skip_connect_(skip_connect)
+    {
+    }
+
     virtual ~ClientTestBaseMixin() {
         if (hstmt) {
             SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
@@ -36,11 +41,13 @@ protected:
 
         ODBC_CALL_ON_ENV_THROW(henv, SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc));
 
-        const auto dsn = fromUTF8<SQLTCHAR>(TestEnvironment::getInstance().getDSN());
-        auto * dsn_wptr = const_cast<SQLTCHAR *>(dsn.c_str());
+        if (!skip_connect_) {
+            const auto dsn = fromUTF8<SQLTCHAR>(TestEnvironment::getInstance().getDSN());
+            auto * dsn_wptr = const_cast<SQLTCHAR *>(dsn.c_str());
 
-        ODBC_CALL_ON_DBC_THROW(hdbc, SQLConnect(hdbc, dsn_wptr, SQL_NTS, NULL, 0, NULL, 0));
-        ODBC_CALL_ON_DBC_THROW(hdbc, SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt));
+            ODBC_CALL_ON_DBC_THROW(hdbc, SQLConnect(hdbc, dsn_wptr, SQL_NTS, NULL, 0, NULL, 0));
+            ODBC_CALL_ON_DBC_THROW(hdbc, SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt));
+        }
     }
 
     virtual void TearDown() override {
@@ -62,6 +69,7 @@ protected:
     }
 
 protected:
+    const bool skip_connect_;
     SQLHENV henv = nullptr;
     SQLHDBC hdbc = nullptr;
     SQLHSTMT hstmt = nullptr;

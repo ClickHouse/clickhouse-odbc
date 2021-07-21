@@ -1269,7 +1269,8 @@ SQLRETURN fillBinding(
     }
 
     if (binding_info.c_type == SQL_C_DEFAULT) {
-        binding_info.c_type = convertSQLTypeToCType(statement.getTypeInfo(result_set.getColumnInfo(column_idx).type_without_parameters).sql_type);
+        const auto & column_info = result_set.getColumnInfo(column_idx);
+        binding_info.c_type = convertSQLTypeToCType(statement.getTypeInfo(column_info.type, column_info.type_without_parameters).sql_type);
     }
 
     if (

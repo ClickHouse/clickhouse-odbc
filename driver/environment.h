@@ -20,7 +20,7 @@ public:
     template <typename T> T & allocateChild();
     template <typename T> void deallocateChild(SQLHANDLE) noexcept;
 
-    const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters = "") const;
+    const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters) const;
 
 public:
 #if defined(SQL_OV_ODBC3_80)
