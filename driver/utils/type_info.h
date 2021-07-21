@@ -21,7 +21,7 @@ struct TypeInfo {
     SQLSMALLINT sql_type;
 
     // https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/column-size-decimal-digits-transfer-octet-length-and-display-size
-    int32_t column_size;  // max width of value in textual represntation, e.g. number of decimal digits fror numeric types.
+    int32_t column_size;  // max width of value in textual represntation, e.g. number of decimal digits for numeric types.
     int32_t octet_length; // max binary size of value in memory.
 
     static constexpr auto string_max_size = 0xFFFFFF;

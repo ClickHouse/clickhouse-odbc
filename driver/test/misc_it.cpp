@@ -64,8 +64,7 @@ TEST_F(MiscellaneousTest, SQLGetData_ZeroOutputBufferSize) {
     const auto query = fromUTF8<SQLTCHAR>(query_orig);
     auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
 
     SQLTCHAR col[100] = {};
     SQLLEN col_ind = 0;
@@ -102,6 +101,23 @@ TEST_F(MiscellaneousTest, SQLGetData_ZeroOutputBufferSize) {
     ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
 }
 
+TEST_F(MiscellaneousTest, NullableNothing) {
+    const std::string query_orig = "SELECT NULL as col";
+
+    const auto query = fromUTF8<SQLTCHAR>(query_orig);
+    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
+
+    SQLSMALLINT sql_type = SQL_BIT;
+    SQLSMALLINT nullable = SQL_NULLABLE_UNKNOWN;
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLDescribeCol(hstmt, 1, NULL, 0, NULL, &sql_type, NULL, NULL, &nullable));
+
+    EXPECT_EQ(sql_type, SQL_TYPE_NULL);
+    EXPECT_EQ(nullable, SQL_NULLABLE);
+}
+
 enum class FailOn {
     Connect,
     Execute,
@@ -129,8 +145,7 @@ protected:
         const auto query = fromUTF8<SQLTCHAR>(query_orig);
         auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
 
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
 
         // Free the original Connection and Statement instances, and create a new Connection,
         // but don't connect it yet - each test will do it on its own.
@@ -257,8 +272,7 @@ TEST_P(HugeIntTypeReporting, Check) {
     const auto query = fromUTF8<SQLTCHAR>(query_orig);
     auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
 
     SQLLEN sql_type = SQL_TYPE_NULL;
 

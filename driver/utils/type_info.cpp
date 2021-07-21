@@ -33,6 +33,8 @@ const std::map<std::string, TypeInfo> types_g = {
         TypeInfo {"TEXT", true, SQL_VARCHAR, TypeInfo::string_max_size, TypeInfo::string_max_size}}, // todo: remove
     {"LowCardinality(FixedString)",
         TypeInfo {"TEXT", true, SQL_VARCHAR, TypeInfo::string_max_size, TypeInfo::string_max_size}}, // todo: remove
+
+    {"Nothing", TypeInfo {"NULL", true, SQL_TYPE_NULL, 1, 1}},
 };
 
 DataSourceTypeId convertUnparametrizedTypeNameToTypeId(const std::string & type_name) {
@@ -101,6 +103,7 @@ std::string convertTypeIdToUnparametrizedCanonicalTypeName(DataSourceTypeId type
 
 SQLSMALLINT convertSQLTypeToCType(SQLSMALLINT sql_type) noexcept {
     switch (sql_type) {
+        case SQL_TYPE_NULL:
         case SQL_CHAR:
         case SQL_VARCHAR:
         case SQL_LONGVARCHAR:
@@ -447,6 +450,10 @@ std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info) {
     std::string type_name;
 
     switch (type_info.sql_type) {
+        case SQL_TYPE_NULL:
+            type_name = set_nullability("Nothing");
+            break;
+
         case SQL_WCHAR:
         case SQL_CHAR:
             type_name = set_nullability("String");
