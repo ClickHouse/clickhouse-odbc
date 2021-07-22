@@ -7,12 +7,7 @@
 const std::map<std::string, TypeInfo> types_g = {
     {"UInt8", TypeInfo {"TINYINT", true, SQL_TINYINT, 3, 1}},
     {"UInt16", TypeInfo {"SMALLINT", true, SQL_SMALLINT, 5, 2}},
-    {"UInt32",
-        TypeInfo {"INT",
-            true,
-            SQL_BIGINT /* was SQL_INTEGER */,
-            10,
-            4}}, // With perl, python ODBC drivers INT is uint32 and it cant store values bigger than 2147483647: 2147483648 -> -2147483648 4294967295 -> -1
+    {"UInt32", TypeInfo {"INT", true, SQL_BIGINT /* was SQL_INTEGER */, 10, 4}}, // With perl, python ODBC drivers INT is uint32 and it cant store values bigger than 2147483647: 2147483648 -> -2147483648 4294967295 -> -1
     {"UInt32", TypeInfo {"INT", true, SQL_INTEGER, 10, 4}},
     {"UInt64", TypeInfo {"BIGINT", true, SQL_BIGINT, 20, 8}},
     {"Int8", TypeInfo {"TINYINT", false, SQL_TINYINT, 1 + 3, 1}}, // one char for sign
@@ -27,19 +22,19 @@ const std::map<std::string, TypeInfo> types_g = {
     {"FixedString", TypeInfo {"TEXT", true, SQL_VARCHAR, TypeInfo::string_max_size, TypeInfo::string_max_size}},
     {"Date", TypeInfo {"DATE", true, SQL_TYPE_DATE, 10, 6}},
     {"DateTime", TypeInfo {"TIMESTAMP", true, SQL_TYPE_TIMESTAMP, 19, 16}},
+    {"DateTime64", TypeInfo {"TIMESTAMP", true, SQL_TYPE_TIMESTAMP, 29, 16}},
     {"Array", TypeInfo {"TEXT", true, SQL_VARCHAR, TypeInfo::string_max_size, TypeInfo::string_max_size}},
-
-    {"LowCardinality(String)",
-        TypeInfo {"TEXT", true, SQL_VARCHAR, TypeInfo::string_max_size, TypeInfo::string_max_size}}, // todo: remove
-    {"LowCardinality(FixedString)",
-        TypeInfo {"TEXT", true, SQL_VARCHAR, TypeInfo::string_max_size, TypeInfo::string_max_size}}, // todo: remove
-
     {"Nothing", TypeInfo {"NULL", true, SQL_TYPE_NULL, 1, 1}},
+
+    // TODO: remove these.
+    {"LowCardinality(String)", TypeInfo {"TEXT", true, SQL_VARCHAR, TypeInfo::string_max_size, TypeInfo::string_max_size}},
+    {"LowCardinality(FixedString)", TypeInfo {"TEXT", true, SQL_VARCHAR, TypeInfo::string_max_size, TypeInfo::string_max_size}}
 };
 
 DataSourceTypeId convertUnparametrizedTypeNameToTypeId(const std::string & type_name) {
          if (Poco::icompare(type_name, "Date") == 0)        return DataSourceTypeId::Date;
     else if (Poco::icompare(type_name, "DateTime") == 0)    return DataSourceTypeId::DateTime;
+    else if (Poco::icompare(type_name, "DateTime64") == 0)  return DataSourceTypeId::DateTime64;
     else if (Poco::icompare(type_name, "Decimal") == 0)     return DataSourceTypeId::Decimal;
     else if (Poco::icompare(type_name, "Decimal32") == 0)   return DataSourceTypeId::Decimal32;
     else if (Poco::icompare(type_name, "Decimal64") == 0)   return DataSourceTypeId::Decimal64;
@@ -77,6 +72,7 @@ std::string convertTypeIdToUnparametrizedCanonicalTypeName(DataSourceTypeId type
     switch (type_id) {
         case DataSourceTypeId::Date:        return "Date";
         case DataSourceTypeId::DateTime:    return "DateTime";
+        case DataSourceTypeId::DateTime64:  return "DateTime64";
         case DataSourceTypeId::Decimal:     return "Decimal";
         case DataSourceTypeId::Decimal32:   return "Decimal32";
         case DataSourceTypeId::Decimal64:   return "Decimal64";

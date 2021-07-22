@@ -1,7 +1,7 @@
 #include "driver/format/ODBCDriver2.h"
 #include "driver/utils/resize_without_initialization.h"
 
-ODBCDriver2ResultSet::ODBCDriver2ResultSet(AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator)
+ODBCDriver2ResultSet::ODBCDriver2ResultSet(const std::string & timezone, AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator)
     : ResultSet(stream, std::move(mutator))
 {
     std::int32_t num_header_rows = 0;
@@ -36,7 +36,7 @@ ODBCDriver2ResultSet::ODBCDriver2ResultSet(AmortizedIStreamReader & stream, std:
                 TypeAst ast;
 
                 if (parser.parse(&ast)) {
-                    columns_info[i].assignTypeInfo(ast);
+                    columns_info[i].assignTypeInfo(ast, timezone);
 
                     if (convertUnparametrizedTypeNameToTypeId(columns_info[i].type_without_parameters) == DataSourceTypeId::Unknown) {
                         // Interpret all unknown types as String.
@@ -131,6 +131,7 @@ void ODBCDriver2ResultSet::readValue(Field & dest, ColumnInfo & column_info) {
     else switch (column_info.type_without_parameters_id) {
         case DataSourceTypeId::Date:        readValueAs<DataSourceType< DataSourceTypeId::Date        >>(value, dest, column_info); break;
         case DataSourceTypeId::DateTime:    readValueAs<DataSourceType< DataSourceTypeId::DateTime    >>(value, dest, column_info); break;
+        case DataSourceTypeId::DateTime64:  readValueAs<DataSourceType< DataSourceTypeId::DateTime64  >>(value, dest, column_info); break;
         case DataSourceTypeId::Decimal:     readValueAs<DataSourceType< DataSourceTypeId::Decimal     >>(value, dest, column_info); break;
         case DataSourceTypeId::Decimal32:   readValueAs<DataSourceType< DataSourceTypeId::Decimal32   >>(value, dest, column_info); break;
         case DataSourceTypeId::Decimal64:   readValueAs<DataSourceType< DataSourceTypeId::Decimal64   >>(value, dest, column_info); break;
@@ -166,6 +167,10 @@ void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourc
 
 void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourceTypeId::DateTime> & dest, ColumnInfo & column_info) {
     return value_manip::from_value<std::string>::template to_value<DataSourceType<DataSourceTypeId::DateTime>>::convert(src, dest);
+}
+
+void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourceTypeId::DateTime64> & dest, ColumnInfo & column_info) {
+    return value_manip::from_value<std::string>::template to_value<DataSourceType<DataSourceTypeId::DateTime64>>::convert(src, dest);
 }
 
 void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourceTypeId::Decimal> & dest, ColumnInfo & column_info) {
@@ -240,13 +245,13 @@ void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourc
     return value_manip::from_value<std::string>::template to_value<DataSourceType<DataSourceTypeId::UUID>>::convert(src, dest);
 }
 
-ODBCDriver2ResultReader::ODBCDriver2ResultReader(std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
-    : ResultReader(raw_stream, std::move(mutator))
+ODBCDriver2ResultReader::ODBCDriver2ResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
+    : ResultReader(timezone_, raw_stream, std::move(mutator))
 {
     if (stream.eof())
         return;
 
-    result_set = std::make_unique<ODBCDriver2ResultSet>(stream, releaseMutator());
+    result_set = std::make_unique<ODBCDriver2ResultSet>(timezone, stream, releaseMutator());
 }
 
 bool ODBCDriver2ResultReader::advanceToNextResultSet() {

@@ -56,6 +56,7 @@ enum class DataSourceTypeId {
     Unknown,
     Date,
     DateTime,
+    DateTime64,
     Decimal,
     Decimal32,
     Decimal64,
@@ -404,18 +405,42 @@ struct WireTypeAnyAsString
     using SimpleTypeWrapper<std::string>::SimpleTypeWrapper;
 };
 
-// Date stored exactly as it is represented on wire in RowBinaryWithNamesAndTypes format.
-struct WireTypeDateAsInt
-    : public SimpleTypeWrapper<std::uint16_t>
-{
-    using SimpleTypeWrapper<std::uint16_t>::SimpleTypeWrapper;
+struct WireTypeDateAsInt {
+    explicit WireTypeDateAsInt(const std::string & timezone_)
+        : timezone(&timezone_)
+    {
+    }
+
+    using ContainerIntType = std::uint16_t;
+
+    ContainerIntType value = 0;
+    const std::string * timezone;
 };
 
-// DateTime stored exactly as it is represented on wire in RowBinaryWithNamesAndTypes format.
-struct WireTypeDateTimeAsInt
-    : public SimpleTypeWrapper<std::uint32_t>
-{
-    using SimpleTypeWrapper<std::uint32_t>::SimpleTypeWrapper;
+struct WireTypeDateTimeAsInt {
+    explicit WireTypeDateTimeAsInt(const std::string & timezone_)
+        : timezone(&timezone_)
+    {
+    }
+
+    using ContainerIntType = std::uint32_t;
+
+    ContainerIntType value = 0;
+    const std::string * timezone;
+};
+
+struct WireTypeDateTime64AsInt {
+    explicit WireTypeDateTime64AsInt(std::int16_t precision_, const std::string & timezone_)
+        : precision(precision_)
+        , timezone(&timezone_)
+    {
+    }
+
+    using ContainerIntType = std::uint64_t;
+
+    ContainerIntType value = 0;
+    std::int16_t precision;
+    const std::string * timezone;
 };
 
 template <DataSourceTypeId Id> struct DataSourceType; // Leave unimplemented for general case.
@@ -429,6 +454,13 @@ struct DataSourceType<DataSourceTypeId::Date>
 
 template <>
 struct DataSourceType<DataSourceTypeId::DateTime>
+    : public SimpleTypeWrapper<SQL_TIMESTAMP_STRUCT>
+{
+    using SimpleTypeWrapper<SQL_TIMESTAMP_STRUCT>::SimpleTypeWrapper;
+};
+
+template <>
+struct DataSourceType<DataSourceTypeId::DateTime64>
     : public SimpleTypeWrapper<SQL_TIMESTAMP_STRUCT>
 {
     using SimpleTypeWrapper<SQL_TIMESTAMP_STRUCT>::SimpleTypeWrapper;
@@ -948,7 +980,7 @@ namespace value_manip {
                 dest.second = 0;
                 dest.fraction = 0;
             }
-            else if (src.size() == 19) {
+            else if (src.size() >= 19 && src.size() <= 29) {
                 dest.year = (src[0] - '0') * 1000 + (src[1] - '0') * 100 + (src[2] - '0') * 10 + (src[3] - '0');
                 dest.month = (src[5] - '0') * 10 + (src[6] - '0');
                 dest.day = (src[8] - '0') * 10 + (src[9] - '0');
@@ -956,6 +988,14 @@ namespace value_manip {
                 dest.minute = (src[14] - '0') * 10 + (src[15] - '0');
                 dest.second = (src[17] - '0') * 10 + (src[18] - '0');
                 dest.fraction = 0;
+
+                for (std::size_t i = 20; i < 29; ++i) {
+                    dest.fraction *= 10;
+
+                    if (i < src.size()) {
+                        dest.fraction += (src[i] - '0');
+                    }
+                }
             }
             else
                 throw std::runtime_error("Cannot interpret '" + src + "' as DateTime");
@@ -1766,6 +1806,9 @@ namespace value_manip {
         using DestinationType = DataSourceType<DataSourceTypeId::Date>;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
+
+            // TODO: convert time according to src.timezone
+
             std::time_t time = src.value;
             time = time * 24 * 60 * 60; // Now it's seconds since epoch.
             const auto & tm = *std::localtime(&time);
@@ -1793,6 +1836,9 @@ namespace value_manip {
         using DestinationType = DataSourceType<DataSourceTypeId::DateTime>;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
+
+            // TODO: convert time according to src.timezone
+
             std::time_t time = src.value;
             const auto & tm = *std::localtime(&time);
 
@@ -1803,6 +1849,40 @@ namespace value_manip {
             dest.value.minute = tm.tm_min;
             dest.value.second = tm.tm_sec;
             dest.value.fraction = 0;
+        }
+    };
+
+    template <>
+    struct from_value<WireTypeDateTime64AsInt> {
+        using SourceType = WireTypeDateTime64AsInt;
+
+        template <typename DestinationType>
+        struct to_value {
+            static inline void convert(const SourceType & src, DestinationType & dest) {
+                convert_via_proxy<DataSourceType<DataSourceTypeId::DateTime64>>(src, dest);
+            }
+        };
+    };
+
+    template <>
+    struct from_value<WireTypeDateTime64AsInt>::to_value<DataSourceType<DataSourceTypeId::DateTime64>> {
+        using DestinationType = DataSourceType<DataSourceTypeId::DateTime64>;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            static constexpr SQLUINTEGER pow10[] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000};
+
+            // TODO: convert time according to src.timezone
+
+            std::time_t time = src.value / pow10[src.precision];
+            const auto & tm = *std::localtime(&time);
+
+            dest.value.year = 1900 + tm.tm_year;
+            dest.value.month = 1 + tm.tm_mon;
+            dest.value.day = tm.tm_mday;
+            dest.value.hour = tm.tm_hour;
+            dest.value.minute = tm.tm_min;
+            dest.value.second = tm.tm_sec;
+            dest.value.fraction = src.value % pow10[src.precision];
         }
     };
 

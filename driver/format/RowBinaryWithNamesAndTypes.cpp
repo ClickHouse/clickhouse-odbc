@@ -3,7 +3,7 @@
 
 #include <ctime>
 
-RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator)
+RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(const std::string & timezone, AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator)
     : ResultSet(stream, std::move(mutator))
 {
     std::uint64_t num_columns = 0;
@@ -22,11 +22,10 @@ RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(Amortiz
         TypeAst ast;
 
         if (parser.parse(&ast)) {
-            columns_info[i].assignTypeInfo(ast);
+            columns_info[i].assignTypeInfo(ast, timezone);
         }
         else {
-            // Interpret all unparsable types as String.
-            columns_info[i].type_without_parameters = "String";
+            throw std::runtime_error("Unable to read values of an unknown type '" + columns_info[i].type + "'");
         }
 
         columns_info[i].updateTypeInfo();
@@ -114,14 +113,16 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(Field & dest, ColumnInfo & c
     constexpr bool convert_on_fetch_conservatively = true;
 
     if (convert_on_fetch_conservatively) switch (column_info.type_without_parameters_id) {
-        case DataSourceTypeId::Date:        return readValueAs<WireTypeDateAsInt    >(dest, column_info);
-        case DataSourceTypeId::DateTime:    return readValueAs<WireTypeDateTimeAsInt>(dest, column_info);
+        case DataSourceTypeId::Date:        return readValueUsing( WireTypeDateAsInt       (column_info.timezone),                        dest, column_info);
+        case DataSourceTypeId::DateTime:    return readValueUsing( WireTypeDateTimeAsInt   (column_info.timezone),                        dest, column_info);
+        case DataSourceTypeId::DateTime64:  return readValueUsing( WireTypeDateTime64AsInt (column_info.precision, column_info.timezone), dest, column_info);
         default:                            break; // Continue with the next complete switch...
     }
 
     switch (column_info.type_without_parameters_id) {
         case DataSourceTypeId::Date:        return readValueAs<DataSourceType< DataSourceTypeId::Date        >>(dest, column_info);
         case DataSourceTypeId::DateTime:    return readValueAs<DataSourceType< DataSourceTypeId::DateTime    >>(dest, column_info);
+        case DataSourceTypeId::DateTime64:  return readValueAs<DataSourceType< DataSourceTypeId::DateTime64  >>(dest, column_info);
         case DataSourceTypeId::Decimal:     return readValueAs<DataSourceType< DataSourceTypeId::Decimal     >>(dest, column_info);
         case DataSourceTypeId::Decimal32:   return readValueAs<DataSourceType< DataSourceTypeId::Decimal32   >>(dest, column_info);
         case DataSourceTypeId::Decimal64:   return readValueAs<DataSourceType< DataSourceTypeId::Decimal64   >>(dest, column_info);
@@ -152,14 +153,24 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(WireTypeDateTimeAsInt & dest
     readPOD(dest.value);
 }
 
+void RowBinaryWithNamesAndTypesResultSet::readValue(WireTypeDateTime64AsInt & dest, ColumnInfo & column_info) {
+    readPOD(dest.value);
+}
+
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Date> & dest, ColumnInfo & column_info) {
-    WireTypeDateAsInt dest_raw;
+    WireTypeDateAsInt dest_raw(column_info.timezone);
     readValue(dest_raw, column_info);
     value_manip::from_value<decltype(dest_raw)>::template to_value<decltype(dest)>::convert(dest_raw, dest);
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::DateTime> & dest, ColumnInfo & column_info) {
-    WireTypeDateTimeAsInt dest_raw;
+    WireTypeDateTimeAsInt dest_raw(column_info.timezone);
+    readValue(dest_raw, column_info);
+    value_manip::from_value<decltype(dest_raw)>::template to_value<decltype(dest)>::convert(dest_raw, dest);
+}
+
+void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::DateTime64> & dest, ColumnInfo & column_info) {
+    WireTypeDateTime64AsInt dest_raw(column_info.precision, column_info.timezone);
     readValue(dest_raw, column_info);
     value_manip::from_value<decltype(dest_raw)>::template to_value<decltype(dest)>::convert(dest_raw, dest);
 }
@@ -294,13 +305,13 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
     std::copy(ptr, ptr + lengthof(dest.value.Data4), std::make_reverse_iterator(dest.value.Data4 + lengthof(dest.value.Data4)));
 }
 
-RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
-    : ResultReader(raw_stream, std::move(mutator))
+RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
+    : ResultReader(timezone_, raw_stream, std::move(mutator))
 {
     if (stream.eof())
         return;
 
-    result_set = std::make_unique<RowBinaryWithNamesAndTypesResultSet>(stream, releaseMutator());
+    result_set = std::make_unique<RowBinaryWithNamesAndTypesResultSet>(timezone, stream, releaseMutator());
 }
 
 bool RowBinaryWithNamesAndTypesResultReader::advanceToNextResultSet() {

@@ -91,6 +91,19 @@ TypeParser::Token TypeParser::nextToken() {
             default: {
                 const char * st = cur_;
 
+                if (*cur_ == '"' || *cur_ == '\'') {
+                    for (++cur_; cur_ < end_; ++cur_) {
+                        if (*cur_ == *st) {
+                            break;
+                        }
+                    }
+
+                    if (cur_ == end_)
+                        return Token {Token::Invalid, std::string()};
+
+                    return Token {Token::Name, std::string(st + 1, cur_++)};
+                }
+
                 if (isalpha(*cur_)) {
                     for (; cur_ < end_; ++cur_) {
                         if (!isalpha(*cur_) && !isdigit(*cur_)) {

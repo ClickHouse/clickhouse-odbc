@@ -13,6 +13,7 @@
 
 #include <Poco/Net/HTTPClientSession.h>
 #include <Poco/NumberFormatter.h>
+#include <Poco/Timezone.h>
 
 #include <iostream>
 #include <locale>
@@ -984,7 +985,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
                 TypeAst ast;
 
                 if (parser.parse(&ast)) {
-                    tmp_column_info.assignTypeInfo(ast);
+                    tmp_column_info.assignTypeInfo(ast, Poco::Timezone::name());
 
                     if (convertUnparametrizedTypeNameToTypeId(tmp_column_info.type_without_parameters) == DataSourceTypeId::Unknown) {
                         // Interpret all unknown types as String.
