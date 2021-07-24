@@ -2,10 +2,17 @@
 
 #include "driver/platform/platform.h"
 
+#include <Poco/Environment.h>
+
 #include <chrono>
 #include <iostream>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <sstream>
+
+#include <cstdlib>
+#include <cstring>
 
 #if defined(BUILD_TYPE_RELEASE)
 #   define ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(test) test
@@ -39,3 +46,30 @@
             std::cout << "\tLatency:          " << str.str() << " milliseconds per iteration" << std::endl; \
         } \
     }
+
+inline std::optional<std::string> get_env_var(const std::string & name) {
+    if (Poco::Environment::has(name)) {
+        return Poco::Environment::get("TZ");
+    }
+
+    return {};
+}
+
+inline void unset_env_var(const std::string & name) {
+#ifdef _win_
+    Poco::Environment::set(name, "");
+#else
+    if (unsetenv(name.c_str()) != 0) {
+        throw std::runtime_error("Failed to unset environment variable " + name + ": " + std::strerror(errno));
+    }
+#endif
+}
+
+inline void set_env_var(const std::string & name, const std::optional<std::string> & value) {
+    if (value.has_value()) {
+        Poco::Environment::set(name, value.value());
+    }
+    else {
+        unset_env_var(name);
+    }
+}

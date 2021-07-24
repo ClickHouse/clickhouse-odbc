@@ -938,8 +938,8 @@ namespace value_manip {
         using DestinationType = SQL_DATE_STRUCT;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
-            if (src.size() != 10)
-                throw std::runtime_error("Cannot interpret '" + src + "' as Date");
+            if (src.size() != 10 && (src.size() < 19 || src.size() > 29))
+                throw std::runtime_error("Cannot interpret '" + src + "' as DATE");
 
             dest.year = (src[0] - '0') * 1000 + (src[1] - '0') * 100 + (src[2] - '0') * 10 + (src[3] - '0');
             dest.month = (src[5] - '0') * 10 + (src[6] - '0');
@@ -954,14 +954,18 @@ namespace value_manip {
         using DestinationType = SQL_TIME_STRUCT;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
-            if constexpr (std::is_same_v<SourceType, DestinationType>) {
-                std::memcpy(&dest, &src, sizeof(dest));
+            if (src.size() != 10 && (src.size() < 19 || src.size() > 29))
+                throw std::runtime_error("Cannot interpret '" + src + "' as TIME");
+
+            if (src.size() > 10) {
+                dest.hour = (src[11] - '0') * 10 + (src[12] - '0');
+                dest.minute = (src[14] - '0') * 10 + (src[15] - '0');
+                dest.second = (src[17] - '0') * 10 + (src[18] - '0');
             }
             else {
-                throw std::runtime_error("conversion not supported");
-
-                // TODO: implement?
-
+                dest.hour = 0;
+                dest.minute = 0;
+                dest.second = 0;
             }
         }
     };
@@ -971,34 +975,28 @@ namespace value_manip {
         using DestinationType = SQL_TIMESTAMP_STRUCT;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
-            if (src.size() == 10) {
-                dest.year = (src[0] - '0') * 1000 + (src[1] - '0') * 100 + (src[2] - '0') * 10 + (src[3] - '0');
-                dest.month = (src[5] - '0') * 10 + (src[6] - '0');
-                dest.day = (src[8] - '0') * 10 + (src[9] - '0');
-                dest.hour = 0;
-                dest.minute = 0;
-                dest.second = 0;
-                dest.fraction = 0;
-            }
-            else if (src.size() >= 19 && src.size() <= 29) {
-                dest.year = (src[0] - '0') * 1000 + (src[1] - '0') * 100 + (src[2] - '0') * 10 + (src[3] - '0');
-                dest.month = (src[5] - '0') * 10 + (src[6] - '0');
-                dest.day = (src[8] - '0') * 10 + (src[9] - '0');
+            if (src.size() != 10 && (src.size() < 19 || src.size() > 29))
+                throw std::runtime_error("Cannot interpret '" + src + "' as TIMESTAMP");
+
+            dest.year = (src[0] - '0') * 1000 + (src[1] - '0') * 100 + (src[2] - '0') * 10 + (src[3] - '0');
+            dest.month = (src[5] - '0') * 10 + (src[6] - '0');
+            dest.day = (src[8] - '0') * 10 + (src[9] - '0');
+
+            if (src.size() >= 19) {
                 dest.hour = (src[11] - '0') * 10 + (src[12] - '0');
                 dest.minute = (src[14] - '0') * 10 + (src[15] - '0');
                 dest.second = (src[17] - '0') * 10 + (src[18] - '0');
                 dest.fraction = 0;
 
-                for (std::size_t i = 20; i < 29; ++i) {
-                    dest.fraction *= 10;
-
-                    if (i < src.size()) {
-                        dest.fraction += (src[i] - '0');
+                if (src.size() > 20) {
+                    for (std::size_t i = 20; i < 29; ++i) {
+                        dest.fraction *= 10;
+                        if (i < src.size()) {
+                            dest.fraction += (src[i] - '0');
+                        }
                     }
                 }
             }
-            else
-                throw std::runtime_error("Cannot interpret '" + src + "' as DateTime");
 
             normalize_date(dest);
         }

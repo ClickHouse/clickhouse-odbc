@@ -102,7 +102,7 @@ TEST_F(MiscellaneousTest, SQLGetData_ZeroOutputBufferSize) {
 }
 
 TEST_F(MiscellaneousTest, NullableNothing) {
-    const std::string query_orig = "SELECT NULL as col";
+    const std::string query_orig = "SELECT NULL AS col";
 
     const auto query = fromUTF8<SQLTCHAR>(query_orig);
     auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
@@ -124,11 +124,14 @@ enum class FailOn {
     Never
 };
 
-// First parameter - parameter set name.
-// Second parameter - extra name=value semicolon-separated string to append to the connection string.
-// Third parameter - when to expect the failure, if any.
 class ConnectionFailureReporing
-    : public ClientTestWithParamBase<std::tuple<std::string, std::string, FailOn>>
+    : public ClientTestWithParamBase<
+        std::tuple<
+            std::string, // parameter set name
+            std::string, // extra name=value semicolon-separated string to append to the connection string
+            FailOn       // when to expect the failure, if any
+        >
+    >
 {
 private:
     using Base = ClientTestWithParamBase<std::tuple<std::string, std::string, FailOn>>;
@@ -231,13 +234,17 @@ INSTANTIATE_TEST_SUITE_P(
     }
 );
 
-// First parameter - original "huge" integer type.
-// Second parameter - a tuple of:
-//    First parameter - parameter set name.
-//    Second parameter - extra name=value semicolon-separated string to append to the connection string.
-//    Third parameter - expected reported column type.
 class HugeIntTypeReporting
-    : public ClientTestWithParamBase<std::tuple<std::string, std::tuple<std::string, std::string, SQLSMALLINT>>>
+    : public ClientTestWithParamBase<
+        std::tuple<
+            std::string,     // original "huge" integer type
+            std::tuple<
+                std::string, // parameter set name
+                std::string, // extra name=value semicolon-separated string to append to the connection string
+                SQLSMALLINT  // expected reported column type
+            >
+        >
+    >
 {
 private:
     using Base = ClientTestWithParamBase<std::tuple<std::string, std::tuple<std::string, std::string, SQLSMALLINT>>>;
@@ -275,9 +282,7 @@ TEST_P(HugeIntTypeReporting, Check) {
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
 
     SQLLEN sql_type = SQL_TYPE_NULL;
-
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLColAttribute(hstmt, 1, SQL_DESC_TYPE, NULL, 0, NULL, &sql_type));
-
     ASSERT_EQ(sql_type, expected_sql_type);
 }
 
@@ -286,7 +291,10 @@ INSTANTIATE_TEST_SUITE_P(
     HugeIntTypeReporting,
     ::testing::Combine(
         ::testing::Values(
+
+            // TODO: uncomment each type once its support is implemented.
             "UInt64"/*, "Int128", "UInt128", "Int256", "UInt256"*/
+
         ),
         ::testing::Values(
             std::make_tuple("HugeIntAsString_Default", "",                     SQL_BIGINT),
