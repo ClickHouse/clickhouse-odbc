@@ -436,7 +436,7 @@ struct WireTypeDateTime64AsInt {
     {
     }
 
-    using ContainerIntType = std::uint64_t;
+    using ContainerIntType = std::int64_t;
 
     ContainerIntType value = 0;
     std::int16_t precision;
@@ -1871,7 +1871,13 @@ namespace value_manip {
 
             // TODO: convert time according to src.timezone
 
-            std::time_t time = src.value / pow10[src.precision];
+            const auto secs = src.value / pow10[src.precision];
+            const auto fraction = std::abs(src.value % pow10[src.precision]);
+
+            if (secs < 0 || secs > std::numeric_limits<std::time_t>::max())
+                throw std::runtime_error("Cannot represent " + std::to_string(secs) + " seconds since the Unix epoch as SQL_TIMESTAMP_STRUCT");
+
+            std::time_t time = secs;
             const auto & tm = *std::localtime(&time);
 
             dest.value.year = 1900 + tm.tm_year;
@@ -1880,7 +1886,7 @@ namespace value_manip {
             dest.value.hour = tm.tm_hour;
             dest.value.minute = tm.tm_min;
             dest.value.second = tm.tm_sec;
-            dest.value.fraction = src.value % pow10[src.precision];
+            dest.value.fraction = fraction;
         }
     };
 

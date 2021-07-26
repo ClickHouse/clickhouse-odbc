@@ -219,7 +219,15 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple("DateTime64_9_TZ", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
             "toDateTime64('2020-03-25 12:11:22.123456789', 9, 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
             "2020-03-25 09:26:22.123456789", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 9, 26, 22, 123456789}
+        )/*,
+
+        // TODO: uncomment once the target ClickHouse server is 21.4+
+
+        std::make_tuple("DateTime64_9_TZ_pre_epoch", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
+            "toDateTime64('1955-03-25 12:11:22.123456789', 9, 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
+            "1955-03-25 09:26:22.123456789", SQL_TIMESTAMP_STRUCT{1955, 3, 25, 9, 26, 22, 123456789}
         )
+        */
     ),
     [] (const auto & param_info) {
         return std::get<0>(param_info.param) + "_over_" + std::get<1>(param_info.param);
