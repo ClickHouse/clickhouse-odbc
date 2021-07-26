@@ -1804,12 +1804,15 @@ namespace value_manip {
         using DestinationType = DataSourceType<DataSourceTypeId::Date>;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::tm tm = {};
 
-            // TODO: convert time according to src.timezone
+            {
+                // TODO: convert time according to src.timezone
 
-            std::time_t time = src.value;
-            time = time * 24 * 60 * 60; // Now it's seconds since epoch.
-            const auto & tm = *std::localtime(&time);
+                std::time_t time = src.value;
+                time = time * 24 * 60 * 60; // Now it's seconds since epoch.
+                toLocalTime(time, tm);
+            }
 
             dest.value.year = 1900 + tm.tm_year;
             dest.value.month = 1 + tm.tm_mon;
@@ -1834,11 +1837,14 @@ namespace value_manip {
         using DestinationType = DataSourceType<DataSourceTypeId::DateTime>;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
+            std::tm tm = {};
 
-            // TODO: convert time according to src.timezone
+            {
+                // TODO: convert time according to src.timezone
 
-            std::time_t time = src.value;
-            const auto & tm = *std::localtime(&time);
+                const std::time_t time = src.value;
+                toLocalTime(time, tm);
+            }
 
             dest.value.year = 1900 + tm.tm_year;
             dest.value.month = 1 + tm.tm_mon;
@@ -1869,16 +1875,20 @@ namespace value_manip {
         static inline void convert(const SourceType & src, DestinationType & dest) {
             static constexpr SQLUINTEGER pow10[] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000};
 
-            // TODO: convert time according to src.timezone
-
             const auto secs = src.value / pow10[src.precision];
             const auto fraction = std::abs(src.value % pow10[src.precision]);
 
             if (secs < 0 || secs > std::numeric_limits<std::time_t>::max())
                 throw std::runtime_error("Cannot represent " + std::to_string(secs) + " seconds since the Unix epoch as SQL_TIMESTAMP_STRUCT");
 
-            std::time_t time = secs;
-            const auto & tm = *std::localtime(&time);
+            std::tm tm = {};
+
+            {
+                // TODO: convert time according to src.timezone
+
+                const std::time_t time = secs;
+                toLocalTime(time, tm);
+            }
 
             dest.value.year = 1900 + tm.tm_year;
             dest.value.month = 1 + tm.tm_mon;
