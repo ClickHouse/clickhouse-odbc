@@ -1,4 +1,8 @@
-# ODBC Driver for ClickHouse [![Build Status](https://travis-ci.org/clickhouse/clickhouse-odbc.svg?branch=master)](https://travis-ci.org/clickhouse/clickhouse-odbc) <!-- omit in toc -->
+# ODBC Driver for ClickHouse  <!-- omit in toc -->
+
+[![Build and Test - Linux](https://github.com/ClickHouse/clickhouse-odbc/actions/workflows/Linux.yml/badge.svg)](https://github.com/ClickHouse/clickhouse-odbc/actions/workflows/Linux.yml)
+[![Build and Test - macOS](https://github.com/ClickHouse/clickhouse-odbc/actions/workflows/macOS.yml/badge.svg)](https://github.com/ClickHouse/clickhouse-odbc/actions/workflows/macOS.yml)
+[![Build and Test - Windows](https://github.com/ClickHouse/clickhouse-odbc/actions/workflows/Windows.yml/badge.svg)](https://github.com/ClickHouse/clickhouse-odbc/actions/workflows/Windows.yml)
 
 ## Introduction <!-- omit in toc -->
 
