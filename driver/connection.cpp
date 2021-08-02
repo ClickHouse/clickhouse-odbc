@@ -480,7 +480,15 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
 void Connection::verifyConnection() {
     LOG("Verifying connection and credentials...");
     auto & statement = allocateChild<Statement>();
-    statement.executeQuery("SELECT 1");
+
+    try {
+        statement.executeQuery("SELECT 1");
+    }
+    catch (...) {
+        statement.deallocateSelf();
+        throw;
+    }
+
     statement.deallocateSelf();
 }
 
