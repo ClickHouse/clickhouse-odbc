@@ -7,21 +7,22 @@
 
 #include <iostream>
 
+struct DateTimeParams {
+    std::string name;                            // parameter set name
+
+    // TODO: remove this once the formats behave identically.
+    std::string format;                          // format to use
+    std::string local_tz;                        // local timezone to use
+
+    std::string expr;                            // expression for SELECT
+    SQLSMALLINT expected_sql_type;               // expected reported column type
+    std::string expected_str_val;                // value, when retrieved as string
+    SQL_TIMESTAMP_STRUCT expected_timestamp_val; // value, when retrieved as SQL_TIMESTAMP_STRUCT
+
+};
+
 class DateTime
-    : public ClientTestWithParamBase<
-        std::tuple<
-            std::string,         // parameter set name
-
-            // TODO: remove this once the formats behave identically.
-            std::string,         // format to use
-            std::string,         // local timezone to use
-
-            std::string,         // expression for SELECT
-            SQLSMALLINT,         // expected reported column type
-            std::string,         // value, when retrieved as string
-            SQL_TIMESTAMP_STRUCT // value, when retrieved as SQL_TIMESTAMP_STRUCT
-        >
-    >
+    : public ClientTestWithParamBase<DateTimeParams>
 {
 };
 
@@ -54,33 +55,25 @@ bool operator== (const SQL_TIMESTAMP_STRUCT & lhs, const SQL_TIMESTAMP_STRUCT & 
 }
 
 TEST_P(DateTime, GetData) {
-    const auto & [
-        name, // unused here
-        format,
-        local_tz,
-        expr,
-        expected_sql_type,
-        expected_str_val,
-        expected_timestamp_val
-    ] = GetParam();
+    const auto & params = GetParam();
 
     const SQL_DATE_STRUCT expected_date_val = {
-        expected_timestamp_val.year,
-        expected_timestamp_val.month,
-        expected_timestamp_val.day
+        params.expected_timestamp_val.year,
+        params.expected_timestamp_val.month,
+        params.expected_timestamp_val.day
     };
 
     const SQL_TIME_STRUCT expected_time_val = {
-        expected_timestamp_val.hour,
-        expected_timestamp_val.minute,
-        expected_timestamp_val.second
+        params.expected_timestamp_val.hour,
+        params.expected_timestamp_val.minute,
+        params.expected_timestamp_val.second
     };
 
     const auto orig_local_tz = get_env_var("TZ");
-    set_env_var("TZ", local_tz);
+    set_env_var("TZ", params.local_tz);
     try {
 
-    const std::string query_orig = "SELECT " + expr + " AS col FORMAT " + format;
+    const std::string query_orig = "SELECT " + params.expr + " AS col FORMAT " + params.format;
 
     const auto query = fromUTF8<SQLTCHAR>(query_orig);
     auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
@@ -91,7 +84,7 @@ TEST_P(DateTime, GetData) {
     {
         SQLLEN sql_type = SQL_TYPE_NULL;
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLColAttribute(hstmt, 1, SQL_DESC_TYPE, NULL, 0, NULL, &sql_type));
-        EXPECT_EQ(sql_type, expected_sql_type);
+        EXPECT_EQ(sql_type, params.expected_sql_type);
     }
 
     {
@@ -107,10 +100,10 @@ TEST_P(DateTime, GetData) {
             &col_ind
         ));
 
-        EXPECT_EQ(toUTF8(col), expected_str_val);
+        EXPECT_EQ(toUTF8(col), params.expected_str_val);
     }
 
-    if (format != "RowBinaryWithNamesAndTypes" || expected_sql_type == SQL_TYPE_DATE) {
+    if (params.format != "RowBinaryWithNamesAndTypes" || params.expected_sql_type == SQL_TYPE_DATE) {
         SQL_DATE_STRUCT col = {};
         SQLLEN col_ind = 0;
 
@@ -126,7 +119,7 @@ TEST_P(DateTime, GetData) {
         EXPECT_EQ(col, expected_date_val);
     }
 
-    if (format != "RowBinaryWithNamesAndTypes") {
+    if (params.format != "RowBinaryWithNamesAndTypes") {
         SQL_TIME_STRUCT col = {};
         SQLLEN col_ind = 0;
 
@@ -142,7 +135,7 @@ TEST_P(DateTime, GetData) {
         EXPECT_EQ(col, expected_time_val);
     }
 
-    if (format != "RowBinaryWithNamesAndTypes" || expected_sql_type != SQL_TYPE_DATE) {
+    if (params.format != "RowBinaryWithNamesAndTypes" || params.expected_sql_type != SQL_TYPE_DATE) {
         SQL_TIMESTAMP_STRUCT col = {};
         SQLLEN col_ind = 0;
 
@@ -155,7 +148,7 @@ TEST_P(DateTime, GetData) {
             &col_ind
         ));
 
-        EXPECT_EQ(col, expected_timestamp_val);
+        EXPECT_EQ(col, params.expected_timestamp_val);
     }
 
     }
@@ -177,59 +170,59 @@ INSTANTIATE_TEST_SUITE_P(
     MiscellaneousTest,
     DateTime,
     ::testing::Values(
-        std::make_tuple("Date", "ODBCDriver2", "Europe/Moscow",
+        DateTimeParams{"Date", "ODBCDriver2", "Europe/Moscow",
             "toDate('2020-03-25')", SQL_TYPE_DATE,
             "2020-03-25", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 0, 0, 0, 0}
-        ),
-        std::make_tuple("DateTime", "ODBCDriver2", "Europe/Moscow",
+        },
+        DateTimeParams{"DateTime", "ODBCDriver2", "Europe/Moscow",
             "toDateTime('2020-03-25 12:11:22')", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 0}
-        ),
-        std::make_tuple("DateTime_TZ", "ODBCDriver2", "Europe/Moscow",
+        },
+        DateTimeParams{"DateTime_TZ", "ODBCDriver2", "Europe/Moscow",
             "toDateTime('2020-03-25 12:11:22', 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 0}
-        ),
-        std::make_tuple("DateTime64_0", "ODBCDriver2", "Europe/Moscow",
+        },
+        DateTimeParams{"DateTime64_0", "ODBCDriver2", "Europe/Moscow",
             "toDateTime64('2020-03-25 12:11:22.123456789', 0)", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 0}
-        ),
-        std::make_tuple("DateTime64_4", "ODBCDriver2", "Europe/Moscow",
+        },
+        DateTimeParams{"DateTime64_4", "ODBCDriver2", "Europe/Moscow",
             "toDateTime64('2020-03-25 12:11:22.123456789', 4)", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22.1234", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 123400000}
-        ),
-        std::make_tuple("DateTime64_9", "ODBCDriver2", "Europe/Moscow",
+        },
+        DateTimeParams{"DateTime64_9", "ODBCDriver2", "Europe/Moscow",
             "toDateTime64('2020-03-25 12:11:22.123456789', 9)", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22.123456789", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 123456789}
-        ),
-        std::make_tuple("DateTime64_9_TZ", "ODBCDriver2", "Europe/Moscow",
+        },
+        DateTimeParams{"DateTime64_9_TZ", "ODBCDriver2", "Europe/Moscow",
             "toDateTime64('2020-03-25 12:11:22.123456789', 9, 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22.123456789", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 123456789}
-        ),
+        },
 
         // TODO: remove this once the formats behave identically.
 
-        std::make_tuple("Date", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
+        DateTimeParams{"Date", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
             "toDate('2020-03-25')", SQL_TYPE_DATE,
             "2020-03-25", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 0, 0, 0, 0}
-        ),
-        std::make_tuple("DateTime_TZ", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
+        },
+        DateTimeParams{"DateTime_TZ", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
             "toDateTime('2020-03-25 12:11:22', 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
             "2020-03-25 09:26:22", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 9, 26, 22, 0}
-        ),
-        std::make_tuple("DateTime64_9_TZ", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
+        },
+        DateTimeParams{"DateTime64_9_TZ", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
             "toDateTime64('2020-03-25 12:11:22.123456789', 9, 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
             "2020-03-25 09:26:22.123456789", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 9, 26, 22, 123456789}
-        )/*,
+        }/*,
 
         // TODO: uncomment once the target ClickHouse server is 21.4+
 
-        std::make_tuple("DateTime64_9_TZ_pre_epoch", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
+        DateTimeParams{"DateTime64_9_TZ_pre_epoch", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
             "toDateTime64('1955-03-25 12:11:22.123456789', 9, 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
             "1955-03-25 09:26:22.123456789", SQL_TIMESTAMP_STRUCT{1955, 3, 25, 9, 26, 22, 123456789}
-        )
+        }
         */
     ),
     [] (const auto & param_info) {
-        return std::get<0>(param_info.param) + "_over_" + std::get<1>(param_info.param);
+        return param_info.param.name + "_over_" + param_info.param.format;
     }
 );
