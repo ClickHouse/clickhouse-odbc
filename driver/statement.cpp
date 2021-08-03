@@ -7,6 +7,7 @@
 #include <Poco/Exception.h>
 #include <Poco/Net/HTTPClientSession.h>
 #include <Poco/Net/HTTPRequest.h>
+#include <Poco/Timezone.h>
 #include <Poco/URI.h>
 #include <Poco/UUID.h>
 #include <Poco/UUIDGenerator.h>
@@ -25,7 +26,7 @@ Statement::~Statement() {
 }
 
 const TypeInfo & Statement::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters) const {
-    return getParent().getParent().getTypeInfo(type_name, type_name_without_parameters);
+    return getParent().getTypeInfo(type_name, type_name_without_parameters);
 }
 
 void Statement::prepareQuery(const std::string & q) {
@@ -197,7 +198,12 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
         throw std::runtime_error(error_message.str());
     }
 
-    result_reader = make_result_reader(response->get("X-ClickHouse-Format", connection.default_format), *in, std::move(mutator));
+    result_reader = make_result_reader(
+        response->get("X-ClickHouse-Format", connection.default_format),
+        response->get("X-ClickHouse-Timezone", Poco::Timezone::name()),
+        *in, std::move(mutator)
+    );
+
     ++next_param_set_idx;
 }
 

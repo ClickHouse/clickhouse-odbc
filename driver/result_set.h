@@ -18,7 +18,7 @@ extern const std::string::size_type initial_string_capacity_g;
 
 class ColumnInfo {
 public:
-    void assignTypeInfo(const TypeAst & ast);
+    void assignTypeInfo(const TypeAst & ast, const std::string & default_timezone);
     void updateTypeInfo();
 
 public:
@@ -32,6 +32,7 @@ public:
     std::size_t precision = 0;
     std::size_t scale = 0;
     bool is_nullable = false;
+    std::string timezone;
 };
 
 class Field {
@@ -39,6 +40,7 @@ public:
     using DataType = std::variant<
         DataSourceType< DataSourceTypeId::Date        >,
         DataSourceType< DataSourceTypeId::DateTime    >,
+        DataSourceType< DataSourceTypeId::DateTime64  >,
         DataSourceType< DataSourceTypeId::Decimal     >,
         DataSourceType< DataSourceTypeId::Decimal32   >,
         DataSourceType< DataSourceTypeId::Decimal64   >,
@@ -61,7 +63,8 @@ public:
         // In case we approach value conversion conservatively...
         WireTypeAnyAsString,
         WireTypeDateAsInt,
-        WireTypeDateTimeAsInt
+        WireTypeDateTimeAsInt,
+        WireTypeDateTime64AsInt
     >;
 
     template <typename ConversionContext>
@@ -131,7 +134,7 @@ protected:
 
 class ResultReader {
 protected:
-    explicit ResultReader(std::istream & stream, std::unique_ptr<ResultMutator> && mutator);
+    explicit ResultReader(const std::string & timezone_, std::istream & stream, std::unique_ptr<ResultMutator> && mutator);
 
 public:
     virtual ~ResultReader() = default;
@@ -144,12 +147,13 @@ public:
     virtual bool advanceToNextResultSet() = 0;
 
 protected:
+    const std::string timezone;
     AmortizedIStreamReader stream;
     std::unique_ptr<ResultMutator> result_mutator;
     std::unique_ptr<ResultSet> result_set;
 };
 
-std::unique_ptr<ResultReader> make_result_reader(const std::string & format, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator);
+std::unique_ptr<ResultReader> make_result_reader(const std::string & format, const std::string & timezone, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator);
 
 template <typename ConversionContext>
 SQLRETURN Field::extract(BindingInfo & binding_info, ConversionContext && context) const {

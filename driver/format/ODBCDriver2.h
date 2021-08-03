@@ -8,7 +8,7 @@ class ODBCDriver2ResultSet
     : public ResultSet
 {
 public:
-    explicit ODBCDriver2ResultSet(AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator);
+    explicit ODBCDriver2ResultSet(const std::string & timezone, AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator);
     virtual ~ODBCDriver2ResultSet() override = default;
 
 protected:
@@ -32,6 +32,7 @@ private:
 
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::Date        > & dest, ColumnInfo & column_info);
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::DateTime    > & dest, ColumnInfo & column_info);
+    void readValue(std::string & src, DataSourceType< DataSourceTypeId::DateTime64  > & dest, ColumnInfo & column_info);
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::Decimal     > & dest, ColumnInfo & column_info);
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::Decimal32   > & dest, ColumnInfo & column_info);
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::Decimal64   > & dest, ColumnInfo & column_info);
@@ -61,7 +62,7 @@ class ODBCDriver2ResultReader
     : public ResultReader
 {
 public:
-    explicit ODBCDriver2ResultReader(std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator);
+    explicit ODBCDriver2ResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator);
     virtual ~ODBCDriver2ResultReader() override = default;
 
     virtual bool advanceToNextResultSet() override;

@@ -4,11 +4,34 @@
 
 const std::string::size_type initial_string_capacity_g = std::string{}.capacity();
 
-void ColumnInfo::assignTypeInfo(const TypeAst & ast) {
+void ColumnInfo::assignTypeInfo(const TypeAst & ast, const std::string & default_timezone) {
     if (ast.meta == TypeAst::Terminal) {
         type_without_parameters = ast.name;
 
         switch (convertUnparametrizedTypeNameToTypeId(type_without_parameters)) {
+            case DataSourceTypeId::DateTime: {
+                if (ast.elements.size() != 0 && ast.elements.size() != 1)
+                    throw std::runtime_error("Unexpected DateTime type specification syntax");
+
+                precision = 0;
+                timezone = (ast.elements.size() == 1 ? ast.elements.front().name : default_timezone);
+
+                break;
+            }
+
+            case DataSourceTypeId::DateTime64: {
+                if (ast.elements.size() != 1 && ast.elements.size() != 2)
+                    throw std::runtime_error("Unexpected DateTime64 type specification syntax");
+
+                precision = ast.elements.front().size;
+                timezone = (ast.elements.size() == 2 ? ast.elements.back().name : default_timezone);
+
+                if (precision < 0 || precision > 9)
+                    throw std::runtime_error("Unexpected DateTime64 type specification syntax");
+
+                break;
+            }
+
             case DataSourceTypeId::Decimal: {
                 if (ast.elements.size() != 2)
                     throw std::runtime_error("Unexpected Decimal type specification syntax");
@@ -59,7 +82,7 @@ void ColumnInfo::assignTypeInfo(const TypeAst & ast) {
     }
     else if (ast.meta == TypeAst::Nullable) {
         is_nullable = true;
-        assignTypeInfo(ast.elements.front());
+        assignTypeInfo(ast.elements.front(), default_timezone);
     }
     else {
         // Interpret all types with unrecognized ASTs as String.
@@ -278,8 +301,9 @@ void ResultSet::retireRow(Row && row) {
     row_pool.put(std::move(row));
 }
 
-ResultReader::ResultReader(std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
-    : stream(raw_stream)
+ResultReader::ResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
+    : timezone(timezone_)
+    , stream(raw_stream)
     , result_mutator(std::move(mutator))
 {
 }
@@ -299,15 +323,15 @@ std::unique_ptr<ResultMutator> ResultReader::releaseMutator() {
     return std::move(result_mutator);
 }
 
-std::unique_ptr<ResultReader> make_result_reader(const std::string & format, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator) {
+std::unique_ptr<ResultReader> make_result_reader(const std::string & format, const std::string & timezone, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator) {
     if (format == "ODBCDriver2") {
-        return std::make_unique<ODBCDriver2ResultReader>(raw_stream, std::move(mutator));
+        return std::make_unique<ODBCDriver2ResultReader>(timezone, raw_stream, std::move(mutator));
     }
     else if (format == "RowBinaryWithNamesAndTypes") {
         if (!isLittleEndian())
             throw std::runtime_error("'" + format + "' format is supported only on little-endian platforms");
 
-        return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(raw_stream, std::move(mutator));
+        return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(timezone, raw_stream, std::move(mutator));
     }
 
     throw std::runtime_error("'" + format + "' format is not supported");

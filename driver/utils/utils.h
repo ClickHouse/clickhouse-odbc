@@ -26,13 +26,17 @@
 #include <iomanip>
 #include <set>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <thread>
 #include <type_traits>
 #include <vector>
 
+#define __STDC_WANT_LIB_EXT1__ 1
+
 #include <cstring>
+#include <ctime>
 
 #ifdef _win_
 #   define stack_alloc _alloca
@@ -116,6 +120,20 @@ inline bool isLittleEndian() noexcept {
     } i = { 0x89ABCDEF };
 
     return (i.i8[0] == 0xEF);
+}
+
+inline void toLocalTime(const std::time_t & src, std::tm & dest) {
+#ifdef _win_
+    const auto err = localtime_s(&dest, &src);
+#elif defined(__STDC_LIB_EXT1__)
+    const auto err = localtime_s(&src, &dest);
+#else
+    auto * res = localtime_r(&src, &dest);
+    const auto err = (res == &dest ? 0 : errno);
+#endif
+
+    if (err)
+        throw std::runtime_error("Failed to convert time: " + std::string(std::strerror(err)));
 }
 
 inline bool isYes(std::string str) {

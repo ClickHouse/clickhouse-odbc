@@ -8,7 +8,7 @@ class RowBinaryWithNamesAndTypesResultSet
     : public ResultSet
 {
 public:
-    explicit RowBinaryWithNamesAndTypesResultSet(AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator);
+    explicit RowBinaryWithNamesAndTypesResultSet(const std::string & timezone, AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator);
     virtual ~RowBinaryWithNamesAndTypesResultSet() override = default;
 
 protected:
@@ -29,17 +29,23 @@ private:
     void readValue(Field & dest, ColumnInfo & column_info);
 
     template <typename T>
-    void readValueAs(Field & dest, ColumnInfo & column_info) {
-        T value;
+    void readValueUsing(T && value, Field & dest, ColumnInfo & column_info) {
         readValue(value, column_info);
-        dest.data = std::move(value);
+        dest.data = std::forward<T>(value);
+    }
+
+    template <typename T>
+    void readValueAs(Field & dest, ColumnInfo & column_info) {
+        return readValueUsing(T(), dest, column_info);
     }
 
     void readValue(WireTypeDateAsInt & dest, ColumnInfo & column_info);
     void readValue(WireTypeDateTimeAsInt & dest, ColumnInfo & column_info);
+    void readValue(WireTypeDateTime64AsInt & dest, ColumnInfo & column_info);
 
     void readValue(DataSourceType< DataSourceTypeId::Date        > & dest, ColumnInfo & column_info);
     void readValue(DataSourceType< DataSourceTypeId::DateTime    > & dest, ColumnInfo & column_info);
+    void readValue(DataSourceType< DataSourceTypeId::DateTime64  > & dest, ColumnInfo & column_info);
     void readValue(DataSourceType< DataSourceTypeId::Decimal     > & dest, ColumnInfo & column_info);
     void readValue(DataSourceType< DataSourceTypeId::Decimal32   > & dest, ColumnInfo & column_info);
     void readValue(DataSourceType< DataSourceTypeId::Decimal64   > & dest, ColumnInfo & column_info);
@@ -69,7 +75,7 @@ class RowBinaryWithNamesAndTypesResultReader
     : public ResultReader
 {
 public:
-    explicit RowBinaryWithNamesAndTypesResultReader(std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator);
+    explicit RowBinaryWithNamesAndTypesResultReader(const std::string & timezone, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator);
     virtual ~RowBinaryWithNamesAndTypesResultReader() override = default;
 
     virtual bool advanceToNextResultSet() override;

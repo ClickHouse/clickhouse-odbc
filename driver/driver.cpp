@@ -97,9 +97,12 @@ void Driver::writeLogMessagePrefix(std::ostream & stream) {
 void Driver::writeLogSessionStart(std::ostream & stream) {
     stream << "==================== ODBC Driver logging session started";
     {
-        auto t = std::time(nullptr);
+        std::tm tm = {};
+        const auto time = std::time(nullptr);
+        toLocalTime(time, tm);
+
         char mbstr[100] = {};
-        if (std::strftime(mbstr, sizeof(mbstr), "%F %T %Z", std::localtime(&t)))
+        if (std::strftime(mbstr, sizeof(mbstr), "%F %T %Z", &tm))
             stream << " (" << mbstr << ")";
     }
     stream << " ====================" << std::endl;
@@ -127,9 +130,12 @@ void Driver::writeLogSessionStart(std::ostream & stream) {
 void Driver::writeLogSessionEnd(std::ostream & stream) {
     stream << "==================== ODBC Driver logging session ended";
     {
-        auto t = std::time(nullptr);
+        std::tm tm = {};
+        const auto time = std::time(nullptr);
+        toLocalTime(time, tm);
+
         char mbstr[100] = {};
-        if (std::strftime(mbstr, sizeof(mbstr), "%F %T %Z", std::localtime(&t)))
+        if (std::strftime(mbstr, sizeof(mbstr), "%F %T %Z", &tm))
             stream << " (" << mbstr << ")";
     }
     stream << " ====================" << std::endl;
