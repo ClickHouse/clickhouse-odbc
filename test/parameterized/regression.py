@@ -57,7 +57,19 @@ if main():
             [(Fail, "Selecting FixedString is not supported due to lack of toFixedString conversion")],
 
         "*/I select value 18446744073709551615":
-            [(Error, "UInt64 large value not supported")],
+            [
+                (Error, "UInt64 large value not supported"),
+                (Fail, "UInt64 large value not supported")
+            ],
+
+        "*/I select value 9999999999999999999999999999999999.9999":
+            [(Fail, "Decimal128 internal overflow")],
+
+        "*/I select value -9999999999999999999999999999999999.9999":
+            [(Fail, "Decimal128 internal overflow")],
+
+        "*/I run 'SELECT isNull(?)' with '印' parameter":
+            [(Fail, "Unexpected Unicode string truncation - should be fixed")],
 
         "/regression/parameterized/*/datatypes/IPv4":
             [(Fail, "IPv4 is not supported")],
