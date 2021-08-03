@@ -168,7 +168,7 @@ TEST_P(ConnectionFailureReporing, TryQuery) {
 
     {
         const auto & dsn_orig = TestEnvironment::getInstance().getDSN();
-        std::string cs_orig = "DSN={" + dsn_orig + "};" + cs_extras;
+        std::string cs_orig = "DSN=" + dsn_orig + ";" + cs_extras;
         const auto cs = fromUTF8<SQLTCHAR>(cs_orig);
         auto * cs_wptr = const_cast<SQLTCHAR *>(cs.c_str());
 
@@ -271,7 +271,7 @@ TEST_P(HugeIntTypeReporting, Check) {
     const auto & [/* unused */name, cs_extras, expected_sql_type] = params;
 
     const auto & dsn = TestEnvironment::getInstance().getDSN();
-    const auto cs = "DSN={" + dsn + "};" + cs_extras;
+    const auto cs = "DSN=" + dsn + ";" + cs_extras;
     connect(cs);
 
     const auto query_orig = "SELECT CAST('0', '" + type + "') AS col";
