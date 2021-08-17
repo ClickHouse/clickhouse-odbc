@@ -388,7 +388,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
                 throw std::runtime_error("Connection string: bad value '" + value + "' for attribute '" + key + "'");
         }
         else {
-            LOG("Connection string: unknown attribute '" << key << "', ignoting");
+            LOG("Connection string: unknown attribute '" << key << "', ignoring");
         }
     }
 
