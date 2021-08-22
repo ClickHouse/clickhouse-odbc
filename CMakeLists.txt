@@ -6,7 +6,7 @@ include (cmake/prevent_in_source_builds.cmake)
 
 project (
     clickhouse-odbc
-    VERSION 1.1.9.20201226
+    VERSION 1.1.10.20210822
     DESCRIPTION "The official ODBC driver implementation for accessing ClickHouse as a data source."
     HOMEPAGE_URL "https://github.com/ClickHouse/clickhouse-odbc"
     LANGUAGES C CXX
