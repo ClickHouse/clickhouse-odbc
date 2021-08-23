@@ -682,7 +682,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_hand
         const auto & column_info = result_set.getColumnInfo(column_idx);
         const auto & type_info = statement.getTypeInfo(column_info.type, column_info.type_without_parameters);
 
-        LOG(__FUNCTION__ << " column_number=" << column_number << "name=" << column_info.name << " type=" << type_info.sql_type
+        LOG(__FUNCTION__ << " column_number=" << column_number << " name=" << column_info.name << " type=" << type_info.sql_type
                          << " size=" << type_info.column_size << " nullable=" << column_info.is_nullable);
 
         if (out_type)
