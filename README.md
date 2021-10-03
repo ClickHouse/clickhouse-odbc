@@ -8,7 +8,7 @@
 
 This is the official ODBC driver implementation for accessing ClickHouse as a data source.
 
-For more information on ClickHouse go to [ClickHouse home page](https://clickhouse.yandex).
+For more information on ClickHouse go to [ClickHouse home page](https://clickhouse.com).
 
 For more information on what ODBC is go to [ODBC Overview](https://docs.microsoft.com/en-us/sql/odbc/reference/odbc-overview).
 
