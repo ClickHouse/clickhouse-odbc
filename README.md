@@ -53,7 +53,13 @@ Note, that since ODBC drivers are not used directly by a user, but rather access
 - **UnixODBC** - the most common ODBC provider in Unix-like systems. Theoretically, could be used in Cygwin or MSYS/MinGW environments in Windows too.
 - **iODBC** - less common ODBC provider, mainly used in Unix-like systems, however, it is the standard ODBC provider in macOS. Theoretically, could be used in Cygwin or MSYS/MinGW environments in Windows too.
 
-If you don't see a package that matches your platforms, or the version of your system is significantly different than those of the available packages, or maybe you want to try a bleeding edge version of the code that hasn't been released yet, you can always build the driver manually from sources:
+If you have [Homebrew](https://brew.sh/) installed (usually applicable to macOS only, but can also be available in Linux), just execute:
+
+```sh
+brew install clickhouse-odbc
+```
+
+If you don't see a package that matches your platforms under [Releases](https://github.com/ClickHouse/clickhouse-odbc/releases), or the version of your system is significantly different than those of the available packages, or maybe you want to try a bleeding edge version of the code that hasn't been released yet, you can always build the driver manually from sources:
 
 - [Building from sources](#building-from-sources)
 
