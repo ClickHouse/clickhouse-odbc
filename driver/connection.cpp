@@ -8,6 +8,7 @@
 #include <Poco/Net/HTTPClientSession.h>
 #include <Poco/NumberParser.h> // TODO: switch to std
 #include <Poco/URI.h>
+#include <random>
 
 #if !defined(WORKAROUND_DISABLE_SSL)
 #    include <Poco/Net/AcceptCertificateHandler.h>
@@ -47,8 +48,15 @@ void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::str
 }
 #endif
 
+std::string GenerateSessionId() {
+    std::mt19937 generator(std::random_device{}());
+    std::uniform_int_distribution<std::uint64_t> distribution(0);
+    return std::string("clickhouse_odbc_" + std::to_string(distribution(generator)));
+}
+
 Connection::Connection(Environment & environment)
-    : ChildType(environment)
+    : ChildType(environment),
+      session_id(GenerateSessionId())
 {
     resetConfiguration();
 }
@@ -65,6 +73,55 @@ const TypeInfo & Connection::getTypeInfo(const std::string & type_name, const st
     }
 
     return getParent().getTypeInfo(tmp_type_name, tmp_type_name_without_parameters);
+}
+
+Poco::URI Connection::getUri() const {
+    Poco::URI uri(url);
+
+    if (!proto.empty())
+        uri.setScheme(proto);
+
+    if (!server.empty())
+        uri.setHost(server);
+
+    if (port != 0)
+        uri.setPort(port);
+
+    if (!path.empty())
+        uri.setPath(path);
+
+    bool database_set = false;
+    bool default_format_set = false;
+
+    for (const auto& parameter : uri.getQueryParameters()) {
+        if (Poco::UTF8::icompare(parameter.first, "default_format") == 0) {
+            default_format_set = true;
+        }
+        else if (Poco::UTF8::icompare(parameter.first, "database") == 0) {
+            database_set = true;
+        }
+    }
+
+    if (!default_format_set)
+        uri.addQueryParameter("default_format", default_format);
+
+    if (!database_set)
+        uri.addQueryParameter("database", database);
+
+    // To use some features of CH (e.g. TEMPORARY TABLEs) we need a (named) session.
+    {
+        const auto & parameters = uri.getQueryParameters();
+        const auto p = std::find_if(parameters.begin(), parameters.end(), [](const auto & param_kv) {
+            return param_kv.first == "session_id";
+        });
+
+        // DO not overwrite user-set session_id, just in case...
+        if (p == parameters.end()) {
+            uri.addQueryParameter("session_id", session_id);
+        }
+    }
+
+    return uri;
 }
 
 void Connection::connect(const std::string & connection_string) {
