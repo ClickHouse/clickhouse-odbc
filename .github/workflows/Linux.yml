@@ -126,7 +126,11 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
           name: my-artifact
-          path: ${{ github.workspace }}/build
+          path: |
+            -${{ github.workspace }}/build/*.rpm
+            -${{ github.workspace }}/build/*.deb
+            -${{ github.workspace }}/build/*.tar.gz
+            -${{ github.workspace }}/build/*.tar.xz
 
     - name: Test - Run unit tests
       working-directory: ${{ github.workspace }}/build
