@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CLICKHOUSE_SERVER_IMAGE: "yandex/clickhouse-server:21.3"
+  CLICKHOUSE_SERVER_IMAGE: "clickhouse/clickhouse-server:21.3"
 
 defaults:
   run:
