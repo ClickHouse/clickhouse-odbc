@@ -107,6 +107,13 @@ jobs:
     - name: Package
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target package
 
+    - name: Upload the artifacts
+      if:  ${{ matrix.compiler == 'AppleClang' && matrix.odbc_provider == 'iODBC' && matrix.build_type == 'RelWithDebInfo' }}
+      uses: actions/upload-artifact@v3
+      with:
+          name: my-artifact
+          path: ${{ github.workspace }}/build/clickhouse-odbc-*
+
     - name: Test - Run unit tests
       working-directory: ${{ github.workspace }}/build
       run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
