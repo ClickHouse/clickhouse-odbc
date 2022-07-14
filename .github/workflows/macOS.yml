@@ -111,7 +111,7 @@ jobs:
       if:  ${{ matrix.compiler == 'AppleClang' && matrix.odbc_provider == 'iODBC' && matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v3
       with:
-          name: my-artifact
+          name: clickhouse-odbc-macos
           path: ${{ github.workspace }}/build/clickhouse-odbc-*
 
     - name: Test - Run unit tests
