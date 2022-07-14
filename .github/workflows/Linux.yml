@@ -123,10 +123,10 @@ jobs:
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target package
 
     - name: Upload the artifacts
-      if:  ${{ matrix.os == 'ubuntu-18.04' && matrix.compiler == 'GCC' && matrix.odbc_provider == 'UnixODBC' && matrix.build_type == 'Release' }}
+      if:  ${{ matrix.os == 'ubuntu-18.04' && matrix.compiler == 'GCC' && matrix.odbc_provider == 'UnixODBC' && matrix.build_type == 'Release' && matrix.runtime_link == 'dynamic-runtime' && matrix.third_parties == 'bundled-third-parties' }}
       uses: actions/upload-artifact@v3
       with:
-          name: linux
+          name: clickhouse-odbc-linux
           path: ${{ github.workspace }}/build/clickhouse-odbc-*
 
     - name: Test - Run unit tests
