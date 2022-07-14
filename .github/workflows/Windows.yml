@@ -89,7 +89,7 @@ jobs:
       if:  ${{ matrix.os == 'windows-2016' && matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v3
       with:
-          name: windows
+          name: clickhouse-odbc-windows
           path: ${{ github.workspace }}/build/clickhouse-odbc-*
 
     - name: Test - Run unit tests
