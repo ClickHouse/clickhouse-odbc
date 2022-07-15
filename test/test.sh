@@ -184,6 +184,6 @@ q "drop table test.lc;"
 
 # These queries can only be executed within session
 q "SET max_threads=10;"
-q "CREATE TEMPORARY TABLE test.increment (n UInt64);"
+q "CREATE TEMPORARY TABLE increment (n UInt64);"
 
 # q "SELECT number, toString(number), toDate(number) FROM system.numbers LIMIT 10000;"
