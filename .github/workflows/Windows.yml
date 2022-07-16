@@ -2,7 +2,7 @@ name: Build and Test - Windows
 
 on:
   schedule:
-    - cron: '0.0.*.*.1'
+    - cron: '0 0 * * 1'
   push:
     branches: [ master ]
   pull_request:
@@ -84,6 +84,13 @@ jobs:
 
     - name: Package
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target package
+
+    - name: Upload the artifacts
+      if:  ${{ matrix.os == 'windows-2016' && matrix.build_type == 'Release' }}
+      uses: actions/upload-artifact@v3
+      with:
+          name: clickhouse-odbc-windows
+          path: ${{ github.workspace }}/build/clickhouse-odbc-*
 
     - name: Test - Run unit tests
       working-directory: ${{ github.workspace }}/build
