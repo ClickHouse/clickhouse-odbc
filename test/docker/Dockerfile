@@ -60,24 +60,14 @@ ARG BIN_DIR=/clickhouse-odbc-build
 RUN pip3 install --user \
     'pyodbc>=4.0.0'
 
-RUN mkdir -p ${BIN_DIR} ${LOG_DIR} \
+RUN mkdir -p ${BIN_DIR} \
     && echo $CMAKE_ODBC_PROVIDER \
     && cd ${BIN_DIR} \
     && cmake -G Ninja -DODBC_PROVIDER=${CMAKE_ODBC_PROVIDER} -DTEST_DSN_LIST="clickhouse_localhost;clickhouse_localhost_w" /clickhouse-odbc/ \
     && ninja
 
-RUN ls -lah ${BIN_DIR} \
-    && ls -lah ${BIN_DIR}/driver \
-    && ls -lah ${BIN_DIR}/driver/libclickhouseodbc.so \
-    && ls -lah ${BIN_DIR}/driver/libclickhouseodbcw.so \
-    && echo DONE
-
 RUN ln -s ${BIN_DIR}/driver/libclickhouseodbc.so /usr/local/lib/libclickhouseodbc.so \
     && ln -s ${BIN_DIR}/driver/libclickhouseodbcw.so /usr/local/lib/libclickhouseodbcw.so
-
-RUN ls -lah /usr/local/lib/libclickhouseodbc.so \
-    && ls -lah /usr/local/lib/libclickhouseodbcw.so \
-    && echo DONE2
 
 # Copy it last since it can be changed frequently
 COPY ./test /clickhouse-odbc/test
