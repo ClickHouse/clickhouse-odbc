@@ -2,13 +2,13 @@
 # image to build & test clickhouse-odbc on ubuntu with docker
 
 # How to build
-# $ docker buildx build . -f ./test/docker/Dockerfile
+# $ docker buildx build . -f ./test/docker/Dockerfile --build-arg ODBC_PROVIDER=unixodbc -t clickhouse_odbc_tester:test
 #
 # How to run
 # $ #start ch server somehow either locally, with docker or use remote machine (requires chaning CH_SERVER_URL)
 # $ docker run --network=host -e CH_SERVER_URL=http://localhost clickhouse_odbc_tester:test -R 'test.sh-isql-dsn-0'
 
-# unixodbc or iodbc
+# unixodbc or iodbc, note that values are lowercase due to docker's limitation on image names.
 ARG ODBC_PROVIDER=unixodbc
 
 FROM ubuntu:20.04 as clickhouse_odbc_tester_base
@@ -42,7 +42,6 @@ ENV CMAKE_ODBC_PROVIDER=iODBC
 
 FROM clickhouse_odbc_tester_base_${ODBC_PROVIDER} as final
 ENV CH_SERVER_URL=http://localhost
-RUN echo ${CMAKE_ODBC_PROVIDER}
 
 # There is no sane way to exclude ./test directory (that could change a lot)
 # so copying everything required for build in multiple steps to maximize build caching
@@ -171,11 +170,11 @@ cat  ~/.odbcinst.ini
 echo 'starting tests:'
 ctest -V --output-on-failure \$@
 
-echo printing out log files from "${LOG_DIR}"
-ls -lah ${LOG_DIR}
-for log_file in ${LOG_DIR}/*.log; do
-    echo ${log_file} ;
-    cat ${log_file} ;
+echo printing out log files from "\${LOG_DIR}"
+ls -lah \${LOG_DIR}
+for log_file in \${LOG_DIR}/*.log; do
+    echo \${log_file} ;
+    cat \${log_file} ;
 done
 
 exit -1
