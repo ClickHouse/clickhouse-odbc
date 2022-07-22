@@ -21,7 +21,6 @@ env:
 defaults:
   run:
     shell: bash
-    working-directory: run
 
 jobs:
   build_and_test:
@@ -35,11 +34,6 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-
-    - name: Create directories
-      working-directory: ${{ github.workspace }}
-      run: |
-        mkdir -p ${{ github.workspace }}/run
 
     - name: Clone the repo
       uses: actions/checkout@v2
