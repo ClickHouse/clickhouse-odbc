@@ -44,7 +44,7 @@ jobs:
     - name: Clone the repo
       uses: actions/checkout@v2
       with:
-        path: source
+        path: .
         submodules: true
 
     - name: Install dependencies - Docker
@@ -58,6 +58,7 @@ jobs:
 
     - name: Build docker clickhouse_odbc_tester image
       run: |
+        ls -lah .
         docker buildx build . -f ./test/docker/Dockerfile --build-arg ODBC_PROVIDER=${{ matrix.odbc_provider }} -t clickhouse_odbc_tester:${{ matrix.odbc_provider }}
 
     - name: Test - Run unit tests
