@@ -36,6 +36,11 @@ jobs:
 
     steps:
 
+    - name: Create directories
+      working-directory: ${{ github.workspace }}
+      run: |
+        mkdir -p ${{ github.workspace }}/run
+
     - name: Clone the repo
       uses: actions/checkout@v2
       with:
