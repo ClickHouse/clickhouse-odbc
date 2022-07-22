@@ -1,175 +1,175 @@
-name: Build and Test - Windows
+# name: Build and Test - Windows
 
-on:
-  schedule:
-    - cron: '0.0.*.*.1'
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
-  release:
-    types:
-      - created
+# on:
+#   schedule:
+#     - cron: '0.0.*.*.1'
+#   push:
+#     branches: [ master ]
+#   pull_request:
+#     branches: [ master ]
+#   release:
+#     types:
+#       - created
 
-concurrency:
-  group: windows-${{ github.head_ref }}
-  cancel-in-progress: true
+# concurrency:
+#   group: windows-${{ github.head_ref }}
+#   cancel-in-progress: true
 
-env:
-  CLICKHOUSE_SERVER_IMAGE: "yandex/clickhouse-server:20.3"
+# env:
+#   CLICKHOUSE_SERVER_IMAGE: "yandex/clickhouse-server:20.3"
 
-defaults:
-  run:
-    shell: powershell
-    working-directory: run
+# defaults:
+#   run:
+#     shell: powershell
+#     working-directory: run
 
-jobs:
-  build_and_test:
+# jobs:
+#   build_and_test:
 
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-2019, windows-2016]
-        odbc_provider: [MDAC]
-        compiler: [MSVC]
-        build_type: [Debug, RelWithDebInfo, Release]
-        architecture: [x86, x64]
-        runtime_link: [dynamic-runtime]
-        third_parties: [bundled-third-parties]
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         os: [windows-2019, windows-2016]
+#         odbc_provider: [MDAC]
+#         compiler: [MSVC]
+#         build_type: [Debug, RelWithDebInfo, Release]
+#         architecture: [x86, x64]
+#         runtime_link: [dynamic-runtime]
+#         third_parties: [bundled-third-parties]
 
-    runs-on: ${{ matrix.os }}
+#     runs-on: ${{ matrix.os }}
 
-    steps:
+#     steps:
 
-    - name: Create directories
-      working-directory: ${{ github.workspace }}
-      run: |
-        new-item ${{ github.workspace }}/run -itemtype directory
-        new-item ${{ github.workspace }}/build -itemtype directory
-        new-item ${{ github.workspace }}/prefix -itemtype directory
-        new-item ${{ github.workspace }}/install -itemtype directory
-        new-item ${{ github.workspace }}/package -itemtype directory
+#     - name: Create directories
+#       working-directory: ${{ github.workspace }}
+#       run: |
+#         new-item ${{ github.workspace }}/run -itemtype directory
+#         new-item ${{ github.workspace }}/build -itemtype directory
+#         new-item ${{ github.workspace }}/prefix -itemtype directory
+#         new-item ${{ github.workspace }}/install -itemtype directory
+#         new-item ${{ github.workspace }}/package -itemtype directory
 
-    - name: Clone the repo
-      uses: actions/checkout@v2
-      with:
-        path: source
-        submodules: true
+#     - name: Clone the repo
+#       uses: actions/checkout@v2
+#       with:
+#         path: source
+#         submodules: true
 
-    - name: Set up Visual Studio shell
-      uses: egor-tensin/vs-shell@v2
-      with:
-        arch: ${{ matrix.architecture }}
+#     - name: Set up Visual Studio shell
+#       uses: egor-tensin/vs-shell@v2
+#       with:
+#         arch: ${{ matrix.architecture }}
 
-    # - name: Install dependencies - Docker
-    #   if: ${{ matrix.os != 'windows-2016' }}
-    #   run: |
-    #     choco install wsl2 --params "/Version:2 /Retry:true" --yes
-    #     choco install docker-desktop --yes
-    #     & "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+#     # - name: Install dependencies - Docker
+#     #   if: ${{ matrix.os != 'windows-2016' }}
+#     #   run: |
+#     #     choco install wsl2 --params "/Version:2 /Retry:true" --yes
+#     #     choco install docker-desktop --yes
+#     #     & "C:\Program Files\Docker\Docker\Docker Desktop.exe"
 
-    - name: Configure
-      run: >
-        cmake -S ${{ github.workspace }}/source -B ${{ github.workspace }}/build
-        -A ${{ fromJSON('{"x86": "Win32", "x64": "x64"}')[matrix.architecture] }}
-        -DCMAKE_SYSTEM_VERSION="${{ fromJSON('{"windows-2016": "10.0.17763.0", "windows-2019": "10.0.19041.685"}')[matrix.os] }}"
-        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DODBC_PROVIDER=${{ matrix.odbc_provider }}
-        -DCH_ODBC_RUNTIME_LINK_STATIC=${{ fromJSON('{"static-runtime": "ON", "dynamic-runtime": "OFF"}')[matrix.runtime_link] }}
-        -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=${{ fromJSON('{"bundled-third-parties": "ON", "system-third-parties": "OFF"}')[matrix.third_parties] }}
-        -DTEST_DSN_LIST="ClickHouse DSN (ANSI);ClickHouse DSN (Unicode);ClickHouse DSN (ANSI, RBWNAT)"
+#     - name: Configure
+#       run: >
+#         cmake -S ${{ github.workspace }}/source -B ${{ github.workspace }}/build
+#         -A ${{ fromJSON('{"x86": "Win32", "x64": "x64"}')[matrix.architecture] }}
+#         -DCMAKE_SYSTEM_VERSION="${{ fromJSON('{"windows-2016": "10.0.17763.0", "windows-2019": "10.0.19041.685"}')[matrix.os] }}"
+#         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+#         -DODBC_PROVIDER=${{ matrix.odbc_provider }}
+#         -DCH_ODBC_RUNTIME_LINK_STATIC=${{ fromJSON('{"static-runtime": "ON", "dynamic-runtime": "OFF"}')[matrix.runtime_link] }}
+#         -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=${{ fromJSON('{"bundled-third-parties": "ON", "system-third-parties": "OFF"}')[matrix.third_parties] }}
+#         -DTEST_DSN_LIST="ClickHouse DSN (ANSI);ClickHouse DSN (Unicode);ClickHouse DSN (ANSI, RBWNAT)"
 
-    - name: Build
-      run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }}
+#     - name: Build
+#       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }}
 
-    - name: Package
-      run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target package
+#     - name: Package
+#       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target package
 
-    - name: Test - Run unit tests
-      working-directory: ${{ github.workspace }}/build
-      run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
+#     - name: Test - Run unit tests
+#       working-directory: ${{ github.workspace }}/build
+#       run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
 
-    # - name: Test - Start ClickHouse server in background
-    #   if: ${{ matrix.os != 'windows-2016' }}
-    #   run: |
-    #     docker pull ${env:CLICKHOUSE_SERVER_IMAGE}
-    #     docker run -d --name clickhouse ${env:CLICKHOUSE_SERVER_IMAGE}
-    #     docker ps -a
-    #     docker stats -a --no-stream
+#     # - name: Test - Start ClickHouse server in background
+#     #   if: ${{ matrix.os != 'windows-2016' }}
+#     #   run: |
+#     #     docker pull ${env:CLICKHOUSE_SERVER_IMAGE}
+#     #     docker run -d --name clickhouse ${env:CLICKHOUSE_SERVER_IMAGE}
+#     #     docker ps -a
+#     #     docker stats -a --no-stream
 
-    # - name: Test - Run integration tests
-    #   if: ${{ matrix.os != 'windows-2016' }}
-    #   working-directory: ${{ github.workspace }}/build
-    #   run: |
-    #     export CLICKHOUSE_SERVER_IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' clickhouse)
+#     # - name: Test - Run integration tests
+#     #   if: ${{ matrix.os != 'windows-2016' }}
+#     #   working-directory: ${{ github.workspace }}/build
+#     #   run: |
+#     #     export CLICKHOUSE_SERVER_IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' clickhouse)
 
-    #     export ODBCSYSINI=${{ github.workspace }}/run
-    #     export ODBCINSTINI=.odbcinst.ini
-    #     export ODBCINI=$ODBCSYSINI/.odbc.ini
-    #     if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
-    #         # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
-    #         export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
-    #     fi
+#     #     export ODBCSYSINI=${{ github.workspace }}/run
+#     #     export ODBCINSTINI=.odbcinst.ini
+#     #     export ODBCINI=$ODBCSYSINI/.odbc.ini
+#     #     if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
+#     #         # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
+#     #         export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
+#     #     fi
 
-    #     cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
-    #     [ODBC]
-    #     Trace     = 1
-    #     TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
-    #     Debug     = 1
-    #     DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
+#     #     cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
+#     #     [ODBC]
+#     #     Trace     = 1
+#     #     TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
+#     #     Debug     = 1
+#     #     DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
 
-    #     [ODBC Drivers]
-    #     ClickHouse ODBC Driver (ANSI)    = Installed
-    #     ClickHouse ODBC Driver (Unicode) = Installed
+#     #     [ODBC Drivers]
+#     #     ClickHouse ODBC Driver (ANSI)    = Installed
+#     #     ClickHouse ODBC Driver (Unicode) = Installed
 
-    #     [ClickHouse ODBC Driver (ANSI)]
-    #     Driver     = ${{ github.workspace }}/build/driver/libclickhouseodbc.so
-    #     Setup      = ${{ github.workspace }}/build/driver/libclickhouseodbc.so
-    #     UsageCount = 1
+#     #     [ClickHouse ODBC Driver (ANSI)]
+#     #     Driver     = ${{ github.workspace }}/build/driver/libclickhouseodbc.so
+#     #     Setup      = ${{ github.workspace }}/build/driver/libclickhouseodbc.so
+#     #     UsageCount = 1
 
-    #     [ClickHouse ODBC Driver (Unicode)]
-    #     Driver     = ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
-    #     Setup      = ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
-    #     UsageCount = 1
-    #     EOF
+#     #     [ClickHouse ODBC Driver (Unicode)]
+#     #     Driver     = ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
+#     #     Setup      = ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
+#     #     UsageCount = 1
+#     #     EOF
 
-    #     cat > $ODBCSYSINI/.odbc.ini <<-EOF
-    #     [ODBC]
-    #     Trace     = 1
-    #     TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
-    #     Debug     = 1
-    #     DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
+#     #     cat > $ODBCSYSINI/.odbc.ini <<-EOF
+#     #     [ODBC]
+#     #     Trace     = 1
+#     #     TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
+#     #     Debug     = 1
+#     #     DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
 
-    #     [ODBC Data Sources]
-    #     ClickHouse DSN (ANSI)         = ClickHouse ODBC Driver (ANSI)
-    #     ClickHouse DSN (Unicode)      = ClickHouse ODBC Driver (Unicode)
-    #     ClickHouse DSN (ANSI, RBWNAT) = ClickHouse ODBC Driver (ANSI)
+#     #     [ODBC Data Sources]
+#     #     ClickHouse DSN (ANSI)         = ClickHouse ODBC Driver (ANSI)
+#     #     ClickHouse DSN (Unicode)      = ClickHouse ODBC Driver (Unicode)
+#     #     ClickHouse DSN (ANSI, RBWNAT) = ClickHouse ODBC Driver (ANSI)
 
-    #     [ClickHouse DSN (ANSI)]
-    #     Driver        = ClickHouse ODBC Driver (ANSI)
-    #     Description   = Test DSN for ClickHouse ODBC Driver (ANSI)
-    #     Url           = http://${CLICKHOUSE_SERVER_IP}
-    #     DriverLog     = yes
-    #     DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
+#     #     [ClickHouse DSN (ANSI)]
+#     #     Driver        = ClickHouse ODBC Driver (ANSI)
+#     #     Description   = Test DSN for ClickHouse ODBC Driver (ANSI)
+#     #     Url           = http://${CLICKHOUSE_SERVER_IP}
+#     #     DriverLog     = yes
+#     #     DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
 
-    #     [ClickHouse DSN (Unicode)]
-    #     Driver        = ClickHouse ODBC Driver (Unicode)
-    #     Description   = Test DSN for ClickHouse ODBC Driver (Unicode)
-    #     Url           = http://${CLICKHOUSE_SERVER_IP}
-    #     DriverLog     = yes
-    #     DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver-w.log
+#     #     [ClickHouse DSN (Unicode)]
+#     #     Driver        = ClickHouse ODBC Driver (Unicode)
+#     #     Description   = Test DSN for ClickHouse ODBC Driver (Unicode)
+#     #     Url           = http://${CLICKHOUSE_SERVER_IP}
+#     #     DriverLog     = yes
+#     #     DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver-w.log
 
-    #     [ClickHouse DSN (ANSI, RBWNAT)]
-    #     Driver        = ClickHouse ODBC Driver (ANSI)
-    #     Description   = Test DSN for ClickHouse ODBC Driver (ANSI) that uses RowBinaryWithNamesAndTypes as data source communication default format
-    #     Url           = http://${CLICKHOUSE_SERVER_IP}/query?default_format=RowBinaryWithNamesAndTypes
-    #     DriverLog     = yes
-    #     DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
-    #     EOF
+#     #     [ClickHouse DSN (ANSI, RBWNAT)]
+#     #     Driver        = ClickHouse ODBC Driver (ANSI)
+#     #     Description   = Test DSN for ClickHouse ODBC Driver (ANSI) that uses RowBinaryWithNamesAndTypes as data source communication default format
+#     #     Url           = http://${CLICKHOUSE_SERVER_IP}/query?default_format=RowBinaryWithNamesAndTypes
+#     #     DriverLog     = yes
+#     #     DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
+#     #     EOF
 
-    #     if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
-    #         export GTEST_FILTER="-PerformanceTest.*"
-    #     fi
+#     #     if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
+#     #         export GTEST_FILTER="-PerformanceTest.*"
+#     #     fi
 
-    #     # Run all tests except those that were run in "Test - unit tests" step.
-    #     ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '.*-ut.*'
+#     #     # Run all tests except those that were run in "Test - unit tests" step.
+#     #     ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '.*-ut.*'
