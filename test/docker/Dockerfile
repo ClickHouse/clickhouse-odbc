@@ -177,7 +177,7 @@ for log_file in \${LOG_DIR}/*.log; do
     cat \${log_file} ;
 done
 
-exit -1
+exit 0
 
 EOF
 
