@@ -1,0 +1,70 @@
+name: Build and Test - Docker
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  release:
+    types:
+      - created
+
+concurrency:
+  group: linux-${{ github.head_ref }}
+  cancel-in-progress: true
+
+env:
+  CLICKHOUSE_SERVER_IMAGE: "clickhouse/clickhouse-server:21.3"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: run
+
+jobs:
+  build_and_test:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Has to be lowercase for ./test/docker/Dockerfile to work
+        odbc_provider: [unixodbc, iodbc]
+
+    runs-on: ubuntu-20.04
+
+    steps:
+
+    - name: Clone the repo
+      uses: actions/checkout@v2
+      with:
+        path: source
+        submodules: true
+
+    - name: Install dependencies - Docker
+      run: |
+        sudo apt remove -y docker docker-engine docker.io containerd runc
+        sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt update -q
+        sudo apt install docker-ce docker-ce-cli containerd.io
+
+    - name: Build docker clickhouse_odbc_tester image
+      run: |
+        docker buildx build . -f ./test/docker/Dockerfile --build-arg ODBC_PROVIDER=${{ matrix.odbc_provider }} -t clickhouse_odbc_tester:${{ matrix.odbc_provider }}
+
+    - name: Test - Run unit tests
+      run: docker run --network=host clickhouse_odbc_tester:${{ matrix.odbc_provider }} -R '.*-ut.*'
+
+    - name: Test - Start ClickHouse server in background
+      run: |
+        docker pull ${CLICKHOUSE_SERVER_IMAGE}
+        docker run -d --name clickhouse ${CLICKHOUSE_SERVER_IMAGE}
+        docker ps -a
+        docker stats -a --no-stream
+
+    - name: Test - Run integration test
+      # Run all tests except those that were run in "Test - unit tests" step.
+      run: docker run --network=host clickhouse_odbc_tester:${{ matrix.odbc_provider }} -E '.*-ut.*'
