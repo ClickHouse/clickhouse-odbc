@@ -63,7 +63,11 @@ RUN pip3 install --user \
 RUN mkdir -p ${BIN_DIR} \
     && echo $CMAKE_ODBC_PROVIDER \
     && cd ${BIN_DIR} \
-    && cmake -G Ninja -DODBC_PROVIDER=${CMAKE_ODBC_PROVIDER} -DTEST_DSN_LIST="clickhouse_localhost;clickhouse_localhost_w" /clickhouse-odbc/ \
+    && cmake \
+        -G Ninja \
+        -DODBC_PROVIDER=${CMAKE_ODBC_PROVIDER} \
+        -DTEST_DSN_LIST="ClickHouse DSN (ANSI);ClickHouse DSN (Unicode);ClickHouse DSN (ANSI, RBWNAT)" \
+        /clickhouse-odbc/ \
     && ninja
 
 RUN ln -s ${BIN_DIR}/driver/libclickhouseodbc.so /usr/local/lib/libclickhouseodbc.so \
@@ -89,31 +93,80 @@ echo ctest args: \$@
 # Configurable with
 #  - CH_SERVER_URL - url to connect to CH server
 #  - LOG_DIR - path to directory with logs
-#
-cat << BASH_EOF > ~/.odbc.ini
-[clickhouse_localhost]
-Driver=${BIN_DIR}/driver/libclickhouseodbc.so
-url=\${CH_SERVER_URL}
-Trace     = 1
-TraceFile = \${LOG_DIR}/clickhouse_localhost-trace.log
-Debug     = 1
-DebugFile = \${LOG_DIR}/clickhouse_localhost-debug.log
 
-[clickhouse_localhost_w]
-Driver=${BIN_DIR}/driver/libclickhouseodbcw.so
-url=\${CH_SERVER_URL}
+export ODBCSYSINI=~
+export ODBCINSTINI=.odbcinst.ini
+export ODBCINI=\$ODBCSYSINI/.odbc.ini
+if [[ "\${CMAKE_ODBC_PROVIDER}" == "iODBC" ]]; then
+    # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
+    export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
+fi
+
+cat > \$ODBCSYSINI/.odbcinst.ini <<-BASH_EOF
+[ODBC]
 Trace     = 1
-TraceFile = \${LOG_DIR}/clickhouse_w_localhost-trace.log
+TraceFile = \${LOG_DIR}/odbc-driver-manager-trace.log
 Debug     = 1
-DebugFile = \${LOG_DIR}/clickhouse_w_localhost-debug.log
+DebugFile = \${LOG_DIR}/odbc-driver-manager-debug.log
+
+[ODBC Drivers]
+ClickHouse ODBC Driver (ANSI)    = Installed
+ClickHouse ODBC Driver (Unicode) = Installed
+
+[ClickHouse ODBC Driver (ANSI)]
+Driver     = ${BIN_DIR}/driver/libclickhouseodbc.so
+Setup      = ${BIN_DIR}/driver/libclickhouseodbc.so
+UsageCount = 1
+
+[ClickHouse ODBC Driver (Unicode)]
+Driver     = ${BIN_DIR}/driver/libclickhouseodbcw.so
+Setup      = ${BIN_DIR}/driver/libclickhouseodbcw.so
+UsageCount = 1
+BASH_EOF
+
+cat > \$ODBCSYSINI/.odbc.ini <<-BASH_EOF
+[ODBC]
+Trace     = 1
+TraceFile = \${LOG_DIR}/odbc-driver-manager-trace.log
+Debug     = 1
+DebugFile = \${LOG_DIR}/odbc-driver-manager-debug.log
+
+[ODBC Data Sources]
+ClickHouse DSN (ANSI)         = ClickHouse ODBC Driver (ANSI)
+ClickHouse DSN (Unicode)      = ClickHouse ODBC Driver (Unicode)
+ClickHouse DSN (ANSI, RBWNAT) = ClickHouse ODBC Driver (ANSI)
+
+[ClickHouse DSN (ANSI)]
+Driver        = ClickHouse ODBC Driver (ANSI)
+Description   = Test DSN for ClickHouse ODBC Driver (ANSI)
+Url           = \${CH_SERVER_URL}
+DriverLog     = yes
+DriverLogFile = \${LOG_DIR}/clickhouse-odbc-driver.log
+
+[ClickHouse DSN (Unicode)]
+Driver        = ClickHouse ODBC Driver (Unicode)
+Description   = Test DSN for ClickHouse ODBC Driver (Unicode)
+Url           = \${CH_SERVER_URL}
+DriverLog     = yes
+DriverLogFile = \${LOG_DIR}/clickhouse-odbc-driver-w.log
+
+[ClickHouse DSN (ANSI, RBWNAT)]
+Driver        = ClickHouse ODBC Driver (ANSI)
+Description   = Test DSN for ClickHouse ODBC Driver (ANSI) that uses RowBinaryWithNamesAndTypes as data source communication default format
+Url           = \${CH_SERVER_URL}/query?default_format=RowBinaryWithNamesAndTypes
+DriverLog     = yes
+DriverLogFile = \${LOG_DIR}/clickhouse-odbc-driver.log
 BASH_EOF
 
 echo 'some ODBC info'
 odbcinst -j
 echo
 
-echo 'config:'
+echo 'config ~/.odbc.ini:'
 cat  ~/.odbc.ini
+
+echo 'config ~/.odbcinst.ini:'
+cat  ~/.odbcinst.ini
 
 echo 'starting tests:'
 ctest -V --output-on-failure \$@
