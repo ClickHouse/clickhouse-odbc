@@ -172,10 +172,11 @@ ctest -V --output-on-failure \$@
 
 echo printing out log files from "\${LOG_DIR}"
 ls -lah \${LOG_DIR}
-for log_file in \${LOG_DIR}/*.log; do
-    echo \${log_file} ;
-    cat \${log_file} ;
-done
+# shopt -s nullglob
+# for log_file in \${LOG_DIR}/*.log; do
+#     echo \${log_file} ;
+#     cat \${log_file} ;
+# done
 
 exit 0
 
