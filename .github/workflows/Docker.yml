@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         # Has to be lowercase for ./test/docker/Dockerfile to work
-        odbc_provider: [unixodbc, iodbc]
+        odbc_provider: [unixodbc]
 
     runs-on: ubuntu-20.04
 
@@ -66,5 +66,5 @@ jobs:
         docker stats -a --no-stream
 
     - name: Test - Run integration test
-      # Run all tests except those that were run in "Test - unit tests" step.
-      run: docker run --network=host clickhouse_odbc_tester:${{ matrix.odbc_provider }} -E '.*-ut.*'
+      # Run all tests except those that were run in "Test - unit tests" step, also run tests sequentially
+      run: docker run --network=host clickhouse_odbc_tester:${{ matrix.odbc_provider }} -E '.*-ut.*' -VV --debug -j 1
