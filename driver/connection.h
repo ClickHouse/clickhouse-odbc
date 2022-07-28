@@ -5,6 +5,7 @@
 #include "driver/config/config.h"
 
 #include <Poco/Net/HTTPClientSession.h>
+#include <Poco/URI.h>
 
 #include <memory>
 #include <mutex>
@@ -18,10 +19,11 @@ class Connection
 {
 private:
     using ChildType = Child<Environment, Connection>;
+    const std::string session_id;
+    std::string url;
 
 public: // Configuration fields.
     std::string dsn;
-    std::string url;
     std::string proto;
     std::string username;
     std::string password;
@@ -52,6 +54,8 @@ public:
 
     // Lookup TypeInfo for given name of type.
     const TypeInfo & getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters) const;
+
+    Poco::URI getUri() const;
 
     void connect(const std::string & connection_string);
 

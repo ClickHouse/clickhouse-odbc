@@ -80,37 +80,7 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
         if (in->fail() || !in->eof())
             connection.session->reset();
 
-    Poco::URI uri(connection.url);
-
-    if (!connection.proto.empty())
-        uri.setScheme(connection.proto);
-
-    if (!connection.server.empty())
-        uri.setHost(connection.server);
-
-    if (connection.port != 0)
-        uri.setPort(connection.port);
-
-    if (!connection.path.empty())
-        uri.setPath(connection.path);
-
-    bool database_set = false;
-    bool default_format_set = false;
-
-    for (const auto& parameter : uri.getQueryParameters()) {
-        if (Poco::UTF8::icompare(parameter.first, "default_format") == 0) {
-            default_format_set = true;
-        }
-        else if (Poco::UTF8::icompare(parameter.first, "database") == 0) {
-            database_set = true;
-        }
-    }
-
-    if (!default_format_set)
-        uri.addQueryParameter("default_format", connection.default_format);
-
-    if (!database_set)
-        uri.addQueryParameter("database", connection.database);
+    Poco::URI uri = connection.getUri();
 
     const auto param_bindings = getParamsBindingInfo(next_param_set_idx);
 
