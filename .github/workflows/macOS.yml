@@ -31,7 +31,8 @@ jobs:
       matrix:
         os: [macos-10.15]
         odbc_provider: [UnixODBC, iODBC]
-        compiler: [AppleClang, Clang, GCC]
+        # Once folly supports new clang (libcpp) add Clang to compilers:
+        compiler: [AppleClang, GCC]
         build_type: [Debug, RelWithDebInfo, Release]
         architecture: [x86_64]
         runtime_link: [dynamic-runtime]
@@ -80,9 +81,11 @@ jobs:
       if: ${{ matrix.odbc_provider == 'iODBC' }}
       run: brew install libiodbc
 
-    - name: Install dependencies - Clang
-      if: ${{ matrix.compiler == 'Clang' }}
-      run: brew install llvm
+    # Right now folly fails to compile and link against brew's clang & libcpp versions 11-14
+    # Since Clang is removed from list of compilers in matrix, this will not be executed.
+    # - name: Install dependencies - Clang
+    #   if: ${{ matrix.compiler == 'Clang' }}
+    #   run: brew install llvm
 
     - name: Install dependencies - GCC
       if: ${{ matrix.compiler == 'GCC' }}
