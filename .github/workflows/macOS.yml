@@ -29,9 +29,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-10.15]
+        os: [macos-11]
         odbc_provider: [UnixODBC, iODBC]
-        compiler: [AppleClang, Clang, GCC]
+        # Once folly supports new clang (libcpp) add Clang to compilers:
+        compiler: [AppleClang, GCC]
         build_type: [Debug, RelWithDebInfo, Release]
         architecture: [x86_64]
         runtime_link: [dynamic-runtime]
@@ -80,18 +81,22 @@ jobs:
       if: ${{ matrix.odbc_provider == 'iODBC' }}
       run: brew install libiodbc
 
-    - name: Install dependencies - Clang
-      if: ${{ matrix.compiler == 'Clang' }}
-      run: brew install llvm
+    # Right now folly fails to compile and link against brew's clang & libcpp versions 11-14
+    # Since Clang is removed from list of compilers in matrix, this will not be executed.
+    # - name: Install dependencies - Clang
+    #   if: ${{ matrix.compiler == 'Clang' }}
+    #   run: brew install llvm
 
     - name: Install dependencies - GCC
       if: ${{ matrix.compiler == 'GCC' }}
-      run: brew install gcc gdb
+      run: |
+        brew install gcc gdb
+        export COMPILER_PATH=$(brew prefix gcc)/bin
 
     - name: Configure
       run: >
-        CC=${{ fromJSON('{"AppleClang": "cc", "Clang": "/usr/local/opt/llvm/bin/clang", "GCC": "/usr/local/opt/gcc/bin/gcc-11"}')[matrix.compiler] }}
-        CXX=${{ fromJSON('{"AppleClang": "c++", "Clang": "/usr/local/opt/llvm/bin/clang++", "GCC": "/usr/local/opt/gcc/bin/g++-11"}')[matrix.compiler] }}
+        CC=${{ fromJSON('{"AppleClang": "cc", "Clang": "/usr/local/opt/llvm/bin/clang", "GCC": "$COMPILER_PATH/gcc-11"}')[matrix.compiler] }}
+        CXX=${{ fromJSON('{"AppleClang": "c++", "Clang": "/usr/local/opt/llvm/bin/clang++", "GCC": "$COMPILER_PATH/g++-11"}')[matrix.compiler] }}
         cmake -S ${{ github.workspace }}/source -B ${{ github.workspace }}/build
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DODBC_PROVIDER=${{ matrix.odbc_provider }}
