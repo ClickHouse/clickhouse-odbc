@@ -29,10 +29,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04]
+        os: [ubuntu-20.04]
         odbc_provider: [UnixODBC, iODBC]
         compiler: [Clang, GCC]
-        build_type: [Debug, RelWithDebInfo, Release]
+        build_type: [Debug, Release]
         architecture: [x86_64]
         runtime_link: [static-runtime, dynamic-runtime]
         third_parties: [bundled-third-parties, system-third-parties]

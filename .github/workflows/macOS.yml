@@ -33,7 +33,7 @@ jobs:
         odbc_provider: [UnixODBC, iODBC]
         # Once folly supports new clang (libcpp) add Clang to compilers:
         compiler: [AppleClang, GCC]
-        build_type: [Debug, RelWithDebInfo, Release]
+        build_type: [Debug, Release]
         architecture: [x86_64]
         runtime_link: [dynamic-runtime]
         third_parties: [bundled-third-parties]

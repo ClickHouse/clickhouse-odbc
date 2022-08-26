@@ -32,7 +32,7 @@ jobs:
         os: [windows-2019]
         odbc_provider: [MDAC]
         compiler: [MSVC]
-        build_type: [Debug, RelWithDebInfo, Release]
+        build_type: [Debug, Release]
         architecture: [x86, x64]
         runtime_link: [dynamic-runtime]
         third_parties: [bundled-third-parties]
