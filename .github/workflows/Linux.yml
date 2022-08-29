@@ -126,7 +126,7 @@ jobs:
       #if:  ${{ matrix.os == 'ubuntu-18.04' && matrix.compiler == 'GCC' && matrix.odbc_provider == 'UnixODBC' && matrix.build_type == 'Release' && matrix.runtime_link == 'dynamic-runtime' && matrix.third_parties == 'bundled-third-parties' }}
       uses: actions/upload-artifact@v3
       with:
-          name: clickhouse-odbc-${{ matrix.os }}-${{ matrix-compiler }}-${{ matrix.odbc_provider }}-${{ matrix.build_type }}-${{ matrix.runtime_link }}-${{ matrix.third_parties }}
+          name: clickhouse-odbc-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.odbc_provider }}-${{ matrix.build_type }}-${{ matrix.runtime_link }}-${{ matrix.third_parties }}
           path: ${{ github.workspace }}/build/clickhouse-odbc-*
 
     - name: Test - Run unit tests
