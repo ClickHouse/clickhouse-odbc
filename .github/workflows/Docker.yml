@@ -62,7 +62,7 @@ jobs:
 
     - name: Create packages
       run: |
-        docker run -it --entrypoint /bin/bash -v $(realpath ${{ github.workspace }}/packages):/packages clickhouse_odbc_tester:${{ matrix.odbc_provider }}-${{ matrix.base_os }} -c 'cd clickhouse-odbc-build && ls -lah && ninja package ||: ; mv clickhouse-odbc-* /packages && ls -lah /packages'
+        docker run --entrypoint /bin/bash -v $(realpath ${{ github.workspace }}/packages):/packages clickhouse_odbc_tester:${{ matrix.odbc_provider }}-${{ matrix.base_os }} -c 'cd clickhouse-odbc-build && ls -lah && ninja package ||: ; mv clickhouse-odbc-* /packages && ls -lah /packages'
 
     - name: Upload the artifacts
       uses: actions/upload-artifact@v3
