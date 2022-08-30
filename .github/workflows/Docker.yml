@@ -29,7 +29,12 @@ jobs:
       fail-fast: false
       matrix:
         # Has to be lowercase for ./test/docker/Dockerfile to work
-        odbc_provider: [unixodbc]
+        odbc_provider:
+          - unixodbc
+#          - iodbc
+        base_os:
+          - centos
+#          - ubuntu
 
     runs-on: ubuntu-20.04
 
@@ -53,18 +58,28 @@ jobs:
     - name: Build docker clickhouse_odbc_tester image
       run: |
         ls -lah .
-        docker buildx build . -f ./test/docker/Dockerfile --build-arg ODBC_PROVIDER=${{ matrix.odbc_provider }} -t clickhouse_odbc_tester:${{ matrix.odbc_provider }}
+        docker buildx build . -f ./test/docker/Dockerfile --build-arg ODBC_PROVIDER=${{ matrix.odbc_provider }} --build-arg BASE_OS=${{ matrix.base_os }} -t clickhouse_odbc_tester:${{ matrix.odbc_provider }}-${{ matrix.base_os }}
 
-    - name: Test - Run unit tests
-      run: docker run --network=host clickhouse_odbc_tester:${{ matrix.odbc_provider }} -R '.*-ut.*'
-
-    - name: Test - Start ClickHouse server in background
+    - name: Create packages
       run: |
-        docker pull ${CLICKHOUSE_SERVER_IMAGE}
-        docker run -d --name clickhouse ${CLICKHOUSE_SERVER_IMAGE}
-        docker ps -a
-        docker stats -a --no-stream
+        docker run -it --entrypoint /bin/bash -v $(realpath ${{ github.workspace }}/packages):/packages clickhouse_odbc_tester:${{ matrix.odbc_provider }}-${{ matrix.base_os }} -c 'cd clickhouse-odbc-build && ls -lah && ninja package ||: ; mv clickhouse-odbc-* /packages && ls -lah /packages'
 
-    - name: Test - Run integration test
-      # Run all tests except those that were run in "Test - unit tests" step, also run tests sequentially
-      run: docker run --network=host clickhouse_odbc_tester:${{ matrix.odbc_provider }} -E '.*-ut.*' -VV --debug -j 1
+    - name: Upload the artifacts
+      uses: actions/upload-artifact@v3
+      with:
+          name: clickhouse-odbc-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.odbc_provider }}-${{ matrix.build_type }}-${{ matrix.runtime_link }}-${{ matrix.third_parties }}
+          path: ${{ github.workspace }}/packages/*
+
+    # - name: Test - Run unit tests
+    #   run: docker run --network=host clickhouse_odbc_tester:${{ matrix.odbc_provider }} -R '.*-ut.*'
+
+    # - name: Test - Start ClickHouse server in background
+    #   run: |
+    #     docker pull ${CLICKHOUSE_SERVER_IMAGE}
+    #     docker run -d --name clickhouse ${CLICKHOUSE_SERVER_IMAGE}
+    #     docker ps -a
+    #     docker stats -a --no-stream
+
+    # - name: Test - Run integration test
+    #   # Run all tests except those that were run in "Test - unit tests" step, also run tests sequentially
+    #   run: docker run --network=host clickhouse_odbc_tester:${{ matrix.odbc_provider }} -E '.*-ut.*' -VV --debug -j 1
