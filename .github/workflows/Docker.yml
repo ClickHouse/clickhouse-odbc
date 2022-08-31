@@ -67,8 +67,8 @@ jobs:
     - name: Upload the artifacts
       uses: actions/upload-artifact@v3
       with:
-          name: clickhouse-odbc-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.odbc_provider }}-${{ matrix.build_type }}-${{ matrix.runtime_link }}-${{ matrix.third_parties }}
-          path: ${{ github.workspace }}/packages/*
+          name: clickhouse-odbc-${{ matrix.base_os }}-${{ matrix.odbc_provider }}
+          path: ${{ github.workspace }}/packages/*tar.gz*
 
     # - name: Test - Run unit tests
     #   run: docker run --network=host clickhouse_odbc_tester:${{ matrix.odbc_provider }} -R '.*-ut.*'
