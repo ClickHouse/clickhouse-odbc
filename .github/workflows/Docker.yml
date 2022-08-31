@@ -1,0 +1,85 @@
+name: Build and Test - Docker
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  release:
+    types:
+      - created
+
+concurrency:
+  group: docker-${{ github.head_ref }}
+  cancel-in-progress: true
+
+env:
+  CLICKHOUSE_SERVER_IMAGE: "clickhouse/clickhouse-server:21.3"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build_and_test:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Has to be lowercase for ./test/docker/Dockerfile to work
+        odbc_provider:
+          - unixodbc
+#          - iodbc
+        base_os:
+          - centos
+#          - ubuntu
+
+    runs-on: ubuntu-20.04
+
+    steps:
+
+    - name: Clone the repo
+      uses: actions/checkout@v2
+      with:
+        path: .
+        submodules: true
+
+    - name: Install dependencies - Docker
+      run: |
+        sudo apt remove -y docker docker-engine docker.io containerd runc
+        sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt update -q
+        sudo apt install docker-ce docker-ce-cli containerd.io
+
+    - name: Build docker clickhouse_odbc_tester image
+      run: |
+        ls -lah .
+        docker buildx build . -f ./test/docker/Dockerfile --build-arg ODBC_PROVIDER=${{ matrix.odbc_provider }} --build-arg BASE_OS=${{ matrix.base_os }} -t clickhouse_odbc_tester:${{ matrix.odbc_provider }}-${{ matrix.base_os }}
+
+    - name: Create packages
+      run: |
+        docker run --entrypoint /bin/bash -v $(realpath ${{ github.workspace }}/packages):/packages clickhouse_odbc_tester:${{ matrix.odbc_provider }}-${{ matrix.base_os }} -c 'cd clickhouse-odbc-build && ls -lah && ninja package ||: ; mv clickhouse-odbc-* /packages && ls -lah /packages'
+
+    - name: Upload the artifacts
+      uses: actions/upload-artifact@v3
+      with:
+          name: clickhouse-odbc-${{ matrix.base_os }}-${{ matrix.odbc_provider }}
+          path: ${{ github.workspace }}/packages/*tar.gz*
+
+    # - name: Test - Run unit tests
+    #   run: docker run --network=host clickhouse_odbc_tester:${{ matrix.odbc_provider }} -R '.*-ut.*'
+
+    # - name: Test - Start ClickHouse server in background
+    #   run: |
+    #     docker pull ${CLICKHOUSE_SERVER_IMAGE}
+    #     docker run -d --name clickhouse ${CLICKHOUSE_SERVER_IMAGE}
+    #     docker ps -a
+    #     docker stats -a --no-stream
+
+    # - name: Test - Run integration test
+    #   # Run all tests except those that were run in "Test - unit tests" step, also run tests sequentially
+    #   run: docker run --network=host clickhouse_odbc_tester:${{ matrix.odbc_provider }} -E '.*-ut.*' -VV --debug -j 1
