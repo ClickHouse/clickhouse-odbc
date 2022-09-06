@@ -64,11 +64,26 @@ jobs:
       run: |
         docker run --entrypoint /bin/bash -v $(realpath ${{ github.workspace }}/packages):/packages clickhouse_odbc_tester:${{ matrix.odbc_provider }}-${{ matrix.base_os }} -c 'cd clickhouse-odbc-build && ls -lah && ninja package ||: ; mv clickhouse-odbc-* /packages && ls -lah /packages'
 
+    - name: List artifacts
+      run: |
+        echo REF: ${{ github.ref }}
+        ls -lahR ${{ github.workspace }}/packages/
+
     - name: Upload the artifacts
       uses: actions/upload-artifact@v3
       with:
           name: clickhouse-odbc-${{ matrix.base_os }}-${{ matrix.odbc_provider }}
           path: ${{ github.workspace }}/packages/*tar.gz*
+
+    - name: Upload artifacts as release assets
+      if: ${{ github.event_name == 'release' }}
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{ github.workspace }}/packages/clickhouse-odbc-*
+        overwrite: true
+        tag: ${{ github.ref }}
+        file_glob: true
 
     # - name: Test - Run unit tests
     #   run: docker run --network=host clickhouse_odbc_tester:${{ matrix.odbc_provider }} -R '.*-ut.*'
