@@ -90,7 +90,7 @@ jobs:
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target package
 
     - name: Upload the artifacts
-      if:  ${{ matrix.os == 'windows-2016' && matrix.build_type == 'Release' }}
+      if:  ${{ matrix.os == 'windows-2019' && matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v3
       with:
           name: clickhouse-odbc-windows
