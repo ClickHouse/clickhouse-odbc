@@ -20,7 +20,8 @@ jobs:
     steps:
     - name: Set env
       run: |
-      ARTIFACTS_PATH=${{runner.temp}}/artifacts
+        ARTIFACTS_PATH=${{runner.temp}}/artifacts
+
     - name: Get artifacts
       uses: actions/download-artifact@v3
       with:
