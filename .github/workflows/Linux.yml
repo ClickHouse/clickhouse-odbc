@@ -30,15 +30,22 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04]
-        odbc_provider: [UnixODBC, iODBC]
-        compiler: [Clang, GCC]
-        build_type: [Debug, Release]
+        odbc_provider:
+          - UnixODBC
+          # - iODBC
+        compiler:
+          # - Clang
+          - GCC
+        build_type:
+          - Debug
+          - Release
         architecture: [x86_64]
-        runtime_link: [static-runtime, dynamic-runtime]
-        third_parties: [bundled-third-parties, system-third-parties]
-        exclude:
-          - os: ubuntu-18.04
-            compiler: Clang
+        runtime_link:
+          - static-runtime
+          # - dynamic-runtime
+        third_parties:
+          - bundled-third-parties
+          # - system-third-parties
 
     runs-on: ${{ matrix.os }}
 

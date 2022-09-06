@@ -30,10 +30,17 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-11]
-        odbc_provider: [UnixODBC, iODBC]
-        # Once folly supports new clang (libcpp) add Clang to compilers:
-        compiler: [AppleClang, GCC]
-        build_type: [Debug, Release]
+        odbc_provider: 
+#          - UnixODBC
+          - iODBC
+        compiler:
+          - AppleClang
+          # - GCC
+       # Once folly supports new clang (libcpp) add Clang to compilers:
+#          - Clang
+        build_type:
+          # - Debug
+          - Release
         architecture: [x86_64]
         runtime_link: [dynamic-runtime]
         third_parties: [bundled-third-parties]
