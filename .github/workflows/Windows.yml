@@ -92,9 +92,10 @@ jobs:
           name: clickhouse-odbc-windows
           path: ${{ github.workspace }}/build/clickhouse-odbc-*
 
-    - name: Test - Run unit tests
-      working-directory: ${{ github.workspace }}/build
-      run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
+    # Temporarily disable tests to speed up debugging of depending workflow
+    # - name: Test - Run unit tests
+    #   working-directory: ${{ github.workspace }}/build
+    #   run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
 
     # - name: Test - Start ClickHouse server in background
     #   if: ${{ matrix.os != 'windows-2016' }}

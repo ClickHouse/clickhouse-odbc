@@ -129,89 +129,90 @@ jobs:
           name: clickhouse-odbc-linux
           path: ${{ github.workspace }}/build/clickhouse-odbc-*
 
-    - name: Test - Run unit tests
-      working-directory: ${{ github.workspace }}/build
-      run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
+    # Temporarily disable tests to speed up debugging of depending workflow
+    # - name: Test - Run unit tests
+    #   working-directory: ${{ github.workspace }}/build
+    #   run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
 
-    - name: Test - Start ClickHouse server in background
-      run: |
-        docker pull ${CLICKHOUSE_SERVER_IMAGE}
-        docker run -d --name clickhouse ${CLICKHOUSE_SERVER_IMAGE}
-        docker ps -a
-        docker stats -a --no-stream
+    # - name: Test - Start ClickHouse server in background
+    #   run: |
+    #     docker pull ${CLICKHOUSE_SERVER_IMAGE}
+    #     docker run -d --name clickhouse ${CLICKHOUSE_SERVER_IMAGE}
+    #     docker ps -a
+    #     docker stats -a --no-stream
 
-    - name: Test - Run integration tests
-      working-directory: ${{ github.workspace }}/build
-      run: |
-        export CLICKHOUSE_SERVER_IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' clickhouse)
+    # - name: Test - Run integration tests
+    #   working-directory: ${{ github.workspace }}/build
+    #   run: |
+    #     export CLICKHOUSE_SERVER_IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' clickhouse)
 
-        export ODBCSYSINI=${{ github.workspace }}/run
-        export ODBCINSTINI=.odbcinst.ini
-        export ODBCINI=$ODBCSYSINI/.odbc.ini
-        if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
-            # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
-            export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
-        fi
+    #     export ODBCSYSINI=${{ github.workspace }}/run
+    #     export ODBCINSTINI=.odbcinst.ini
+    #     export ODBCINI=$ODBCSYSINI/.odbc.ini
+    #     if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
+    #         # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
+    #         export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
+    #     fi
 
-        cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
-        [ODBC]
-        Trace     = 1
-        TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
-        Debug     = 1
-        DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
+    #     cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
+    #     [ODBC]
+    #     Trace     = 1
+    #     TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
+    #     Debug     = 1
+    #     DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
 
-        [ODBC Drivers]
-        ClickHouse ODBC Driver (ANSI)    = Installed
-        ClickHouse ODBC Driver (Unicode) = Installed
+    #     [ODBC Drivers]
+    #     ClickHouse ODBC Driver (ANSI)    = Installed
+    #     ClickHouse ODBC Driver (Unicode) = Installed
 
-        [ClickHouse ODBC Driver (ANSI)]
-        Driver     = ${{ github.workspace }}/build/driver/libclickhouseodbc.so
-        Setup      = ${{ github.workspace }}/build/driver/libclickhouseodbc.so
-        UsageCount = 1
+    #     [ClickHouse ODBC Driver (ANSI)]
+    #     Driver     = ${{ github.workspace }}/build/driver/libclickhouseodbc.so
+    #     Setup      = ${{ github.workspace }}/build/driver/libclickhouseodbc.so
+    #     UsageCount = 1
 
-        [ClickHouse ODBC Driver (Unicode)]
-        Driver     = ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
-        Setup      = ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
-        UsageCount = 1
-        EOF
+    #     [ClickHouse ODBC Driver (Unicode)]
+    #     Driver     = ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
+    #     Setup      = ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
+    #     UsageCount = 1
+    #     EOF
 
-        cat > $ODBCSYSINI/.odbc.ini <<-EOF
-        [ODBC]
-        Trace     = 1
-        TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
-        Debug     = 1
-        DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
+    #     cat > $ODBCSYSINI/.odbc.ini <<-EOF
+    #     [ODBC]
+    #     Trace     = 1
+    #     TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
+    #     Debug     = 1
+    #     DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
 
-        [ODBC Data Sources]
-        ClickHouse DSN (ANSI)         = ClickHouse ODBC Driver (ANSI)
-        ClickHouse DSN (Unicode)      = ClickHouse ODBC Driver (Unicode)
-        ClickHouse DSN (ANSI, RBWNAT) = ClickHouse ODBC Driver (ANSI)
+    #     [ODBC Data Sources]
+    #     ClickHouse DSN (ANSI)         = ClickHouse ODBC Driver (ANSI)
+    #     ClickHouse DSN (Unicode)      = ClickHouse ODBC Driver (Unicode)
+    #     ClickHouse DSN (ANSI, RBWNAT) = ClickHouse ODBC Driver (ANSI)
 
-        [ClickHouse DSN (ANSI)]
-        Driver        = ClickHouse ODBC Driver (ANSI)
-        Description   = Test DSN for ClickHouse ODBC Driver (ANSI)
-        Url           = http://${CLICKHOUSE_SERVER_IP}
-        DriverLog     = yes
-        DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
+    #     [ClickHouse DSN (ANSI)]
+    #     Driver        = ClickHouse ODBC Driver (ANSI)
+    #     Description   = Test DSN for ClickHouse ODBC Driver (ANSI)
+    #     Url           = http://${CLICKHOUSE_SERVER_IP}
+    #     DriverLog     = yes
+    #     DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
 
-        [ClickHouse DSN (Unicode)]
-        Driver        = ClickHouse ODBC Driver (Unicode)
-        Description   = Test DSN for ClickHouse ODBC Driver (Unicode)
-        Url           = http://${CLICKHOUSE_SERVER_IP}
-        DriverLog     = yes
-        DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver-w.log
+    #     [ClickHouse DSN (Unicode)]
+    #     Driver        = ClickHouse ODBC Driver (Unicode)
+    #     Description   = Test DSN for ClickHouse ODBC Driver (Unicode)
+    #     Url           = http://${CLICKHOUSE_SERVER_IP}
+    #     DriverLog     = yes
+    #     DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver-w.log
 
-        [ClickHouse DSN (ANSI, RBWNAT)]
-        Driver        = ClickHouse ODBC Driver (ANSI)
-        Description   = Test DSN for ClickHouse ODBC Driver (ANSI) that uses RowBinaryWithNamesAndTypes as data source communication default format
-        Url           = http://${CLICKHOUSE_SERVER_IP}/query?default_format=RowBinaryWithNamesAndTypes
-        DriverLog     = yes
-        DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
-        EOF
+    #     [ClickHouse DSN (ANSI, RBWNAT)]
+    #     Driver        = ClickHouse ODBC Driver (ANSI)
+    #     Description   = Test DSN for ClickHouse ODBC Driver (ANSI) that uses RowBinaryWithNamesAndTypes as data source communication default format
+    #     Url           = http://${CLICKHOUSE_SERVER_IP}/query?default_format=RowBinaryWithNamesAndTypes
+    #     DriverLog     = yes
+    #     DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
+    #     EOF
 
-        if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
-            export GTEST_FILTER="-PerformanceTest.*"
-        fi
+    #     if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
+    #         export GTEST_FILTER="-PerformanceTest.*"
+    #     fi
 
-        # Run all tests except those that were run in "Test - unit tests" step.
-        ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '.*-ut.*'
+    #     # Run all tests except those that were run in "Test - unit tests" step.
+    #     ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '.*-ut.*'
