@@ -69,6 +69,16 @@ jobs:
           name: clickhouse-odbc-${{ matrix.base_os }}-${{ matrix.odbc_provider }}
           path: ${{ github.workspace }}/packages/*tar.gz*
 
+    - name: Upload artifacts as release assets
+      #if: github.event_name == 'release'
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{ github.workspace }}/packages/clickhouse-odbc-*
+        overwrite: true
+        tag: ${{ github.ref }}
+        file_glob: true
+
     # - name: Test - Run unit tests
     #   run: docker run --network=host clickhouse_odbc_tester:${{ matrix.odbc_provider }} -R '.*-ut.*'
 
