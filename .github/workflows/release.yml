@@ -16,6 +16,9 @@ jobs:
   release:
     runs-on: ubuntu-20.04
     steps:
+    - name: Debug
+      run: echo ${{ github.ref }}
+
     - name: Set env
       run: |
         ARTIFACTS_PATH=${{runner.temp}}/artifacts
