@@ -17,7 +17,11 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - name: Debug
-      run: echo ${{ github.ref }}
+      run: |
+        echo ${{ github.ref }}
+        echo event: ${{ toJSON(github.event) }}
+        echo env:   ${{ toJSON(env) }}
+
 
     - name: Set env
       run: |
