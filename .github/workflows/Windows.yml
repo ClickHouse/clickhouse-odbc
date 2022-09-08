@@ -89,6 +89,11 @@ jobs:
     - name: Package
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target package
 
+    - name: List artifacts
+      run: |
+        echo REF: ${{ github.ref }}
+        ls -lahR ${{ github.workspace }}/build
+
     - name: Upload the artifacts
       if:  ${{ matrix.os == 'windows-2019' && matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v3
@@ -98,6 +103,7 @@ jobs:
 
     - name: Upload artifacts as release assets
       #if: github.event_name == 'release'
+      if: ${{ matrix.build_type == 'Release' }}
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
