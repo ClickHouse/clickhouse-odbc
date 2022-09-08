@@ -92,7 +92,7 @@ jobs:
     - name: List artifacts
       run: |
         echo REF: ${{ github.ref }}
-        ls -lahR ${{ github.workspace }}/build
+        dir /q ${{ github.workspace }}/build
 
     - name: Upload the artifacts
       if:  ${{ matrix.os == 'windows-2019' && matrix.build_type == 'Release' }}
