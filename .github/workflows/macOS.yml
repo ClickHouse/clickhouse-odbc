@@ -125,15 +125,14 @@ jobs:
         ls -lahR ${{ github.workspace }}/build
 
     - name: Upload the artifacts
-      if:  ${{ matrix.compiler == 'AppleClang' && matrix.odbc_provider == 'iODBC' && matrix.build_type == 'Release' }}
+      # if:  ${{ matrix.compiler == 'AppleClang' && matrix.odbc_provider == 'iODBC' && matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v3
       with:
-          name: clickhouse-odbc-macos
+          name: clickhouse-odbc-macos-${{ matrix.compiler }}-${{ matrix.odbc_provider }}-${{ matrix.build_type }}
           path: ${{ github.workspace }}/build/clickhouse-odbc-*
 
     - name: Upload artifacts as release assets
-      #if: github.event_name == 'release'
-      if: ${{ matrix.build_type == 'Release' }}
+      if: ${{ github.event_name == 'release' && matrix.build_type == 'Release' }}
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}

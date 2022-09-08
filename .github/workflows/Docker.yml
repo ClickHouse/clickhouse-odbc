@@ -75,7 +75,7 @@ jobs:
           path: ${{ github.workspace }}/packages/*tar.gz*
 
     - name: Upload artifacts as release assets
-      #if: github.event_name == 'release'
+      if: ${{ github.event_name == 'release' }}
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
