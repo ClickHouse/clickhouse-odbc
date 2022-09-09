@@ -112,11 +112,16 @@ jobs:
     - name: Package
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target package
 
+    - name: List artifacts
+      run: |
+        echo REF: ${{ github.ref }}
+        ls -lahR ${{ github.workspace }}/build
+
     - name: Upload the artifacts
-      if:  ${{ matrix.compiler == 'AppleClang' && matrix.odbc_provider == 'iODBC' && matrix.build_type == 'Release' }}
+      # if:  ${{ matrix.compiler == 'AppleClang' && matrix.odbc_provider == 'iODBC' && matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v3
       with:
-          name: clickhouse-odbc-macos
+          name: clickhouse-odbc-macos-${{ matrix.compiler }}-${{ matrix.odbc_provider }}-${{ matrix.build_type }}
           path: ${{ github.workspace }}/build/clickhouse-odbc-*
 
     - name: Test - Run unit tests
@@ -205,3 +210,13 @@ jobs:
 
     #     # Run all tests except those that were run in "Test - unit tests" step.
     #     ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '.*-ut.*'
+
+    - name: Upload artifacts as release assets
+      if: ${{ github.event_name == 'release' && matrix.build_type == 'Release' }}
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{ github.workspace }}/build/clickhouse-odbc-*
+        overwrite: true
+        tag: ${{ github.ref }}
+        file_glob: true
