@@ -45,7 +45,7 @@ Pre-built binary packages of the release versions of the driver available for th
 
 - [Releases](https://github.com/ClickHouse/clickhouse-odbc/releases)
 
-The ODBC driver is mainly tested against ClickHouse server version `20.3`. Older versions of ClickHouse server as well as newer ones (with greater success) should work too. Possible complications with older version may include handling `Null` values and `Nullable` types, alternative wire protocol support, timezone handling during date/time conversions, etc.
+The ODBC driver is mainly tested against ClickHouse server version `21.3`. Older versions of ClickHouse server as well as newer ones (with greater success) should work too. Possible complications with older version may include handling `Null` values and `Nullable` types, alternative wire protocol support, timezone handling during date/time conversions, etc.
 
 Note, that since ODBC drivers are not used directly by a user, but rather accessed through applications, which in their turn access the driver through ODBC driver manager, user have to install the driver for the **same architecture** (32- or 64-bit) as the application that is going to access the driver. Moreover, both the driver and the application must be compiled for (and actually use during run-time) the **same ODBC driver manager implementation** (we call them "ODBC providers" here). There are three supported ODBC providers:
 
