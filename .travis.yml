@@ -31,7 +31,7 @@ jobs:
         - PACKAGING=yes
         - TESTING=yes
         - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:20.3"
+        - CLICKHOUSE_SERVER_IMAGE="clickhouse/clickhouse-server:23.1"
       services:
         - docker
       addons:
@@ -60,7 +60,7 @@ jobs:
         - PACKAGING=yes
         - TESTING=yes
         - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:20.3"
+        - CLICKHOUSE_SERVER_IMAGE="clickhouse/clickhouse-server:23.1"
       services:
         - docker
       addons:
@@ -89,7 +89,7 @@ jobs:
         - PACKAGING=yes
         - TESTING=yes
         - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:20.3"
+        - CLICKHOUSE_SERVER_IMAGE="clickhouse/clickhouse-server:23.1"
       services:
         - docker
       addons:
@@ -118,7 +118,7 @@ jobs:
         - PACKAGING=yes
         - TESTING=yes
         - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:20.3"
+        - CLICKHOUSE_SERVER_IMAGE="clickhouse/clickhouse-server:23.1"
       services:
         - docker
       addons:
@@ -151,7 +151,7 @@ jobs:
         - PACKAGING=yes
         - TESTING=yes
         - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:20.3"
+        - CLICKHOUSE_SERVER_IMAGE="clickhouse/clickhouse-server:23.1"
       services:
         - docker
       addons:
@@ -179,7 +179,7 @@ jobs:
         - PACKAGING=yes
         - TESTING=yes
         - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:20.3"
+        - CLICKHOUSE_SERVER_IMAGE="clickhouse/clickhouse-server:23.1"
       services:
         - docker
       addons:
@@ -208,7 +208,7 @@ jobs:
         - PACKAGING=yes
         - TESTING=yes
         - STANDALONE_TESTS_ONLY=no
-        - CLICKHOUSE_SERVER_IMAGE="yandex/clickhouse-server:20.3"
+        - CLICKHOUSE_SERVER_IMAGE="clickhouse/clickhouse-server:23.1"
       services:
         - docker
       addons:
