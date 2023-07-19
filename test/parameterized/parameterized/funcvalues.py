@@ -22,7 +22,7 @@ def isNull(self, connection):
             query = "SELECT isNull(?)"
             with When(f"I run '{query}' with {repr(value)} parameter"):
                 rows = connection.query(query, [value])
-                expected = "[(0, )]"
+                expected = "[(0,)]"
                 with Then(f"the result is {expected}", flags=TE):
                     assert repr(rows) == expected, error("result did not match")
 
@@ -34,21 +34,21 @@ def Null(self, connection):
         query = "SELECT isNull(?)"
         with When(f"I run '{query}' with [None] parameter", flags=TE):
             rows = connection.query(query, [None])
-            expected = "[(1, )]"
+            expected = "[(1,)]"
             with Then(f"the result is {expected}", flags=TE):
                 assert repr(rows) == expected, error("result did not match")
 
         query = "SELECT arrayReduce('count', [?, ?])"
         with When(f"I run '{query}' with [None, None] parameter", flags=TE):
             rows = connection.query(query, [None, None])
-            expected = "[(0, )]"
+            expected = "[(0,)]"
             with Then(f"the result is {expected}", flags=TE):
                 assert repr(rows) == expected, error("result did not match")
 
         query = "SELECT arrayReduce('count', [1, ?, ?])"
         with When(f"I run '{query}' with [1, None, None])", flags=TE):
             rows = connection.query(query, [1, None, None])
-            expected = "[(1, )]"
+            expected = "[(1,)]"
             with Then(f"the result is {expected}", flags=TE):
                 assert repr(rows) == expected, error("result did not match")
 
