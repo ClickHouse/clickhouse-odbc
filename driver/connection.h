@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <mutex>
+#include <string_view>
 
 class DescriptorRecord;
 class Descriptor;

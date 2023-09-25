@@ -198,7 +198,7 @@ inline SQLRETURN fillOutputBuffer(
 // Extra string copy happens here for wide char strings, and strings that require encoding change.
 template <typename CharType, typename LengthType1, typename LengthType2, typename ConversionContext>
 inline SQLRETURN fillOutputString(
-    const std::string & in_value,
+    const std::string_view & in_value,
     void * out_value,
     LengthType1 out_value_max_length,
     LengthType2 * out_value_length,
@@ -253,7 +253,7 @@ inline SQLRETURN fillOutputString(
 
 template <typename CharType, typename LengthType1, typename LengthType2, typename ConversionContext = DefaultConversionContext>
 inline SQLRETURN fillOutputString(
-    const std::string & in_value,
+    const std::string_view & in_value,
     void * out_value,
     LengthType1 out_value_max_length,
     LengthType2 * out_value_length,

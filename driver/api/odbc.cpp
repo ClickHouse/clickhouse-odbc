@@ -134,7 +134,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
             CASE_STRING(SQL_DM_VER, "03.80.0000.0000")
             CASE_STRING(SQL_DRIVER_NAME, DRIVER_FILE_NAME)
             CASE_STRING(SQL_DBMS_NAME, "ClickHouse")
-            CASE_STRING(SQL_DBMS_VER, "01.00.0000")
+            CASE_STRING(SQL_DBMS_VER, connection.getServerVersion())
             CASE_STRING(SQL_SERVER_NAME, connection.server)
             CASE_STRING(SQL_DATA_SOURCE_NAME, connection.dsn)
             CASE_STRING(SQL_CATALOG_TERM, "catalog")
