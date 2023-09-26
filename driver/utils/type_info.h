@@ -198,7 +198,7 @@ inline SQLRETURN fillOutputBuffer(
 // Extra string copy happens here for wide char strings, and strings that require encoding change.
 template <typename CharType, typename LengthType1, typename LengthType2, typename ConversionContext>
 inline SQLRETURN fillOutputString(
-    const std::string_view & in_value,
+    std::string_view in_value,
     void * out_value,
     LengthType1 out_value_max_length,
     LengthType2 * out_value_length,
@@ -253,7 +253,7 @@ inline SQLRETURN fillOutputString(
 
 template <typename CharType, typename LengthType1, typename LengthType2, typename ConversionContext = DefaultConversionContext>
 inline SQLRETURN fillOutputString(
-    const std::string_view & in_value,
+    std::string_view in_value,
     void * out_value,
     LengthType1 out_value_max_length,
     LengthType2 * out_value_length,
@@ -1933,6 +1933,9 @@ namespace value_manip {
                     *dest.indicator = 0; // (Null) indicator pointer of the binding. Value is not null here so we store 0 in it.
 
                 if constexpr (std::is_same_v<SourceType, std::string>) {
+                    return fillOutputString<SQLCHAR>(src, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
+                }
+                if constexpr (std::is_same_v<SourceType, std::string_view>) {
                     return fillOutputString<SQLCHAR>(src, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
                 }
                 else if constexpr (is_string_data_source_type_v<SourceType>) {
