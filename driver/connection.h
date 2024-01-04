@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <mutex>
+#include <string_view>
 
 class DescriptorRecord;
 class Descriptor;
@@ -65,6 +66,9 @@ public:
     // Return a crafted User-Agent string.
     std::string buildUserAgentString() const;
 
+    // Query server for a version
+    std::string_view getServerVersion();
+
     // Reset the descriptor and initialize it with default attributes.
     void initAsAD(Descriptor & desc, bool user = false); // as Application Descriptor
     void initAsID(Descriptor & desc); // as Implementation Descriptor
@@ -99,6 +103,7 @@ private:
 private:
     std::unordered_map<SQLHANDLE, std::shared_ptr<Descriptor>> descriptors;
     std::unordered_map<SQLHANDLE, std::shared_ptr<Statement>> statements;
+    mutable std::shared_ptr<std::string> server_version;
 };
 
 template <> Descriptor& Connection::allocateChild<Descriptor>();

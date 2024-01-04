@@ -1,3 +1,4 @@
+#include "driver/result_set.h"
 #include "driver/utils/utils.h"
 #include "driver/config/ini_defines.h"
 #include "driver/connection.h"
@@ -8,6 +9,9 @@
 #include <Poco/Net/HTTPClientSession.h>
 #include <Poco/NumberParser.h> // TODO: switch to std
 #include <Poco/URI.h>
+#include <atomic>
+#include <memory>
+#include <mutex>
 #include <random>
 
 #if !defined(WORKAROUND_DISABLE_SSL)
@@ -536,17 +540,82 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
 
 void Connection::verifyConnection() {
     LOG("Verifying connection and credentials...");
-    auto & statement = allocateChild<Statement>();
 
-    try {
-        statement.executeQuery("SELECT 1");
-    }
-    catch (...) {
-        statement.deallocateSelf();
-        throw;
+    getServerVersion();
+}
+
+// RAII-like wrapper for child objects
+template <typename ChildType>
+class ChildHolder {
+    ChildType & child;
+
+public:
+    ChildHolder(ChildType & child)
+        : child(child)
+    {}
+
+    ~ChildHolder() {
+        child.deallocateSelf();
     }
 
-    statement.deallocateSelf();
+    ChildHolder(const ChildHolder&) = delete;
+    ChildHolder& operator=(const ChildHolder&) = delete;
+
+    ChildType* operator->() {
+        return &child;
+    }
+
+    const ChildType* operator->() const {
+        return &child;
+    }
+
+    ChildType & operator*() {
+        return child;
+    }
+
+    const ChildType & operator*() const {
+        return child;
+    }
+};
+
+std::string_view Connection::getServerVersion() {
+    // Try to load server version only once
+    if (const auto & val = std::atomic_load(&server_version); val && !val->empty())
+        return *val;
+
+    {
+        struct GetVesionStringValueResultMutator : public ResultMutator
+        {
+            std::string & version_string;
+            GetVesionStringValueResultMutator(std::string & version_string_)
+                : version_string(version_string_)
+            {}
+
+            void transformRow(const std::vector<ColumnInfo> & columns_info, Row & row)
+            {
+                if (row.fields.size() >= 1)
+                {
+                    auto val = std::get_if<DataSourceType< DataSourceTypeId::String>>(&row.fields[0].data);
+                    if (!val)
+                        throw SqlException("Can't get server version", "HYC00");
+
+                    version_string = val->value;
+                }
+            }
+        };
+
+        std::string result_server_version;
+
+        LOG("Querying server version");
+        auto statement = ChildHolder(allocateChild<Statement>());
+
+        statement->executeQuery("SELECT version()", std::make_unique<GetVesionStringValueResultMutator>(result_server_version));
+
+        std::string_view result = result_server_version;
+        std::atomic_store(&server_version, std::make_shared<std::string>(std::move(result_server_version)));
+
+        return result;
+    }
 }
 
 std::string Connection::buildCredentialsString() const {
