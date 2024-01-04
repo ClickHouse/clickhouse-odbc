@@ -4,14 +4,13 @@ import pyodbc
 
 import testflows.settings as settings
 
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from testflows.core import note, exception, fail
 from testflows.connect import Shell
 
-clickhouse_log_path = os.getenv("CLICKHOUSE_LOG", "/var/log/clickhouse-server/clickhouse-server.log")
-odbc_driver_trace_log_path = os.getenv("ODBC_DRIVER_TRACE_LOG", "/tmp/clickhouse-odbc-driver-trace.log")
-odbc_driver_w_trace_log_path = os.getenv("ODBC_DRIVER_W_TRACE_LOG", "/tmp/clickhouse-odbc-driver-w-trace.log")
-odbc_manager_trace_log_path = os.getenv("ODBC_MANAGER_TRACE_LOG", "/tmp/odbc-driver-manager-trace.log")
+clickhouse_log_path = os.getenv("CLICKHOUSE_SERVER_LOG", None)
+odbc_driver_log_path = os.getenv("ODBC_DRIVER_LOG", None)
+odbc_manager_trace_log_path = os.getenv("ODBC_MANAGER_TRACE_LOG", None)
 
 @contextmanager
 def Logs():
@@ -28,20 +27,29 @@ def Logs():
     if not settings.debug:
         yield None
     else:
-        with Shell(name="clickhouse-server.log") as bash0, \
-            Shell(name="odbc-driver-trace.log") as bash1, \
-            Shell(name="odbc-driver-w-trace.log") as bash2, \
-            Shell(name="odbc-manager-trace.log") as bash3:
+        with ExitStack as bash_stack:
+            bash0, bash1, bash2 = None, None, None
+            
+            if clickhouse_log_path:
+                bash0 = bash_stack.enter_context(Shell(name="clickhouse-server-log"))
+            
+            if odbc_driver_log_path:
+                bash1 = bash_stack.enter_context(Shell(name="odbc-driver-log"))
+                bash1(f"touch {odbc_driver_log_path}")
+            
+            if odbc_manager_trace_log_path:
+                bash2 = bash_stack.enter_context(Shell(name="odbc-manager-trace-log"))
+                bash2(f"touch {odbc_manager_trace_log_path}")
 
-            bash1(f"touch {odbc_driver_trace_log_path}")
-            bash2(f"touch {odbc_driver_w_trace_log_path}")
-            bash3(f"touch {odbc_manager_trace_log_path}")
-
-            with bash0(f"tail -f {clickhouse_log_path}", asyncronous=True, name="") as clickhouse_log, \
-                bash1(f"tail -f {odbc_driver_trace_log_path}", asyncronous=True, name="") as odbc_driver_log, \
-                bash2(f"tail -f {odbc_driver_w_trace_log_path}", asyncronous=True, name="") as odbc_driver_w_log, \
-                bash3(f"tail -f {odbc_manager_trace_log_path}", asyncronous=True, name="") as odbc_manager_log:
-                logs = _Logs(clickhouse_log, odbc_driver_log, odbc_driver_w_log, odbc_manager_log)
+            with ExitStack as logs_stack:
+                _logs = []
+                if bash0:
+                    _logs.append(logs_stack.enter_context(bash0(f"tail -f {clickhouse_log_path}", asyncronous=True, name="")))
+                if bash1:
+                    _logs.append(logs_stack.enter_context(bash1(f"tail -f {odbc_driver_log_path}", asyncronous=True, name="")))
+                if bash2:
+                    _logs.append(logs_stack.enter_context(bash2(f"tail -f {odbc_manager_trace_log_path}", asyncronous=True, name="")))
+                logs = _Logs(*_logs)
                 logs.read()
                 yield logs
 
