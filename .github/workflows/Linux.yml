@@ -29,16 +29,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         odbc_provider: [UnixODBC, iODBC]
         compiler: [Clang, GCC]
         build_type: [Debug, Release]
         architecture: [x86_64]
         runtime_link: [static-runtime, dynamic-runtime]
         third_parties: [bundled-third-parties, system-third-parties]
-        exclude:
-          - os: ubuntu-18.04
-            compiler: Clang
+        # exclude:
+        #   - os: ubuntu-18.04
+        #     compiler: Clang
 
     runs-on: ${{ matrix.os }}
 
@@ -59,14 +59,14 @@ jobs:
         path: source
         submodules: true
 
-    - name: Install dependencies - Common
-      if: ${{ matrix.os == 'ubuntu-18.04' }}
-      run: |
-        sudo apt update -q
-        sudo apt remove -y php* node* mysql* mssql-tools
-        sudo apt upgrade -y
-        sudo apt install -y build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl python python-pip python-pyodbc python3 python3-pip python3-pyodbc python3-setuptools libpoco-dev libssl-dev libicu-dev
-        pip3 install --user 'testflows==1.6.56' contextvars
+    # - name: Install dependencies - Common
+    #   if: ${{ matrix.os == 'ubuntu-18.04' }}
+    #   run: |
+    #     sudo apt update -q
+    #     sudo apt remove -y php* node* mysql* mssql-tools
+    #     sudo apt upgrade -y
+    #     sudo apt install -y build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl python python-pip python-pyodbc python3 python3-pip python3-pyodbc python3-setuptools libpoco-dev libssl-dev libicu-dev
+    #     pip3 install --user 'testflows==1.6.56' contextvars
 
     - name: Install dependencies - Common
       if: ${{ matrix.os != 'ubuntu-18.04' }}
