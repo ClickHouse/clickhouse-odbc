@@ -13,7 +13,7 @@ ARG ODBC_PROVIDER=unixodbc
 # or centos
 ARG BASE_OS=ubuntu
 
-FROM ubuntu:20.04 as clickhouse_odbc_tester_base_ubuntu
+FROM ubuntu:22.04 as clickhouse_odbc_tester_base_ubuntu
 
 RUN apt-get update -y \
     && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC \
