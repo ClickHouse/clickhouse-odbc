@@ -59,17 +59,7 @@ jobs:
         path: source
         submodules: true
 
-    # - name: Install dependencies - Common
-    #   if: ${{ matrix.os == 'ubuntu-18.04' }}
-    #   run: |
-    #     sudo apt update -q
-    #     sudo apt remove -y php* node* mysql* mssql-tools
-    #     sudo apt upgrade -y
-    #     sudo apt install -y build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl python python-pip python-pyodbc python3 python3-pip python3-pyodbc python3-setuptools libpoco-dev libssl-dev libicu-dev
-    #     pip3 install --user 'testflows==1.6.56' contextvars
-
     - name: Install dependencies - Common
-      if: ${{ matrix.os != 'ubuntu-18.04' }}
       run: |
         sudo apt update -q
         sudo apt remove -y php* node* mysql* mssql-tools
