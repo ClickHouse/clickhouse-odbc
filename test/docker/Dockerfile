@@ -13,7 +13,7 @@ ARG ODBC_PROVIDER=unixodbc
 # or centos
 ARG BASE_OS=ubuntu
 
-FROM ubuntu:20.04 as clickhouse_odbc_tester_base_ubuntu
+FROM ubuntu:22.04 as clickhouse_odbc_tester_base_ubuntu
 
 RUN apt-get update -y \
     && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC \
@@ -33,47 +33,47 @@ RUN apt-get update -y \
 RUN pip3 install --user \
     'testflows==1.6.56'
 
-
-FROM centos:7 as clickhouse_odbc_tester_base_centos
-RUN yum makecache
-# required for ninja-build
-RUN yum install -y epel-release
-RUN TZ=Etc/UTC \
-    yum install -y \
-        gcc \
-        gcc-c++ \
-        make \
-        ninja-build \
-        perl \
-        python3 \
-        python3-pip \
-        python3-devel \
-        python3-setuptools \
-        openssl-devel \
-        libicu \
-        libicu-devel
-
-# project requires cmake that is newer than installable with yum
-ADD https://github.com/Kitware/CMake/releases/download/v3.20.6/cmake-3.20.6-linux-x86_64.sh .
-RUN chmod +x cmake-3.20.6-linux-x86_64.sh \
-    && ./cmake-3.20.6-linux-x86_64.sh --skip-license --prefix=/usr/local \
-    && rm ./cmake-3.20.6-linux-x86_64.sh \
-    && cmake --version
-
-# install C++17 compatitable compiler
-ADD http://mirror.centos.org/centos/7/sclo/x86_64/rh/Packages/d/devtoolset-8-gcc-c++-8.3.1-3.2.el7.x86_64.rpm .
-ADD http://mirror.centos.org/centos/7/sclo/x86_64/rh/Packages/d/devtoolset-8-libstdc++-devel-8.3.1-3.2.el7.x86_64.rpm .
-ADD http://mirror.centos.org/centos/7/sclo/x86_64/rh/Packages/d/devtoolset-8-runtime-8.1-1.el7.x86_64.rpm .
-ADD http://mirror.centos.org/centos/7/sclo/x86_64/rh/Packages/d/devtoolset-8-gcc-8.3.1-3.2.el7.x86_64.rpm .
-ADD http://mirror.centos.org/centos/7/sclo/x86_64/rh/Packages/d/devtoolset-8-binutils-2.30-55.el7.2.x86_64.rpm .
-RUN ls -lah ./*.rpm \
-    && yum install -y ./*.rpm
-ENV CC=/opt/rh/devtoolset-8/root/usr/bin/gcc
-ENV CXX=/opt/rh/devtoolset-8/root/usr/bin/g++
-ENV CMAKE_ADDITIONAL_FLAGS="-DCH_ODBC_RUNTIME_LINK_STATIC=ON"
-
-RUN pip3 install \
-    'testflows==1.6.56'
+#
+#FROM centos:7 as clickhouse_odbc_tester_base_centos
+#RUN yum makecache
+## required for ninja-build
+#RUN yum install -y epel-release
+#RUN TZ=Etc/UTC \
+#    yum install -y \
+#        gcc \
+#        gcc-c++ \
+#        make \
+#        ninja-build \
+#        perl \
+#        python3 \
+#        python3-pip \
+#        python3-devel \
+#        python3-setuptools \
+#        openssl-devel \
+#        libicu \
+#        libicu-devel
+#
+## project requires cmake that is newer than installable with yum
+#ADD https://github.com/Kitware/CMake/releases/download/v3.20.6/cmake-3.20.6-linux-x86_64.sh .
+#RUN chmod +x cmake-3.20.6-linux-x86_64.sh \
+#    && ./cmake-3.20.6-linux-x86_64.sh --skip-license --prefix=/usr/local \
+#    && rm ./cmake-3.20.6-linux-x86_64.sh \
+#    && cmake --version
+#
+## install C++17 compatitable compiler
+#ADD http://mirror.centos.org/centos/7/sclo/x86_64/rh/Packages/d/devtoolset-8-gcc-c++-8.3.1-3.2.el7.x86_64.rpm .
+#ADD http://mirror.centos.org/centos/7/sclo/x86_64/rh/Packages/d/devtoolset-8-libstdc++-devel-8.3.1-3.2.el7.x86_64.rpm .
+#ADD http://mirror.centos.org/centos/7/sclo/x86_64/rh/Packages/d/devtoolset-8-runtime-8.1-1.el7.x86_64.rpm .
+#ADD http://mirror.centos.org/centos/7/sclo/x86_64/rh/Packages/d/devtoolset-8-gcc-8.3.1-3.2.el7.x86_64.rpm .
+#ADD http://mirror.centos.org/centos/7/sclo/x86_64/rh/Packages/d/devtoolset-8-binutils-2.30-55.el7.2.x86_64.rpm .
+#RUN ls -lah ./*.rpm \
+#    && yum install -y ./*.rpm
+#ENV CC=/opt/rh/devtoolset-8/root/usr/bin/gcc
+#ENV CXX=/opt/rh/devtoolset-8/root/usr/bin/g++
+#ENV CMAKE_ADDITIONAL_FLAGS="-DCH_ODBC_RUNTIME_LINK_STATIC=ON"
+#
+#RUN pip3 install \
+#    'testflows==1.6.56'
 
 FROM clickhouse_odbc_tester_base_ubuntu as clickhouse_odbc_tester_base_unixodbc_ubuntu
 RUN apt install -y unixodbc unixodbc-dev
@@ -84,13 +84,13 @@ RUN apt install -y iodbc libiodbc2 libiodbc2-dev
 ENV CMAKE_ODBC_PROVIDER=iODBC
 
 
-FROM clickhouse_odbc_tester_base_centos as clickhouse_odbc_tester_base_unixodbc_centos
-RUN yum install -y unixODBC-devel unixODBC
-ENV CMAKE_ODBC_PROVIDER=UnixODBC
-
-FROM clickhouse_odbc_tester_base_centos as clickhouse_odbc_tester_base_iodbc_centos
-RUN yum install -y libiodbc libiodbc-devel
-ENV CMAKE_ODBC_PROVIDER=iODBC
+#FROM clickhouse_odbc_tester_base_centos as clickhouse_odbc_tester_base_unixodbc_centos
+#RUN yum install -y unixODBC-devel unixODBC
+#ENV CMAKE_ODBC_PROVIDER=UnixODBC
+#
+#FROM clickhouse_odbc_tester_base_centos as clickhouse_odbc_tester_base_iodbc_centos
+#RUN yum install -y libiodbc libiodbc-devel
+#ENV CMAKE_ODBC_PROVIDER=iODBC
 
 
 FROM clickhouse_odbc_tester_base_${ODBC_PROVIDER}_${BASE_OS} as final

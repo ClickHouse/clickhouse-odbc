@@ -33,10 +33,10 @@ jobs:
           - unixodbc
 #          - iodbc
         base_os:
-          - centos
-#          - ubuntu
+#          - centos
+          - ubuntu
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
 
