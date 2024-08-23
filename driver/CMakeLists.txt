@@ -172,7 +172,9 @@ target_link_libraries (${libname}-impl
 )
 
 if (ARCH_LINUX)
-    target_link_libraries (${libname}-impl PUBLIC ch_contrib::unixodbc ch_contrib::nanodbc)
+    target_link_libraries (${libname}-impl
+        PUBLIC ch_contrib::unixodbc
+        PUBLIC ch_contrib::nanodbc)
 else()
     target_link_libraries (${libname}-impl PUBLIC ODBC::Driver)
 endif()

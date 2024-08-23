@@ -1,6 +1,8 @@
 # Set standard, system and compiler libraries explicitly.
 # This is intended for more control of what we are linking.
 
+set (DEFAULT_LIBS "-nodefaultlibs")
+
 # We need builtins from Clang's RT even without libcxx - for ubsan+int128.
 # See https://bugs.llvm.org/show_bug.cgi?id=16404
 execute_process (COMMAND
@@ -38,6 +40,8 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 include (cmake/cxx.cmake)
+include (cmake/unwind.cmake)
+
 link_libraries(global-group)
 
 target_link_libraries(global-group INTERFACE
