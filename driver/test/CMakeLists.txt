@@ -84,8 +84,12 @@ function (declare_odbc_test_targets libname UNICODE)
     )
 
     if (CH_ODBC_USE_ICU)
+        target_include_directories (${libname}-client-it
+            PUBLIC ch_contrib::icu
+        )
+
         target_link_libraries (${libname}-client-it
-            PRIVATE ICU::uc
+            PUBLIC ch_contrib::icu
         )
     endif ()
 
