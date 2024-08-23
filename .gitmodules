@@ -18,3 +18,9 @@
     path = contrib/folly
     url = https://github.com/facebook/folly.git
     branch = master
+[submodule "contrib/icu"]
+	path = contrib/icu
+	url = https://github.com/ClickHouse/icu.git
+[submodule "contrib/icudata"]
+	path = contrib/icudata
+	url = https://github.com/ClickHouse/icudata

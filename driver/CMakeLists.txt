@@ -172,7 +172,7 @@ target_link_libraries (${libname}-impl
 
 if (CH_ODBC_USE_ICU)
     target_link_libraries (${libname}-impl
-        PUBLIC ICU::uc
+        PUBLIC ch_contrib::icu
     )
 endif ()
 
