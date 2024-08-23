@@ -166,9 +166,15 @@ endif ()
 target_link_libraries (${libname}-impl
     PUBLIC ${_poco_net}
     PUBLIC Poco::Foundation
-    PUBLIC ODBC::Driver
     PUBLIC Threads::Threads
 )
+
+if (ARCH_LINUX)
+    target_link_libraries (${libname}-impl PUBLIC ch_contrib::unixodbc)
+else()
+    target_link_libraries (${libname}-impl PUBLIC ODBC::Driver)
+endif()
+
 
 if (CH_ODBC_USE_ICU)
     target_link_libraries (${libname}-impl

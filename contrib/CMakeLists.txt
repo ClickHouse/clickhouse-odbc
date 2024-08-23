@@ -121,6 +121,7 @@ function(add_contrib cmake_folder)
 endfunction()
 
 add_contrib (icu-cmake icu)
+add_contrib (unixodbc-cmake unixodbc)
 
 # if (CH_ODBC_PREFER_BUNDLED_FOLLY OR NOT Folly_FOUND)
 #     if (NOT Folly_FOUND AND NOT CH_ODBC_PREFER_BUNDLED_FOLLY)

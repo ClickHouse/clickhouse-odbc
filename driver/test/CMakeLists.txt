@@ -75,13 +75,18 @@ function (declare_odbc_test_targets libname UNICODE)
     )
 
     target_link_libraries (${libname}-client-it
-        PRIVATE ODBC::App
         PRIVATE Poco::Foundation
         PRIVATE gtest
         PRIVATE gmock
         PRIVATE Threads::Threads
         PRIVATE ${CMAKE_DL_LIBS}
     )
+
+    if (ARCH_LINUX)
+        target_link_libraries (${libname}-impl PUBLIC ch_contrib::unixodbc)
+    else()
+        target_link_libraries (${libname}-impl PUBLIC ODBC::App)
+    endif()
 
     if (CH_ODBC_USE_ICU)
         target_include_directories (${libname}-client-it

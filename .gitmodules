@@ -6,10 +6,6 @@
     path = contrib/ssl
     url = https://github.com/ClickHouse-Extras/ssl.git
     branch = master
-[submodule "contrib/nanodbc"]
-    path = contrib/nanodbc
-    url = https://github.com/nanodbc/nanodbc.git
-    branch = master
 [submodule "contrib/googletest"]
     path = contrib/googletest
     url = https://github.com/google/googletest.git
@@ -24,3 +20,6 @@
 [submodule "contrib/icudata"]
 	path = contrib/icudata
 	url = https://github.com/ClickHouse/icudata
+[submodule "contrib/UnixODBC"]
+	path = contrib/unixodbc
+	url = https://github.com/ClickHouse/UnixODBC.git
