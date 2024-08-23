@@ -26,3 +26,6 @@
 [submodule "contrib/openssl"]
 	path = contrib/openssl
 	url = https://github.com/ClickHouse/openssl
+[submodule "contrib/folly"]
+	path = contrib/folly
+	url = https://github.com/facebook/folly.git
