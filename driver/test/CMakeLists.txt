@@ -83,7 +83,7 @@ function (declare_odbc_test_targets libname UNICODE)
     )
 
     if (ARCH_LINUX)
-        target_link_libraries (${libname}-impl PUBLIC ch_contrib::unixodbc)
+        target_link_libraries (${libname}-impl PUBLIC ch_contrib::unixodbc ch_contrib:nanodbc)
     else()
         target_link_libraries (${libname}-impl PUBLIC ODBC::App)
     endif()

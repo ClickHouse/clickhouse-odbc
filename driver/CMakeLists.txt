@@ -157,20 +157,22 @@ if (CH_ODBC_ENABLE_SSL)
     if (MSVC)
         set (_poco_net Poco::NetSSLWin)
     else ()
-        set (_poco_net Poco::NetSSL)
+        set (_poco_net Poco::Net Poco::Net::SSL Poco::Util)
     endif ()
 else ()
     set (_poco_net Poco::Net)
 endif ()
 
 target_link_libraries (${libname}-impl
-    PUBLIC ${_poco_net}
+    PUBLIC Poco::Net
+    PUBLIC Poco::Net::SSL
+    PUBLIC Poco::Util
     PUBLIC Poco::Foundation
     PUBLIC Threads::Threads
 )
 
 if (ARCH_LINUX)
-    target_link_libraries (${libname}-impl PUBLIC ch_contrib::unixodbc)
+    target_link_libraries (${libname}-impl PUBLIC ch_contrib::unixodbc ch_contrib::nanodbc)
 else()
     target_link_libraries (${libname}-impl PUBLIC ODBC::Driver)
 endif()

@@ -16,7 +16,7 @@ set (CMAKE_C_STANDARD 11)
 #set (CMAKE_C_EXTENSIONS 0)
 set (CMAKE_C_STANDARD_REQUIRED 1)
 
-set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD 23)
 set (CMAKE_CXX_EXTENSIONS 0)
 set (CMAKE_CXX_STANDARD_REQUIRED 1)
 
@@ -35,6 +35,7 @@ if (NOT CMAKE_CONFIGURATION_TYPES)
 endif ()
 
 message (STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+
 
 string (TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UC)
 string (TOUPPER "${CMAKE_CONFIGURATION_TYPES}" CMAKE_CONFIGURATION_TYPES_UC)
@@ -71,6 +72,21 @@ endif ()
 if (ARCH_FREEBSD)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
 endif ()
+
+add_library(global-libs INTERFACE)
+include (cmake/arch.cmake)
+include (cmake/sanitize.cmake)
+
+include (GNUInstallDirs)
+
+add_library(global-group INTERFACE)
+if (ARCH_LINUX)
+    include(cmake/linux/default_libs.cmake)
+    #target_link_options(global-group INTERFACE "LINKER:--no-undefined")
+else()
+    link_libraries(global-group)
+endif()
+
 
 # Make sure that all optimized builds have NDEBUG macro set.
 foreach (config Release RelWithDebInfo MinSizeRel)
@@ -115,11 +131,14 @@ if (CH_ODBC_RUNTIME_LINK_STATIC)
     endif()
 endif ()
 
-include (GNUInstallDirs)
-include (cmake/arch.cmake)
-include (cmake/sanitize.cmake)
 
-find_package (Threads REQUIRED)
+if (WERROR)
+    # Don't pollute CMAKE_CXX_FLAGS with -Werror as it will break some CMake checks.
+    # Instead, adopt modern cmake usage requirement.
+    # TODO: Set CMAKE_COMPILE_WARNING_AS_ERROR (cmake 3.24)
+    target_compile_options(global-group INTERFACE "-Werror")
+endif ()
+
 find_package (ODBC REQUIRED)
 
 if (CH_ODBC_ENABLE_SSL)
@@ -134,10 +153,6 @@ if (CH_ODBC_ENABLE_SSL)
 
         find_package (OpenSSL)
     endif ()
-endif ()
-
-if (NOT CH_ODBC_PREFER_BUNDLED_POCO)
-    find_package (Poco COMPONENTS Foundation Net NetSSL)
 endif ()
 
 if (NOT CH_ODBC_PREFER_BUNDLED_FOLLY)
@@ -167,6 +182,8 @@ if (CH_ODBC_ENABLE_TESTING)
 endif ()
 
 add_subdirectory (contrib EXCLUDE_FROM_ALL)
+set(ENABLE_SSL 1)
+add_subdirectory(contrib/poco)
 
 if (CH_ODBC_ENABLE_TESTING)
     include (CTest)
