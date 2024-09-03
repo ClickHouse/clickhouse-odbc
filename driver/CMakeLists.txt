@@ -165,6 +165,8 @@ endif ()
 
 target_link_libraries (${libname}-impl
     PUBLIC Poco::Net
+    PUBLIC OpenSSL::SSL
+    PUBLIC OpenSSL::Crypto
     PUBLIC Poco::Net::SSL
     PUBLIC Poco::Util
     PUBLIC Poco::Foundation

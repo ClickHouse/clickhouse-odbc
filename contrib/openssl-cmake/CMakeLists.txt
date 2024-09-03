@@ -108,14 +108,14 @@ if(NOT ARCH_S390X)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=lld") # only relevant for -DENABLE_OPENSSL_DYNAMIC=1
 endif()
 
-if(ARCH_AMD64)
+if(ARCH_LINUX)
     if(OS_DARWIN)
         set(OPENSSL_SYSTEM "macosx")
     else()
         macro(perl_generate_asm FILE_IN FILE_OUT)
             # Manually set $CC because the called Perl scripts require it.
             add_custom_command(OUTPUT ${FILE_OUT}
-                COMMAND ${CMAKE_COMMAND} -E env "CC=${CMAKE_CXX_COMPILER}" /usr/bin/env perl ${FILE_IN} ${FILE_OUT})
+                COMMAND ${CMAKE_COMMAND} -E env "CC=${CMAKE_CXX_COMPILER}" mkdir -p `dirname ${FILE_OUT}` && /usr/bin/env perl ${FILE_IN} ${FILE_OUT})
         endmacro()
 
         perl_generate_asm(${OPENSSL_SOURCE_DIR}/crypto/aes/asm/aes-x86_64.pl ${OPENSSL_BINARY_DIR}/crypto/aes/aes-x86_64.s)
@@ -1174,7 +1174,7 @@ if(NOT ENABLE_OPENSSL_DYNAMIC)
     )
 endif()
 
-if(ARCH_AMD64)
+if(ARCH_LINUX)
     if (OS_DARWIN)
         set(CRYPTO_SRC ${CRYPTO_SRC}
             ${OPENSSL_SOURCE_DIR}/crypto/aes/aes_cbc.c
