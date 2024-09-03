@@ -29,3 +29,9 @@
 [submodule "contrib/folly"]
 	path = contrib/folly
 	url = https://github.com/facebook/folly.git
+[submodule "contrib/double-conversion"]
+	path = contrib/double-conversion
+	url = https://github.com/ClickHouse/double-conversion
+[submodule "contrib/libunwind"]
+	path = contrib/libunwind
+	url = https://github.com/ClickHouse/libunwind
