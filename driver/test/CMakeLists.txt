@@ -23,6 +23,7 @@ function (declare_odbc_test_targets libname UNICODE)
     target_link_libraries (${libname}-ut
         PRIVATE ${libname}-impl
         PRIVATE gtest
+        PRIVATE ${libname}-impl
     )
 
     add_test (NAME ${libname}-ut COMMAND ${libname}-ut)
@@ -36,6 +37,7 @@ function (declare_odbc_test_targets libname UNICODE)
         PRIVATE ODBC::App
         PRIVATE Threads::Threads
         PRIVATE ${CMAKE_DL_LIBS}
+        PRIVATE ${libname}-impl
     )
 
     target_include_directories (${libname}-load-ut
@@ -80,6 +82,7 @@ function (declare_odbc_test_targets libname UNICODE)
         PRIVATE gmock
         PRIVATE Threads::Threads
         PRIVATE ${CMAKE_DL_LIBS}
+        PRIVATE ${libname}-impl
     )
 
     if (ARCH_LINUX)
