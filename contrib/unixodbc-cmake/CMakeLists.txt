@@ -1,5 +1,5 @@
 option (ENABLE_ODBC "Enable ODBC library" 1)
-if (NOT ARCH_LINUX)
+if (NOT OS_LINUX)
     if (ENABLE_ODBC)
         message(STATUS "ODBC is only supported on Linux with dynamic linking")
     endif()

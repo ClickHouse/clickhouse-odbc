@@ -108,7 +108,7 @@ if(NOT ARCH_S390X)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=lld") # only relevant for -DENABLE_OPENSSL_DYNAMIC=1
 endif()
 
-if(ARCH_LINUX)
+if(ARCH_AMD64)
     if(OS_DARWIN)
         set(OPENSSL_SYSTEM "macosx")
     else()
@@ -1174,7 +1174,7 @@ if(NOT ENABLE_OPENSSL_DYNAMIC)
     )
 endif()
 
-if(ARCH_LINUX)
+if(ARCH_AMD64)
     if (OS_DARWIN)
         set(CRYPTO_SRC ${CRYPTO_SRC}
             ${OPENSSL_SOURCE_DIR}/crypto/aes/aes_cbc.c

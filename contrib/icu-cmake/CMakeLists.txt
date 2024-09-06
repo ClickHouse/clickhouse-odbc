@@ -1,4 +1,4 @@
-if (ARCH_LINUX)
+if (OS_LINUX)
     option(ENABLE_ICU "Enable ICU" 1)
 else ()
     option(ENABLE_ICU "Enable ICU" 0)

@@ -13,7 +13,6 @@ project (
 )
 
 set (CMAKE_C_STANDARD 11)
-#set (CMAKE_C_EXTENSIONS 0)
 set (CMAKE_C_STANDARD_REQUIRED 1)
 
 set (CMAKE_CXX_STANDARD 23)
@@ -42,6 +41,7 @@ string (TOUPPER "${CMAKE_CONFIGURATION_TYPES}" CMAKE_CONFIGURATION_TYPES_UC)
 
 include(CMakeDependentOption)
 
+include (cmake/os.cmake)
 option(BUILD_TESTING "Build test targets" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
@@ -69,7 +69,7 @@ if (MSVC)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
 endif ()
 
-if (ARCH_FREEBSD)
+if (OS_FREEBSD)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
 endif ()
 
@@ -80,7 +80,7 @@ include (cmake/sanitize.cmake)
 include (GNUInstallDirs)
 
 add_library(global-group INTERFACE)
-if (ARCH_LINUX)
+if (OS_LINUX)
     include(cmake/linux/default_libs.cmake)
     target_link_options(global-group INTERFACE "LINKER:--no-undefined")
 else()
@@ -190,6 +190,8 @@ set (CMAKE_C_VISIBILITY_PRESET hidden)
 set (CMAKE_CXX_VISIBILITY_PRESET hidden)
 set (CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 
+include (cmake/packages.cmake)
+
 include (CheckIPOSupported)
 check_ipo_supported (RESULT ipo_supported LANGUAGES C CXX)
 if (ipo_supported)
@@ -203,6 +205,7 @@ add_subdirectory (driver)
 if (CH_ODBC_ENABLE_TESTING)
     add_subdirectory (test)
 endif ()
+
 
 if (CH_ODBC_ENABLE_INSTALL)
     if (NOT WIN32)
