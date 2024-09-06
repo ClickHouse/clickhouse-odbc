@@ -128,7 +128,8 @@ if (WERROR)
     target_compile_options(global-group INTERFACE "-Werror")
 endif ()
 
-find_package (ODBC REQUIRED)
+add_subdirectory (contrib EXCLUDE_FROM_ALL)
+find_package(ODBC REQUIRED)
 
 if (CH_ODBC_ENABLE_SSL)
     if (NOT CH_ODBC_PREFER_BUNDLED_SSL)
@@ -170,7 +171,6 @@ if (CH_ODBC_ENABLE_TESTING)
     endif ()
 endif ()
 
-add_subdirectory (contrib EXCLUDE_FROM_ALL)
 set(ENABLE_SSL 1)
 add_subdirectory(contrib/poco)
 

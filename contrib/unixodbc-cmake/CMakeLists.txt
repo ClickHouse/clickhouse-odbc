@@ -38,7 +38,11 @@ elseif(OS_DARWIN)
         "${LIBRARY_DIR}/libltdl/loaders/dlopen.c"
         "${LIBRARY_DIR}/libltdl/loaders/preopen.c"
     )
-    SET(GENERATED_FILES_DIR "darwin_x86_64")
+    if (ARCH_AARCH64)
+        SET(GENERATED_FILES_DIR "darwin_arm64")
+    elseif (ARCH_AMD64)
+        SET(GENERATED_FILES_DIR "darwin_x86_64")
+    endif()
 endif()
 
 
