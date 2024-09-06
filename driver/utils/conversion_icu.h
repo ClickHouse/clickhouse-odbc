@@ -73,7 +73,11 @@ namespace value_manip {
 
             template <typename ConversionContext = DefaultConversionContext>
             static inline void convert(const std::basic_string_view<SourceCharType> & src, DestinationType & dest, ConversionContext && context = ConversionContext{}) {
+
                 dest.clear();
+
+                if (src.size() == 0)
+                    return;
 
                 if constexpr (sizeof(SourceCharType) == sizeof(ApplicationNarrowCharType)) {
                     if (
@@ -164,6 +168,9 @@ namespace value_manip {
         template <typename ConversionContext = DefaultConversionContext>
         static inline void convert(const std::basic_string_view<DriverPivotNarrowCharType> & src, DestinationType & dest, ConversionContext && context = ConversionContext{}) {
             dest.clear();
+
+            if (src.size() == 0)
+                return;
 
             if constexpr (sizeof(DestinationCharType) == sizeof(ApplicationNarrowCharType)) {
                 if (
