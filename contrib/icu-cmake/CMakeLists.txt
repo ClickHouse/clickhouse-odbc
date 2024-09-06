@@ -1,4 +1,4 @@
-if (OS_LINUX)
+if (OS_LINUX OR OS_DARWIN)
     option(ENABLE_ICU "Enable ICU" 1)
 else ()
     option(ENABLE_ICU "Enable ICU" 0)
@@ -462,7 +462,11 @@ enable_language(ASM)
 if (ARCH_S390X)
     set(ICUDATA_SOURCE_FILE "${ICUDATA_SOURCE_DIR}/icudt75b_dat.S" )
 else()
-    set(ICUDATA_SOURCE_FILE "${ICUDATA_SOURCE_DIR}/icudt75l_dat.S" )
+    if (OS_LINUX)
+        set(ICUDATA_SOURCE_FILE "${ICUDATA_SOURCE_DIR}/icudt75l_dat.S" )
+    elseif (OS_DARWIN)
+        set(ICUDATA_SOURCE_FILE "${ICUDATA_SOURCE_DIR}/darwin_x86_64/icudt75l_dat.S" )
+    endif()
 endif()
 
 set(ICUDATA_SOURCES
