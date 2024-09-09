@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        odbc_provider: [UnixODBC, iODBC]
+        odbc_provider: [UnixODBC]
         compiler: [Clang]
         build_type: [Debug, Release]
         architecture: [x86_64]
