@@ -34,7 +34,7 @@ function (declare_odbc_test_targets libname UNICODE)
 
     target_link_libraries (${libname}-load-ut
         PRIVATE Poco::Foundation
-        PRIVATE ODBC::App
+        PRIVATE ch_contrib::unixodbc
         PRIVATE Threads::Threads
         PRIVATE ${CMAKE_DL_LIBS}
         PRIVATE ${libname}-impl
@@ -85,7 +85,7 @@ function (declare_odbc_test_targets libname UNICODE)
         PRIVATE ${libname}-impl
     )
 
-    if (ARCH_LINUX)
+    if (OS_LINUX OR OS_DARWIN)
         target_link_libraries (${libname}-impl PUBLIC ch_contrib::unixodbc ch_contrib::nanodbc)
     else()
         target_link_libraries (${libname}-impl PUBLIC ODBC::App)

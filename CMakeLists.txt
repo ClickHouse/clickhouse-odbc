@@ -129,7 +129,6 @@ if (WERROR)
 endif ()
 
 add_subdirectory (contrib EXCLUDE_FROM_ALL)
-find_package(ODBC REQUIRED)
 
 if (CH_ODBC_ENABLE_SSL)
     if (NOT CH_ODBC_PREFER_BUNDLED_SSL)
