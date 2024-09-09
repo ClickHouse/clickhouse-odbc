@@ -28,7 +28,10 @@ RUN apt-get update -y \
         python3-setuptools \
         libpoco-dev \
         libssl-dev \
-        libicu-dev
+        libicu-dev \
+        clang \
+        llvm \
+        lldb
 
 RUN pip3 install --user \
     'testflows==1.6.56'
@@ -116,6 +119,8 @@ RUN mkdir -p ${BIN_DIR} \
     && echo $CMAKE_ODBC_PROVIDER \
     && cd ${BIN_DIR} \
     && cmake \
+        -DCMAKE_C_COMPILER=clang \
+        -DCMAKE_CXX_COMPILER=clang++ \
         -G Ninja \
         -DODBC_PROVIDER=${CMAKE_ODBC_PROVIDER} \
         -DTEST_DSN_LIST="ClickHouse DSN (ANSI);ClickHouse DSN (Unicode);ClickHouse DSN (ANSI, RBWNAT)" \
@@ -240,3 +245,4 @@ ENTRYPOINT [ "/bin/bash", "-vx", "/entrypoint.sh" ]
 CMD [ "-E", ".*-ut.*" ]
 
 RUN chmod +x /entrypoint.sh
+
