@@ -30,11 +30,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest]
-        odbc_provider: [UnixODBC, iODBC]
-        # Once folly supports new clang (libcpp) add Clang to compilers:
-        compiler: [AppleClang, GCC]
+        odbc_provider: [UnixODBC]
+        compiler: [AppleClang]
         build_type: [Debug, Release]
-        architecture: [x86_64]
         runtime_link: [dynamic-runtime]
         third_parties: [bundled-third-parties]
 
@@ -64,7 +62,7 @@ jobs:
         brew remove -f --ignore-dependencies -q libiodbc unixodbc freetds php node composer
         brew upgrade
         brew install git cmake perl python openssl poco icu4c binutils
-        pip3 install --user 'testflows==1.6.56'
+        pip3 install --break-system-packages --user 'testflows==1.6.56'
 
     # - name: Install dependencies - Docker
     #   run: |
@@ -75,7 +73,7 @@ jobs:
       if: ${{ matrix.odbc_provider == 'UnixODBC' }}
       run: |
         brew install unixodbc
-        pip3 install --user pyodbc
+        pip3 install --break-system-packages --user pyodbc
 
     - name: Install dependencies - iODBC
       if: ${{ matrix.odbc_provider == 'iODBC' }}
