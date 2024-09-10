@@ -130,7 +130,7 @@
 #define HAVE_GETUID 1
 
 /* Define if you have the iconv() function. */
-#define HAVE_ICONV 1
+//#define HAVE_ICONV 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
