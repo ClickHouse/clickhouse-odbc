@@ -1,6 +1,7 @@
 find_program(PERL perl)
 find_program(PYTHON2 python2)
 find_program(PYTHON3 python3)
+find_program(PIP3 pip3)
 find_program(SQLCMD sqlcmd)
 
 set(PERL_USES_MDAC 0)
@@ -53,7 +54,11 @@ set(PYTHON3_USES_MDAC 0)
 set(PYTHON3_USES_UNIXODBC 0)
 set(PYTHON3_USES_IODBC 0)
 
-if(PYTHON3)
+if(PYTHON3 AND PIP3)
+    message(STATUS "Setting up Python 3 test environment")
+    execute_process(WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMMAND ${PYTHON3} -m venv odbc_venv)
+    execute_process(WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMMAND source odbc_venv/bin/activate)
+    execute_process(WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMMAND ${PIP3} install -r requirements.txt --quiet --disable-pip-version-check)
     execute_process(
         COMMAND ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/detect_driver_manager.py
         OUTPUT_VARIABLE _python_output
@@ -115,14 +120,14 @@ foreach (test_dsn ${TEST_DSN_LIST})
             add_test(NAME "test.py-2-dsn-${test_dsn_counter}" COMMAND ${PYTHON2} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${test_dsn}")
         endif()
 
-        if(PYTHON3 AND (
+        if(PYTHON3 AND PIP3 AND (
             ("${ODBC_PROVIDER}" STREQUAL "MDAC"     AND PYTHON3_USES_MDAC) OR
             ("${ODBC_PROVIDER}" STREQUAL "UnixODBC" AND PYTHON3_USES_UNIXODBC) OR
             ("${ODBC_PROVIDER}" STREQUAL "iODBC"    AND PYTHON3_USES_IODBC)
         ))
             add_test(NAME "test.py-3-dsn-${test_dsn_counter}" COMMAND ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${test_dsn}")
-            if(NOT test_dsn MATCHES "RBWNAT") # TODO: a shaky way of detecting a RowBinaryWithNamesAndTypes-enabled DSN and disabling parametrized-regression.py for it, until fixed.
-                add_test(NAME "parametrized-regression.py-3-dsn-${test_dsn_counter}" COMMAND ${CMAKE_COMMAND} -E env "DSN=${test_dsn}" ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/parameterized/regression.py)
+            if(NOT test_dsn MATCHES "RBWNAT") # TODO: a shaky way of detecting a RowBinaryWithNamesAndTypes-enabled DSN and disabling pytest for it, until fixed.
+                add_test(NAME "pytest-3-dsn-${test_dsn_counter}" COMMAND ${CMAKE_COMMAND} -E env "DSN=${test_dsn}" pytest WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )
             endif()
         endif()
 
