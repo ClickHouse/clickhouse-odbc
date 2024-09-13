@@ -2,3 +2,4 @@
     global: SQL*;
     local: *;
 };
+

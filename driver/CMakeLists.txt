@@ -193,7 +193,7 @@ add_library (${libname} SHARED
 )
 
 target_link_libraries (${libname}
-	PRIVATE ${libname}-impl
+    PRIVATE ${libname}-impl
 )
 
 set_target_properties (${libname} PROPERTIES
@@ -202,11 +202,11 @@ set_target_properties (${libname} PROPERTIES
 
 if (OS_LINUX)
     set_target_properties(${libname} PROPERTIES
-        LINK_FLAGS "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/export_symbols.ld"
+        LINK_FLAGS "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_linux.txt"
     )
 elseif (OS_DARWIN)
     set_target_properties(${libname} PROPERTIES
-        LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols.txt"
+        LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_darwin.txt"
     )
 endif()
 

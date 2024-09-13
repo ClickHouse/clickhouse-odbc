@@ -1,7 +1,0 @@
-{
-    global:
-        SQL_*;
-    local:
-        *;
-};
-
