@@ -173,12 +173,11 @@ target_link_libraries (${libname}-impl
     PUBLIC Threads::Threads
 )
 
-if (ARCH_LINUX)
+if (OS_LINUX OR OS_DARWIN)
     target_link_libraries (${libname}-impl
-        PUBLIC ch_contrib::unixodbc
-        PUBLIC ch_contrib::nanodbc)
-else()
-    target_link_libraries (${libname}-impl PUBLIC ch_contrib::unixodbc)
+        PRIVATE ch_contrib::unixodbc
+        PRIVATE ch_contrib::nanodbc
+    )
 endif()
 
 
@@ -193,19 +192,24 @@ add_library (${libname} SHARED
     ${WIN_SOURCES}
 )
 
+target_link_libraries (${libname}
+	PRIVATE ${libname}-impl
+)
+
 set_target_properties (${libname} PROPERTIES
     OUTPUT_NAME "clickhouseodbc${WIDECHAR_SUFFIX}"
 )
 
-target_link_libraries (${libname}
-    PRIVATE ${libname}-impl
-)
-
-if (NOT APPLE AND NOT WIN32)
-    target_link_options (${libname}
-        PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/platform/version_script"
+if (OS_LINUX)
+    set_target_properties(${libname} PROPERTIES
+        LINK_FLAGS "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/export_symbols.ld"
     )
-endif ()
+elseif (OS_DARWIN)
+    set_target_properties(${libname} PROPERTIES
+        LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols.txt"
+    )
+endif()
+
 
 if (CH_ODBC_ENABLE_INSTALL)
     if (MSVC)

@@ -303,6 +303,10 @@ set (SRCS
 add_library (_unixodbc ${SRCS})
 
 target_link_libraries (_unixodbc PRIVATE _ltdl)
+if (OS_DARWIN)
+   find_package(Iconv REQUIRED)
+   target_link_libraries(_unixodbc PRIVATE Iconv::Iconv)
+endif()
 
 # SYSTEM_FILE_PATH was changed to /etc
 
