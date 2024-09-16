@@ -121,7 +121,9 @@ foreach (test_dsn ${TEST_DSN_LIST})
             ("${ODBC_PROVIDER}" STREQUAL "iODBC"    AND PYTHON3_USES_IODBC)
         ))
             add_test(NAME "test.py-3-dsn-${test_dsn_counter}" COMMAND ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/test.py "${test_dsn}")
-            if(NOT test_dsn MATCHES "RBWNAT") # TODO: a shaky way of detecting a RowBinaryWithNamesAndTypes-enabled DSN and disabling parametrized-regression.py for it, until fixed.
+
+            # FIXME: Rewrite testflows with pytest
+            if(NOT test_dsn MATCHES "RBWNAT" AND NOT OS_DARWIN) # TODO: a shaky way of detecting a RowBinaryWithNamesAndTypes-enabled DSN and disabling parametrized-regression.py for it, until fixed.
                 add_test(NAME "parametrized-regression.py-3-dsn-${test_dsn_counter}" COMMAND ${CMAKE_COMMAND} -E env "DSN=${test_dsn}" ${PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/parameterized/regression.py)
             endif()
         endif()
