@@ -200,12 +200,12 @@ jobs:
         EOF
 
     - name: Prepare Python dependencies
-      working-directory: test
+      working-directory: source/test
       run: |
         pip install -r requirements.txt
 
     - name: Test - run Python e2e tests
-      working-directory: test
+      working-directory: source/test
       run: |
         source ${{ github.workspace }}/.envrc
         pytest
