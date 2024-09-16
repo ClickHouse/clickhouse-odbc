@@ -64,17 +64,7 @@ jobs:
         sudo apt update -q
         sudo apt remove -y php* node* mysql* mssql-tools
         sudo apt upgrade -y
-        sudo apt install -y build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl python-is-python3 python3 python3-pip python3-pyodbc python3-setuptools libpoco-dev libssl-dev libicu-dev
-        pip3 install --user 'testflows==1.6.56'
-
-    - name: Install dependencies - Docker
-      run: |
-        sudo apt remove -y docker docker-engine docker.io containerd runc
-        sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-        sudo apt update -q
-        sudo apt install docker-ce docker-ce-cli containerd.io
+        sudo apt install -y build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl python-is-python3 python3 python3-pip python3-setuptools libpoco-dev libssl-dev libicu-dev
 
     - name: Install dependencies - UnixODBC
       if: ${{ matrix.odbc_provider == 'UnixODBC' }}
@@ -127,30 +117,32 @@ jobs:
           name: clickhouse-odbc-linux-${{ matrix.compiler }}-${{ matrix.odbc_provider }}-${{ matrix.build_type }}
           path: ${{ github.workspace }}/build/clickhouse-odbc-*
 
-    - name: Test - Run unit tests
+    - name: Test - Run C++ unit tests
       working-directory: ${{ github.workspace }}/build
       run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
 
-    - name: Test - Start ClickHouse server in background
-      run: |
-        docker pull ${CLICKHOUSE_SERVER_IMAGE}
-        docker run -d --name clickhouse ${CLICKHOUSE_SERVER_IMAGE}
-        docker ps -a
-        docker stats -a --no-stream
+    - name: Start ClickHouse in Docker
+      uses: isbang/compose-action@v1.5.1
+      with:
+        compose-file: 'test/docker-compose.yml'
+        down-flags: '--volumes'
 
-    - name: Test - Run integration tests
-      working-directory: ${{ github.workspace }}/build
+    - name: Prepare env source
       run: |
-        export CLICKHOUSE_SERVER_IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' clickhouse)
-
+        cat > ${{ github.workspace }}/.envrc <<-EOF
         export ODBCSYSINI=${{ github.workspace }}/run
         export ODBCINSTINI=.odbcinst.ini
         export ODBCINI=$ODBCSYSINI/.odbc.ini
         if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
-            # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
-            export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
+          # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
+          export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
+          export GTEST_FILTER="-PerformanceTest.*"
         fi
+        EOF
 
+    - name: Prepare ODBC ini configs
+      run: |
+        source ${{ github.workspace }}/.envrc
         cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
         [ODBC]
         Trace     = 1
@@ -195,21 +187,31 @@ jobs:
         [ClickHouse DSN (Unicode)]
         Driver        = ClickHouse ODBC Driver (Unicode)
         Description   = Test DSN for ClickHouse ODBC Driver (Unicode)
-        Url           = http://${CLICKHOUSE_SERVER_IP}
+        Url           = http://localhost:8123
         DriverLog     = yes
         DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver-w.log
 
         [ClickHouse DSN (ANSI, RBWNAT)]
         Driver        = ClickHouse ODBC Driver (ANSI)
         Description   = Test DSN for ClickHouse ODBC Driver (ANSI) that uses RowBinaryWithNamesAndTypes as data source communication default format
-        Url           = http://${CLICKHOUSE_SERVER_IP}/query?default_format=RowBinaryWithNamesAndTypes
+        Url           = http://localhost:8123/query?default_format=RowBinaryWithNamesAndTypes
         DriverLog     = yes
         DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
         EOF
 
-        if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
-            export GTEST_FILTER="-PerformanceTest.*"
-        fi
+    - name: Prepare Python dependencies
+      run: |
+        pip install -r requirements.txt
 
-        # Run all tests except those that were run in "Test - unit tests" step.
+    - name: Test - run Python e2e tests
+      working-directory: test
+      run: |
+        source ${{ github.workspace }}/.envrc
+        pytest
+
+    # Run all tests except those that were run in "Test - unit tests" step.
+    - name: Test - Run C++ integration tests
+      working-directory: ${{ github.workspace }}/build
+      run: |
+        source ${{ github.workspace }}/.envrc
         ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '.*-ut.*'
