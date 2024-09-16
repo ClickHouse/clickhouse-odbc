@@ -85,8 +85,8 @@ jobs:
     - name: Start ClickHouse server in background
       run: |
         curl https://clickhouse.com | bash
-        ./clickhouse install
-        ./clickhouse start
+        sudo ./clickhouse install
+        sudo ./clickhouse start
 
     - name: Configure
       run: >
