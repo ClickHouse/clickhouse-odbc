@@ -22,27 +22,24 @@
 #include "Poco/Net/SocketImpl.h"
 
 
-namespace Poco
+namespace Poco {
+namespace Net {
+
+
+class Net_API ServerSocketImpl: public SocketImpl
+	/// This class implements a TCP server socket.
 {
-namespace Net
-{
+public:
+	ServerSocketImpl();
+		/// Creates the ServerSocketImpl.
+
+protected:
+	virtual ~ServerSocketImpl();
+		/// Destroys the ServerSocketImpl.
+};
 
 
-    class Net_API ServerSocketImpl : public SocketImpl
-    /// This class implements a TCP server socket.
-    {
-    public:
-        ServerSocketImpl();
-        /// Creates the ServerSocketImpl.
-
-    protected:
-        virtual ~ServerSocketImpl();
-        /// Destroys the ServerSocketImpl.
-    };
-
-
-}
-} // namespace Poco::Net
+} } // namespace Poco::Net
 
 
 #endif // Net_ServerSocketImpl_INCLUDED

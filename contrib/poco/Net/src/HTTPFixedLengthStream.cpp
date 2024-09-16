@@ -14,7 +14,6 @@
 
 #include "Poco/Net/HTTPFixedLengthStream.h"
 #include "Poco/Net/HTTPSession.h"
-#include "Poco/Net/NetException.h"
 
 
 using Poco::BufferedStreamBuf;
@@ -30,7 +29,7 @@ namespace Net {
 
 
 HTTPFixedLengthStreamBuf::HTTPFixedLengthStreamBuf(HTTPSession& session, ContentLength length, openmode mode):
-	HTTPBasicStreamBuf(HTTP_DEFAULT_BUFFER_SIZE, mode),
+	HTTPBasicStreamBuf(HTTPBufferAllocator::BUFFER_SIZE, mode),
 	_session(session),
 	_length(length),
 	_count(0)
@@ -43,12 +42,6 @@ HTTPFixedLengthStreamBuf::~HTTPFixedLengthStreamBuf()
 }
 
 
-bool HTTPFixedLengthStreamBuf::isComplete() const
-{
-    return _count == _length;
-}
-
-
 int HTTPFixedLengthStreamBuf::readFromDevice(char* buffer, std::streamsize length)
 {
 	int n = 0;
@@ -57,10 +50,7 @@ int HTTPFixedLengthStreamBuf::readFromDevice(char* buffer, std::streamsize lengt
 		if (_count + length > _length)
 			length = static_cast<std::streamsize>(_length - _count);
 		n = _session.read(buffer, length);
-		if (n > 0)
-			_count += n;
-		else
-			throw MessageException("Unexpected EOF");
+		if (n > 0) _count += n;
 	}
 	return n;
 }
@@ -115,6 +105,9 @@ HTTPFixedLengthStreamBuf* HTTPFixedLengthIOS::rdbuf()
 //
 
 
+Poco::MemoryPool HTTPFixedLengthInputStream::_pool(sizeof(HTTPFixedLengthInputStream));
+
+
 HTTPFixedLengthInputStream::HTTPFixedLengthInputStream(HTTPSession& session, HTTPFixedLengthStreamBuf::ContentLength length):
 	HTTPFixedLengthIOS(session, length, std::ios::in),
 	std::istream(&_buf)
@@ -127,9 +120,32 @@ HTTPFixedLengthInputStream::~HTTPFixedLengthInputStream()
 }
 
 
+void* HTTPFixedLengthInputStream::operator new(std::size_t size)
+{
+	return _pool.get();
+}
+
+
+void HTTPFixedLengthInputStream::operator delete(void* ptr)
+{
+	try
+	{
+		_pool.release(ptr);
+	}
+	catch (...)
+	{
+		poco_unexpected();
+	}
+}
+
+
 //
 // HTTPFixedLengthOutputStream
 //
+
+
+Poco::MemoryPool HTTPFixedLengthOutputStream::_pool(sizeof(HTTPFixedLengthOutputStream));
+
 
 HTTPFixedLengthOutputStream::HTTPFixedLengthOutputStream(HTTPSession& session, HTTPFixedLengthStreamBuf::ContentLength length):
 	HTTPFixedLengthIOS(session, length, std::ios::out),
@@ -140,6 +156,25 @@ HTTPFixedLengthOutputStream::HTTPFixedLengthOutputStream(HTTPSession& session, H
 
 HTTPFixedLengthOutputStream::~HTTPFixedLengthOutputStream()
 {
+}
+
+
+void* HTTPFixedLengthOutputStream::operator new(std::size_t size)
+{
+	return _pool.get();
+}
+
+
+void HTTPFixedLengthOutputStream::operator delete(void* ptr)
+{
+	try
+	{
+		_pool.release(ptr);
+	}
+	catch (...)
+	{
+		poco_unexpected();
+	}
 }
 
 

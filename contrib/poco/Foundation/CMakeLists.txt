@@ -249,34 +249,11 @@ src/Windows1252Encoding.cpp
 src/WindowsConsoleChannel.cpp
 )
 
-# Platform Specific
-#POCO_SOURCES_AUTO_PLAT( SRCS UNIX src/SyslogChannel.cpp )
-#POCO_HEADERS_AUTO( SRCS include/Poco/SyslogChannel.h )
-
-# For Windows CE we need to disable these
-#if(WINCE)
-#POCO_SOURCES_AUTO_PLAT( SRCS OFF
-	#src/WindowsConsoleChannel.cpp
-	#src/EventLogChannel.cpp
-	#)
-#else()
-#POCO_SOURCES_AUTO_PLAT( SRCS WIN32
-	#src/WindowsConsoleChannel.cpp
-	#src/EventLogChannel.cpp
-	#)
-#endif()
-
-
-
-# If POCO_UNBUNDLED is enabled we try to find the required packages
-# The configuration will fail if the packages are not found
-
-
 if(WIN32)
 	set(SYSLIBS ${SYSLIBS} iphlpapi)
 endif(WIN32)
 
-add_library(_poco_foundation STATIC ${SRCS})
+add_library(_poco_foundation ${SRCS})
 
 target_include_directories (_poco_foundation SYSTEM PUBLIC "include")
 
@@ -291,7 +268,7 @@ target_compile_definitions (_poco_foundation
 if (OS_DARWIN OR OS_LINUX)
     target_compile_definitions (_poco_foundation PUBLIC POCO_OS_FAMILY_UNIX)
 elseif(OS_WINDOWS)
-    target_compile_definitions (_poco_foundation PUBLIC POCO_OS_FAMILY_WINDOWS POCO_STATIC)
+    target_compile_definitions (_poco_foundation PUBLIC POCO_OS_FAMILY_WINDOWS Foundation_EXPORTS)
 endif()
 
 target_compile_options (_poco_foundation

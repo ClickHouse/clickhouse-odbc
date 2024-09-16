@@ -22,37 +22,34 @@
 #include "Poco/Net/SocketImpl.h"
 
 
-namespace Poco
+namespace Poco {
+namespace Net {
+
+
+class Net_API DatagramSocketImpl: public SocketImpl
+	/// This class implements an UDP socket.
 {
-namespace Net
-{
+public:
+	DatagramSocketImpl();
+		/// Creates an unconnected, unbound datagram socket.
+
+	explicit DatagramSocketImpl(SocketAddress::Family family);
+		/// Creates an unconnected datagram socket.
+		///
+		/// The socket will be created for the
+		/// given address family.
+
+	DatagramSocketImpl(poco_socket_t sockfd);
+		/// Creates a StreamSocketImpl using the given native socket.
+		
+protected:
+	void init(int af);
+	
+	~DatagramSocketImpl();
+};
 
 
-    class Net_API DatagramSocketImpl : public SocketImpl
-    /// This class implements an UDP socket.
-    {
-    public:
-        DatagramSocketImpl();
-        /// Creates an unconnected, unbound datagram socket.
-
-        explicit DatagramSocketImpl(SocketAddress::Family family);
-        /// Creates an unconnected datagram socket.
-        ///
-        /// The socket will be created for the
-        /// given address family.
-
-        DatagramSocketImpl(poco_socket_t sockfd);
-        /// Creates a StreamSocketImpl using the given native socket.
-
-    protected:
-        void init(int af);
-
-        ~DatagramSocketImpl();
-    };
-
-
-}
-} // namespace Poco::Net
+} } // namespace Poco::Net
 
 
 #endif // Net_DatagramSocketImpl_INCLUDED

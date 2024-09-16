@@ -17,11 +17,12 @@
 #include "Poco/Mutex.h"
 #include <set>
 
-#ifdef __sun
-#include <cstring>
-#endif
 
-#if   defined(POCO_OS_FAMILY_BSD)
+#if defined(_WIN32) && _WIN32_WINNT >= 0x0600
+#ifndef POCO_HAVE_FD_POLL
+#define POCO_HAVE_FD_POLL 1
+#endif
+#elif defined(POCO_OS_FAMILY_BSD)
 #ifndef POCO_HAVE_FD_POLL
 #define POCO_HAVE_FD_POLL 1
 #endif
@@ -31,7 +32,9 @@
 #if defined(POCO_HAVE_FD_EPOLL)
 #include <sys/epoll.h>
 #elif defined(POCO_HAVE_FD_POLL)
+#ifndef _WIN32
 #include <poll.h>
+#endif
 #endif
 
 
@@ -290,7 +293,11 @@ public:
 		do
 		{
 			Poco::Timestamp start;
+#ifdef _WIN32
+			rc = WSAPoll(&_pollfds[0], _pollfds.size(), static_cast<INT>(timeout.totalMilliseconds()));
+#else
 			rc = ::poll(&_pollfds[0], _pollfds.size(), timeout.totalMilliseconds());
+#endif
 			if (rc < 0 && SocketImpl::lastError() == POCO_EINTR)
 			{
 				Poco::Timestamp end;
@@ -320,6 +327,10 @@ public:
 							result[its->second] |= PollSet::POLL_WRITE;
 						if (it->revents & POLLERR)
 							result[its->second] |= PollSet::POLL_ERROR;
+#ifdef _WIN32
+						if (it->revents & POLLHUP)
+							result[its->second] |= PollSet::POLL_READ;
+#endif
 					}
 					it->revents = 0;
 				}

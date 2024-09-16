@@ -269,7 +269,7 @@ void Context::acquireSchannelCredentials(CredHandle& credHandle) const
 	if (_pCert)
 	{
 		schannelCred.cCreds = 1; // how many cred are stored in &pCertContext
-		schannelCred.paCred = &const_cast<PCCERT_CONTEXT>(_pCert);
+		schannelCred.paCred = const_cast<PCCERT_CONTEXT *>(&_pCert);
 	}
 
 	schannelCred.grbitEnabledProtocols = proto();

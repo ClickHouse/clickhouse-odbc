@@ -47,3 +47,10 @@ target_compile_options (_poco_xml
 )
 target_include_directories (_poco_xml SYSTEM PUBLIC "include")
 target_link_libraries (_poco_xml PUBLIC Poco::Foundation Poco::XML::Expat)
+if (OS_DARWIN OR OS_LINUX)
+    target_compile_definitions (_poco_xml PUBLIC POCO_OS_FAMILY_UNIX)
+elseif(OS_WINDOWS)
+    target_compile_definitions (_poco_xml PUBLIC POCO_OS_FAMILY_WINDOWS XML_EXPORTS)
+endif()
+
+

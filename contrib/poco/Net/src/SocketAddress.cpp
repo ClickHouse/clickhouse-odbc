@@ -56,6 +56,7 @@ struct AFLT
 //
 
 
+#if !defined(_MSC_VER) || defined(__STDC__)
 // Go home MSVC, you're drunk...
 // See http://stackoverflow.com/questions/5899857/multiple-definition-error-for-static-const-class-members
 const SocketAddress::Family SocketAddress::IPv4;
@@ -64,6 +65,7 @@ const SocketAddress::Family SocketAddress::IPv6;
 #endif
 #if defined(POCO_OS_FAMILY_UNIX)
 const SocketAddress::Family SocketAddress::UNIX_LOCAL;
+#endif
 #endif
 
 
@@ -391,11 +393,15 @@ Poco::UInt16 SocketAddress::resolveService(const std::string& service)
 	}
 	else
 	{
+#if defined(POCO_VXWORKS)
+		throw ServiceNotFoundException(service);
+#else
 		struct servent* se = getservbyname(service.c_str(), NULL);
 		if (se)
 			return ntohs(se->s_port);
 		else
 			throw ServiceNotFoundException(service);
+#endif
 	}
 }
 

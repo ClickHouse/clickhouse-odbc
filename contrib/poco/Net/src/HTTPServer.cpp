@@ -43,9 +43,6 @@ HTTPServer::HTTPServer(HTTPRequestHandlerFactory::Ptr pFactory, Poco::ThreadPool
 
 HTTPServer::~HTTPServer()
 {
-	/// We should call stop and join thread here instead of destructor of parent TCPHandler,
-	/// because there's possible race on 'vptr' between this virtual destructor and 'run' method.
-	stop();
 }
 
 

@@ -46,18 +46,14 @@ namespace Net {
 HTTPServerResponseImpl::HTTPServerResponseImpl(HTTPServerSession& session):
 	_session(session),
 	_pRequest(0),
-	_pStream(0),
-	_pHeaderStream(0)
+	_pStream(0)
 {
 }
 
 
 HTTPServerResponseImpl::~HTTPServerResponseImpl()
 {
-	if (_pHeaderStream && _pHeaderStream != _pStream)
-		delete _pHeaderStream;
-	if (_pStream)
-		delete _pStream;
+	delete _pStream;
 }
 
 
@@ -92,7 +88,11 @@ std::ostream& HTTPServerResponseImpl::send()
 	{
 		Poco::CountingOutputStream cs;
 		write(cs);
+#if defined(POCO_HAVE_INT64)	
 		_pStream = new HTTPFixedLengthOutputStream(_session, getContentLength64() + cs.chars());
+#else
+		_pStream = new HTTPFixedLengthOutputStream(_session, getContentLength() + cs.chars());
+#endif
 		write(*_pStream);
 	}
 	else
@@ -105,42 +105,6 @@ std::ostream& HTTPServerResponseImpl::send()
 }
 
 
-std::pair<std::ostream *, std::ostream *> HTTPServerResponseImpl::beginSend()
-{
-	poco_assert (!_pStream);
-	poco_assert (!_pHeaderStream);
-
-	// NOTE Code is not exception safe.
-
-	if ((_pRequest && _pRequest->getMethod() == HTTPRequest::HTTP_HEAD) ||
-		getStatus() < 200 ||
-		getStatus() == HTTPResponse::HTTP_NO_CONTENT ||
-		getStatus() == HTTPResponse::HTTP_NOT_MODIFIED)
-	{
-		throw Exception("HTTPServerResponse::beginSend is invalid for HEAD request");
-	}
-	else if (getChunkedTransferEncoding())
-	{
-		_pHeaderStream = new HTTPHeaderOutputStream(_session);
-		beginWrite(*_pHeaderStream);
-		_pStream = new HTTPChunkedOutputStream(_session);
-	}
-	else if (hasContentLength())
-	{
-		throw Exception("HTTPServerResponse::beginSend is invalid for response with Content-Length header");
-	}
-	else
-	{
-		_pStream = new HTTPOutputStream(_session);
-		_pHeaderStream = _pStream;
-		setKeepAlive(false);
-		beginWrite(*_pStream);
-	}
-
-	return std::make_pair(_pHeaderStream, _pStream);
-}
-
-
 void HTTPServerResponseImpl::sendFile(const std::string& path, const std::string& mediaType)
 {
 	poco_assert (!_pStream);
@@ -149,7 +113,11 @@ void HTTPServerResponseImpl::sendFile(const std::string& path, const std::string
 	Timestamp dateTime    = f.getLastModified();
 	File::FileSize length = f.getSize();
 	set("Last-Modified", DateTimeFormatter::format(dateTime, DateTimeFormat::HTTP_FORMAT));
+#if defined(POCO_HAVE_INT64)	
 	setContentLength64(length);
+#else
+	setContentLength(static_cast<int>(length));
+#endif
 	setContentType(mediaType);
 	setChunkedTransferEncoding(false);
 

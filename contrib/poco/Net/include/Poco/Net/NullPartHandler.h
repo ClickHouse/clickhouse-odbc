@@ -22,29 +22,26 @@
 #include "Poco/Net/PartHandler.h"
 
 
-namespace Poco
+namespace Poco {
+namespace Net {
+
+
+class Net_API NullPartHandler: public PartHandler
+	/// A very special PartHandler that simply discards all data.
 {
-namespace Net
-{
+public:
+	NullPartHandler();
+		/// Creates the NullPartHandler.
+	
+	~NullPartHandler();
+		/// Destroys the NullPartHandler.
+	
+	void handlePart(const MessageHeader& header, std::istream& stream);
+		/// Reads and discards all data from the stream.
+};
 
 
-    class Net_API NullPartHandler : public PartHandler
-    /// A very special PartHandler that simply discards all data.
-    {
-    public:
-        NullPartHandler();
-        /// Creates the NullPartHandler.
-
-        ~NullPartHandler();
-        /// Destroys the NullPartHandler.
-
-        void handlePart(const MessageHeader & header, std::istream & stream);
-        /// Reads and discards all data from the stream.
-    };
-
-
-}
-} // namespace Poco::Net
+} } // namespace Poco::Net
 
 
 #endif // Net_NullPartHandler_INCLUDED

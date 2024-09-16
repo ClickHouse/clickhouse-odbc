@@ -88,18 +88,7 @@ void HTTPServerConnection::run()
 					
 						pHandler->handleRequest(request, response);
 						session.setKeepAlive(_pParams->getKeepAlive() && response.getKeepAlive() && session.canKeepAlive());
-
-                        /// all that fuzz is all about to make session close with less timeout than 15s (set in HTTPServerParams c-tor)
-                        if (_pParams->getKeepAlive() && response.getKeepAlive() && session.canKeepAlive())
-                        {
-                            int value = response.getKeepAliveTimeout();
-                            if (value < 0)
-                                value = request.getKeepAliveTimeout();
-                            if (value > 0)
-                                session.setKeepAliveTimeout(Poco::Timespan(value, 0));
-                        }
-
-                    }
+					}
 					else sendErrorResponse(session, HTTPResponse::HTTP_NOT_IMPLEMENTED);
 				}
 				catch (Poco::Exception&)
@@ -159,7 +148,11 @@ void HTTPServerConnection::onServerStopped(const bool& abortCurrent)
 			// Note: On Windows, select() will not return if one of its socket is being
 			// shut down. Therefore we have to call close(), which works better.
 			// On other platforms, we do the more graceful thing.
+#if defined(_WIN32)
+			socket().close();
+#else
 			socket().shutdown();
+#endif
 		}
 		catch (...)
 		{
@@ -171,7 +164,11 @@ void HTTPServerConnection::onServerStopped(const bool& abortCurrent)
 
 		try
 		{
+#if defined(_WIN32)
+			socket().close();
+#else
 			socket().shutdown();
+#endif
 		}
 		catch (...)
 		{
