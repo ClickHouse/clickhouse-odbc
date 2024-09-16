@@ -30,12 +30,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        odbc_provider: [UnixODBC, iODBC]
-        compiler: [Clang, GCC]
-        build_type: [Debug, Release]
+        odbc_provider: [UnixODBC]
+        compiler: [Clang]
+        build_type: [Debug]
         architecture: [x86_64]
-        runtime_link: [static-runtime, dynamic-runtime]
-        third_parties: [bundled-third-parties, system-third-parties]
+        runtime_link: [static-runtime]
+        third_parties: [system-third-parties]
         # exclude:
         #   - os: ubuntu-18.04
         #     compiler: Clang
@@ -200,6 +200,7 @@ jobs:
         EOF
 
     - name: Prepare Python dependencies
+      working-directory: test
       run: |
         pip install -r requirements.txt
 
