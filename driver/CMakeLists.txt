@@ -205,9 +205,9 @@ if (OS_LINUX)
         LINK_FLAGS "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_linux.txt"
     )
 elseif (OS_DARWIN)
-    set_target_properties(${libname} PROPERTIES
-        LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_darwin.txt"
-    )
+    #set_target_properties(${libname} PROPERTIES
+    #    LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_darwin.txt"
+    #)
 endif()
 
 
