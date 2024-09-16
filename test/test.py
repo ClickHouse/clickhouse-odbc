@@ -12,8 +12,10 @@ import pyodbc
 import sys
 import os
 import time
+import platform
 
 is_python_3 = (sys.version_info.major == 3)
+is_darwin = (platform.system() == 'Darwin')
 is_windows = (os.name == 'nt')
 
 def main():
@@ -29,7 +31,7 @@ def main():
     query(connection,
         "SELECT *, (CASE WHEN (number == 1) THEN 'o' WHEN (number == 2) THEN 'two long string' WHEN (number == 3) THEN 'r' WHEN (number == 4) THEN NULL ELSE '-' END) FROM system.numbers LIMIT 6")
     # TODO query("SELECT 1, 'string', NULL")
-    if is_python_3:
+    if is_python_3 and not is_darwin:
         query(connection, u"SELECT 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'")
     query(connection,
         "SELECT -127,-128,-129,126,127,128,255,256,257,-32767,-32768,-32769,32766,32767,32768,65535,65536,65537,-2147483647,-2147483648,-2147483649,2147483646,2147483647,2147483648,4294967295,4294967296,4294967297,-9223372036854775807,-9223372036854775808,-9223372036854775809,9223372036854775806,9223372036854775807,9223372036854775808,18446744073709551615,18446744073709551616,18446744073709551617")

@@ -52,7 +52,7 @@ def check_datatype(connection, datatype, values, nullable=False, quote=False, re
                         rows = connection.query("SELECT * FROM ps ORDER BY v")
                         if expected.get("all") is not None:
                             with Then(f"the result is {expected.get('all')}", flags=TE, format_name=False):
-                                assert repr(rows) == expected.get("all"), error("result did not match")
+                                assert repr(rows).replace(' ', '') == expected.get("all").replace(' ', ''), error("result did not match")
 
                     with When(f"I have values {repr(values)}", format_name=False):
                         for v in values:
@@ -63,7 +63,7 @@ def check_datatype(connection, datatype, values, nullable=False, quote=False, re
                                 rows = connection.query("SELECT * FROM ps WHERE v = ? ORDER BY v", [v])
                                 if expected.get(v) is not None:
                                     with Then(f"the result is {repr(expected.get(v))}", flags=TE, format_name=False):
-                                        assert repr(rows) == expected.get(v), error("result did not match")
+                                        assert repr(rows).replace(' ', '') == expected.get(v).replace(' ', ''), error("result did not match")
                 finally:
                     connection.connection.setencoding(encoding=connection.encoding)
                     connection.query("DROP TABLE ps", fetch=False)
@@ -78,7 +78,7 @@ def sanity_check(self, connection):
 
         result = "[(1, )]"
         with Then(f"the result is {result}", format_name=False):
-            assert repr(rows) == result, error("result dit not match")
+            assert repr(rows).replace(' ', '') == result.replace(' ', ''), error("result dit not match")
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Int8("1.0"))

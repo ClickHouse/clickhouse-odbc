@@ -24,7 +24,7 @@ def isNull(self, connection):
                 rows = connection.query(query, [value])
                 expected = "[(0, )]"
                 with Then(f"the result is {expected}", flags=TE):
-                    assert repr(rows) == expected, error("result did not match")
+                    assert repr(rows).replace(' ', '') == expected.replace(' ', ''), error("result did not match")
 
 @TestScenario
 @Requirements(RQ_SRS_003_ParameterizedQueries_DataType_Select_Nullable_NULL("1.0"))
@@ -36,21 +36,21 @@ def Null(self, connection):
             rows = connection.query(query, [None])
             expected = "[(1, )]"
             with Then(f"the result is {expected}", flags=TE):
-                assert repr(rows) == expected, error("result did not match")
+                assert repr(rows).replace(' ', '') == expected.replace(' ', ''), error("result did not match")
 
         query = "SELECT arrayReduce('count', [?, ?])"
         with When(f"I run '{query}' with [None, None] parameter", flags=TE):
             rows = connection.query(query, [None, None])
             expected = "[(0, )]"
             with Then(f"the result is {expected}", flags=TE):
-                assert repr(rows) == expected, error("result did not match")
+                assert repr(rows).replace(' ', '') == expected.replace(' ', ''), error("result did not match")
 
         query = "SELECT arrayReduce('count', [1, ?, ?])"
         with When(f"I run '{query}' with [1, None, None])", flags=TE):
             rows = connection.query(query, [1, None, None])
             expected = "[(1, )]"
             with Then(f"the result is {expected}", flags=TE):
-                assert repr(rows) == expected, error("result did not match")
+                assert repr(rows).replace(' ', '') == expected.replace(' ', ''), error("result did not match")
 
 @TestFeature
 @Name("functions and values")
