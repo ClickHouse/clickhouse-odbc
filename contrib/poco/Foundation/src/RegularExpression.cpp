@@ -15,7 +15,7 @@
 #include "Poco/RegularExpression.h"
 #include "Poco/Exception.h"
 #include <sstream>
-#if defined(POCO_UNBUNDLED_PCRE)
+#if defined(POCO_UNBUNDLED)
 #include <pcre.h>
 #else
 #include "pcre_config.h"

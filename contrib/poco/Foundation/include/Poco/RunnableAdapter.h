@@ -22,45 +22,53 @@
 #include "Poco/Runnable.h"
 
 
-namespace Poco
-{
+namespace Poco {
 
 
 template <class C>
-class RunnableAdapter : public Runnable
-/// This adapter simplifies using ordinary methods as
-/// targets for threads.
-/// Usage:
-///    RunnableAdapter<MyClass> ra(myObject, &MyObject::doSomething));
-///    Thread thr;
-///    thr.Start(ra);
-///
-/// For using a freestanding or static member function as a thread
-/// target, please see the ThreadTarget class.
+class RunnableAdapter: public Runnable
+	/// This adapter simplifies using ordinary methods as
+	/// targets for threads.
+	/// Usage:
+	///    RunnableAdapter<MyClass> ra(myObject, &MyObject::doSomething));
+	///    Thread thr;
+	///    thr.Start(ra);
+	///
+	/// For using a freestanding or static member function as a thread
+	/// target, please see the ThreadTarget class.
 {
 public:
-    typedef void (C::*Callback)();
+	typedef void (C::*Callback)();
+	
+	RunnableAdapter(C& object, Callback method): _pObject(&object), _method(method)
+	{
+	}
+	
+	RunnableAdapter(const RunnableAdapter& ra): _pObject(ra._pObject), _method(ra._method)
+	{
+	}
 
-    RunnableAdapter(C & object, Callback method) : _pObject(&object), _method(method) { }
+	~RunnableAdapter()
+	{
+	}
 
-    RunnableAdapter(const RunnableAdapter & ra) : _pObject(ra._pObject), _method(ra._method) { }
+	RunnableAdapter& operator = (const RunnableAdapter& ra)
+	{
+		_pObject = ra._pObject;
+		_method  = ra._method;
+		return *this;
+	}
 
-    ~RunnableAdapter() { }
-
-    RunnableAdapter & operator=(const RunnableAdapter & ra)
-    {
-        _pObject = ra._pObject;
-        _method = ra._method;
-        return *this;
-    }
-
-    void run() { (_pObject->*_method)(); }
-
+	void run()
+	{
+		(_pObject->*_method)();
+	}
+	
 private:
-    RunnableAdapter();
+	RunnableAdapter();
 
-    C * _pObject;
-    Callback _method;
+	C*       _pObject;
+	Callback _method;
 };
 
 

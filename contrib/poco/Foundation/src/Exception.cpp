@@ -28,10 +28,6 @@ Exception::Exception(const std::string& msg, int code): _msg(msg), _pNested(0), 
 {
 }
 
-Exception::Exception(std::string&& msg, int code): _msg(msg), _pNested(0), _code(code)
-{
-}
-
 
 Exception::Exception(const std::string& msg, const std::string& arg, int code): _msg(msg), _pNested(0), _code(code)
 {

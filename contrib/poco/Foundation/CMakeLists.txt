@@ -1,5 +1,3 @@
-# Foundation (pcre)
-
 file (GLOB SRCS_PCRE src/pcre_*.c)
 
 add_library (_poco_foundation_pcre ${SRCS_PCRE})
@@ -20,155 +18,282 @@ target_compile_options (_poco_foundation_pcre
         -Wno-unreachable-code-break
         -Wno-unused-macros
 )
-
-# Foundation
-
-set (SRCS
-    src/AbstractObserver.cpp
-    src/ActiveDispatcher.cpp
-    src/ArchiveStrategy.cpp
-    src/Ascii.cpp
-    src/ASCIIEncoding.cpp
-    src/AsyncChannel.cpp
-    src/AtomicCounter.cpp
-    src/Base64Decoder.cpp
-    src/Base64Encoder.cpp
-    src/BinaryReader.cpp
-    src/BinaryWriter.cpp
-    src/Bugcheck.cpp
-    src/ByteOrder.cpp
-    src/Channel.cpp
-    src/Checksum.cpp
-    src/Clock.cpp
-    src/CompressedLogFile.cpp
-    src/Condition.cpp
-    src/Configurable.cpp
-    src/ConsoleChannel.cpp
-    src/CountingStream.cpp
-    src/DateTime.cpp
-    src/DateTimeFormat.cpp
-    src/DateTimeFormatter.cpp
-    src/DateTimeParser.cpp
-    src/Debugger.cpp
-    src/DeflatingStream.cpp
-    src/DigestEngine.cpp
-    src/DigestStream.cpp
-    src/DirectoryIterator.cpp
-    src/DirectoryIteratorStrategy.cpp
-    src/Environment.cpp
-    src/Error.cpp
-    src/ErrorHandler.cpp
-    src/Event.cpp
-    src/EventArgs.cpp
-    src/EventChannel.cpp
-    src/Exception.cpp
-    src/FIFOBufferStream.cpp
-    src/File.cpp
-    src/FileChannel.cpp
-    src/FileStream.cpp
-    src/FileStreamFactory.cpp
-    src/Format.cpp
-    src/Formatter.cpp
-    src/FormattingChannel.cpp
-    src/FPEnvironment.cpp
-    src/Glob.cpp
-    src/Hash.cpp
-    src/HashStatistic.cpp
-    src/HexBinaryDecoder.cpp
-    src/HexBinaryEncoder.cpp
-    src/InflatingStream.cpp
-    src/JSONString.cpp
-    src/LineEndingConverter.cpp
-    src/LocalDateTime.cpp
-    src/LogFile.cpp
-    src/Logger.cpp
-    src/LoggingFactory.cpp
-    src/LoggingRegistry.cpp
-    src/LogStream.cpp
-    src/MD5Engine.cpp
-    src/MemoryStream.cpp
-    src/Message.cpp
-    src/Mutex.cpp
-    src/NamedEvent.cpp
-    src/NamedMutex.cpp
-    src/NestedDiagnosticContext.cpp
-    src/Notification.cpp
-    src/NotificationCenter.cpp
-    src/NotificationQueue.cpp
-    src/NullChannel.cpp
-    src/NullStream.cpp
-    src/NumberFormatter.cpp
-    src/NumberParser.cpp
-    src/NumericString.cpp
-    src/Path.cpp
-    src/PatternFormatter.cpp
-    src/Pipe.cpp
-    src/PipeImpl.cpp
-    src/PriorityNotificationQueue.cpp
-    src/Process.cpp
-    src/PurgeStrategy.cpp
-    src/Random.cpp
-    src/RandomStream.cpp
-    src/RefCountedObject.cpp
-    src/RegularExpression.cpp
-    src/RotateStrategy.cpp
-    src/Runnable.cpp
-    src/RWLock.cpp
-    src/Semaphore.cpp
-    src/SHA1Engine.cpp
-    src/SharedLibrary.cpp
-    src/SharedMemory.cpp
-    src/SignalHandler.cpp
-    src/SimpleFileChannel.cpp
-    src/SortedDirectoryIterator.cpp
-    src/SplitterChannel.cpp
-    src/Stopwatch.cpp
-    src/StreamChannel.cpp
-    src/StreamConverter.cpp
-    src/StreamCopier.cpp
-    src/String.cpp
-    src/StringTokenizer.cpp
-    src/SyslogChannel.cpp
-    src/Task.cpp
-    src/TaskManager.cpp
-    src/TaskNotification.cpp
-    src/TeeStream.cpp
-    src/TemporaryFile.cpp
-    src/TextBufferIterator.cpp
-    src/TextConverter.cpp
-    src/TextEncoding.cpp
-    src/TextIterator.cpp
-    src/Thread.cpp
-    src/ThreadLocal.cpp
-    src/ThreadPool.cpp
-    src/ThreadTarget.cpp
-    src/TimedNotificationQueue.cpp
-    src/Timer.cpp
-    src/Timespan.cpp
-    src/Timestamp.cpp
-    src/Timezone.cpp
-    src/Token.cpp
-    src/Unicode.cpp
-    src/UnicodeConverter.cpp
-    src/URI.cpp
-    src/URIStreamFactory.cpp
-    src/URIStreamOpener.cpp
-    src/UTF16Encoding.cpp
-    src/UTF32Encoding.cpp
-    src/UTF8Encoding.cpp
-    src/UTF8String.cpp
-    src/UUID.cpp
-    src/UUIDGenerator.cpp
-    src/Var.cpp
-    src/VarHolder.cpp
-    src/VarIterator.cpp
-    src/Void.cpp
+set(SRCS 
+src/ASCIIEncoding.cpp
+src/AbstractObserver.cpp
+src/ActiveDispatcher.cpp
+src/ArchiveStrategy.cpp
+src/Ascii.cpp
+src/AsyncChannel.cpp
+src/AtomicCounter.cpp
+src/Base64Decoder.cpp
+src/Base64Encoder.cpp
+src/BinaryReader.cpp
+src/BinaryWriter.cpp
+src/Bugcheck.cpp
+src/ByteOrder.cpp
+src/Channel.cpp
+src/Checksum.cpp
+src/Clock.cpp
+src/Condition.cpp
+src/Configurable.cpp
+src/ConsoleChannel.cpp
+src/CountingStream.cpp
+src/DateTime.cpp
+src/DateTimeFormat.cpp
+src/DateTimeFormatter.cpp
+src/DateTimeParser.cpp
+src/Debugger.cpp
+src/DeflatingStream.cpp
+src/DigestEngine.cpp
+src/DigestStream.cpp
+src/DirectoryIterator.cpp
+src/DirectoryIteratorStrategy.cpp
+#src/DirectoryIterator_UNIX.cpp
+#src/DirectoryIterator_WIN32.cpp
+#src/DirectoryIterator_WIN32U.cpp
+src/DirectoryWatcher.cpp
+src/Environment.cpp
+#src/Environment_UNIX.cpp
+#src/Environment_VX.cpp
+#src/Environment_WIN32.cpp
+#src/Environment_WIN32U.cpp
+#src/Environment_WINCE.cpp
+src/Error.cpp
+src/ErrorHandler.cpp
+src/Event.cpp
+src/EventArgs.cpp
+src/EventChannel.cpp
+#src/EventLogChannel.cpp
+#src/Event_POSIX.cpp
+#src/Event_VX.cpp
+#src/Event_WIN32.cpp
+src/Exception.cpp
+src/FIFOBufferStream.cpp
+src/FPEnvironment.cpp
+#src/FPEnvironment_C99.cpp
+#src/FPEnvironment_DEC.cpp
+#src/FPEnvironment_DUMMY.cpp
+#src/FPEnvironment_QNX.cpp
+#src/FPEnvironment_SUN.cpp
+#src/FPEnvironment_WIN32.cpp
+src/File.cpp
+src/FileChannel.cpp
+src/FileStream.cpp
+src/FileStreamFactory.cpp
+#src/FileStream_POSIX.cpp
+#src/FileStream_WIN32.cpp
+#src/File_UNIX.cpp
+#src/File_VX.cpp
+#src/File_WIN32.cpp
+#src/File_WIN32U.cpp
+#src/File_WINCE.cpp
+src/Format.cpp
+src/Formatter.cpp
+src/FormattingChannel.cpp
+src/Glob.cpp
+src/Hash.cpp
+src/HashStatistic.cpp
+src/HexBinaryDecoder.cpp
+src/HexBinaryEncoder.cpp
+src/InflatingStream.cpp
+src/JSONString.cpp
+src/Latin1Encoding.cpp
+src/Latin2Encoding.cpp
+src/Latin9Encoding.cpp
+src/LineEndingConverter.cpp
+src/LocalDateTime.cpp
+src/LogFile.cpp
+#src/LogFile_STD.cpp
+#src/LogFile_WIN32.cpp
+#src/LogFile_WIN32U.cpp
+src/LogStream.cpp
+src/Logger.cpp
+src/LoggingFactory.cpp
+src/LoggingRegistry.cpp
+src/MD4Engine.cpp
+src/MD5Engine.cpp
+src/Manifest.cpp
+src/MemoryPool.cpp
+src/MemoryStream.cpp
+src/Message.cpp
+src/Mutex.cpp
+#src/Mutex_POSIX.cpp
+#src/Mutex_VX.cpp
+#src/Mutex_WIN32.cpp
+#src/Mutex_WINCE.cpp
+src/NamedEvent.cpp
+#src/NamedEvent_Android.cpp
+#src/NamedEvent_UNIX.cpp
+#src/NamedEvent_WIN32.cpp
+#src/NamedEvent_WIN32U.cpp
+src/NamedMutex.cpp
+#src/NamedMutex_Android.cpp
+#src/NamedMutex_UNIX.cpp
+#src/NamedMutex_WIN32.cpp
+#src/NamedMutex_WIN32U.cpp
+src/NestedDiagnosticContext.cpp
+src/Notification.cpp
+src/NotificationCenter.cpp
+src/NotificationQueue.cpp
+src/NullChannel.cpp
+src/NullStream.cpp
+src/NumberFormatter.cpp
+src/NumberParser.cpp
+src/NumericString.cpp
+src/Path.cpp
+#src/Path_UNIX.cpp
+#src/Path_WIN32.cpp
+#src/Path_WIN32U.cpp
+#src/Path_WINCE.cpp
+src/PatternFormatter.cpp
+src/Pipe.cpp
+src/PipeImpl.cpp
+#src/PipeImpl_DUMMY.cpp
+#src/PipeImpl_POSIX.cpp
+#src/PipeImpl_WIN32.cpp
+src/PipeStream.cpp
+src/PriorityNotificationQueue.cpp
+src/Process.cpp
+#src/Process_UNIX.cpp
+#src/Process_VX.cpp
+#src/Process_WIN32.cpp
+#src/Process_WIN32U.cpp
+#src/Process_WINCE.cpp
+src/PurgeStrategy.cpp
+src/RWLock.cpp
+#src/RWLock_Android.cpp
+#src/RWLock_POSIX.cpp
+#src/RWLock_VX.cpp
+#src/RWLock_WIN32.cpp
+#src/RWLock_WINCE.cpp
+src/Random.cpp
+src/RandomStream.cpp
+src/RefCountedObject.cpp
+src/RegularExpression.cpp
+src/RotateStrategy.cpp
+src/Runnable.cpp
+src/SHA1Engine.cpp
+src/Semaphore.cpp
+#src/Semaphore_POSIX.cpp
+#src/Semaphore_VX.cpp
+#src/Semaphore_WIN32.cpp
+src/SharedLibrary.cpp
+#src/SharedLibrary_HPUX.cpp
+#src/SharedLibrary_UNIX.cpp
+#src/SharedLibrary_VX.cpp
+#src/SharedLibrary_WIN32.cpp
+#src/SharedLibrary_WIN32U.cpp
+src/SharedMemory.cpp
+#src/SharedMemory_DUMMY.cpp
+#src/SharedMemory_POSIX.cpp
+#src/SharedMemory_WIN32.cpp
+src/SignalHandler.cpp
+src/SimpleFileChannel.cpp
+src/SortedDirectoryIterator.cpp
+src/SplitterChannel.cpp
+src/Stopwatch.cpp
+src/StreamChannel.cpp
+src/StreamConverter.cpp
+src/StreamCopier.cpp
+src/StreamTokenizer.cpp
+src/String.cpp
+src/StringTokenizer.cpp
+src/SynchronizedObject.cpp
+#src/SyslogChannel.cpp
+src/Task.cpp
+src/TaskManager.cpp
+src/TaskNotification.cpp
+src/TeeStream.cpp
+src/TemporaryFile.cpp
+src/TextBufferIterator.cpp
+src/TextConverter.cpp
+src/TextEncoding.cpp
+src/TextIterator.cpp
+src/Thread.cpp
+src/ThreadLocal.cpp
+src/ThreadPool.cpp
+src/ThreadTarget.cpp
+#src/Thread_POSIX.cpp
+#src/Thread_VX.cpp
+#src/Thread_WIN32.cpp
+#src/Thread_WINCE.cpp
+src/TimedNotificationQueue.cpp
+src/Timer.cpp
+src/Timespan.cpp
+src/Timestamp.cpp
+src/Timezone.cpp
+#src/Timezone_UNIX.cpp
+#src/Timezone_VX.cpp
+#src/Timezone_WIN32.cpp
+#src/Timezone_WINCE.cpp
+src/Token.cpp
+src/URI.cpp
+src/URIStreamFactory.cpp
+src/URIStreamOpener.cpp
+src/UTF16Encoding.cpp
+src/UTF32Encoding.cpp
+src/UTF8Encoding.cpp
+src/UTF8String.cpp
+src/UUID.cpp
+src/UUIDGenerator.cpp
+src/Unicode.cpp
+src/UnicodeConverter.cpp
+src/Var.cpp
+src/VarHolder.cpp
+src/VarIterator.cpp
+src/Void.cpp
+src/Windows1250Encoding.cpp
+src/Windows1251Encoding.cpp
+src/Windows1252Encoding.cpp
+src/WindowsConsoleChannel.cpp
 )
 
-add_library (_poco_foundation ${SRCS})
-add_library (Poco::Foundation ALIAS _poco_foundation)
+# Platform Specific
+#POCO_SOURCES_AUTO_PLAT( SRCS UNIX src/SyslogChannel.cpp )
+#POCO_HEADERS_AUTO( SRCS include/Poco/SyslogChannel.h )
 
-# TODO: remove these warning exclusions
+# For Windows CE we need to disable these
+#if(WINCE)
+#POCO_SOURCES_AUTO_PLAT( SRCS OFF
+	#src/WindowsConsoleChannel.cpp
+	#src/EventLogChannel.cpp
+	#)
+#else()
+#POCO_SOURCES_AUTO_PLAT( SRCS WIN32
+	#src/WindowsConsoleChannel.cpp
+	#src/EventLogChannel.cpp
+	#)
+#endif()
+
+
+
+# If POCO_UNBUNDLED is enabled we try to find the required packages
+# The configuration will fail if the packages are not found
+
+
+if(WIN32)
+	set(SYSLIBS ${SYSLIBS} iphlpapi)
+endif(WIN32)
+
+add_library(_poco_foundation STATIC ${SRCS})
+
+target_include_directories (_poco_foundation SYSTEM PUBLIC "include")
+
+target_compile_definitions (_poco_foundation
+    PRIVATE
+        POCO_UNBUNDLED
+        POCO_UNBUNDLED_ZLIB
+    PUBLIC
+        POCO_ENABLE_CPP11
+)
+
+if (OS_DARWIN OR OS_LINUX)
+    target_compile_definitions (_poco_foundation PUBLIC POCO_OS_FAMILY_UNIX)
+elseif(OS_WINDOWS)
+    target_compile_definitions (_poco_foundation PUBLIC POCO_OS_FAMILY_WINDOWS POCO_STATIC)
+endif()
+
 target_compile_options (_poco_foundation
     PRIVATE
         -Wno-array-bounds
@@ -203,27 +328,22 @@ target_compile_options (_poco_foundation
         -Wno-zero-as-null-pointer-constant
 )
 
-target_compile_definitions (_poco_foundation
-    PRIVATE
-        POCO_UNBUNDLED
-        POCO_UNBUNDLED_ZLIB
-    PUBLIC
-        POCO_ENABLE_CPP11
-        POCO_OS_FAMILY_UNIX
-)
-
-target_include_directories (_poco_foundation SYSTEM PUBLIC "include")
+add_definitions( -DPCRE_STATIC)
 
 target_link_libraries (_poco_foundation
     PRIVATE
         Poco::Foundation::PCRE
         ch_contrib::zlib
         ch_contrib::lz4
-        ch_contrib::double_conversion)
+        ch_contrib::double_conversion
+        ${SYSLIBS})
 
-if(OS_DARWIN AND ARCH_AARCH64)
-    target_compile_definitions (_poco_foundation
-        PRIVATE
-            POCO_NO_STAT64
-    )
-endif()
+add_library(Poco::Foundation ALIAS _poco_foundation)
+
+target_include_directories(_poco_foundation
+	PUBLIC
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+		$<INSTALL_INTERFACE:include>
+	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+	)
+

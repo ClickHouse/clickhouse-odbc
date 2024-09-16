@@ -20,6 +20,9 @@
 #include "Poco/ErrorHandler.h"
 #include <sstream>
 #include <ctime>
+#if defined(_WIN32_WCE) && _WIN32_WCE < 0x800
+#include "wce_time.h"
+#endif
 
 
 namespace Poco {
@@ -28,11 +31,7 @@ namespace Poco {
 class PooledThread: public Runnable
 {
 public:
-	explicit PooledThread(
-		const std::string& name,
-		int stackSize = POCO_THREAD_STACK_SIZE,
-        size_t globalProfilerRealTimePeriodNs_ = 0,
-        size_t globalProfilerCPUTimePeriodNs_ = 0);
+	PooledThread(const std::string& name, int stackSize = POCO_THREAD_STACK_SIZE);
 	~PooledThread();
 
 	void start();
@@ -55,28 +54,24 @@ private:
 	Event                _targetCompleted;
 	Event                _started;
 	FastMutex            _mutex;
-	size_t _globalProfilerRealTimePeriodNs;
-	size_t _globalProfilerCPUTimePeriodNs;
 };
 
 
-PooledThread::PooledThread(
-	const std::string& name,
-	int stackSize,
-	size_t globalProfilerRealTimePeriodNs_,
-	size_t globalProfilerCPUTimePeriodNs_) :
-	_idle(true),
-	_idleTime(0),
-	_pTarget(0),
-	_name(name),
+PooledThread::PooledThread(const std::string& name, int stackSize): 
+	_idle(true), 
+	_idleTime(0), 
+	_pTarget(0), 
+	_name(name), 
 	_thread(name),
-	_targetCompleted(false),
-	_globalProfilerRealTimePeriodNs(globalProfilerRealTimePeriodNs_),
-	_globalProfilerCPUTimePeriodNs(globalProfilerCPUTimePeriodNs_)
+	_targetCompleted(false)
 {
 	poco_assert_dbg (stackSize >= 0);
 	_thread.setStackSize(stackSize);
+#if defined(_WIN32_WCE) && _WIN32_WCE < 0x800
+	_idleTime = wceex_time(NULL);
+#else
 	_idleTime = std::time(NULL);
+#endif
 }
 
 
@@ -95,7 +90,7 @@ void PooledThread::start()
 void PooledThread::start(Thread::Priority priority, Runnable& target)
 {
 	FastMutex::ScopedLock lock(_mutex);
-
+	
 	poco_assert (_pTarget == 0);
 
 	_pTarget = &target;
@@ -121,7 +116,7 @@ void PooledThread::start(Thread::Priority priority, Runnable& target, const std:
 	}
 	_thread.setName(fullName);
 	_thread.setPriority(priority);
-
+	
 	poco_assert (_pTarget == 0);
 
 	_pTarget = &target;
@@ -140,7 +135,11 @@ int PooledThread::idleTime()
 {
 	FastMutex::ScopedLock lock(_mutex);
 
+#if defined(_WIN32_WCE) && _WIN32_WCE < 0x800
+	return (int) (wceex_time(NULL) - _idleTime);
+#else
 	return (int) (time(NULL) - _idleTime);
+#endif	
 }
 
 
@@ -157,7 +156,7 @@ void PooledThread::join()
 void PooledThread::activate()
 {
 	FastMutex::ScopedLock lock(_mutex);
-
+	
 	poco_assert (_idle);
 	_idle = false;
 	_targetCompleted.reset();
@@ -167,7 +166,7 @@ void PooledThread::activate()
 void PooledThread::release()
 {
 	const long JOIN_TIMEOUT = 10000;
-
+	
 	_mutex.lock();
 	_pTarget = 0;
 	_mutex.unlock();
@@ -213,7 +212,11 @@ void PooledThread::run()
 			}
 			FastMutex::ScopedLock lock(_mutex);
 			_pTarget  = 0;
+#if defined(_WIN32_WCE) && _WIN32_WCE < 0x800
+			_idleTime = wceex_time(NULL);
+#else
 			_idleTime = time(NULL);
+#endif	
 			_idle     = true;
 			_targetCompleted.set();
 			ThreadLocalStorage::clear();
@@ -232,17 +235,13 @@ void PooledThread::run()
 ThreadPool::ThreadPool(int minCapacity,
 	int maxCapacity,
 	int idleTime,
-	int stackSize,
-	size_t globalProfilerRealTimePeriodNs_,
-	size_t globalProfilerCPUTimePeriodNs_) :
-	_minCapacity(minCapacity),
-	_maxCapacity(maxCapacity),
+	int stackSize): 
+	_minCapacity(minCapacity), 
+	_maxCapacity(maxCapacity), 
 	_idleTime(idleTime),
 	_serial(0),
 	_age(0),
-	_stackSize(stackSize),
-    _globalProfilerRealTimePeriodNs(globalProfilerRealTimePeriodNs_),
-    _globalProfilerCPUTimePeriodNs(globalProfilerCPUTimePeriodNs_)
+	_stackSize(stackSize)
 {
 	poco_assert (minCapacity >= 1 && maxCapacity >= minCapacity && idleTime > 0);
 
@@ -259,18 +258,14 @@ ThreadPool::ThreadPool(const std::string& name,
 	int minCapacity,
 	int maxCapacity,
 	int idleTime,
-	int stackSize,
-	size_t globalProfilerRealTimePeriodNs_,
-	size_t globalProfilerCPUTimePeriodNs_) :
+	int stackSize):
 	_name(name),
-	_minCapacity(minCapacity),
-	_maxCapacity(maxCapacity),
+	_minCapacity(minCapacity), 
+	_maxCapacity(maxCapacity), 
 	_idleTime(idleTime),
 	_serial(0),
 	_age(0),
-	_stackSize(stackSize),
-    _globalProfilerRealTimePeriodNs(globalProfilerRealTimePeriodNs_),
-    _globalProfilerCPUTimePeriodNs(globalProfilerCPUTimePeriodNs_)
+	_stackSize(stackSize)
 {
 	poco_assert (minCapacity >= 1 && maxCapacity >= minCapacity && idleTime > 0);
 
@@ -413,15 +408,15 @@ void ThreadPool::housekeep()
 	ThreadVec activeThreads;
 	idleThreads.reserve(_threads.size());
 	activeThreads.reserve(_threads.size());
-
+	
 	for (ThreadVec::iterator it = _threads.begin(); it != _threads.end(); ++it)
 	{
 		if ((*it)->idle())
 		{
 			if ((*it)->idleTime() < _idleTime)
 				idleThreads.push_back(*it);
-			else
-				expiredThreads.push_back(*it);
+			else 
+				expiredThreads.push_back(*it);	
 		}
 		else activeThreads.push_back(*it);
 	}
@@ -483,7 +478,7 @@ PooledThread* ThreadPool::createThread()
 {
 	std::ostringstream name;
 	name << _name << "[#" << ++_serial << "]";
-	return new PooledThread(name.str(), _stackSize, _globalProfilerRealTimePeriodNs, _globalProfilerCPUTimePeriodNs);
+	return new PooledThread(name.str(), _stackSize);
 }
 
 
@@ -501,7 +496,7 @@ public:
 	ThreadPool* pool()
 	{
 		FastMutex::ScopedLock lock(_mutex);
-
+		
 		if (!_pPool)
 		{
 			_pPool = new ThreadPool("default");
@@ -510,7 +505,7 @@ public:
 		}
 		return _pPool;
 	}
-
+	
 private:
 	ThreadPool* _pPool;
 	FastMutex   _mutex;

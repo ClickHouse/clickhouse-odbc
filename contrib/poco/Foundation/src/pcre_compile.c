@@ -4835,7 +4835,7 @@ for (;; ptr++)
 
     If the class contains characters outside the 0-255 range, a different
     opcode is compiled. It may optionally have a bit map for characters < 256,
-    but those above are explicitly listed afterwards. A flag byte tells
+    but those above are are explicitly listed afterwards. A flag byte tells
     whether the bitmap is present, and whether this is a negated class or not.
 
     In JavaScript compatibility mode, an isolated ']' causes an error. In
@@ -5839,7 +5839,7 @@ for (;; ptr++)
       else
 #endif /* SUPPORT_UTF */
 
-      /* Handle the case of a single character - either with no UTF support, or
+      /* Handle the case of a single charater - either with no UTF support, or
       with UTF disabled, or for a single character UTF character. */
         {
         c = code[-1];

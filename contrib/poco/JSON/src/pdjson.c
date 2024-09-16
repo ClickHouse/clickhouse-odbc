@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdbool.h>
 #include "pdjson.h"
 
 #define JSON_FLAG_ERROR      (1u << 0)

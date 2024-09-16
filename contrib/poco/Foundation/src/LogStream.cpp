@@ -208,19 +208,6 @@ LogStream& LogStream::trace(const std::string& message)
 }
 
 
-LogStream& LogStream::test()
-{
-	return priority(Message::PRIO_TEST);
-}
-
-
-LogStream& LogStream::test(const std::string& message)
-{
-	_buf.logger().test(message);
-	return priority(Message::PRIO_TEST);
-}
-
-
 LogStream& LogStream::priority(Message::Priority priority)
 {
 	_buf.setPriority(priority);

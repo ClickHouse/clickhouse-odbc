@@ -21,17 +21,16 @@
 #include "Poco/Foundation.h"
 
 
-namespace Poco
-{
+namespace Poco {
 
 
 class Foundation_API NamedEventImpl
 {
 protected:
-    NamedEventImpl(const std::string & name);
-    ~NamedEventImpl();
-    void setImpl();
-    void waitImpl();
+	NamedEventImpl(const std::string& name);	
+	~NamedEventImpl();
+	void setImpl();
+	void waitImpl();
 };
 
 

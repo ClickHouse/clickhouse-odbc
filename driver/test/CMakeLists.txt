@@ -33,9 +33,17 @@ function (declare_odbc_test_targets libname UNICODE)
 
     target_link_libraries (${libname}-load-ut
         PRIVATE Poco::Foundation
-        PRIVATE ch_contrib::unixodbc
         PRIVATE Threads::Threads
     )
+    if (OS_DARWIN OR OS_LINUX)
+        target_link_libraries (${libname}-load-ut
+            PRIVATE ch_contrib::unixodbc
+        )
+    elseif (OS_WINDOWS)
+        target_link_libraries (${libname}-load-ut
+            PRIVATE ODBC::App
+        )
+    endif()
 
     target_include_directories (${libname}-load-ut
         PRIVATE ${PROJECT_BINARY_DIR}

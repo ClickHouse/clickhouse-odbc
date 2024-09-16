@@ -18,12 +18,11 @@
 #define Foundation_Hash_INCLUDED
 
 
-#include <cstddef>
 #include "Poco/Foundation.h"
+#include <cstddef>
 
 
-namespace Poco
-{
+namespace Poco {
 
 
 std::size_t Foundation_API hash(Int8 n);
@@ -34,18 +33,18 @@ std::size_t Foundation_API hash(Int32 n);
 std::size_t Foundation_API hash(UInt32 n);
 std::size_t Foundation_API hash(Int64 n);
 std::size_t Foundation_API hash(UInt64 n);
-std::size_t Foundation_API hash(const std::string & str);
+std::size_t Foundation_API hash(const std::string& str);
 
 
 template <class T>
 struct Hash
-/// A generic hash function.
+	/// A generic hash function.
 {
-    std::size_t operator()(T value) const
-    /// Returns the hash for the given value.
-    {
-        return Poco::hash(value);
-    }
+	std::size_t operator () (T value) const
+		/// Returns the hash for the given value.
+	{
+		return Poco::hash(value);
+	}
 };
 
 
@@ -54,49 +53,49 @@ struct Hash
 //
 inline std::size_t hash(Int8 n)
 {
-    return static_cast<std::size_t>(n) * 2654435761U;
+	return static_cast<std::size_t>(n)*2654435761U; 
 }
 
 
 inline std::size_t hash(UInt8 n)
 {
-    return static_cast<std::size_t>(n) * 2654435761U;
+	return static_cast<std::size_t>(n)*2654435761U; 
 }
 
 
 inline std::size_t hash(Int16 n)
 {
-    return static_cast<std::size_t>(n) * 2654435761U;
+	return static_cast<std::size_t>(n)*2654435761U; 
 }
 
 
 inline std::size_t hash(UInt16 n)
 {
-    return static_cast<std::size_t>(n) * 2654435761U;
+	return static_cast<std::size_t>(n)*2654435761U; 
 }
 
 
 inline std::size_t hash(Int32 n)
 {
-    return static_cast<std::size_t>(n) * 2654435761U;
+	return static_cast<std::size_t>(n)*2654435761U; 
 }
 
 
 inline std::size_t hash(UInt32 n)
 {
-    return static_cast<std::size_t>(n) * 2654435761U;
+	return static_cast<std::size_t>(n)*2654435761U; 
 }
 
 
 inline std::size_t hash(Int64 n)
 {
-    return static_cast<std::size_t>(n) * 2654435761U;
+	return static_cast<std::size_t>(n)*2654435761U; 
 }
 
 
 inline std::size_t hash(UInt64 n)
 {
-    return static_cast<std::size_t>(n) * 2654435761U;
+	return static_cast<std::size_t>(n)*2654435761U; 
 }
 
 

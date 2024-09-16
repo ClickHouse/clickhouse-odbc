@@ -66,7 +66,7 @@ set (CH_ODBC_DEFAULT_DSN_UNICODE "ClickHouse DSN (Unicode)" CACHE STRING "Defaul
 
 if (MSVC)
     # This default encoding mode will be overriden by UNICODE, in the corresponding cases.
-    add_compile_definitions (SBCS _SBCS)
+    #add_compile_definitions (SBCS _SBCS)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
 endif ()
 
@@ -128,7 +128,10 @@ if (WERROR)
     # TODO: Set CMAKE_COMPILE_WARNING_AS_ERROR (cmake 3.24)
     target_compile_options(global-group INTERFACE "-Werror")
 endif ()
-
+if (OS_WINDOWS)
+    find_package(ODBC REQUIRED)
+    find_package(Threads REQUIRED)
+endif()
 add_subdirectory (contrib EXCLUDE_FROM_ALL)
 
 if (CH_ODBC_ENABLE_SSL)
@@ -172,7 +175,9 @@ if (CH_ODBC_ENABLE_TESTING)
 endif ()
 
 set(ENABLE_SSL 1)
+
 add_subdirectory(contrib/poco)
+
 
 if (CH_ODBC_ENABLE_TESTING)
     include (CTest)

@@ -29,21 +29,19 @@
 namespace Poco {
 
 
-const std::string FileChannel::PROP_PATH           = "path";
-const std::string FileChannel::PROP_ROTATION       = "rotation";
-const std::string FileChannel::PROP_ARCHIVE        = "archive";
-const std::string FileChannel::PROP_TIMES          = "times";
-const std::string FileChannel::PROP_COMPRESS       = "compress";
-const std::string FileChannel::PROP_STREAMCOMPRESS = "streamCompress";
-const std::string FileChannel::PROP_PURGEAGE       = "purgeAge";
-const std::string FileChannel::PROP_PURGECOUNT     = "purgeCount";
-const std::string FileChannel::PROP_FLUSH          = "flush";
-const std::string FileChannel::PROP_ROTATEONOPEN   = "rotateOnOpen";
+const std::string FileChannel::PROP_PATH         = "path";
+const std::string FileChannel::PROP_ROTATION     = "rotation";
+const std::string FileChannel::PROP_ARCHIVE      = "archive";
+const std::string FileChannel::PROP_TIMES        = "times";
+const std::string FileChannel::PROP_COMPRESS     = "compress";
+const std::string FileChannel::PROP_PURGEAGE     = "purgeAge";
+const std::string FileChannel::PROP_PURGECOUNT   = "purgeCount";
+const std::string FileChannel::PROP_FLUSH        = "flush";
+const std::string FileChannel::PROP_ROTATEONOPEN = "rotateOnOpen";
 
 FileChannel::FileChannel(): 
 	_times("utc"),
 	_compress(false),
-	_streamCompress(false),
 	_flush(true),
 	_rotateOnOpen(false),
 	_pFile(0),
@@ -58,7 +56,6 @@ FileChannel::FileChannel(const std::string& path):
 	_path(path),
 	_times("utc"),
 	_compress(false),
-	_streamCompress(false),
 	_flush(true),
 	_rotateOnOpen(false),
 	_pFile(0),
@@ -89,7 +86,22 @@ void FileChannel::open()
 {
 	FastMutex::ScopedLock lock(_mutex);
 	
-	unsafeOpen();
+	if (!_pFile)
+	{
+		_pFile = new LogFile(_path);
+		if (_rotateOnOpen && _pFile->size() > 0)
+		{
+			try
+			{
+				_pFile = _pArchiveStrategy->archive(_pFile);
+				purge();
+			}
+			catch (...)
+			{
+				_pFile = new LogFile(_path);
+			}
+		}
+	}
 }
 
 
@@ -104,45 +116,27 @@ void FileChannel::close()
 
 void FileChannel::log(const Message& msg)
 {
-	FastMutex::ScopedLock lock(_mutex);
+	open();
 
-	unsafeOpen();
+	FastMutex::ScopedLock lock(_mutex);
 
 	if (_pRotateStrategy && _pArchiveStrategy && _pRotateStrategy->mustRotate(_pFile))
 	{
 		try
 		{
-			_pFile = _pArchiveStrategy->archive(_pFile, _streamCompress);
+			_pFile = _pArchiveStrategy->archive(_pFile);
 			purge();
 		}
 		catch (...)
 		{
-			_pFile = newLogFile();
+			_pFile = new LogFile(_path);
 		}
 		// we must call mustRotate() again to give the
 		// RotateByIntervalStrategy a chance to write its timestamp
 		// to the new file.
 		_pRotateStrategy->mustRotate(_pFile);
 	}
-
-	try
-	{
 	_pFile->write(msg.getText(), _flush);
-    }
-    catch (const WriteFileException & e)
-    {
-        // In case of no space left on device,
-        // we try to purge old files or truncate current file.
-
-        // NOTE: error reason is not preserved in WriteFileException, we need to check errno manually.
-        // NOTE: other reasons like quota exceeded are not handled.
-        // NOTE: current log message will be lost.
-
-        if (errno == ENOSPC)
-        {
-            PurgeOneFileStrategy().purge(_path);
-        }
-    }
 }
 
 	
@@ -168,8 +162,6 @@ void FileChannel::setProperty(const std::string& name, const std::string& value)
 		setArchive(value);
 	else if (name == PROP_COMPRESS)
 		setCompress(value);
-	else if (name == PROP_STREAMCOMPRESS)
-		setStreamCompress(value);
 	else if (name == PROP_PURGEAGE)
 		setPurgeAge(value);
 	else if (name == PROP_PURGECOUNT)
@@ -195,8 +187,6 @@ std::string FileChannel::getProperty(const std::string& name) const
 		return _archive;
 	else if (name == PROP_COMPRESS)
 		return std::string(_compress ? "true" : "false");
-	else if (name == PROP_STREAMCOMPRESS)
-		return std::string(_streamCompress ? "true" : "false");
 	else if (name == PROP_PURGEAGE)
 		return _purgeAge;
 	else if (name == PROP_PURGECOUNT)
@@ -238,7 +228,7 @@ void FileChannel::setRotation(const std::string& rotation)
 {
 	std::string::const_iterator it  = rotation.begin();
 	std::string::const_iterator end = rotation.end();
-	UInt64 n = 0;
+	int n = 0;
 	while (it != end && Ascii::isSpace(*it)) ++it;
 	while (it != end && Ascii::isDigit(*it)) { n *= 10; n += *it++ - '0'; }
 	while (it != end && Ascii::isSpace(*it)) ++it;
@@ -277,8 +267,6 @@ void FileChannel::setRotation(const std::string& rotation)
 		pStrategy = new RotateBySizeStrategy(n*1024);
 	else if (unit == "M")
 		pStrategy = new RotateBySizeStrategy(n*1024*1024);
-	else if (unit == "G")
-		pStrategy = new RotateBySizeStrategy(n*1024*1024*1024);
 	else if (unit.empty())
 		pStrategy = new RotateBySizeStrategy(n);
 	else if (unit != "never")
@@ -307,7 +295,7 @@ void FileChannel::setArchive(const std::string& archive)
 	}
 	else throw InvalidArgumentException("archive", archive);
 	delete _pArchiveStrategy;
-	pStrategy->compress(_compress && !_streamCompress);
+	pStrategy->compress(_compress);
 	_pArchiveStrategy = pStrategy;
 	_archive = archive;
 }
@@ -317,16 +305,7 @@ void FileChannel::setCompress(const std::string& compress)
 {
 	_compress = icompare(compress, "true") == 0;
 	if (_pArchiveStrategy)
-		_pArchiveStrategy->compress(_compress && !_streamCompress);
-}
-
-
-void FileChannel::setStreamCompress(const std::string& streamCompress)
-{
-	_streamCompress = icompare(streamCompress, "true") == 0;
-
-	if (_pArchiveStrategy)
-		_pArchiveStrategy->compress(_compress && !_streamCompress);
+		_pArchiveStrategy->compress(_compress);
 }
 
 
@@ -375,127 +354,6 @@ void FileChannel::purge()
 		catch (...)
 		{
 		}
-	}
-}
-
-
-void FileChannel::unsafeOpen()
-{
-	if (!_pFile)
-	{
-		_pFile = newLogFile();
-		if (_rotateOnOpen && _pFile->size() > 0)
-		{
-			try
-			{
-				_pFile = _pArchiveStrategy->archive(_pFile, _streamCompress);
-				purge();
-			}
-			catch (...)
-			{
-				_pFile = newLogFile();
-			}
-		}
-	}
-}
-
-
-void archiveByNumber(const std::string& basePath)
-	/// A monotonic increasing number is appended to the
-	/// log file name. The most recent archived file
-	/// always has the number zero.
-{
-	std::string base = basePath;
-	std::string ext = "";
-
-	if (base.ends_with(".lz4"))
-	{
-		base.resize(base.size() - 4);
-		ext = ".lz4";
-	}
-	
-	int n = -1;
-	std::string path;
-	File f;
-	do
-	{
-		path = base;
-		path.append(".");
-		NumberFormatter::append(path, ++n);
-		path.append(ext);
-		f = path;
-	}
-	while (f.exists());
-	
-	while (n >= 0)
-	{
-		std::string oldPath = base;
-		if (n > 0)
-		{
-			oldPath.append(".");
-			NumberFormatter::append(oldPath, n - 1);
-		}
-		oldPath.append(ext);
-
-		std::string newPath = base;
-		newPath.append(".");
-		NumberFormatter::append(newPath, n);
-		newPath.append(ext);
-		f = oldPath;
-		if (f.exists())
-			f.renameTo(newPath);
-		--n;
-	}
-}
-
-
-void FileChannel::archiveCorrupted(const std::string& path)
-{
-	Poco::File file(path + ".lz4");
-	if (file.exists())
-	{
-		Poco::File::FileSize size = file.getSize();
-		if (size > 0)
-		{
-			bool err = false;
-
-			if (size < 4)
-			{
-				err = true;
-			}
-			else
-			{
-				Poco::Buffer<char> buffer(4);
-				Poco::FileInputStream istr(path + ".lz4");
-				istr.seekg(-4, std::ios_base::end);
-				istr.read(buffer.begin(), 4);
-
-				if (istr.gcount() != size)
-					err = true;
-
-				if (std::memcmp(buffer.begin(), "\0\0\0\0", 4) != 0)
-					err = true;
-			}
-
-			if (err)
-			{
-				file.renameTo(path + ".incomplete.lz4");
-				archiveByNumber(path + ".incomplete.lz4");
-			}
-				
-		}
-	}
-}
-
-LogFile * FileChannel::newLogFile()
-{
-	if (_streamCompress) {
-		archiveCorrupted(_path);
-		return new CompressedLogFile(_path);
-	}
-	else
-	{
-		return new LogFile(_path);
 	}
 }
 

@@ -4,7 +4,7 @@ elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
     set (ARCH_BITS 32)
 endif ()
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "amd64|x86_64")
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "amd64|x86_64|AMD64")
     if (CMAKE_LIBRARY_ARCHITECTURE MATCHES "i386")
         message (FATAL_ERROR "32bit platforms are not supported")
     endif ()

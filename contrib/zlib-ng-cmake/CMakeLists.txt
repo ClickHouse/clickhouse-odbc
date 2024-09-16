@@ -6,16 +6,20 @@ if(NOT ARCH_S390X)
     add_definitions(-DUNALIGNED_OK)
     add_definitions(-DUNALIGNED64_OK)
 endif()
-
-set (HAVE_UNISTD_H 1)
-add_definitions(-D_LARGEFILE64_SOURCE=1 -D__USE_LARGEFILE64)
+if (OS_LINUX OR OS_DARWIN)
+    set (HAVE_UNISTD_H 1)
+    add_definitions(-D_LARGEFILE64_SOURCE=1 -D__USE_LARGEFILE64)
+    add_definitions(-DHAVE_POSIX_MEMALIGN)
+elseif (OS_WINDOWS)
+    set (HAVE_UNISTD_H 0)
+endif()
 
 add_definitions(-DHAVE_VISIBILITY_HIDDEN)
 add_definitions(-DHAVE_VISIBILITY_INTERNAL)
 add_definitions(-DHAVE_BUILTIN_CTZ)
 add_definitions(-DHAVE_BUILTIN_CTZLL)
 add_definitions(-DHAVE_ATTRIBUTE_ALIGNED)
-add_definitions(-DHAVE_POSIX_MEMALIGN)
+
 
 set(ZLIB_ARCH_SRCS)
 set(ZLIB_ARCH_HDRS)
@@ -153,6 +157,7 @@ set(ZLIB_ALL_SRCS ${ZLIB_SRCS} ${ZLIB_ARCH_SRCS} ${ZLIB_GZFILE_SRCS})
 
 add_library(_zlib ${ZLIB_ALL_SRCS})
 add_library(ch_contrib::zlib ALIAS _zlib)
+MESSAGE(STATUS "HAVE UNI STD ${HAVE_UNISTD_H}")
 
 if(HAVE_UNISTD_H)
   SET(ZCONF_UNISTD_LINE "#if 1    /* was set to #if 1 by configure/cmake/etc */")

@@ -1,4 +1,4 @@
-if (OS_LINUX OR OS_DARWIN)
+if (OS_LINUX OR OS_DARWIN OR OS_WINDOWS)
     option(ENABLE_ICU "Enable ICU" 1)
 else ()
     option(ENABLE_ICU "Enable ICU" 0)
@@ -479,7 +479,12 @@ set(ICUDATA_SOURCES
 )
 
 # Note that we don't like any kind of binary plugins (because of runtime dependencies, vulnerabilities, ABI incompatibilities).
-add_definitions(-D_REENTRANT -DU_HAVE_ELF_H=1 -DU_HAVE_STRTOD_L=1 -DU_HAVE_XLOCALE_H=0 -DDEFAULT_ICU_PLUGINS="/dev/null")
+if (OS_LINUX OR OS_DARWIN)
+    add_definitions(-D_REENTRANT -DU_HAVE_ELF_H=1 -DU_HAVE_STRTOD_L=1 -DU_HAVE_XLOCALE_H=0 -DDEFAULT_ICU_PLUGINS="/dev/null")
+elseif (OS_WINDOWS)
+    add_definitions(-D_REENTRANT -DDEFAULT_ICU_PLUGINS="/dev/null")
+
+endif()
 
 add_library(_icuuc ${ICUUC_SOURCES})
 add_library(_icui18n ${ICUI18N_SOURCES})

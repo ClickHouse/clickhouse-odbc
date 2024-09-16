@@ -1,5 +1,5 @@
 if (ENABLE_ODBC)
-    if (NOT TARGET ch_contrib::unixodbc)
+    if ((OS_DARWIN OR OS_LINUX) AND NOT TARGET ch_contrib::unixodbc)
         message(FATAL_ERROR "Configuration error: unixodbc is not a target")
     endif()
 
@@ -38,7 +38,11 @@ if (ENABLE_ODBC)
             -Wno-zero-as-null-pointer-constant
     )
     target_include_directories (_poco_data_odbc SYSTEM PUBLIC "include")
-    target_link_libraries (_poco_data_odbc PUBLIC Poco::Data ch_contrib::unixodbc)
+    if (OS_LINUX OR OS_DARWIN)
+        target_link_libraries (_poco_data_odbc PUBLIC Poco::Data ch_contrib::unixodbc)
+    elseif(OS_WINDOWS)
+        target_link_libraries (_poco_data_odbc PUBLIC Poco::Data ODBC::Driver)
+    endif()
 
     message (STATUS "Using Poco::Data::ODBC")
 else ()

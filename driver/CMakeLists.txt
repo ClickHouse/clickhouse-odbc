@@ -165,13 +165,21 @@ endif ()
 
 target_link_libraries (${libname}-impl
     PUBLIC Poco::Net
-    PUBLIC OpenSSL::SSL
-    PUBLIC OpenSSL::Crypto
-    PUBLIC Poco::Net::SSL
     PUBLIC Poco::Util
     PUBLIC Poco::Foundation
     PUBLIC Threads::Threads
 )
+if (OS_LINUX OR OS_DARWIN)
+    target_link_libraries (${libname}-impl
+        PUBLIC OpenSSL::SSL
+        PUBLIC OpenSSL::Crypto
+        PUBLIC Poco::Net::SSL
+    )
+elseif(OS_WINDOWS)
+    target_link_libraries (${libname}-impl
+        PUBLIC Poco::Net::WinSSL
+    )
+endif()
 
 if (OS_LINUX OR OS_DARWIN)
     target_link_libraries (${libname}-impl

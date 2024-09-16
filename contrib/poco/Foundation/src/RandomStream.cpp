@@ -15,7 +15,10 @@
 #include "Poco/RandomStream.h"
 #include "Poco/Random.h"
 #include "Poco/SHA1Engine.h"
-#if   defined(POCO_OS_FAMILY_UNIX)
+#if defined(POCO_OS_FAMILY_WINDOWS)
+#include "Poco/UnWindows.h"
+#include <wincrypt.h>
+#elif defined(POCO_OS_FAMILY_UNIX)
 #include <fcntl.h>
 #include <unistd.h>
 #endif
@@ -39,6 +42,13 @@ int RandomBuf::readFromDevice(char* buffer, std::streamsize length)
 {
 	int n = 0;
 
+#if defined(POCO_OS_FAMILY_WINDOWS)
+	HCRYPTPROV hProvider = 0;
+	CryptAcquireContext(&hProvider, 0, 0, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
+	CryptGenRandom(hProvider, (DWORD) length, (BYTE*) buffer);
+	CryptReleaseContext(hProvider, 0);
+	n = static_cast<int>(length);
+#else
 	#if defined(POCO_OS_FAMILY_UNIX)
 	int fd = open("/dev/urandom", O_RDONLY, 0);
 	if (fd >= 0) 
@@ -82,6 +92,7 @@ int RandomBuf::readFromDevice(char* buffer, std::streamsize length)
 			}
 		}
 	}
+#endif
 	return n;
 }
 

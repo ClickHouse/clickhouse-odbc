@@ -231,15 +231,14 @@ namespace
 		"Notice",
 		"Information",
 		"Debug",
-		"Trace",
-		"Test"
+		"Trace"
 	};
 }
 
 
 const std::string& PatternFormatter::getPriorityName(int prio)
 {
-	poco_assert (1 <= prio && prio <= 9);
+	poco_assert (1 <= prio && prio <= 8);	
 	return priorities[prio];
 }
 

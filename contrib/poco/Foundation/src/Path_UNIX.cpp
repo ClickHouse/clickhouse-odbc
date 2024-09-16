@@ -19,7 +19,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#if !defined(POCO_VXWORKS)
 #include <pwd.h>
+#endif
 #include <climits>
 
 
@@ -47,26 +49,19 @@ std::string PathImpl::currentImpl()
 
 std::string PathImpl::homeImpl()
 {
-	std::string path;
-#if defined(_POSIX_C_SOURCE) || defined(_BSD_SOURCE) || defined(_POSIX_C_SOURCE)
-	size_t buf_size = 1024;     // Same as glibc use for getpwuid
-	std::vector<char> buf(buf_size);
-	struct passwd res;
-	struct passwd* pwd = nullptr;
-
-	getpwuid_r(getuid(), &res, buf.data(), buf_size, &pwd);
+#if defined(POCO_VXWORKS)
+	if (EnvironmentImpl::hasImpl("HOME"))
+		return EnvironmentImpl::getImpl("HOME");
+	else
+		return "/";
 #else
+	std::string path;
 	struct passwd* pwd = getpwuid(getuid());
-#endif
 	if (pwd)
 		path = pwd->pw_dir;
 	else
 	{
-#if defined(_POSIX_C_SOURCE) || defined(_BSD_SOURCE) || defined(_POSIX_C_SOURCE)
-		getpwuid_r(getuid(), &res, buf.data(), buf_size, &pwd);
-#else
 		pwd = getpwuid(geteuid());
-#endif
 		if (pwd)
 			path = pwd->pw_dir;
 		else
@@ -75,11 +70,15 @@ std::string PathImpl::homeImpl()
 	std::string::size_type n = path.size();
 	if (n > 0 && path[n - 1] != '/') path.append("/");
 	return path;
+#endif
 }
 
 
 std::string PathImpl::configHomeImpl()
 {
+#if defined(POCO_VXWORKS)
+	return PathImpl::homeImpl();
+#else
 	std::string path = PathImpl::homeImpl();
 	std::string::size_type n = path.size();
 	if (n > 0 && path[n - 1] == '/') 
@@ -90,11 +89,15 @@ std::string PathImpl::configHomeImpl()
 #endif
 
 	return path;
+#endif
 }
 
 
 std::string PathImpl::dataHomeImpl()
 {
+#if defined(POCO_VXWORKS)
+	return PathImpl::homeImpl();
+#else
 	std::string path = PathImpl::homeImpl();
 	std::string::size_type n = path.size();
 	if (n > 0 && path[n - 1] == '/') 
@@ -105,11 +108,15 @@ std::string PathImpl::dataHomeImpl()
 #endif
 
 	return path;
+#endif
 }
 
 
 std::string PathImpl::cacheHomeImpl()
 {
+#if defined(POCO_VXWORKS)
+	return PathImpl::tempImpl();
+#else
 	std::string path = PathImpl::homeImpl();
 	std::string::size_type n = path.size();
 	if (n > 0 && path[n - 1] == '/') 
@@ -120,11 +127,15 @@ std::string PathImpl::cacheHomeImpl()
 #endif
 
 	return path;
+#endif
 }
 
 
 std::string PathImpl::tempHomeImpl()
 {
+#if defined(POCO_VXWORKS)
+	return PathImpl::tempImpl();
+#else
 	std::string path = PathImpl::homeImpl();
 	std::string::size_type n = path.size();
 	if (n > 0 && path[n - 1] == '/') 
@@ -135,6 +146,7 @@ std::string PathImpl::tempHomeImpl()
 #endif
 
 	return path;
+#endif
 }
 
 
@@ -171,7 +183,11 @@ std::string PathImpl::configImpl()
 
 std::string PathImpl::nullImpl()
 {
+#if defined(POCO_VXWORKS)
+	return "/null";
+#else
 	return "/dev/null";
+#endif
 }
 
 
