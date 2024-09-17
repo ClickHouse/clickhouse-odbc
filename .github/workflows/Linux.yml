@@ -82,6 +82,12 @@ jobs:
     - name: Install dependencies - Cleanup
       run: sudo apt autoremove -y
 
+    - name: Start ClickHouse in Docker
+      uses: hoverkraft-tech/compose-action@v2.0.1
+      with:
+        compose-file: source/test/docker-compose.yml
+        down-flags: --volumes
+
     - name: Configure
       run: >
         CC=${{ fromJSON('{"Clang": "clang", "GCC": "gcc"}')[matrix.compiler] }}
@@ -117,12 +123,6 @@ jobs:
     - name: Test - Run C++ unit tests
       working-directory: ${{ github.workspace }}/build
       run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
-
-    - name: Start ClickHouse in Docker
-      uses: hoverkraft-tech/compose-action@v2.0.1
-      with:
-        compose-file: source/test/docker-compose.yml
-        down-flags: --volumes
 
     - name: Prepare ODBC ini configs
       run: |
