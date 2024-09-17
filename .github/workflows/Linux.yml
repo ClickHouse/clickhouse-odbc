@@ -27,12 +27,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        odbc_provider: [UnixODBC]
-        compiler: [Clang]
-        build_type: [Debug]
+        odbc_provider: [UnixODBC, iODBC]
+        compiler: [Clang, GCC]
+        build_type: [Debug, Release]
         architecture: [x86_64]
-        runtime_link: [static-runtime]
-        third_parties: [system-third-parties]
+        runtime_link: [static-runtime, dynamic-runtime]
+        third_parties: [bundled-third-parties, system-third-parties]
         # exclude:
         #   - os: ubuntu-18.04
         #     compiler: Clang
@@ -183,24 +183,6 @@ jobs:
         DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
         EOF
 
-    - name: Prepare Python dependencies
-      working-directory: source/test
-      run: |
-        pip install -r requirements.txt
-
-    # An empty `ODBCSYSINI` is required in this case to run properly with custom `ODBCINI`/`ODBCINSTINI` paths
-    - name: Test - run Python e2e tests
-      working-directory: source/test
-      run: |
-        export ODBCSYSINI=
-        export ODBCINSTINI="${{ github.workspace }}/run/.odbcinst.ini"
-        export ODBCINI="${{ github.workspace }}/run/.odbc.ini"
-        if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
-          # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
-          export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
-        fi
-        pytest
-
     # Run all tests except those that were run in "Test - unit tests" step.
     - name: Test - Run C++ integration tests
       working-directory: ${{ github.workspace }}/build
@@ -212,3 +194,21 @@ jobs:
           export GTEST_FILTER="-PerformanceTest.*"
         fi
         ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '.*-ut.*'
+
+    - name: Prepare Python dependencies
+      working-directory: source/test
+      run: |
+        pip install -r requirements.txt
+
+      # An empty `ODBCSYSINI` is required in this case to run properly with custom `ODBCINI`/`ODBCINSTINI` paths
+    - name: Test - Run Python e2e tests
+      working-directory: source/test
+      run: |
+        export ODBCSYSINI=
+        export ODBCINSTINI="${{ github.workspace }}/run/.odbcinst.ini"
+        export ODBCINI="${{ github.workspace }}/run/.odbc.ini"
+        if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
+          # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
+          export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
+        fi
+        pytest
