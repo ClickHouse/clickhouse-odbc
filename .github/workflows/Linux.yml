@@ -118,33 +118,16 @@ jobs:
       working-directory: ${{ github.workspace }}/build
       run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
 
-#    - name: Start ClickHouse in Docker
-#      uses: hoverkraft-tech/compose-action@v2.0.1
-#      with:
-#        compose-file: source/test/docker-compose.yml
-#        down-flags: --volumes
-
-    - name: Prepare env source
-      run: |
-        echo "Preparing env source"
-        cat > ${{ github.workspace }}/.envrc <<-EOF
-        export ODBCSYSINI=${{ github.workspace }}/run
-        export ODBCINSTINI=.odbcinst.ini
-        export ODBCINI=$ODBCSYSINI/.odbc.ini
-        if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
-          # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
-          export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
-          export GTEST_FILTER="-PerformanceTest.*"
-        fi
-        EOF
-        echo "Prepared env source:"
-        cat ${{ github.workspace }}/.envrc
+    - name: Start ClickHouse in Docker
+      uses: hoverkraft-tech/compose-action@v2.0.1
+      with:
+        compose-file: source/test/docker-compose.yml
+        down-flags: --volumes
 
     - name: Prepare ODBC ini configs
       run: |
         echo "Preparing ODBC ini configs"
-        source ${{ github.workspace }}/.envrc
-        cat > $ODBCINSTINI <<-EOF
+        cat > ${{ github.workspace }}/run/.odbcinst.ini <<-EOF
         [ODBC]
         Trace     = 1
         TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
@@ -166,7 +149,7 @@ jobs:
         UsageCount = 1
         EOF
         
-        cat > $ODBCINI <<-EOF
+        cat > ${{ github.workspace }}/run/.odbc.ini <<-EOF
         [ODBC]
         Trace     = 1
         TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
@@ -200,30 +183,32 @@ jobs:
         DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
         EOF
 
-    - name: Check ODBC configs
-      run: |
-        source ${{ github.workspace }}/.envrc
-        env
-        echo "ODBCSYSINI = $ODBCSYSINI"
-        echo "ODBCINSTINI = $ODBCINSTINI"
-        cat $ODBCINSTINI
-        echo "ODBCINI = $ODBCINI"
-        cat $ODBCINI
-
     - name: Prepare Python dependencies
       working-directory: source/test
       run: |
         pip install -r requirements.txt
 
+    # An empty `ODBCSYSINI` is required in this case to run properly with custom `ODBCINI`/`ODBCINSTINI` paths
     - name: Test - run Python e2e tests
       working-directory: source/test
       run: |
-        source ${{ github.workspace }}/.envrc
+        export ODBCSYSINI=
+        export ODBCINSTINI="${{ github.workspace }}/run/.odbcinst.ini"
+        export ODBCINI="${{ github.workspace }}/run/.odbc.ini"
+        if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
+          # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
+          export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
+        fi
         pytest
 
     # Run all tests except those that were run in "Test - unit tests" step.
     - name: Test - Run C++ integration tests
       working-directory: ${{ github.workspace }}/build
       run: |
-        source ${{ github.workspace }}/.envrc
+        export ODBCSYSINI=
+        export ODBCINSTINI="${{ github.workspace }}/run/.odbcinst.ini"
+        export ODBCINI="${{ github.workspace }}/run/.odbc.ini"
+        if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
+          export GTEST_FILTER="-PerformanceTest.*"
+        fi
         ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '.*-ut.*'
