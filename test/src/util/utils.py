@@ -1,6 +1,5 @@
 import logging
 import os
-import time
 from contextlib import contextmanager
 
 import pyodbc
@@ -49,7 +48,9 @@ class PyODBCConnection:
         self.connection = connection
         self.logs = logs
         self.encoding = encoding
+        # encoding/decoding fix is required for iODBC (UTF-16 by default)
         self.connection.setencoding(encoding=self.encoding)
+        self.connection.setdecoding(pyodbc.SQL_CHAR, encoding=self.encoding, ctype=pyodbc.SQL_CHAR)
         if self.logs:
             self.logs.read()
 
@@ -57,13 +58,17 @@ class PyODBCConnection:
         if params is None:
             params = []
         try:
-            LOGGER.debug(f"query: {q}")
+            LOGGER.debug(f"Query: {q}")
+            if len(params) > 0:
+                LOGGER.debug(f"Params: {params}")
             cursor = self.connection.cursor()
+            # self.connection.setencoding(encoding=self.encoding)
             cursor.execute(q, *params)
             if fetch:
+                # self.connection.setencoding(encoding="utf-16")
                 rows = cursor.fetchall()
                 for row in rows:
-                    LOGGER.debug("Row:", row)
+                    LOGGER.debug(f"Row: {row}")
                 return rows
         except pyodbc.Error as exc:
             raise exc
@@ -83,11 +88,16 @@ class PyODBCConnection:
 def pyodbc_connection(encoding="utf-8", logs=None):
     dsn = os.getenv("DSN", "ClickHouse DSN (ANSI)")
     LOGGER.debug(f"Using DNS={dsn}")
-    connection = pyodbc.connect(f"DSN={dsn};")
+    connection = None
     try:
+        connection = pyodbc.connect(f"DSN={dsn};")
         yield PyODBCConnection(connection, encoding, logs=logs)
+    except Exception as e:
+        LOGGER.error(f"Error: {e}")
+        raise
     finally:
-        connection.close()
+        if connection:
+            connection.close()
 
 
 @contextmanager

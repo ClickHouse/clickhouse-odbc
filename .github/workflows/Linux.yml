@@ -207,8 +207,4 @@ jobs:
         export ODBCSYSINI=
         export ODBCINSTINI="${{ github.workspace }}/run/.odbcinst.ini"
         export ODBCINI="${{ github.workspace }}/run/.odbc.ini"
-        if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
-          # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
-          export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
-        fi
-        pytest
+        pytest --log-level=DEBUG -v
