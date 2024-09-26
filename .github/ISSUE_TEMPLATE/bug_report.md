@@ -27,6 +27,7 @@ assignees: ''
 #### Environment
 * Driver version:
 * OS:
+* ODBC Driver manager:
 
 #### ClickHouse server
 * ClickHouse Server version:
