@@ -26,8 +26,8 @@ def check_datatype(connection, datatype, values, nullable=False, quote=False, re
         values.append(NULL)
 
         if expected:
-            expected["all"] = expected['all'].rsplit("]", 1)[0] + ", (None, )]"
-            expected[NULL] = "[(None, )]"
+            expected["all"] = expected['all'].rsplit("]", 1)[0] + ", (None,)]"
+            expected[NULL] = "[(None,)]"
 
     with Given("PyODBC connection"):
         with Given(f"parameters", description=f"""
@@ -76,7 +76,7 @@ def sanity_check(self, connection):
         with When("I do 'SELECT 1'"):
             rows = connection.query("SELECT 1")
 
-        result = "[(1, )]"
+        result = "[(1,)]"
         with Then(f"the result is {result}", format_name=False):
             assert repr(rows) == result, error("result dit not match")
 
@@ -85,10 +85,10 @@ def sanity_check(self, connection):
 def Int8(self, connection, nullable=False):
     """Verify support for Int8 data type."""
     check_datatype(connection, "Int8", [-128, 0, 127], expected={
-            "all": "[(-128, ), (0, ), (127, )]",
-            -128: "[(-128, )]",
-            0: "[(0, )]",
-            127: "[(127, )]"
+            "all": "[(-128,), (0,), (127,)]",
+            -128: "[(-128,)]",
+            0: "[(0,)]",
+            127: "[(127,)]"
         }, nullable=nullable)
 
 @TestScenario
@@ -96,10 +96,10 @@ def Int8(self, connection, nullable=False):
 def Int16(self, connection, nullable=False):
     """Verify support for Int16 data type."""
     check_datatype(connection, "Int16", [-32768, 0, 32767], expected={
-            "all": "[(-32768, ), (0, ), (32767, )]",
-            -32768: "[(-32768, )]",
-            0: "[(0, )]",
-            32767: "[(32767, )]"
+            "all": "[(-32768,), (0,), (32767,)]",
+            -32768: "[(-32768,)]",
+            0: "[(0,)]",
+            32767: "[(32767,)]"
         }, nullable=nullable)
 
 @TestScenario
@@ -107,10 +107,10 @@ def Int16(self, connection, nullable=False):
 def Int32(self, connection, nullable=False):
     """Verify support for Int32 data type."""
     check_datatype(connection, "Int32", [-2147483648, 0, 2147483647], expected={
-            "all": "[(-2147483648, ), (0, ), (2147483647, )]",
-            -2147483648: "[(-2147483648, )]",
-            0: "[(0, )]",
-            2147483647: "[(2147483647, )]"
+            "all": "[(-2147483648,), (0,), (2147483647,)]",
+            -2147483648: "[(-2147483648,)]",
+            0: "[(0,)]",
+            2147483647: "[(2147483647,)]"
         }, nullable=nullable)
 
 @TestScenario
@@ -118,10 +118,10 @@ def Int32(self, connection, nullable=False):
 def Int64(self, connection, nullable=False):
     """Verify support for Int64 data type."""
     check_datatype(connection, "Int64", [-9223372036854775808, 0, 9223372036854775807], expected={
-            "all": "[(-9223372036854775808, ), (0, ), (9223372036854775807, )]",
-            -9223372036854775808: "[(-9223372036854775808, )]",
-            0: "[(0, )]",
-            9223372036854775807: "[(9223372036854775807, )]"
+            "all": "[(-9223372036854775808,), (0,), (9223372036854775807,)]",
+            -9223372036854775808: "[(-9223372036854775808,)]",
+            0: "[(0,)]",
+            9223372036854775807: "[(9223372036854775807,)]"
         }, nullable=nullable)
 
 @TestScenario
@@ -129,9 +129,9 @@ def Int64(self, connection, nullable=False):
 def UInt8(self, connection, nullable=False):
     """Verify support for UInt8 data type."""
     check_datatype(connection, "UInt8", [0, 255], expected={
-            "all": "[(0, ), (255, )]",
-            0: "[(0, )]",
-            255: "[(255, )]"
+            "all": "[(0,), (255,)]",
+            0: "[(0,)]",
+            255: "[(255,)]"
         }, nullable=nullable)
 
 @TestScenario
@@ -139,9 +139,9 @@ def UInt8(self, connection, nullable=False):
 def UInt16(self, connection, nullable=False):
     """Verify support for UInt16 data type."""
     check_datatype(connection, "UInt16", [0, 65535], expected={
-            "all": "[(0, ), (65535, )]",
-            0: "[(0, )]",
-            65535: "[(65535, )]"
+            "all": "[(0,), (65535,)]",
+            0: "[(0,)]",
+            65535: "[(65535,)]"
         }, nullable=nullable)
 
 @TestScenario
@@ -149,9 +149,9 @@ def UInt16(self, connection, nullable=False):
 def UInt32(self, connection, nullable=False):
     """Verify support for UInt32 data type."""
     check_datatype(connection, "UInt32", [0, 4294967295], expected={
-            "all": "[(0, ), (4294967295, )]",
-            0: "[(0, )]",
-            4294967295: "[(4294967295, )]"
+            "all": "[(0,), (4294967295,)]",
+            0: "[(0,)]",
+            4294967295: "[(4294967295,)]"
         }, nullable=nullable)
 
 @TestScenario
@@ -159,9 +159,9 @@ def UInt32(self, connection, nullable=False):
 def UInt64(self, connection, nullable=False):
     """Verify support for UInt64 data type."""
     check_datatype(connection, "UInt64", [0, 18446744073709551615], expected={
-            "all": "[(0, ), (18446744073709551615, )]",
-            0: "[(0, )]",
-            18446744073709551615: "[(18446744073709551615, )]"
+            "all": "[(0,), (18446744073709551615,)]",
+            0: "[(0,)]",
+            18446744073709551615: "[(18446744073709551615,)]"
         }, nullable=nullable)
 
 @TestScenario
@@ -173,13 +173,13 @@ def UInt64(self, connection, nullable=False):
 def Float32(self, connection, nullable=False):
     """Verify support for Float32 data type."""
     check_datatype(connection, "Float32", [-1, 0, float("inf"), float("-inf"), float("nan"), 13.26], expected={
-            "all": "[(-inf, ), (-1.0, ), (0.0, ), (13.26, ), (inf, ), (nan, )]",
-            0: "[(0.0, )]",
-            -1: "[(-1.0, )]",
-            13.26: "[(13.26, )]",
-            float("inf"): "[(inf, )]",
-            float("-inf"): "[(-inf, )]",
-            float("nan"): "[(nan, )]"
+            "all": "[(-inf,), (-1.0,), (0.0,), (13.26,), (inf,), (nan,)]",
+            0: "[(0.0,)]",
+            -1: "[(-1.0,)]",
+            13.26: "[(13.26,)]",
+            float("inf"): "[(inf,)]",
+            float("-inf"): "[(-inf,)]",
+            float("nan"): "[(nan,)]"
         }, nullable=nullable)
 
 @TestScenario
@@ -191,13 +191,13 @@ def Float32(self, connection, nullable=False):
 def Float64(self, connection, nullable=False):
     """Verify support for Float64 data type."""
     check_datatype(connection, "Float64", [-1, 0, float("inf"), 13.26, float("-inf"), float("nan")], expected={
-            "all": "[(-inf, ), (-1.0, ), (0.0, ), (13.26, ), (inf, ), (nan, )]",
-            0: "[(0.0, )]",
-            -1: "[(-1.0, )]",
-            13.26: "[(13.26, )]",
-            float("inf"): "[(inf, )]",
-            float("-inf"): "[(-inf, )]",
-            float("nan"): "[(nan, )]"
+            "all": "[(-inf,), (-1.0,), (0.0,), (13.26,), (inf,), (nan,)]",
+            0: "[(0.0,)]",
+            -1: "[(-1.0,)]",
+            13.26: "[(13.26,)]",
+            float("inf"): "[(inf,)]",
+            float("-inf"): "[(-inf,)]",
+            float("nan"): "[(nan,)]"
         }, nullable=nullable)
 
 @TestScenario
@@ -205,10 +205,10 @@ def Float64(self, connection, nullable=False):
 def Decimal32(self, connection, nullable=False):
     """Verify support for Decimal32 data type."""
     expected = {
-        "all": "[(Decimal('-99999.9999'), ), (Decimal('10.1234'), ), (Decimal('99999.9999'), )]",
-        decimal.Decimal('-99999.9999'): "[(Decimal('-99999.9999'), )]",
-        decimal.Decimal('10.1234'): "[(Decimal('10.1234'), )]",
-        decimal.Decimal('99999.9999'): "[(Decimal('99999.9999'), )]"
+        "all": "[(Decimal('-99999.9999'),), (Decimal('10.1234'),), (Decimal('99999.9999'),)]",
+        decimal.Decimal('-99999.9999'): "[(Decimal('-99999.9999'),)]",
+        decimal.Decimal('10.1234'): "[(Decimal('10.1234'),)]",
+        decimal.Decimal('99999.9999'): "[(Decimal('99999.9999'),)]"
     }
 
     check_datatype(connection, "Decimal32(4)", [
@@ -222,10 +222,10 @@ def Decimal32(self, connection, nullable=False):
 def Decimal64(self, connection, nullable=False):
     """Verify support for Decimal64 data type."""
     expected = {
-        "all": "[(Decimal('-99999999999999.9999'), ), (Decimal('10.1234'), ), (Decimal('99999999999999.9999'), )]",
-        decimal.Decimal('-99999999999999.9999'): "[(Decimal('-99999999999999.9999'), )]",
-        decimal.Decimal('10.1234'): "[(Decimal('10.1234'), )]",
-        decimal.Decimal('99999999999999.9999'): "[(Decimal('99999999999999.9999'), )]"
+        "all": "[(Decimal('-99999999999999.9999'),), (Decimal('10.1234'),), (Decimal('99999999999999.9999'),)]",
+        decimal.Decimal('-99999999999999.9999'): "[(Decimal('-99999999999999.9999'),)]",
+        decimal.Decimal('10.1234'): "[(Decimal('10.1234'),)]",
+        decimal.Decimal('99999999999999.9999'): "[(Decimal('99999999999999.9999'),)]"
     }
 
     check_datatype(connection, "Decimal64(4)", [
@@ -239,10 +239,10 @@ def Decimal64(self, connection, nullable=False):
 def Decimal128(self, connection, nullable=False):
     """Verfiy support for Decimal128 data type."""
     expected = {
-        "all": "[(Decimal('-9999999999999999999999999999999999.9999'), ), (Decimal('10.1234'), ), (Decimal('9999999999999999999999999999999999.9999'), )]",
-        decimal.Decimal('-9999999999999999999999999999999999.9999'): "[(Decimal('-9999999999999999999999999999999999.9999'), )]",
-        decimal.Decimal('10.1234'): "[(Decimal('10.1234'), )]",
-        decimal.Decimal('9999999999999999999999999999999999.9999'): "[(Decimal('9999999999999999999999999999999999.9999'), )]"
+        "all": "[(Decimal('-9999999999999999999999999999999999.9999'),), (Decimal('10.1234'),), (Decimal('9999999999999999999999999999999999.9999'),)]",
+        decimal.Decimal('-9999999999999999999999999999999999.9999'): "[(Decimal('-9999999999999999999999999999999999.9999'),)]",
+        decimal.Decimal('10.1234'): "[(Decimal('10.1234'),)]",
+        decimal.Decimal('9999999999999999999999999999999999.9999'): "[(Decimal('9999999999999999999999999999999999.9999'),)]"
     }
 
     check_datatype(connection, "Decimal128(4)", [
@@ -264,9 +264,9 @@ def String(self, connection, nullable=False):
         with Scenario("utf-8", flags=TE, description="UTF-8 encoding"):
             values = ["", b''.decode("utf-8")]
             expected = {
-                "all": f"[('{values[0]}', ), ('{values[1]}', )]",
-                values[0]: f"[('{values[0]}', ), ('{values[1]}', )]",
-                values[1]: f"[('{values[0]}', ), ('{values[1]}', )]"
+                "all": f"[('{values[0]}',), ('{values[1]}',)]",
+                values[0]: f"[('{values[0]}',), ('{values[1]}',)]",
+                values[1]: f"[('{values[0]}',), ('{values[1]}',)]"
             }
             check_datatype(connection, "String", values=values, expected=expected,
                 encoding="utf-8", quote=True, nullable=nullable)
@@ -274,9 +274,9 @@ def String(self, connection, nullable=False):
         with Scenario("ascii", flags=TE, description="ASCII encoding."):
             values = ["", b''.decode("ascii")]
             expected = {
-                "all": f"[('{values[0]}', ), ('{values[1]}', )]",
-                values[0]: f"[('{values[0]}', ), ('{values[1]}', )]",
-                values[1]: f"[('{values[0]}', ), ('{values[1]}', )]"
+                "all": f"[('{values[0]}',), ('{values[1]}',)]",
+                values[0]: f"[('{values[0]}',), ('{values[1]}',)]",
+                values[1]: f"[('{values[0]}',), ('{values[1]}',)]"
             }
             check_datatype(connection, "String", values=values, expected=expected,
                 encoding="ascii", quote=True, nullable=nullable)
@@ -307,9 +307,9 @@ def String(self, connection, nullable=False):
                  b'\xe7\xad\x89').decode("utf-8")
             ]
         expected = {
-            "all": f"[('{values[0]}', ), ('{values[1]}', )]",
-            values[0]: f"[('{values[0]}', )]",
-            values[1]: f"[('{values[1]}', )]"
+            "all": f"[('{values[0]}',), ('{values[1]}',)]",
+            values[0]: f"[('{values[0]}',)]",
+            values[1]: f"[('{values[1]}',)]"
         }
         check_datatype(connection, "String", values=values, expected=expected,
             encoding="utf-8", quote=True, nullable=nullable)
@@ -324,9 +324,9 @@ def String(self, connection, nullable=False):
             r' !"#$%%&()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~'
         ]
         expected = {
-            "all": f"[('{values[1]}', ), ('{values[0]}', )]",
-            values[0]: f"[('{values[0]}', )]",
-            values[1]: f"[('{values[1]}', )]"
+            "all": f"[('{values[1]}',), ('{values[0]}',)]",
+            values[0]: f"[('{values[0]}',)]",
+            values[1]: f"[('{values[1]}',)]"
         }
         check_datatype(connection, "String", values=values, expected=expected,
             encoding="ascii", quote=True, nullable=nullable)
@@ -340,8 +340,8 @@ def String(self, connection, nullable=False):
             "\x00\x01\x02\0x03\x00\x00\xFF"
         ]
         expected = {
-            "all": f"[('{values[0]}', )]",
-            values[0]: f"[('{values[0]}', )]",
+            "all": f"[('{values[0]}',)]",
+            values[0]: f"[('{values[0]}',)]",
         }
         check_datatype(connection, "String", values=values, expected=expected, encoding="ascii", quote=False, nullable=nullable)
 
@@ -356,10 +356,10 @@ def FixedString(self, connection, nullable=False):
             (b'\xe5\x8d\xb0\xe5\x88\xb7\xe5\x8e\x82\xe6\x8b\xbf\xe8\xb5\xb7').decode("utf-8")
         ]
         expected = {
-            "all": f"[('\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00', ), ('hello\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00', ), ('{values[2]}\\x00', )]",
-            values[0]: "[('\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00', )]",
-            values[1]: "[('hello\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00', )]",
-            values[2]: f"[('{values[2]}\\x00', )]"
+            "all": f"[('\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00',), ('hello\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00',), ('{values[2]}\\x00',)]",
+            values[0]: "[('\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00',)]",
+            values[1]: "[('hello\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00',)]",
+            values[2]: f"[('{values[2]}\\x00',)]"
         }
         check_datatype(connection, "FixedString(16)", values=values, expected=expected,
             encoding="utf-8", quote=True, nullable=nullable)
@@ -371,10 +371,10 @@ def FixedString(self, connection, nullable=False):
             "ABCDEFGHIJKLMN"
         ]
         expected = {
-            "all": "[('\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00', ), ('ABCDEFGHIJKLMN\\x00\\x00', ), ('hello\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00', )]",
-            values[0]: "[('\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00', )]",
-            values[1]: "[('hello\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00', )]",
-            values[2]: "[('ABCDEFGHIJKLMN\\x00\\x00', )]"
+            "all": "[('\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00',), ('ABCDEFGHIJKLMN\\x00\\x00',), ('hello\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00',)]",
+            values[0]: "[('\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00',)]",
+            values[1]: "[('hello\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00',)]",
+            values[2]: "[('ABCDEFGHIJKLMN\\x00\\x00',)]"
         }
         check_datatype(connection, "FixedString(16)", values=values, expected=expected,
             encoding="ascii", quote=True, nullable=nullable)
@@ -389,10 +389,10 @@ def Date(self, connection, nullable=False):
         datetime.date(2024, 5, 5)
     ]
     expected = {
-        "all": "[(datetime.date(1970, 3, 3), ), (datetime.date(2000, 12, 31), ), (datetime.date(2024, 5, 5), )]",
-        values[0]: "[(datetime.date(1970, 3, 3), )]",
-        values[1]: "[(datetime.date(2000, 12, 31), )]",
-        values[2]: "[(datetime.date(2024, 5, 5), )]"
+        "all": "[(datetime.date(1970, 3, 3),), (datetime.date(2000, 12, 31),), (datetime.date(2024, 5, 5),)]",
+        values[0]: "[(datetime.date(1970, 3, 3),)]",
+        values[1]: "[(datetime.date(2000, 12, 31),)]",
+        values[2]: "[(datetime.date(2024, 5, 5),)]"
     }
     check_datatype(connection, "Date", values=values, expected=expected, quote=True, nullable=nullable)
 
@@ -406,10 +406,10 @@ def DateTime(self, connection, nullable=False):
         datetime.datetime(2024, 5, 5, 13, 31, 32)
     ]
     expected = {
-        "all": "[(datetime.datetime(1970, 3, 3, 0, 0), ), (datetime.datetime(2000, 12, 31, 23, 59, 59), ), (datetime.datetime(2024, 5, 5, 13, 31, 32), )]",
-        values[0]: "[(datetime.datetime(1970, 3, 3, 0, 0), )]",
-        values[1]: "[(datetime.datetime(2000, 12, 31, 23, 59, 59), )]",
-        values[2]: "[(datetime.datetime(2024, 5, 5, 13, 31, 32), )]"
+        "all": "[(datetime.datetime(1970, 3, 3, 0, 0),), (datetime.datetime(2000, 12, 31, 23, 59, 59),), (datetime.datetime(2024, 5, 5, 13, 31, 32),)]",
+        values[0]: "[(datetime.datetime(1970, 3, 3, 0, 0),)]",
+        values[1]: "[(datetime.datetime(2000, 12, 31, 23, 59, 59),)]",
+        values[2]: "[(datetime.datetime(2024, 5, 5, 13, 31, 32),)]"
     }
     check_datatype(connection, "DateTime", values=values, expected=expected, quote=True, nullable=nullable)
 
@@ -421,16 +421,16 @@ def Enum(self, connection, nullable=False):
         key0 = b'\xe5\x8d\xb0'.decode('utf-8')
         key1 = b'\xe5\x88\xb7'.decode('utf-8')
         check_datatype(connection, f"Enum('{key0}' = 1, '{key1}' = 2)", [key0, key1], expected={
-                "all": f"[('{key0}', ), ('{key1}', )]",
-                key0: f"[('{key0}', )]",
-                key1: f"[('{key1}', )]"
+                "all": f"[('{key0}',), ('{key1}',)]",
+                key0: f"[('{key0}',)]",
+                key1: f"[('{key1}',)]"
             }, encoding="utf-8", quote=True, nullable=nullable)
 
     with Scenario("ascii", flags=TE, description="ASCII encoding"):
         check_datatype(connection, "Enum('hello' = 1, 'world' = 2)", ["hello", "world"], expected={
-                "all": "[('hello', ), ('world', )]",
-                "hello": "[('hello', )]",
-                "world": "[('world', )]"
+                "all": "[('hello',), ('world',)]",
+                "hello": "[('hello',)]",
+                "world": "[('world',)]"
             }, encoding="ascii", quote=True, nullable=nullable)
 
 @TestScenario
@@ -443,10 +443,10 @@ def UUID(self, connection, nullable=False):
 
     values = [uuid0, uuid1, uuid2]
     expected = {
-        "all": f"[('{uuid0}', ), ('{uuid1}', ), ('{uuid2}', )]",
-        uuid0: f"[('{uuid0}', )]",
-        uuid1: f"[('{uuid1}', )]",
-        uuid2: f"[('{uuid2}', )]"
+        "all": f"[('{uuid0}',), ('{uuid1}',), ('{uuid2}',)]",
+        uuid0: f"[('{uuid0}',)]",
+        uuid1: f"[('{uuid1}',)]",
+        uuid2: f"[('{uuid2}',)]"
     }
     check_datatype(connection, "UUID", values=values, expected=expected, quote=True, nullable=nullable)
 
@@ -459,9 +459,9 @@ def IPv4(self, connection, nullable=False):
 
     values = [ipv40, ipv41]
     expected = {
-        "all": f"[('{ipv40}', ), ('{ipv41}', )]",
-        ipv40: f"[('{ipv40}', )]",
-        ipv41: f"[('{ipv41}', )]"
+        "all": f"[('{ipv40}',), ('{ipv41}',)]",
+        ipv40: f"[('{ipv40}',)]",
+        ipv41: f"[('{ipv41}',)]"
     }
     check_datatype(connection, "IPv4", values=values, expected=expected, quote=True, nullable=nullable)
 
@@ -474,9 +474,9 @@ def IPv6(self, connection, nullable=False):
 
     values = [ipv60, ipv61]
     expected = {
-        "all": f"[('{ipv60}', ), ('{ipv61}', )]",
-        ipv60: f"[('{ipv60}', )]",
-        ipv61: f"[('{ipv61}', )]"
+        "all": f"[('{ipv60}',), ('{ipv61}',)]",
+        ipv60: f"[('{ipv60}',)]",
+        ipv61: f"[('{ipv61}',)]"
     }
     check_datatype(connection, "IPv6", values=values, expected=expected, quote=True, nullable=nullable)
 
