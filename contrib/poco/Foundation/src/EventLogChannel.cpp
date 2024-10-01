@@ -15,7 +15,6 @@
 #include "Poco/EventLogChannel.h"
 #include "Poco/Message.h"
 #include "Poco/String.h"
-#include "pocomsg.h"
 #if defined(POCO_WIN32_UTF8)
 #include "Poco/UnicodeConverter.h"
 #endif
@@ -120,7 +119,7 @@ void EventLogChannel::log(const Message& msg)
 	std::wstring utext;
 	UnicodeConverter::toUTF16(msg.getText(), utext);
 	const wchar_t* pMsg = utext.c_str();
-	ReportEventW(_h, getType(msg), getCategory(msg), POCO_MSG_LOG, NULL, 1, 0, &pMsg, NULL); 
+	ReportEventW(_h, getType(msg), getCategory(msg), 0x1000, NULL, 1, 0, &pMsg, NULL); 
 #else
 	const char* pMsg = msg.getText().c_str();
 	ReportEvent(_h, getType(msg), getCategory(msg), POCO_MSG_LOG, NULL, 1, 0, &pMsg, NULL); 
@@ -180,21 +179,21 @@ int EventLogChannel::getCategory(const Message& msg)
 	switch (msg.getPriority())
 	{
 	case Message::PRIO_TRACE:
-		return POCO_CTG_TRACE;
+		return 0x8;
 	case Message::PRIO_DEBUG:
-		return POCO_CTG_DEBUG;
+		return 0x7;
 	case Message::PRIO_INFORMATION:
-		return POCO_CTG_INFORMATION;
+		return 0x6;
 	case Message::PRIO_NOTICE:
-		return POCO_CTG_NOTICE;
+		return 0x5;
 	case Message::PRIO_WARNING:
-		return POCO_CTG_WARNING;
+		return 0x4;
 	case Message::PRIO_ERROR:
-		return POCO_CTG_ERROR;
+		return 0x3;
 	case Message::PRIO_CRITICAL:
-		return POCO_CTG_CRITICAL;
+		return 0x2;
 	case Message::PRIO_FATAL:
-		return POCO_CTG_FATAL;
+		return 0x1;
 	default:
 		return 0;
 	}

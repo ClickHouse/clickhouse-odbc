@@ -16,5 +16,8 @@ target_include_directories(_poco_net_win_ssl
 if (OS_DARWIN OR OS_LINUX)
     target_compile_definitions (_poco_net_win_ssl PUBLIC POCO_OS_FAMILY_UNIX)
 elseif(OS_WINDOWS)
+    if (MSVC)
+        target_compile_options(_poco_net_win_ssl PRIVATE "/Zc:strictStrings-")
+    endif()
     target_compile_definitions (_poco_net_win_ssl PUBLIC POCO_OS_FAMILY_WINDOWS NetSSL_Win_EXPORTS)
 endif()

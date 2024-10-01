@@ -22,21 +22,22 @@ if (ENABLE_ODBC)
 
     add_library (_poco_data_odbc ${SRCS})
     add_library (Poco::Data::ODBC ALIAS _poco_data_odbc)
-
-    # TODO: remove these warning exclusions
-    target_compile_options (_poco_data_odbc
-        PRIVATE
-            -Wno-cast-qual
-            -Wno-deprecated-dynamic-exception-spec
-            -Wno-extra-semi-stmt
-            -Wno-old-style-cast
-            -Wno-sign-compare
-            -Wno-tautological-constant-out-of-range-compare
-            -Wno-tautological-unsigned-zero-compare
-            -Wno-unused-parameter
-            -Wno-unused-variable
-            -Wno-zero-as-null-pointer-constant
-    )
+    if (NOT MSVC)
+        # TODO: remove these warning exclusions
+        target_compile_options (_poco_data_odbc
+            PRIVATE
+                -Wno-cast-qual
+                -Wno-deprecated-dynamic-exception-spec
+                -Wno-extra-semi-stmt
+                -Wno-old-style-cast
+                -Wno-sign-compare
+                -Wno-tautological-constant-out-of-range-compare
+                -Wno-tautological-unsigned-zero-compare
+                -Wno-unused-parameter
+                -Wno-unused-variable
+                -Wno-zero-as-null-pointer-constant
+        )
+    endif()
     target_include_directories (_poco_data_odbc SYSTEM PUBLIC "include")
     if (OS_LINUX OR OS_DARWIN)
         target_link_libraries (_poco_data_odbc PUBLIC Poco::Data ch_contrib::unixodbc)

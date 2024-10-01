@@ -10,15 +10,15 @@ if (OS_LINUX OR OS_DARWIN)
     set (HAVE_UNISTD_H 1)
     add_definitions(-D_LARGEFILE64_SOURCE=1 -D__USE_LARGEFILE64)
     add_definitions(-DHAVE_POSIX_MEMALIGN)
+    add_definitions(-DHAVE_VISIBILITY_INTERNAL)
+    add_definitions(-DHAVE_VISIBILITY_HIDDEN)
+    add_definitions(-DHAVE_ATTRIBUTE_ALIGNED)
 elseif (OS_WINDOWS)
     set (HAVE_UNISTD_H 0)
 endif()
 
-add_definitions(-DHAVE_VISIBILITY_HIDDEN)
-add_definitions(-DHAVE_VISIBILITY_INTERNAL)
 add_definitions(-DHAVE_BUILTIN_CTZ)
 add_definitions(-DHAVE_BUILTIN_CTZLL)
-add_definitions(-DHAVE_ATTRIBUTE_ALIGNED)
 
 
 set(ZLIB_ARCH_SRCS)

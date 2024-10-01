@@ -4,20 +4,23 @@ add_library (_poco_foundation_pcre ${SRCS_PCRE})
 add_library (Poco::Foundation::PCRE ALIAS _poco_foundation_pcre)
 
 # TODO: remove these warning exclusions
-target_compile_options (_poco_foundation_pcre
-    PRIVATE
-        -Wno-cast-align
-        -Wno-cast-qual
-        -Wno-comma
-        -Wno-conditional-uninitialized
-        -Wno-extra-semi-stmt
-        -Wno-implicit-fallthrough
-        -Wno-reserved-identifier
-        -Wno-sign-compare
-        -Wno-unknown-pragmas
-        -Wno-unreachable-code-break
-        -Wno-unused-macros
-)
+if (NOT MSVC)
+    target_compile_options (_poco_foundation_pcre
+        PRIVATE
+            -Wno-cast-align
+            -Wno-cast-qual
+            -Wno-comma
+            -Wno-conditional-uninitialized
+            -Wno-extra-semi-stmt
+            -Wno-implicit-fallthrough
+            -Wno-reserved-identifier
+            -Wno-sign-compare
+            -Wno-unknown-pragmas
+            -Wno-unreachable-code-break
+            -Wno-unused-macros
+    )
+endif()
+
 set(SRCS 
 src/ASCIIEncoding.cpp
 src/AbstractObserver.cpp
@@ -64,7 +67,7 @@ src/ErrorHandler.cpp
 src/Event.cpp
 src/EventArgs.cpp
 src/EventChannel.cpp
-#src/EventLogChannel.cpp
+src/EventLogChannel.cpp
 #src/Event_POSIX.cpp
 #src/Event_VX.cpp
 #src/Event_WIN32.cpp
@@ -271,39 +274,41 @@ elseif(OS_WINDOWS)
     target_compile_definitions (_poco_foundation PUBLIC POCO_OS_FAMILY_WINDOWS Foundation_EXPORTS)
 endif()
 
-target_compile_options (_poco_foundation
-    PRIVATE
-        -Wno-array-bounds
-        -Wno-atomic-implicit-seq-cst
-        -Wno-cast-align
-        -Wno-cast-qual
-        -Wno-class-varargs
-        -Wno-covered-switch-default
-        -Wno-deprecated
-        -Wno-extra-semi-stmt
-        -Wno-implicit-fallthrough
-        -Wno-implicit-int-float-conversion
-        -Wno-misleading-indentation
-        -Wno-missing-noreturn
-        -Wno-old-style-cast
-        -Wno-redundant-parens
-        -Wno-reserved-identifier
-        -Wno-reserved-macro-identifier
-        -Wno-shadow
-        -Wno-shorten-64-to-32
-        -Wno-sign-compare
-        -Wno-suggest-destructor-override
-        -Wno-suggest-override
-        -Wno-tautological-unsigned-zero-compare
-        -Wno-thread-safety-analysis
-        -Wno-thread-safety-negative
-        -Wno-undef
-        -Wno-unreachable-code-return
-        -Wno-unused-exception-parameter
-        -Wno-unused-macros
-        -Wno-unused-parameter
-        -Wno-zero-as-null-pointer-constant
-)
+if (NOT MSVC)
+    target_compile_options (_poco_foundation
+        PRIVATE
+            -Wno-array-bounds
+            -Wno-atomic-implicit-seq-cst
+            -Wno-cast-align
+            -Wno-cast-qual
+            -Wno-class-varargs
+            -Wno-covered-switch-default
+            -Wno-deprecated
+            -Wno-extra-semi-stmt
+            -Wno-implicit-fallthrough
+            -Wno-implicit-int-float-conversion
+            -Wno-misleading-indentation
+            -Wno-missing-noreturn
+            -Wno-old-style-cast
+            -Wno-redundant-parens
+            -Wno-reserved-identifier
+            -Wno-reserved-macro-identifier
+            -Wno-shadow
+            -Wno-shorten-64-to-32
+            -Wno-sign-compare
+            -Wno-suggest-destructor-override
+            -Wno-suggest-override
+            -Wno-tautological-unsigned-zero-compare
+            -Wno-thread-safety-analysis
+            -Wno-thread-safety-negative
+            -Wno-undef
+            -Wno-unreachable-code-return
+            -Wno-unused-exception-parameter
+            -Wno-unused-macros
+            -Wno-unused-parameter
+            -Wno-zero-as-null-pointer-constant
+    )
+endif()
 
 add_definitions( -DPCRE_STATIC)
 

@@ -186,6 +186,10 @@ if (OS_LINUX OR OS_DARWIN)
         PRIVATE ch_contrib::unixodbc
         PRIVATE ch_contrib::nanodbc
     )
+elseif (OS_WINDOWS)
+    target_link_libraries (${libname}-impl
+        PRIVATE ODBC::Driver
+    )
 endif()
 
 
