@@ -33,10 +33,17 @@ function (declare_odbc_test_targets libname UNICODE)
 
     target_link_libraries (${libname}-load-ut
         PRIVATE Poco::Foundation
-        PRIVATE ODBC::App
         PRIVATE Threads::Threads
-        PRIVATE ${CMAKE_DL_LIBS}
     )
+    if (OS_DARWIN OR OS_LINUX)
+        target_link_libraries (${libname}-load-ut
+            PRIVATE ch_contrib::unixodbc
+        )
+    elseif (OS_WINDOWS)
+        target_link_libraries (${libname}-load-ut
+            PRIVATE ODBC::App
+        )
+    endif()
 
     target_include_directories (${libname}-load-ut
         PRIVATE ${PROJECT_BINARY_DIR}
@@ -75,17 +82,26 @@ function (declare_odbc_test_targets libname UNICODE)
     )
 
     target_link_libraries (${libname}-client-it
-        PRIVATE ODBC::App
         PRIVATE Poco::Foundation
         PRIVATE gtest
         PRIVATE gmock
         PRIVATE Threads::Threads
-        PRIVATE ${CMAKE_DL_LIBS}
+        PRIVATE ${libname}-impl
     )
 
+    if (OS_LINUX OR OS_DARWIN)
+        target_link_libraries (${libname}-impl PUBLIC ch_contrib::unixodbc ch_contrib::nanodbc)
+    else()
+        target_link_libraries (${libname}-impl PUBLIC ODBC::App)
+    endif()
+
     if (CH_ODBC_USE_ICU)
+        target_include_directories (${libname}-client-it
+            PUBLIC ch_contrib::icu
+        )
+
         target_link_libraries (${libname}-client-it
-            PRIVATE ICU::uc
+            PUBLIC ch_contrib::icu
         )
     endif ()
 

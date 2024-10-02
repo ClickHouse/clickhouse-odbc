@@ -157,22 +157,45 @@ if (CH_ODBC_ENABLE_SSL)
     if (MSVC)
         set (_poco_net Poco::NetSSLWin)
     else ()
-        set (_poco_net Poco::NetSSL)
+        set (_poco_net Poco::Net Poco::Net::SSL Poco::Util)
     endif ()
 else ()
     set (_poco_net Poco::Net)
 endif ()
 
 target_link_libraries (${libname}-impl
-    PUBLIC ${_poco_net}
+    PUBLIC Poco::Net
+    PUBLIC Poco::Util
     PUBLIC Poco::Foundation
-    PUBLIC ODBC::Driver
     PUBLIC Threads::Threads
 )
+if (OS_LINUX OR OS_DARWIN)
+    target_link_libraries (${libname}-impl
+        PUBLIC OpenSSL::SSL
+        PUBLIC OpenSSL::Crypto
+        PUBLIC Poco::Net::SSL
+    )
+elseif(OS_WINDOWS)
+    target_link_libraries (${libname}-impl
+        PUBLIC Poco::Net::WinSSL
+    )
+endif()
+
+if (OS_LINUX OR OS_DARWIN)
+    target_link_libraries (${libname}-impl
+        PRIVATE ch_contrib::unixodbc
+        PRIVATE ch_contrib::nanodbc
+    )
+elseif (OS_WINDOWS)
+    target_link_libraries (${libname}-impl
+        PRIVATE ODBC::Driver
+    )
+endif()
+
 
 if (CH_ODBC_USE_ICU)
     target_link_libraries (${libname}-impl
-        PUBLIC ICU::uc
+        PUBLIC ch_contrib::icu
     )
 endif ()
 
@@ -181,19 +204,24 @@ add_library (${libname} SHARED
     ${WIN_SOURCES}
 )
 
-set_target_properties (${libname} PROPERTIES
-    OUTPUT_NAME "clickhouseodbc${WIDECHAR_SUFFIX}"
-)
-
 target_link_libraries (${libname}
     PRIVATE ${libname}-impl
 )
 
-if (NOT APPLE AND NOT WIN32)
-    target_link_options (${libname}
-        PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/platform/version_script"
+set_target_properties (${libname} PROPERTIES
+    OUTPUT_NAME "clickhouseodbc${WIDECHAR_SUFFIX}"
+)
+
+if (OS_LINUX)
+    set_target_properties(${libname} PROPERTIES
+        LINK_FLAGS "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_linux.txt"
     )
-endif ()
+elseif (OS_DARWIN)
+    #set_target_properties(${libname} PROPERTIES
+    #    LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_darwin.txt"
+    #)
+endif()
+
 
 if (CH_ODBC_ENABLE_INSTALL)
     if (MSVC)

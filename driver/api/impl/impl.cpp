@@ -8,6 +8,7 @@
 
 #include <Poco/Net/HTTPClientSession.h>
 
+#include <exception>
 #include <type_traits>
 #include <new>
 

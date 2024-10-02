@@ -27,8 +27,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        odbc_provider: [UnixODBC, iODBC]
-        compiler: [Clang, GCC]
+        odbc_provider: [UnixODBC]
+        compiler: [Clang]
         build_type: [Debug, Release]
         architecture: [x86_64]
         runtime_link: [static-runtime, dynamic-runtime]

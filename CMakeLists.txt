@@ -1,8 +1,13 @@
 cmake_minimum_required (VERSION 3.13.5)
 
+if(POLICY CMP0091)
+  cmake_policy(SET CMP0091 NEW)
+endif()
+
 set (CMAKE_MODULE_PATH_orig ${CMAKE_MODULE_PATH})
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 include (cmake/prevent_in_source_builds.cmake)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "Minimum OS X deployment version")
 
 project (
     clickhouse-odbc
@@ -13,10 +18,9 @@ project (
 )
 
 set (CMAKE_C_STANDARD 11)
-#set (CMAKE_C_EXTENSIONS 0)
 set (CMAKE_C_STANDARD_REQUIRED 1)
 
-set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD 23)
 set (CMAKE_CXX_EXTENSIONS 0)
 set (CMAKE_CXX_STANDARD_REQUIRED 1)
 
@@ -36,11 +40,13 @@ endif ()
 
 message (STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 
+
 string (TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UC)
 string (TOUPPER "${CMAKE_CONFIGURATION_TYPES}" CMAKE_CONFIGURATION_TYPES_UC)
 
 include(CMakeDependentOption)
 
+include (cmake/os.cmake)
 option(BUILD_TESTING "Build test targets" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
@@ -53,7 +59,7 @@ option (CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES "Prefer bundled over system variant
 cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_POCO "Prefer bundled over system variants of Poco library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
 cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_SSL "Prefer bundled over system variants of SSL library" ON "CH_ODBC_PREFER_BUNDLED_POCO" OFF)
 cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_FOLLY "Prefer bundled over system variants of Folly library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_ICU "Prefer bundled over system variants of ICU library" OFF "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
+option (CH_ODBC_PREFER_BUNDLED_ICU "Prefer bundled over system variants of ICU library" ON)
 cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_GOOGLETEST "Prefer bundled over system variants of Google Test library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
 cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_NANODBC "Prefer bundled over system variants of nanodbc library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
 option (CH_ODBC_RUNTIME_LINK_STATIC "Link with compiler and language runtime statically" OFF)
@@ -64,13 +70,30 @@ set (CH_ODBC_DEFAULT_DSN_UNICODE "ClickHouse DSN (Unicode)" CACHE STRING "Defaul
 
 if (MSVC)
     # This default encoding mode will be overriden by UNICODE, in the corresponding cases.
-    add_compile_definitions (SBCS _SBCS)
+    #add_compile_definitions (SBCS _SBCS)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
 endif ()
 
-if (ARCH_FREEBSD)
+if (OS_FREEBSD)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
 endif ()
+
+add_library(global-libs INTERFACE)
+include (cmake/arch.cmake)
+include (cmake/sanitize.cmake)
+
+include (GNUInstallDirs)
+
+add_library(global-group INTERFACE)
+if (OS_LINUX)
+    include(cmake/linux/default_libs.cmake)
+    target_link_options(global-group INTERFACE "LINKER:--no-undefined")
+elseif(OS_DARWIN)
+    include(cmake/darwin/default_libs.cmake)
+else()
+    link_libraries(global-group)
+endif()
+
 
 # Make sure that all optimized builds have NDEBUG macro set.
 foreach (config Release RelWithDebInfo MinSizeRel)
@@ -99,28 +122,21 @@ if (CH_ODBC_RUNTIME_LINK_STATIC)
                 string (REPLACE "-MD" "-MT" ${var} "${${var}}")
             endforeach ()
         endforeach ()
-    elseif (
-        CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
-        (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT APPLE)
-    )
-        if (NOT APPLE AND NOT WIN32 AND NOT ARCH_FREEBSD)
-            set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
-            set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--whole-archive -static-libgcc -static-libstdc++ -Wl,--no-whole-archive")
-        else ()
-            set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
-            set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libgcc -static-libstdc++")
-        endif ()
-    else ()
-        message (WARNING "linking with compiler and language runtime statically is not supported in the current build environment")
     endif()
 endif ()
 
-include (GNUInstallDirs)
-include (cmake/arch.cmake)
-include (cmake/sanitize.cmake)
 
-find_package (Threads REQUIRED)
-find_package (ODBC REQUIRED)
+if (WERROR)
+    # Don't pollute CMAKE_CXX_FLAGS with -Werror as it will break some CMake checks.
+    # Instead, adopt modern cmake usage requirement.
+    # TODO: Set CMAKE_COMPILE_WARNING_AS_ERROR (cmake 3.24)
+    target_compile_options(global-group INTERFACE "-Werror")
+endif ()
+if (OS_WINDOWS)
+    find_package(ODBC REQUIRED)
+    find_package(Threads REQUIRED)
+endif()
+add_subdirectory (contrib EXCLUDE_FROM_ALL)
 
 if (CH_ODBC_ENABLE_SSL)
     if (NOT CH_ODBC_PREFER_BUNDLED_SSL)
@@ -136,20 +152,13 @@ if (CH_ODBC_ENABLE_SSL)
     endif ()
 endif ()
 
-if (NOT CH_ODBC_PREFER_BUNDLED_POCO)
-    find_package (Poco COMPONENTS Foundation Net NetSSL)
-endif ()
-
 if (NOT CH_ODBC_PREFER_BUNDLED_FOLLY)
     message (WARNING "Folly: using system variant of the library currently not supported")
 #   find_package (Folly)
 endif ()
 
-if (CH_ODBC_USE_ICU)
-    if (CH_ODBC_PREFER_BUNDLED_ICU)
-        message (WARNING "ICU: using bundled variant of the library currently not supported")
-    endif ()
-    find_package (ICU COMPONENTS uc REQUIRED)
+if (NOT CH_ODBC_USE_ICU)
+    message (WARNING "Not using ICU")
 endif ()
 
 if (CH_ODBC_ENABLE_TESTING)
@@ -169,7 +178,10 @@ if (CH_ODBC_ENABLE_TESTING)
     endif ()
 endif ()
 
-add_subdirectory (contrib EXCLUDE_FROM_ALL)
+set(ENABLE_SSL 1)
+
+add_subdirectory(contrib/poco)
+
 
 if (CH_ODBC_ENABLE_TESTING)
     include (CTest)
@@ -189,6 +201,8 @@ set (CMAKE_C_VISIBILITY_PRESET hidden)
 set (CMAKE_CXX_VISIBILITY_PRESET hidden)
 set (CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 
+include (cmake/packages.cmake)
+
 include (CheckIPOSupported)
 check_ipo_supported (RESULT ipo_supported LANGUAGES C CXX)
 if (ipo_supported)
@@ -199,6 +213,7 @@ if (ipo_supported)
 endif ()
 
 add_subdirectory (driver)
+
 
 if (CH_ODBC_ENABLE_INSTALL)
     if (NOT WIN32)

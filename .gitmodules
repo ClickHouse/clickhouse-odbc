@@ -1,20 +1,37 @@
-[submodule "contrib/poco"]
-    path = contrib/poco
-    url = https://github.com/ClickHouse-Extras/poco.git
-    branch = clickhouse-odbc
-[submodule "contrib/ssl"]
-    path = contrib/ssl
-    url = https://github.com/ClickHouse-Extras/ssl.git
-    branch = master
-[submodule "contrib/nanodbc"]
-    path = contrib/nanodbc
-    url = https://github.com/nanodbc/nanodbc.git
-    branch = master
 [submodule "contrib/googletest"]
     path = contrib/googletest
     url = https://github.com/google/googletest.git
     branch = master
+[submodule "contrib/icu"]
+	path = contrib/icu
+	url = https://github.com/ClickHouse/icu.git
+[submodule "contrib/icudata"]
+	path = contrib/icudata
+	url = https://github.com/ClickHouse/icudata
+[submodule "contrib/UnixODBC"]
+	path = contrib/unixodbc
+	url = https://github.com/ClickHouse/UnixODBC.git
+[submodule "contrib/nanodbc"]
+	path = contrib/nanodbc
+	url = https://github.com/ClickHouse/nanodbc.git
+[submodule "contrib/llvm-project"]
+	path = contrib/llvm-project
+	url = https://github.com/ClickHouse/llvm-project
+[submodule "contrib/zlib-ng"]
+	path = contrib/zlib-ng
+	url = https://github.com/ClickHouse/zlib-ng.git
+[submodule "contrib/lz4"]
+	path = contrib/lz4
+	url = https://github.com/ClickHouse/lz4
+[submodule "contrib/openssl"]
+	path = contrib/openssl
+	url = https://github.com/ClickHouse/openssl
 [submodule "contrib/folly"]
-    path = contrib/folly
-    url = https://github.com/facebook/folly.git
-    branch = master
+	path = contrib/folly
+	url = https://github.com/facebook/folly.git
+[submodule "contrib/double-conversion"]
+	path = contrib/double-conversion
+	url = https://github.com/ClickHouse/double-conversion
+[submodule "contrib/libunwind"]
+	path = contrib/libunwind
+	url = https://github.com/ClickHouse/libunwind

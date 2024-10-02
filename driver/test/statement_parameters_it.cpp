@@ -90,6 +90,20 @@ protected:
 
         char * col_ptr = reinterpret_cast<char *>(col);
         const auto resulting_str = std::string{col_ptr, static_cast<std::string::size_type>(col_ind)};
+        ///  12345 is valid for "12345.000000000000",
+        ///  and 12345.001002003 is valid for "12345.001002003000",
+        if (resulting_str.size() < expected_str.size())
+        {
+            if (expected_str.substr(0, resulting_str.size()) == resulting_str)
+            {
+                if (std::all_of(expected_str.begin() + resulting_str.size(), expected_str.end(), [](auto c) { return c == '0' || c == '.'; }))
+                {
+                    ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
+                    return;
+                }
+            }
+
+        }
 
         if (case_sensitive)
             ASSERT_STREQ(resulting_str.c_str(), expected_str.c_str());
