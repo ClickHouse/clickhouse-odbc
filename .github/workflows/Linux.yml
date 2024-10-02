@@ -15,9 +15,6 @@ concurrency:
   group: linux-${{ github.head_ref }}
   cancel-in-progress: true
 
-env:
-  CLICKHOUSE_SERVER_IMAGE: "clickhouse/clickhouse-server:21.3"
-
 defaults:
   run:
     shell: bash
@@ -54,7 +51,7 @@ jobs:
         mkdir -p ${{ github.workspace }}/package
 
     - name: Clone the repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         path: source
         submodules: true
@@ -64,17 +61,7 @@ jobs:
         sudo apt update -q
         sudo apt remove -y php* node* mysql* mssql-tools
         sudo apt upgrade -y
-        sudo apt install -y build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl python-is-python3 python3 python3-pip python3-pyodbc python3-setuptools libpoco-dev libssl-dev libicu-dev
-        pip3 install --user 'testflows==1.6.56'
-
-    - name: Install dependencies - Docker
-      run: |
-        sudo apt remove -y docker docker-engine docker.io containerd runc
-        sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-        sudo apt update -q
-        sudo apt install docker-ce docker-ce-cli containerd.io
+        sudo apt install -y build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl python-is-python3 python3 python3-pip python3-setuptools libpoco-dev libssl-dev libicu-dev
 
     - name: Install dependencies - UnixODBC
       if: ${{ matrix.odbc_provider == 'UnixODBC' }}
@@ -95,6 +82,12 @@ jobs:
     - name: Install dependencies - Cleanup
       run: sudo apt autoremove -y
 
+    - name: Start ClickHouse in Docker
+      uses: hoverkraft-tech/compose-action@v2.0.1
+      with:
+        compose-file: source/test/docker-compose.yml
+        down-flags: --volumes
+
     - name: Configure
       run: >
         CC=${{ fromJSON('{"Clang": "clang", "GCC": "gcc"}')[matrix.compiler] }}
@@ -107,7 +100,7 @@ jobs:
         -DTEST_DSN_LIST="ClickHouse DSN (ANSI);ClickHouse DSN (Unicode);ClickHouse DSN (ANSI, RBWNAT)"
 
     - name: Build
-      run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }}
+      run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --parallel $(nproc)
 
     - name: Package
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target package
@@ -122,94 +115,96 @@ jobs:
     # However, these binaries are uploaded to be available in GH's 'Actions', just in case.
     - name: Upload the artifacts
       if:  ${{ matrix.compiler == 'GCC' && matrix.odbc_provider == 'UnixODBC' && matrix.build_type == 'Release' && matrix.runtime_link == 'dynamic-runtime' && matrix.third_parties == 'bundled-third-parties' }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
           name: clickhouse-odbc-linux-${{ matrix.compiler }}-${{ matrix.odbc_provider }}-${{ matrix.build_type }}
           path: ${{ github.workspace }}/build/clickhouse-odbc-*
 
-    - name: Test - Run unit tests
+    - name: Test - Run C++ unit tests
       working-directory: ${{ github.workspace }}/build
       run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
 
-    - name: Test - Start ClickHouse server in background
+    - name: Prepare ODBC ini configs
       run: |
-        docker pull ${CLICKHOUSE_SERVER_IMAGE}
-        docker run -d --name clickhouse ${CLICKHOUSE_SERVER_IMAGE}
-        docker ps -a
-        docker stats -a --no-stream
-
-    - name: Test - Run integration tests
-      working-directory: ${{ github.workspace }}/build
-      run: |
-        export CLICKHOUSE_SERVER_IP=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' clickhouse)
-
-        export ODBCSYSINI=${{ github.workspace }}/run
-        export ODBCINSTINI=.odbcinst.ini
-        export ODBCINI=$ODBCSYSINI/.odbc.ini
-        if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
-            # Full path to a custom odbcinst.ini in ODBCINSTINI for iODBC.
-            export ODBCINSTINI=$ODBCSYSINI/$ODBCINSTINI
-        fi
-
-        cat > $ODBCSYSINI/.odbcinst.ini <<-EOF
+        echo "Preparing ODBC ini configs"
+        cat > ${{ github.workspace }}/run/.odbcinst.ini <<-EOF
         [ODBC]
         Trace     = 1
         TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
         Debug     = 1
         DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
-
+        
         [ODBC Drivers]
         ClickHouse ODBC Driver (ANSI)    = Installed
         ClickHouse ODBC Driver (Unicode) = Installed
-
+        
         [ClickHouse ODBC Driver (ANSI)]
         Driver     = ${{ github.workspace }}/build/driver/libclickhouseodbc.so
         Setup      = ${{ github.workspace }}/build/driver/libclickhouseodbc.so
         UsageCount = 1
-
+        
         [ClickHouse ODBC Driver (Unicode)]
         Driver     = ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
         Setup      = ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
         UsageCount = 1
         EOF
-
-        cat > $ODBCSYSINI/.odbc.ini <<-EOF
+        
+        cat > ${{ github.workspace }}/run/.odbc.ini <<-EOF
         [ODBC]
         Trace     = 1
         TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
         Debug     = 1
         DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
-
+        
         [ODBC Data Sources]
         ClickHouse DSN (ANSI)         = ClickHouse ODBC Driver (ANSI)
         ClickHouse DSN (Unicode)      = ClickHouse ODBC Driver (Unicode)
         ClickHouse DSN (ANSI, RBWNAT) = ClickHouse ODBC Driver (ANSI)
-
+        
         [ClickHouse DSN (ANSI)]
         Driver        = ClickHouse ODBC Driver (ANSI)
         Description   = Test DSN for ClickHouse ODBC Driver (ANSI)
         Url           = http://${CLICKHOUSE_SERVER_IP}
         DriverLog     = yes
         DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
-
+        
         [ClickHouse DSN (Unicode)]
         Driver        = ClickHouse ODBC Driver (Unicode)
         Description   = Test DSN for ClickHouse ODBC Driver (Unicode)
-        Url           = http://${CLICKHOUSE_SERVER_IP}
+        Url           = http://localhost:8123
         DriverLog     = yes
         DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver-w.log
-
+        
         [ClickHouse DSN (ANSI, RBWNAT)]
         Driver        = ClickHouse ODBC Driver (ANSI)
         Description   = Test DSN for ClickHouse ODBC Driver (ANSI) that uses RowBinaryWithNamesAndTypes as data source communication default format
-        Url           = http://${CLICKHOUSE_SERVER_IP}/query?default_format=RowBinaryWithNamesAndTypes
+        Url           = http://localhost:8123/query?default_format=RowBinaryWithNamesAndTypes
         DriverLog     = yes
         DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
         EOF
 
+    # Run all tests except those that were run in "Test - unit tests" step.
+    - name: Test - Run C++ integration tests
+      working-directory: ${{ github.workspace }}/build
+      run: |
+        export ODBCSYSINI=
+        export ODBCINSTINI="${{ github.workspace }}/run/.odbcinst.ini"
+        export ODBCINI="${{ github.workspace }}/run/.odbc.ini"
         if [[ "${{ matrix.odbc_provider }}" == "iODBC" ]]; then
-            export GTEST_FILTER="-PerformanceTest.*"
+          export GTEST_FILTER="-PerformanceTest.*"
         fi
-
-        # Run all tests except those that were run in "Test - unit tests" step.
         ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '.*-ut.*'
+
+    - name: Prepare Python dependencies
+      working-directory: source/test
+      run: |
+        pip install -r requirements.txt
+
+      # An empty `ODBCSYSINI` is required in this case to run properly with custom `ODBCINI`/`ODBCINSTINI` paths
+    - name: Test - Run Python e2e tests
+      working-directory: source/test
+      run: |
+        export ODBCSYSINI=
+        export ODBCINSTINI="${{ github.workspace }}/run/.odbcinst.ini"
+        export ODBCINI="${{ github.workspace }}/run/.odbc.ini"
+        pytest --log-level=DEBUG -v

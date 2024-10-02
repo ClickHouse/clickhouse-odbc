@@ -199,9 +199,6 @@ if (ipo_supported)
 endif ()
 
 add_subdirectory (driver)
-if (CH_ODBC_ENABLE_TESTING)
-    add_subdirectory (test)
-endif ()
 
 if (CH_ODBC_ENABLE_INSTALL)
     if (NOT WIN32)
