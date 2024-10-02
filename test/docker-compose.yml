@@ -1,0 +1,20 @@
+services:
+    clickhouse:
+        image: 'clickhouse/clickhouse-server:${CLICKHOUSE_VERSION-24.3-alpine}'
+        container_name: 'clickhouse-odbc-clickhouse-server'
+        ports:
+            - '8123:8123'
+            - '9000:9000'
+        ulimits:
+            nofile:
+                soft: 262144
+                hard: 262144
+        volumes:
+            - './docker-compose/config.xml:/etc/clickhouse-server/config.xml'
+            - './docker-compose/users.xml:/etc/clickhouse-server/users.xml'
+        networks:
+            - clickhouse-odbc
+
+networks:
+    clickhouse-odbc:
+        driver: bridge

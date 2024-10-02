@@ -84,7 +84,7 @@ TEST_P(DateTime, GetData) {
     {
         SQLLEN sql_type = SQL_TYPE_NULL;
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLColAttribute(hstmt, 1, SQL_DESC_TYPE, NULL, 0, NULL, &sql_type));
-        EXPECT_EQ(sql_type, params.expected_sql_type);
+        EXPECT_EQ(sql_type, params.expected_sql_type) << "expected: " << params.expected_str_val;
     }
 
     {
@@ -100,7 +100,7 @@ TEST_P(DateTime, GetData) {
             &col_ind
         ));
 
-        EXPECT_EQ(toUTF8(col), params.expected_str_val);
+        EXPECT_EQ(toUTF8(col), params.expected_str_val) << "expected: " << params.expected_str_val;;
     }
 
     if (params.format != "RowBinaryWithNamesAndTypes" || params.expected_sql_type == SQL_TYPE_DATE) {
@@ -116,7 +116,7 @@ TEST_P(DateTime, GetData) {
             &col_ind
         ));
 
-        EXPECT_EQ(col, expected_date_val);
+        EXPECT_EQ(col, expected_date_val) << "expected: " << params.expected_str_val;;
     }
 
     if (params.format != "RowBinaryWithNamesAndTypes") {
@@ -132,7 +132,7 @@ TEST_P(DateTime, GetData) {
             &col_ind
         ));
 
-        EXPECT_EQ(col, expected_time_val);
+        EXPECT_EQ(col, expected_time_val) << "expected: " << params.expected_str_val;;
     }
 
     if (params.format != "RowBinaryWithNamesAndTypes" || params.expected_sql_type != SQL_TYPE_DATE) {
@@ -148,7 +148,7 @@ TEST_P(DateTime, GetData) {
             &col_ind
         ));
 
-        EXPECT_EQ(col, params.expected_timestamp_val);
+        EXPECT_EQ(col, params.expected_timestamp_val) << "expected: " << params.expected_str_val;;
     }
 
     }
@@ -170,53 +170,53 @@ INSTANTIATE_TEST_SUITE_P(
     MiscellaneousTest,
     DateTime,
     ::testing::Values(
-        DateTimeParams{"Date", "ODBCDriver2", "Europe/Moscow",
+        DateTimeParams{"Date", "ODBCDriver2", "UTC",
             "toDate('2020-03-25')", SQL_TYPE_DATE,
             "2020-03-25", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 0, 0, 0, 0}
         },
-        DateTimeParams{"DateTime", "ODBCDriver2", "Europe/Moscow",
+        DateTimeParams{"DateTime", "ODBCDriver2", "UTC",
             "toDateTime('2020-03-25 12:11:22')", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 0}
         },
-        DateTimeParams{"DateTime_TZ", "ODBCDriver2", "Europe/Moscow",
+        DateTimeParams{"DateTime_TZ", "ODBCDriver2", "UTC",
             "toDateTime('2020-03-25 12:11:22', 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 0}
         },
-        DateTimeParams{"DateTime64_0", "ODBCDriver2", "Europe/Moscow",
+        DateTimeParams{"DateTime64_0", "ODBCDriver2", "UTC",
             "toDateTime64('2020-03-25 12:11:22.123456789', 0)", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 0}
         },
-        DateTimeParams{"DateTime64_4", "ODBCDriver2", "Europe/Moscow",
+        DateTimeParams{"DateTime64_4", "ODBCDriver2", "UTC",
             "toDateTime64('2020-03-25 12:11:22.123456789', 4)", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22.1234", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 123400000}
         },
-        DateTimeParams{"DateTime64_9", "ODBCDriver2", "Europe/Moscow",
+        DateTimeParams{"DateTime64_9", "ODBCDriver2", "UTC",
             "toDateTime64('2020-03-25 12:11:22.123456789', 9)", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22.123456789", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 123456789}
         },
-        DateTimeParams{"DateTime64_9_TZ", "ODBCDriver2", "Europe/Moscow",
+        DateTimeParams{"DateTime64_9_TZ", "ODBCDriver2", "UTC",
             "toDateTime64('2020-03-25 12:11:22.123456789', 9, 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22.123456789", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 123456789}
         },
 
         // TODO: remove this once the formats behave identically.
 
-        DateTimeParams{"Date", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
+        DateTimeParams{"Date", "RowBinaryWithNamesAndTypes", "UTC",
             "toDate('2020-03-25')", SQL_TYPE_DATE,
             "2020-03-25", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 0, 0, 0, 0}
         },
-        DateTimeParams{"DateTime_TZ", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
+        DateTimeParams{"DateTime_TZ", "RowBinaryWithNamesAndTypes", "UTC",
             "toDateTime('2020-03-25 12:11:22', 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
-            "2020-03-25 09:26:22", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 9, 26, 22, 0}
+            "2020-03-25 06:26:22", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 6, 26, 22, 0}
         },
-        DateTimeParams{"DateTime64_9_TZ", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
+        DateTimeParams{"DateTime64_9_TZ", "RowBinaryWithNamesAndTypes", "UTC",
             "toDateTime64('2020-03-25 12:11:22.123456789', 9, 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
-            "2020-03-25 09:26:22.123456789", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 9, 26, 22, 123456789}
+            "2020-03-25 06:26:22.123456789", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 6, 26, 22, 123456789}
         }/*,
 
         // TODO: uncomment once the target ClickHouse server is 21.4+
 
-        DateTimeParams{"DateTime64_9_TZ_pre_epoch", "RowBinaryWithNamesAndTypes", "Europe/Moscow",
+        DateTimeParams{"DateTime64_9_TZ_pre_epoch", "RowBinaryWithNamesAndTypes", "UTC",
             "toDateTime64('1955-03-25 12:11:22.123456789', 9, 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
             "1955-03-25 09:26:22.123456789", SQL_TIMESTAMP_STRUCT{1955, 3, 25, 9, 26, 22, 123456789}
         }

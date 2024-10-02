@@ -33,9 +33,6 @@ RUN apt-get update -y \
         llvm \
         lldb
 
-RUN pip3 install --user \
-    'testflows==1.6.56'
-
 #
 #FROM centos:7 as clickhouse_odbc_tester_base_centos
 #RUN yum makecache
@@ -112,8 +109,7 @@ ENV LOG_DIR=/var/log/ch-odbc
 ARG BIN_DIR=/clickhouse-odbc-build
 
 # We need to install it after odbc provider, since we need a 'sql.h' to build it
-RUN pip3 install --user \
-    'pyodbc>=4.0.0'
+RUN pip3 install --user -r requirements.txt
 
 RUN mkdir -p ${BIN_DIR} \
     && echo $CMAKE_ODBC_PROVIDER \
