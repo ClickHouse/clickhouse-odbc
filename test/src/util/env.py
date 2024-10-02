@@ -8,7 +8,7 @@ DEFAULT_DSN = "ClickHouse DSN (ANSI)"
 def read_dsn_from_env():
     env_dsn = os.getenv("DSN")
     if env_dsn is None:
-        LOGGER.warning(f"Setting DSN to default value: {DEFAULT_DSN}")
+        LOGGER.info(f"Setting DSN to default value: {DEFAULT_DSN}")
         return DEFAULT_DSN
     return env_dsn
 
