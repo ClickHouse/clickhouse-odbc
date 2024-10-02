@@ -13,8 +13,7 @@ if (OS_DARWIN OR OS_LINIX)
     add_library(_nanodbc ${SRCS})
     target_link_libraries(_nanodbc PUBLIC ch_contrib::unixodbc)
     target_include_directories(_nanodbc SYSTEM PUBLIC "${LIBRARY_DIR}/")
-    add_library(ch_contr
-    ib::nanodbc ALIAS _nanodbc)
+    add_library(ch_contrib::nanodbc ALIAS _nanodbc)
 elseif (OS_WINDOWS)
     set (LIBRARY_DIR "${CMAKE_SOURCE_DIR}/contrib/nanodbc")
     set (SRCS
