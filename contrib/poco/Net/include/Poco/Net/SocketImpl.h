@@ -451,8 +451,8 @@ protected:
 		/// Throws an appropriate exception for the given error code.
 
 protected:
-	SocketImpl(const SocketImpl&);
-	SocketImpl& operator = (const SocketImpl&);
+	SocketImpl(const SocketImpl&) = default;
+	SocketImpl& operator = (const SocketImpl&) = default;
 
 	poco_socket_t _sockfd;
 	Poco::Timespan _recvTimeout;
