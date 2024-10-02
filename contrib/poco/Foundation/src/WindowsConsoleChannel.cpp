@@ -12,6 +12,8 @@
 //
 
 
+#if defined(POCO_OS_FAMILY_WINDOWS)
+
 #include "Poco/WindowsConsoleChannel.h"
 #include "Poco/Message.h"
 #if defined(POCO_WIN32_UTF8)
@@ -300,3 +302,5 @@ void WindowsColorConsoleChannel::initColors()
 
 
 } // namespace Poco
+
+#endif

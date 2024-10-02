@@ -20,6 +20,7 @@
 
 #include "Poco/Net/Net.h"
 #include "Poco/Net/HTTPSession.h"
+#include "Poco/Net/HTTPSessionFactory.h"
 #include "Poco/Net/SocketAddress.h"
 #include "Poco/SharedPtr.h"
 #include <istream>
@@ -66,7 +67,7 @@ public:
 		/// HTTP proxy server configuration.
 	{
 		ProxyConfig():
-			port(HTTP_PORT)
+			port(HTTP_PORT), protocol("http"), tunnel(true)
 		{
 		}
 
@@ -74,6 +75,11 @@ public:
 			/// Proxy server host name or IP address.
 		Poco::UInt16 port;
 			/// Proxy server TCP port.
+		std::string  protocol;
+			/// Protocol to use (http or https).
+		bool tunnel;
+			/// Use proxy as tunnel (establish 2-way communication through CONNECT request).
+			/// If tunnel option is 'false' request will be send directly to proxy without CONNECT request.
 		std::string  username;
 			/// Proxy server username.
 		std::string  password;
@@ -120,11 +126,16 @@ public:
 		/// The port number must not be changed once there is an
 		/// open connection to the server.
 
+	void setResolvedHost(std::string resolved_host) { _resolved_host.swap(resolved_host); }
+
 	Poco::UInt16 getPort() const;
 		/// Returns the port number of the target HTTP server.
 
-	void setProxy(const std::string& host, Poco::UInt16 port = HTTPSession::HTTP_PORT);
-		/// Sets the proxy host name and port number.
+	std::string getResolvedAddress() const;
+		/// Returns the resolved host name and port of the target HTTP server.
+
+	void setProxy(const std::string& host, Poco::UInt16 port = HTTPSession::HTTP_PORT, const std::string& protocol = "http", bool tunnel = true);
+		/// Sets the proxy host name, port number, protocol (http or https) and tunnel behaviour.
 
 	void setProxyHost(const std::string& host);
 		/// Sets the host name of the proxy server.
@@ -132,11 +143,23 @@ public:
 	void setProxyPort(Poco::UInt16 port);
 		/// Sets the port number of the proxy server.
 
+	void setProxyProtocol(const std::string& protocol);
+		/// Sets the proxy protocol (http or https).
+
+	void setProxyTunnel(bool tunnel);
+		/// If 'true' proxy will be used as tunnel.
+
 	const std::string& getProxyHost() const;
 		/// Returns the proxy host name.
 
 	Poco::UInt16 getProxyPort() const;
 		/// Returns the proxy port number.
+
+	const std::string& getProxyProtocol() const;
+		/// Returns the proxy protocol.
+
+	bool isProxyTunnel() const;
+		/// Returns 'true' if proxy is configured as tunnel.
 
 	void setProxyCredentials(const std::string& username, const std::string& password);
 		/// Sets the username and password for proxy authentication.
@@ -306,8 +329,11 @@ protected:
 		/// Calls proxyConnect() and attaches the resulting StreamSocket
 		/// to the HTTPClientSession.
 
+	HTTPSessionFactory _proxySessionFactory;
+		/// Factory to create HTTPClientSession to proxy.
 private:
 	std::string     _host;
+	std::string _resolved_host;
 	Poco::UInt16    _port;
 	ProxyConfig     _proxyConfig;
 	Poco::Timespan  _keepAliveTimeout;
@@ -331,6 +357,13 @@ private:
 //
 // inlines
 //
+
+inline std::string HTTPClientSession::getResolvedAddress() const
+{
+	return (_resolved_host.empty() ? _host : _resolved_host) + ':' + std::to_string(_port);
+}
+
+
 inline const std::string& HTTPClientSession::getHost() const
 {
 	return _host;
@@ -352,6 +385,18 @@ inline const std::string& HTTPClientSession::getProxyHost() const
 inline Poco::UInt16 HTTPClientSession::getProxyPort() const
 {
 	return _proxyConfig.port;
+}
+
+
+inline const std::string& HTTPClientSession::getProxyProtocol() const
+{
+	return _proxyConfig.protocol;
+}
+
+
+inline bool HTTPClientSession::isProxyTunnel() const
+{
+	return _proxyConfig.tunnel;
 }
 
 

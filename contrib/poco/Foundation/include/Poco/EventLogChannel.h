@@ -17,6 +17,7 @@
 #ifndef Foundation_EventLogChannel_INCLUDED
 #define Foundation_EventLogChannel_INCLUDED
 
+#if defined(POCO_OS_FAMILY_WINDOWS)
 
 #include "Poco/Foundation.h"
 #include "Poco/Channel.h"
@@ -101,5 +102,6 @@ private:
 
 } // namespace Poco
 
+#endif
 
 #endif // Foundation_EventLogChannel_INCLUDED

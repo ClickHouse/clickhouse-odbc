@@ -128,6 +128,7 @@ set(SRCS
     src/SimpleFileChannel.cpp
     src/SortedDirectoryIterator.cpp
     src/SplitterChannel.cpp
+    src/SyslogChannel.cpp
     src/Stopwatch.cpp
     src/StreamChannel.cpp
     src/StreamConverter.cpp
@@ -179,7 +180,7 @@ set(SRCS
 )
 
 if(WIN32)
-	set(SYSLIBS ${SYSLIBS} iphlpapi)
+    set(SYSLIBS ${SYSLIBS} iphlpapi)
 endif(WIN32)
 
 add_library(_poco_foundation ${SRCS})

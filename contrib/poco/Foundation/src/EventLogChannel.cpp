@@ -12,6 +12,8 @@
 //
 
 
+#if defined(POCO_OS_FAMILY_WINDOWS)
+
 #include "Poco/EventLogChannel.h"
 #include "Poco/Message.h"
 #include "Poco/String.h"
@@ -316,3 +318,5 @@ std::string EventLogChannel::findLibrary(const char* name)
 
 
 } // namespace Poco
+
+#endif
