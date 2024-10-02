@@ -19,6 +19,6 @@ if (NOT MSVC)
             -Wno-zero-as-null-pointer-constant
     )
 endif()
-target_compile_definitions(_poco_util PRIVATE POCO_UTIL_NO_XMLCONFIGURATION)
+target_compile_definitions(_poco_util PRIVATE POCO_UTIL_NO_XMLCONFIGURATION POCO_UTIL_NO_JSONCONFIGURATION)
+target_link_libraries(_poco_util PUBLIC Poco::Foundation)
 target_include_directories (_poco_util SYSTEM PUBLIC "include")
-target_link_libraries (_poco_util PUBLIC Poco::JSON)

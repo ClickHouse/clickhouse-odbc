@@ -1,5 +1,4 @@
 add_subdirectory (Foundation)
-add_subdirectory (JSON)
 add_subdirectory (Net)
 if (OS_LINUX OR OS_DARWIN)
     add_subdirectory (Crypto)
