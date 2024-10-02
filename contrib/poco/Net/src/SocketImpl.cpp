@@ -336,7 +336,12 @@ int SocketImpl::sendBytes(const void* buffer, int length, int flags)
 
 int SocketImpl::receiveBytes(void* buffer, int length, int flags)
 {
+#if defined(POCO_OS_FAMILY_WINDOWS)
+	bool blocking = _blocking;
+#else
 	bool blocking = _blocking && (flags & MSG_DONTWAIT) == 0;
+#endif
+
 	if (_isBrokenTimeout && blocking)
 	{
 		if (_recvTimeout.totalMicroseconds() != 0)
