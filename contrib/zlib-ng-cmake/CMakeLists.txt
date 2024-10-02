@@ -18,8 +18,9 @@ elseif (OS_WINDOWS)
 endif()
 
 add_definitions(-DHAVE_BUILTIN_CTZ)
-add_definitions(-DHAVE_BUILTIN_CTZLL)
-
+if (NOT WINDOWS_32)
+    add_definitions(-DHAVE_BUILTIN_CTZLL)
+endif()
 
 set(ZLIB_ARCH_SRCS)
 set(ZLIB_ARCH_HDRS)
