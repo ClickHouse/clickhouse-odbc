@@ -197,6 +197,9 @@ target_compile_definitions (_poco_foundation
 
 if (OS_DARWIN OR OS_LINUX)
     target_compile_definitions (_poco_foundation PUBLIC POCO_OS_FAMILY_UNIX)
+    if (OS_DARWIN)
+        target_compile_definitions (_poco_foundation PUBLIC POCO_NO_STAT64)
+    endif()
 elseif(OS_WINDOWS)
     target_compile_definitions (_poco_foundation PUBLIC POCO_OS_FAMILY_WINDOWS Foundation_EXPORTS)
 endif()
