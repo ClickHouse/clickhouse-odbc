@@ -17,6 +17,7 @@
 #ifndef Foundation_SyslogChannel_INCLUDED
 #define Foundation_SyslogChannel_INCLUDED
 
+#if !defined(POCO_OS_FAMILY_WINDOWS)
 
 #include "Poco/Foundation.h"
 #include "Poco/Channel.h"
@@ -107,3 +108,5 @@ private:
 
 
 #endif // Foundation_SyslogChannel_INCLUDED
+
+#endif

@@ -12,6 +12,8 @@
 //
 
 
+#if !defined(POCO_OS_FAMILY_WINDOWS)
+
 #include "Poco/SyslogChannel.h"
 #include "Poco/Message.h"
 #include "Poco/StringTokenizer.h"
@@ -254,3 +256,5 @@ int SyslogChannel::getPrio(const Message& msg)
 
 
 } // namespace Poco
+
+#endif
