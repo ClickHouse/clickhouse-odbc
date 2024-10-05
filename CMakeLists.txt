@@ -307,7 +307,7 @@ if (CH_ODBC_ENABLE_INSTALL)
 
     set (CPACK_PROJECT_CONFIG_FILE "${PROJECT_SOURCE_DIR}/CPackLists.txt")
 
-    set (CPACK_PACKAGE_VENDOR "Yandex LLC")
+    set (CPACK_PACKAGE_VENDOR "ClickHouse, Inc.")
     set (CPACK_PACKAGE_DESCRIPTION "The official ODBC driver implementation for accessing ClickHouse as a data source.")
     set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "ClickHouse ODBC Driver (${ARCH_BITS}-bit)")
     set (CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/packaging/Readme.rtf")

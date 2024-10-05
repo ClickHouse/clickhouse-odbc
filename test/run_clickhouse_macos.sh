@@ -20,7 +20,7 @@ mkdir -p $CLICKHOUSE_LOGDIR
 mkdir -p $CLICKHOUSE_CONFDIR/conf.d
 
 echo "<?xml version=\"1.0\"?>
-<yandex>
+<clickhouse>
     <logger>
         <log replace=\"replace\">${CLICKHOUSE_LOGDIR}/clickhouse-server.log</log>
         <errorlog replace=\"replace\">${CLICKHOUSE_LOGDIR}/clickhouse-server.err.log</errorlog>
@@ -35,7 +35,7 @@ echo "<?xml version=\"1.0\"?>
             <path>${CLICKHOUSE_DATADIR}/access/</path>
         </local_directory>
     </user_directories>
-</yandex>
+</clickhouse>
 " > $CLICKHOUSE_CONFDIR/conf.d/paths.xml
 
 if [ "$1" == "foreground" ]; then
