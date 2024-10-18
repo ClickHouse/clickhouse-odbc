@@ -110,11 +110,8 @@ jobs:
         echo REF: ${{ github.ref }}
         ls -lahR ${{ github.workspace }}/build/
 
-    # Linux release artifacts are uploaded in Docker.yml
-    # That builds binaries based on CentOS 7, which makes those more portable.
-    # However, these binaries are uploaded to be available in GH's 'Actions', just in case.
     - name: Upload the artifacts
-      if:  ${{ matrix.compiler == 'GCC' && matrix.odbc_provider == 'UnixODBC' && matrix.build_type == 'Release' && matrix.runtime_link == 'dynamic-runtime' && matrix.third_parties == 'bundled-third-parties' }}
+      if:  ${{ matrix.odbc_provider == 'UnixODBC' && matrix.build_type == 'Release' && matrix.runtime_link == 'dynamic-runtime' && matrix.third_parties == 'bundled-third-parties' }}
       uses: actions/upload-artifact@v4
       with:
           name: clickhouse-odbc-linux-${{ matrix.compiler }}-${{ matrix.odbc_provider }}-${{ matrix.build_type }}
