@@ -588,10 +588,12 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
 
         switch (field_identifier) {
 
-#define CASE_FIELD_NUM(NAME, VALUE)                                     \
-            case NAME:                                                  \
-                if (out_num_value)                                      \
-                    *reinterpret_cast<SQLLEN *>(out_num_value) = VALUE; \
+#define CASE_FIELD_NUM(NAME, VALUE)                                         \
+            case NAME:                                                      \
+                if (out_num_value) {                                        \
+                    LOG(__FUNCTION__ << "(out_num_value=" << VALUE << ")"); \
+                    *reinterpret_cast<SQLLEN *>(out_num_value) = VALUE;     \
+                }                                                           \
                 return SQL_SUCCESS;
 
 #define CASE_FIELD_STR(NAME, VALUE) \
