@@ -115,7 +115,7 @@ jobs:
 
     - name: Upload the artifacts
       # if:  ${{ matrix.compiler == 'AppleClang' && matrix.odbc_provider == 'iODBC' && matrix.build_type == 'Release' }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
           name: clickhouse-odbc-macos-${{ matrix.compiler }}-${{ matrix.odbc_provider }}-${{ matrix.build_type }}
           path: ${{ github.workspace }}/build/clickhouse-odbc-*
