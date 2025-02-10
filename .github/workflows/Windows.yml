@@ -93,7 +93,7 @@ jobs:
 
     - name: Upload the artifacts
       # if:  ${{ matrix.os == 'windows-2019' && matrix.build_type == 'Release' }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
           name: clickhouse-odbc-windows-${{ matrix.architecture }}-${{ matrix.build_type }}
           path: ${{ github.workspace }}/build/clickhouse-odbc-*
