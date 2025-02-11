@@ -277,6 +277,14 @@ TEST(EscapeSequencesCase, ParseComplexDateExpr2) {
 }
 */
 
+TEST(EscapeSequencesCase, ParameterizedFunctionCalls) {
+    // A directly mapped function
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn LENGTH(?)}"), "SELECT lengthUTF8(?)");
+
+    // A custom mapped function
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONVERT(?, SQL_BIGINT)}"), "SELECT toInt64(?)");
+}
+
 TEST(EscapeSequencesCase, DateTime) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {d '2017-01-01'}"), "SELECT toDate('2017-01-01')");
 

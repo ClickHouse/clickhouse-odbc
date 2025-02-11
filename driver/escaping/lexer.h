@@ -21,6 +21,7 @@ struct Token {
         IDENT,
         NUMBER,
         STRING,
+        PARAM,
 
         // Keywords
         FN,

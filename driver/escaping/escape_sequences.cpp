@@ -129,7 +129,7 @@ string processIdentOrFunction(const StringView seq, Lexer & lex) {
         result += token.literal.to_string();                                            // func name
         lex.Consume();
         result += processParentheses(seq, lex);
-    } else if (token.type == Token::NUMBER || token.type == Token::IDENT || token.type == Token::STRING) {
+    } else if (token.type == Token::NUMBER || token.type == Token::IDENT || token.type == Token::STRING || token.type == Token::PARAM) {
         result += token.literal.to_string();
         lex.Consume();
     } else {

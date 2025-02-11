@@ -147,6 +147,8 @@ Token Lexer::NextToken() {
                 return MakeToken(Token::RCURLY, 1);
             case ',':
                 return MakeToken(Token::COMMA, 1);
+            case '?':
+                return MakeToken(Token::PARAM, 1);
 
             case '\'': {
                 const char * st = cur_;
