@@ -234,9 +234,19 @@ string processFunction(const StringView seq, Lexer & lex) {
         lex.Consume();
 
         auto offset = processIdentOrFunction(seq, lex /*, false */);
-        lex.Consume();
+        if (offset.empty()) {
+            offset = "1";
+        } else {
+            lex.Consume();
+        }
 
-        result = "position(" + haystack + "," + needle + ")";
+        // ClickHouse requires `start_pos` to be an unsigned integer,
+        // whereas ODBC clients map it as a signed integer. This results in
+        // a named parameter such as `{odbc_positional_:Int32}`, which does not
+        // match the type required by `locate`. To avoid the illegal type argument
+        // error, we cast the offset parameter to UInt64. The `accurateCast` function
+        // ensures that the parameter value is never negative.
+        result = "locate(" + needle + "," + haystack + ",accurateCast(" + offset + ",'UInt64'))";
 
         return result;
 

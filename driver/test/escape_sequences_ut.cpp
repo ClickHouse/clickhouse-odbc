@@ -298,8 +298,21 @@ TEST(EscapeSequencesCase, DateTime) {
 }
 
 TEST(EscapeSequencesCase, LOCATE) {
-    ASSERT_EQ(replaceEscapeSequences("{fn LOCATE('Xsell',`dm_ExperimentsData`.`ProductLevel`,1)}"),
-        "position(`dm_ExperimentsData`.`ProductLevel`,'Xsell')");
+    ASSERT_EQ(replaceEscapeSequences(
+        "SELECT {fn LOCATE('needle', `haystack`, 42)}"),
+        "SELECT locate('needle',`haystack`,accurateCast(42,'UInt64'))");
+    ASSERT_EQ(replaceEscapeSequences(
+        "SELECT {fn LOCATE(?, `haystack`, 42)}"),
+        "SELECT locate(?,`haystack`,accurateCast(42,'UInt64'))");
+    ASSERT_EQ(replaceEscapeSequences(
+        "SELECT {fn LOCATE('needle', `haystack`, ?)}"),
+        "SELECT locate('needle',`haystack`,accurateCast(?,'UInt64'))");
+    ASSERT_EQ(replaceEscapeSequences(
+        "SELECT {fn LOCATE('needle', `haystack`)}"),
+        "SELECT locate('needle',`haystack`,accurateCast(1,'UInt64'))");
+    ASSERT_EQ(replaceEscapeSequences(
+        "SELECT {fn LOCATE(?, `haystack`)}"),
+        "SELECT locate(?,`haystack`,accurateCast(1,'UInt64'))");
 }
 
 TEST(EscapeSequencesCase, LCASE) {
