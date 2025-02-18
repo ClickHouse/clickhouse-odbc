@@ -18,6 +18,7 @@ function (declare_odbc_test_targets libname UNICODE)
         buffer_filling_ut.cpp
         connection_string_ut.cpp
         performance_ut.cpp
+        statement_parameter_binding_ut.cpp
     )
 
     target_link_libraries (${libname}-ut

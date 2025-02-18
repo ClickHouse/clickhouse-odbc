@@ -68,6 +68,14 @@ public:
     /// Make an implicit descriptor active again.
     void setImplicitDescriptor(SQLINTEGER type);
 
+public:
+    // public only for the unit tests
+    struct HttpRequestData {
+        std::string query;
+        std::map<std::string, std::string> params;
+    };
+    HttpRequestData prepareHttpRequest();
+
 private:
     void requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mutator);
 

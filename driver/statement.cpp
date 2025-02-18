@@ -65,23 +65,10 @@ void Statement::executeQuery(std::unique_ptr<ResultMutator> && mutator) {
     is_executed = true;
 }
 
-void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mutator) {
-    result_reader.reset();
-
-    const auto param_set_array_size = getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
-    if (next_param_set_idx >= param_set_array_size)
-        return;
-
-    getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, 0);
-
-    auto & connection = getParent();
-
-    if (connection.session && response && in)
-        if (in->fail() || !in->eof())
-            connection.session->reset();
-
-    Poco::URI uri = connection.getUri();
-
+Statement::HttpRequestData Statement::prepareHttpRequest()
+{
+    Statement::HttpRequestData ret{};
+    const auto& connection = getParent();
     const auto param_bindings = getParamsBindingInfo(next_param_set_idx);
 
     for (std::size_t i = 0; i < parameters.size(); ++i) {
@@ -103,10 +90,34 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
         }
 
         const auto param_name = getParamFinalName(i);
-        uri.addQueryParameter("param_" + param_name, value);
+        ret.params.emplace("param_" + param_name, value);
     }
 
-    const auto prepared_query = buildFinalQuery(param_bindings);
+    ret.query = buildFinalQuery(param_bindings);
+    return ret;
+}
+
+void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mutator) {
+    result_reader.reset();
+
+    const auto param_set_array_size = getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
+    if (next_param_set_idx >= param_set_array_size)
+        return;
+
+    getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, 0);
+
+    auto & connection = getParent();
+
+    if (connection.session && response && in)
+        if (in->fail() || !in->eof())
+            connection.session->reset();
+
+    const auto [prepared_query, query_parameters] = prepareHttpRequest();
+    Poco::URI uri = connection.getUri();
+
+    for (const auto& [key, value]: query_parameters) {
+        uri.addQueryParameter(key, value);
+    }
 
     // TODO: set this only after this single query is fully fetched (when output parameter support is added)
     auto * param_set_processed_ptr = getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
