@@ -777,6 +777,8 @@ void SecureSocketImpl::performInitialClientHandshake()
 	// get initial security token
 	_outSecBuffer.reset(true);
 	_outSecBuffer.setSecBufferToken(0, 0, 0);
+	_recvBuffer.setCapacity(IO_BUFFER_SIZE);
+	_recvBufferOffset = 0;
 
 	TimeStamp ts;
 	DWORD contextAttributes(0);
