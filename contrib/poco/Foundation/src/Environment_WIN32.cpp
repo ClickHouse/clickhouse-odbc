@@ -190,7 +190,8 @@ void EnvironmentImpl::nodeIdImpl(NodeId& id)
 	}
 	else if (rc != ERROR_SUCCESS)
 	{
-		return;
+		delete[] reinterpret_cast<char*>(pAdapterInfo);
+        return;
 	}
 	if (GetAdaptersInfo(pAdapterInfo, &len) == NO_ERROR) 
 	{
