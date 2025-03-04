@@ -21,7 +21,7 @@ TEST_F(MiscellaneousTest, RowArraySizeAttribute) {
     }
     
     {
-        size = 0;
+        size = 2;
         rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));
         ASSERT_EQ(rc, SQL_SUCCESS);
     }
@@ -29,7 +29,7 @@ TEST_F(MiscellaneousTest, RowArraySizeAttribute) {
     {
         size = 123;
         rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
-        ASSERT_EQ(size, 0);
+        ASSERT_EQ(size, 2);
     }
 
     {
