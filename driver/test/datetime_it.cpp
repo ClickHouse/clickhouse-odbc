@@ -71,6 +71,12 @@ TEST_P(DateTime, GetData) {
 
     const auto orig_local_tz = get_env_var("TZ");
     set_env_var("TZ", params.local_tz);
+
+#ifdef _win_
+    _putenv_s("TZ", params.local_tz.c_str());
+    _tzset();
+#endif
+
     try {
 
     const std::string query_orig = "SELECT " + params.expr + " AS col FORMAT " + params.format;

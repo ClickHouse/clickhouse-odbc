@@ -17,7 +17,7 @@ namespace {
         SQLRETURN rc = SQL_SUCCESS;
 
         do {
-            rc = SQLGetDiagRec(type, handle, ++i, state, &native, text, sizeof(text), &len);
+            rc = SQLGetDiagRec(type, handle, ++i, state, &native, text, std::size(text), &len);
             if (SQL_SUCCEEDED(rc)) {
                 if (!result.empty())
                     result += '\n';
