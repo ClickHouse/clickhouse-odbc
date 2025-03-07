@@ -639,7 +639,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
             CASE_FIELD_NUM(SQL_DESC_SEARCHABLE, SQL_SEARCHABLE);
             CASE_FIELD_STR(SQL_DESC_TABLE_NAME, "");
             CASE_FIELD_NUM(SQL_DESC_TYPE, type_info.sql_type);
-            CASE_FIELD_STR(SQL_DESC_TYPE_NAME, type_info.sql_type_name);
+            CASE_FIELD_STR(SQL_DESC_TYPE_NAME, type_info.type_name);
             CASE_FIELD_NUM(SQL_DESC_UNNAMED, SQL_NAMED);
             CASE_FIELD_NUM(SQL_DESC_UNSIGNED, (type_info.is_unsigned ? SQL_TRUE : SQL_FALSE));
 #ifdef SQL_ATTR_READ_ONLY
@@ -1003,7 +1003,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
             const TypeInfo & type_info = statement.getTypeInfo(tmp_column_info.type, tmp_column_info.type_without_parameters);
 
             row.fields.at(4).data = DataSourceType<DataSourceTypeId::Int16>{type_info.sql_type};
-            row.fields.at(5).data = DataSourceType<DataSourceTypeId::String>{type_info.sql_type_name};
+            row.fields.at(5).data = DataSourceType<DataSourceTypeId::String>{type_info.type_name};
             row.fields.at(6).data = DataSourceType<DataSourceTypeId::Int32>{type_info.column_size};
             row.fields.at(13).data = DataSourceType<DataSourceTypeId::Int16>{type_info.sql_type};
             row.fields.at(15).data = DataSourceType<DataSourceTypeId::Int32>{type_info.octet_length};
@@ -1124,7 +1124,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetTypeInfo)(
 
             query << "SELECT"
                      " '"
-                  << info.sql_type_name
+                  << info.type_name
                   << "' AS TYPE_NAME"
                      ", toInt16("
                   << info.sql_type
@@ -1183,6 +1183,13 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetTypeInfo)(
             add_query_for_type("DateTime", info);
         }
 
+        // TODO (slabko): From ODBC documentation for SQLGetTypeInfo:
+        // "SQLGetTypeInfo returns the results as a standard result set,
+        // ordered by DATA_TYPE **and then by how closely the data type maps
+        // to the corresponding ODBC SQL data type**. Data types defined
+        // by the data source take precedence over user-defined data types."
+        // This, however, does not order by how closely the data type maps
+        // to the data type passed as parameter to SQLGetTypeInfo.
         query << ") ORDER BY DATA_TYPE";
 
         if (first)

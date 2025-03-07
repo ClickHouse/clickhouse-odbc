@@ -16,7 +16,7 @@
 #define lengthof(a) (sizeof(a) / sizeof(a[0]))
 
 struct TypeInfo {
-    std::string sql_type_name;
+    std::string type_name;
     bool is_unsigned;
     SQLSMALLINT sql_type;
 
