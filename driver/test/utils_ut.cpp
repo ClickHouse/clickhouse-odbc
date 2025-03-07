@@ -1,3 +1,4 @@
+#include "driver/utils/sql_encoding.h"
 #include "driver/utils/utils.h"
 
 #include <gtest/gtest.h>
@@ -72,4 +73,31 @@ TEST(CatalogFnPattern, IsMatchAnything) {
     }) {
         EXPECT_EQ(isMatchAnythingCatalogFnPatternArg(pair.first), pair.second);
     }
+}
+
+TEST(Escaping, ToSqlQuery)
+{
+    ASSERT_EQ(toSqlQueryValue(std::string("")), "''");
+    ASSERT_EQ(toSqlQueryValue(std::string("foo")), "'foo'");
+    ASSERT_EQ(toSqlQueryValue(std::string("foo'bar")), "'foo\\'bar'");
+    ASSERT_EQ(toSqlQueryValue(std::optional<std::string>{"foo'bar"}), "'foo\\'bar'");
+    ASSERT_EQ(toSqlQueryValue(bool{true}), "1");
+    ASSERT_EQ(toSqlQueryValue(bool{false}), "0");
+    ASSERT_EQ(toSqlQueryValue(int8_t{-42}), "-42");
+    ASSERT_EQ(toSqlQueryValue(uint8_t{42}), "42");
+    ASSERT_EQ(toSqlQueryValue(int16_t{-42}), "-42");
+    ASSERT_EQ(toSqlQueryValue(uint16_t{42}), "42");
+    ASSERT_EQ(toSqlQueryValue(int32_t{-42}), "-42");
+    ASSERT_EQ(toSqlQueryValue(uint32_t{42}), "42");
+    ASSERT_EQ(toSqlQueryValue(int64_t{-42}), "-42");
+    ASSERT_EQ(toSqlQueryValue(uint64_t{42}), "42");
+    ASSERT_EQ(toSqlQueryValue(std::optional<std::string>{}), "NULL");
+    ASSERT_EQ(toSqlQueryValue(std::optional<int8_t>{}), "NULL");
+    ASSERT_EQ(toSqlQueryValue(std::optional<uint8_t>{}), "NULL");
+    ASSERT_EQ(toSqlQueryValue(std::optional<int16_t>{}), "NULL");
+    ASSERT_EQ(toSqlQueryValue(std::optional<uint16_t>{}), "NULL");
+    ASSERT_EQ(toSqlQueryValue(std::optional<int32_t>{}), "NULL");
+    ASSERT_EQ(toSqlQueryValue(std::optional<uint32_t>{}), "NULL");
+    ASSERT_EQ(toSqlQueryValue(std::optional<int64_t>{}), "NULL");
+    ASSERT_EQ(toSqlQueryValue(std::optional<uint64_t>{}), "NULL");
 }

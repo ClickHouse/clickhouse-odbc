@@ -146,7 +146,7 @@ private:
                 1,
                 SQL_PARAM_INPUT,
                 getCTypeFor<decltype(param)>(),
-                type_info.sql_type,
+                type_info.data_type,
                 value_manip::getColumnSize(param, type_info),
                 value_manip::getDecimalDigits(param, type_info),
                 &param,
@@ -218,7 +218,7 @@ private:
                 1,
                 SQL_PARAM_INPUT,
                 getCTypeFor<decltype(param)>(),
-                type_info.sql_type,
+                type_info.data_type,
                 value_manip::getColumnSize(param, type_info),
                 value_manip::getDecimalDigits(param, type_info),
                 &param,
@@ -299,7 +299,7 @@ protected:
 using DISABLED_ParameterColumnRoundTripGUIDSymmetric = ParameterColumnRoundTripSymmetric<SQLGUID>;
 
 TEST_P(DISABLED_ParameterColumnRoundTripGUIDSymmetric, Execute) {
-    execute<DataType>(GetParam(), GetParam(), type_info_for("UUID"), false/* case_sensitive */);
+    execute<DataType>(GetParam(), GetParam(), typeInfoFor("UUID"), false/* case_sensitive */);
 }
 
 INSTANTIATE_TEST_SUITE_P(TypeConversion, DISABLED_ParameterColumnRoundTripGUIDSymmetric,
@@ -315,7 +315,7 @@ INSTANTIATE_TEST_SUITE_P(TypeConversion, DISABLED_ParameterColumnRoundTripGUIDSy
 using ParameterColumnRoundTripNumericSymmetric = ParameterColumnRoundTripSymmetric<SQL_NUMERIC_STRUCT>;
 
 TEST_P(ParameterColumnRoundTripNumericSymmetric, Execute) {
-    execute<DataType>(GetParam(), GetParam(), type_info_for("Decimal"));
+    execute<DataType>(GetParam(), GetParam(), typeInfoFor("Decimal"));
 }
 
 INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripNumericSymmetric,
@@ -342,7 +342,7 @@ INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripNumericSymmetri
 using ParameterColumnRoundTripNumericAsymmetric = ParameterColumnRoundTripAsymmetric<SQL_NUMERIC_STRUCT>;
 
 TEST_P(ParameterColumnRoundTripNumericAsymmetric, Execute) {
-    execute<DataType>(std::get<0>(GetParam()), std::get<1>(GetParam()), type_info_for("Decimal"));
+    execute<DataType>(std::get<0>(GetParam()), std::get<1>(GetParam()), typeInfoFor("Decimal"));
 }
 
 INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripNumericAsymmetric,
