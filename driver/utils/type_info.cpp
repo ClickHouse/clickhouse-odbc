@@ -5,82 +5,117 @@
 #include <stdexcept>
 
 
-const std::map<std::string, TypeInfo> types_g = {
-    {"UInt8", TypeInfo {"UInt8", true, SQL_TINYINT, 3, 1}},
-    {"UInt16", TypeInfo {"UInt16", true, SQL_SMALLINT, 5, 2}},
-    // With perl, python ODBC drivers INT is uint32 and it cant store values bigger than 2147483647: 2147483648 -> -2147483648 4294967295 -> -1
-    {"UInt32", TypeInfo {"UInt32", true, SQL_BIGINT /* was SQL_INTEGER */, 10, 4}},
-    {"UInt64", TypeInfo {"UInt64", true, SQL_BIGINT, 20, 8}},
-    {"Int8", TypeInfo {"Int8", false, SQL_TINYINT, 1 + 3, 1}}, // one char for sign
-    {"Int16", TypeInfo {"Int16", false, SQL_SMALLINT, 1 + 5, 2}},
-    {"Int32", TypeInfo {"Int32", false, SQL_INTEGER, 1 + 10, 4}},
-    {"Int64", TypeInfo {"Int64", false, SQL_BIGINT, 1 + 19, 8}},
-    {"Float32", TypeInfo {"Float32", false, SQL_REAL, 7, 4}},
-    {"Float64", TypeInfo {"Float64", false, SQL_DOUBLE, 15, 8}},
-    {"Decimal", TypeInfo {"Decimal", false, SQL_DECIMAL, 1 + 2 + 38, 16}}, // -0.
-    {"UUID", TypeInfo {"UUID", false, SQL_GUID, 8 + 1 + 4 + 1 + 4 + 1 + 4 + 12, sizeof(SQLGUID)}},
-    {"String", TypeInfo {"String", true, SQL_VARCHAR, TypeInfo::string_max_size, TypeInfo::string_max_size}},
-    {"FixedString", TypeInfo {"FixedString", true, SQL_VARCHAR, TypeInfo::string_max_size, TypeInfo::string_max_size}},
-    {"Date", TypeInfo {"Date", true, SQL_TYPE_DATE, 10, 6}},
-    {"DateTime", TypeInfo {"DateTime", true, SQL_TYPE_TIMESTAMP, 19, 16}},
-    {"DateTime64", TypeInfo {"DateTime64", true, SQL_TYPE_TIMESTAMP, 29, 16}},
-    {"Array", TypeInfo {"Array", true, SQL_VARCHAR, TypeInfo::string_max_size, TypeInfo::string_max_size}},
-    {"Nothing", TypeInfo {"Nothing", true, SQL_TYPE_NULL, 1, 1}},
-};
+const std::array<const TypeInfo, TypeInfoCatalog::total_visible_types> TypeInfoCatalog::Types = [] {
+    using enum DataSourceTypeId;
+    const auto string_max_size = TypeInfo::string_max_size;
+    std::array<const TypeInfo, total_visible_types> types = {
+        TypeInfo{"Nothing", Nothing, true, SQL_TYPE_NULL, 1, 1},
+        TypeInfo{"Int8", Int8, false, SQL_TINYINT, 1 + 3, 1}, // one char for sign
+        TypeInfo{"UInt8", UInt8, true, SQL_TINYINT, 3, 1},
+        TypeInfo{"Int16", Int16, false, SQL_SMALLINT, 1 + 5, 2},
+        TypeInfo{"UInt16", UInt16, true, SQL_SMALLINT, 5, 2},
+        TypeInfo{"Int32", Int32, false, SQL_INTEGER, 1 + 10, 4},
+        TypeInfo{"UInt32", UInt32, true, SQL_BIGINT , 10, 4},
+        TypeInfo{"Int64", Int64, false, SQL_BIGINT, 1 + 19, 8},
+        TypeInfo{"UInt64", UInt64, true, SQL_BIGINT, 20, 8},
+        TypeInfo{"Float32", Float32, false, SQL_REAL, 7, 4},
+        TypeInfo{"Float64", Float64, false, SQL_DOUBLE, 15, 8},
+        TypeInfo{"Decimal", Decimal, false, SQL_DECIMAL, 1 + 2 + 38, 32}, // -0.
+        TypeInfo{"Decimal32", Decimal32, false, SQL_DECIMAL, 1 + 2 + 38, 32},
+        TypeInfo{"Decimal64", Decimal64, false, SQL_DECIMAL, 1 + 2 + 38, 64},
+        TypeInfo{"Decimal128", Decimal128, false, SQL_DECIMAL, 1 + 2 + 38, 128},
+        TypeInfo{"String", String, true, SQL_VARCHAR, string_max_size, string_max_size},
+        TypeInfo{"FixedString", FixedString, true, SQL_VARCHAR, string_max_size, string_max_size},
+        TypeInfo{"Date", Date, true, SQL_TYPE_DATE, 10, 6},
+        TypeInfo{"DateTime", DateTime, true, SQL_TYPE_TIMESTAMP, 19, 16},
+        TypeInfo{"DateTime64", DateTime64, true, SQL_TYPE_TIMESTAMP, 29, 16},
+        TypeInfo{"UUID", UUID, false, SQL_GUID, 8 + 1 + 4 + 1 + 4 + 1 + 4 + 12, sizeof(SQLGUID)},
+        TypeInfo{"Array", Array, true, SQL_VARCHAR, string_max_size, string_max_size},
+    };
+
+    // The array indices must match type_id, ensuring a direct mapping from DataSourceTypeId
+    // to its corresponding TypeInfo instance. These assertions enforce correct element
+    // ordering.
+    if (std::any_of(types.cbegin(), types.cend(), [index = 0UL](auto& type) mutable {
+        return index++ != DataSourceTypeIdIndex(type.type_id);
+    }))
+    {
+        // TODO(slabko): Make `Types` constexpr once we upgrade to a libc++ version supporting
+        // constexpr std::string, so this check can be performed at compile time.
+        // At the time of writing, we use version 15, while version 19 already supports
+        // constexpr std::string.
+        // Note, while this is not the best solution, none of unit or integration pass
+        // if the array is not sorted correctly.
+        throw std::runtime_error("TypeInfoCatalog::Types are not sorted");
+    };
+
+    return types;
+}();
+
+const TypeInfo& TypeInfoCatalog::Nothing = Types[DataSourceTypeIdIndex(DataSourceTypeId::Nothing)];
+const TypeInfo& TypeInfoCatalog::Int8 = Types[DataSourceTypeIdIndex(DataSourceTypeId::Int8)];
+const TypeInfo& TypeInfoCatalog::UInt8 = Types[DataSourceTypeIdIndex(DataSourceTypeId::UInt8)];
+const TypeInfo& TypeInfoCatalog::Int16 = Types[DataSourceTypeIdIndex(DataSourceTypeId::Int16)];
+const TypeInfo& TypeInfoCatalog::UInt16 = Types[DataSourceTypeIdIndex(DataSourceTypeId::UInt16)];
+const TypeInfo& TypeInfoCatalog::Int32 = Types[DataSourceTypeIdIndex(DataSourceTypeId::Int32)];
+const TypeInfo& TypeInfoCatalog::UInt32 = Types[DataSourceTypeIdIndex(DataSourceTypeId::UInt32)];
+const TypeInfo& TypeInfoCatalog::Int64 = Types[DataSourceTypeIdIndex(DataSourceTypeId::Int64)];
+const TypeInfo& TypeInfoCatalog::UInt64 = Types[DataSourceTypeIdIndex(DataSourceTypeId::UInt64)];
+const TypeInfo& TypeInfoCatalog::Float32 = Types[DataSourceTypeIdIndex(DataSourceTypeId::Float32)];
+const TypeInfo& TypeInfoCatalog::Float64 = Types[DataSourceTypeIdIndex(DataSourceTypeId::Float64)];
+const TypeInfo& TypeInfoCatalog::Decimal = Types[DataSourceTypeIdIndex(DataSourceTypeId::Decimal)];
+const TypeInfo& TypeInfoCatalog::Decimal32 = Types[DataSourceTypeIdIndex(DataSourceTypeId::Decimal32)];
+const TypeInfo& TypeInfoCatalog::Decimal64 = Types[DataSourceTypeIdIndex(DataSourceTypeId::Decimal64)];
+const TypeInfo& TypeInfoCatalog::Decimal128 = Types[DataSourceTypeIdIndex(DataSourceTypeId::Decimal128)];
+const TypeInfo& TypeInfoCatalog::String = Types[DataSourceTypeIdIndex(DataSourceTypeId::String)];
+const TypeInfo& TypeInfoCatalog::FixedString = Types[DataSourceTypeIdIndex(DataSourceTypeId::FixedString)];
+const TypeInfo& TypeInfoCatalog::Date = Types[DataSourceTypeIdIndex(DataSourceTypeId::Date)];
+const TypeInfo& TypeInfoCatalog::DateTime = Types[DataSourceTypeIdIndex(DataSourceTypeId::DateTime)];
+const TypeInfo& TypeInfoCatalog::DateTime64 = Types[DataSourceTypeIdIndex(DataSourceTypeId::DateTime64)];
+const TypeInfo& TypeInfoCatalog::UUID = Types[DataSourceTypeIdIndex(DataSourceTypeId::UUID)];
+const TypeInfo& TypeInfoCatalog::Array = Types[DataSourceTypeIdIndex(DataSourceTypeId::Array)];
+
+const TypeInfo* typeInfoIfExistsFor(const std::string & type) {
+    static const auto types = [](){
+        std::unordered_map<std::string, const TypeInfo> ret{};
+        ret.reserve(TypeInfoCatalog::Types.size());
+        for (const auto& type_info : TypeInfoCatalog::Types) {
+            ret.insert({type_info.type_name, type_info});
+        }
+        return ret;
+    }();
+
+    const auto it = types.find(type);
+    if (it == types.end())
+        return nullptr;
+    return &it->second;
+}
+
+const TypeInfo & typeInfoFor(const std::string & type) {
+    if (auto type_info = typeInfoIfExistsFor(type)) {
+        return *type_info;
+    }
+    throw std::runtime_error("unknown type");
+}
 
 DataSourceTypeId convertUnparametrizedTypeNameToTypeId(const std::string & type_name) {
-         if (Poco::icompare(type_name, "Date") == 0)        return DataSourceTypeId::Date;
-    else if (Poco::icompare(type_name, "DateTime") == 0)    return DataSourceTypeId::DateTime;
-    else if (Poco::icompare(type_name, "DateTime64") == 0)  return DataSourceTypeId::DateTime64;
-    else if (Poco::icompare(type_name, "Decimal") == 0)     return DataSourceTypeId::Decimal;
-    else if (Poco::icompare(type_name, "Decimal32") == 0)   return DataSourceTypeId::Decimal32;
-    else if (Poco::icompare(type_name, "Decimal64") == 0)   return DataSourceTypeId::Decimal64;
-    else if (Poco::icompare(type_name, "Decimal128") == 0)  return DataSourceTypeId::Decimal128;
-    else if (Poco::icompare(type_name, "FixedString") == 0) return DataSourceTypeId::FixedString;
-    else if (Poco::icompare(type_name, "Float32") == 0)     return DataSourceTypeId::Float32;
-    else if (Poco::icompare(type_name, "Float64") == 0)     return DataSourceTypeId::Float64;
-    else if (Poco::icompare(type_name, "Int8") == 0)        return DataSourceTypeId::Int8;
-    else if (Poco::icompare(type_name, "Int16") == 0)       return DataSourceTypeId::Int16;
-    else if (Poco::icompare(type_name, "Int32") == 0)       return DataSourceTypeId::Int32;
-    else if (Poco::icompare(type_name, "Int64") == 0)       return DataSourceTypeId::Int64;
-    else if (Poco::icompare(type_name, "Nothing") == 0)     return DataSourceTypeId::Nothing;
-    else if (Poco::icompare(type_name, "String") == 0)      return DataSourceTypeId::String;
-    else if (Poco::icompare(type_name, "UInt8") == 0)       return DataSourceTypeId::UInt8;
-    else if (Poco::icompare(type_name, "UInt16") == 0)      return DataSourceTypeId::UInt16;
-    else if (Poco::icompare(type_name, "UInt32") == 0)      return DataSourceTypeId::UInt32;
-    else if (Poco::icompare(type_name, "UInt64") == 0)      return DataSourceTypeId::UInt64;
-    else if (Poco::icompare(type_name, "UUID") == 0)        return DataSourceTypeId::UUID;
-
+    if (auto type_info = typeInfoIfExistsFor(type_name)) {
+        return type_info->type_id;
+    }
     return DataSourceTypeId::Unknown;
 }
 
 std::string convertTypeIdToUnparametrizedCanonicalTypeName(DataSourceTypeId type_id) {
-    switch (type_id) {
-        case DataSourceTypeId::Date:        return "Date";
-        case DataSourceTypeId::DateTime:    return "DateTime";
-        case DataSourceTypeId::DateTime64:  return "DateTime64";
-        case DataSourceTypeId::Decimal:     return "Decimal";
-        case DataSourceTypeId::Decimal32:   return "Decimal32";
-        case DataSourceTypeId::Decimal64:   return "Decimal64";
-        case DataSourceTypeId::Decimal128:  return "Decimal128";
-        case DataSourceTypeId::FixedString: return "FixedString";
-        case DataSourceTypeId::Float32:     return "Float32";
-        case DataSourceTypeId::Float64:     return "Float64";
-        case DataSourceTypeId::Int8:        return "Int8";
-        case DataSourceTypeId::Int16:       return "Int16";
-        case DataSourceTypeId::Int32:       return "Int32";
-        case DataSourceTypeId::Int64:       return "Int64";
-        case DataSourceTypeId::Nothing:     return "Nothing";
-        case DataSourceTypeId::String:      return "String";
-        case DataSourceTypeId::UInt8:       return "UInt8";
-        case DataSourceTypeId::UInt16:      return "UInt16";
-        case DataSourceTypeId::UInt32:      return "UInt32";
-        case DataSourceTypeId::UInt64:      return "UInt64";
-        case DataSourceTypeId::UUID:        return "UUID";
+    const auto& idx = DataSourceTypeIdIndex(type_id);
 
-        default:
-            throw std::runtime_error("unknown type id");
+    if (idx < 0 || idx >= TypeInfoCatalog::Types.size()) {
+        throw std::out_of_range("unknown type id");
     }
+
+    const auto& type = TypeInfoCatalog::Types[idx];
+    assert(type.type_id == type_id);
+
+    return std::string(type.type_name);
 }
 
 SQLSMALLINT convertSQLTypeToCType(SQLSMALLINT sql_type) noexcept {

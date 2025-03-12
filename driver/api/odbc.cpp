@@ -1028,28 +1028,28 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
 
         std::stringstream query;
         query << "SELECT"
-                 " database AS TABLE_CAT"   // 0
-                 ", '' AS TABLE_SCHEM"      // 1
-                 ", table AS TABLE_NAME"    // 2
-                 ", name AS COLUMN_NAME"    // 3
-                 ", 0 AS DATA_TYPE"         // 4
-                 ", type AS TYPE_NAME"      // 5
-                 ", 0 AS COLUMN_SIZE"       // 6
-                 ", 0 AS BUFFER_LENGTH"     // 7
-                 ", 0 AS DECIMAL_DIGITS"    // 8
-                 ", 0 AS NUM_PREC_RADIX"    // 9
-                 ", 0 AS NULLABLE"          // 10
-                 ", 0 AS REMARKS"           // 11
-                 ", 0 AS COLUMN_DEF"        // 12
-                 ", 0 AS SQL_DATA_TYPE"     // 13
-                 ", 0 AS SQL_DATETIME_SUB"  // 14
-                 ", 0 AS CHAR_OCTET_LENGTH" // 15
-                 ", 0 AS ORDINAL_POSITION"  // 16
-                 ", 0 AS IS_NULLABLE"       // 17
+                 " toNullable(database) AS TABLE_CAT,"               // 0
+                 " toNullable('') AS TABLE_SCHEM,"                   // 1
+                 " table AS TABLE_NAME,"                             // 2
+                 " name AS COLUMN_NAME,"                             // 3
+                 " toInt16(0) AS DATA_TYPE,"                         // 4
+                 " type AS TYPE_NAME,"                               // 5
+                 " toNullable(toInt32(0)) AS COLUMN_SIZE,"           // 6
+                 " toNullable(toInt32(0)) AS BUFFER_LENGTH,"         // 7
+                 " toNullable(toInt16(0)) AS DECIMAL_DIGITS,"        // 8
+                 " toNullable(toInt16(0)) AS NUM_PREC_RADIX,"        // 9
+                 " toInt16(0) AS NULLABLE,"                          // 10
+                 " toNullable('') AS REMARKS,"                       // 11
+                 " toNullable('') AS COLUMN_DEF,"                    // 12
+                 " toInt16(0) AS SQL_DATA_TYPE,"                     // 13
+                 " toNullable(toInt16(0)) AS SQL_DATETIME_SUB,"      // 14
+                 " toNullable(toInt32(0)) AS CHAR_OCTET_LENGTH,"     // 15
+                 " toInt32(0) AS ORDINAL_POSITION,"                  // 16
+                 " toNullable('') AS IS_NULLABLE"                    // 17
                  " FROM system.columns"
                  " WHERE (1 == 1)";
 
-        // Completely ommit the condition part of the query, if the value of SQL_ATTR_METADATA_ID is SQL_TRUE
+        // Completely omit the condition part of the query, if the value of SQL_ATTR_METADATA_ID is SQL_TRUE
         // (i.e., values for the components are not patterns), and the component hasn't been supplied at all
         // (i.e. is nullptr; note, that actual empty strings are considered "supplied".)
 
@@ -1114,73 +1114,75 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetTypeInfo)(
 
         bool first = true;
 
-        auto add_query_for_type = [&](const std::string & name, const TypeInfo & info) mutable {
+        for (auto info : TypeInfoCatalog::Types) {
             if (type != SQL_ALL_TYPES && type != info.sql_type)
-                return;
+                continue;
+
+            // TODO(slabko): DecimalXXX will be removed in near future, only plain Decimal will remain.
+            // For now we do not even want the clients to know of DecimalXXX existence.
+            // This piece of code should be deleted when deleting DecimalXXX.
+            if (info.isFixedPrecisionType() && info.type_id != DataSourceTypeId::Decimal)
+                continue;
 
             if (!first)
                 query << " UNION ALL ";
             first = false;
 
+            std::string radix = "NULL";
+            if (info.isFixedPrecisionType() && info.isIntegerType())
+                radix = "10";
+            else if (info.isFloatingPointType())
+                radix = "2";
+
+            std::string create_params = "NULL";
+            std::string maximum_scale = "NULL";
+            std::string minimum_scale = "NULL";
+            if (info.type_id == DataSourceTypeId::FixedString)
+                create_params = "'length'";
+            else if (info.type_id == DataSourceTypeId::Decimal)
+            {
+                create_params = "'precision,scale'";
+                maximum_scale = "toInt16(76)";
+                minimum_scale = "toInt16(1)";
+            }
+
+            std::string literal_prefix_suffix = "NULL";
+            if (info.isBufferType())
+                literal_prefix_suffix = "'\\''";
+
+            std::string sql_data_type = "DATA_TYPE";
+            std::string sql_datatype_sub = "NULL";
+            if (info.type_id == DataSourceTypeId::Date)
+            {
+                sql_data_type = "toInt16(" + std::to_string(SQL_DATE) + ")";
+                sql_datatype_sub = std::to_string(SQL_CODE_DATE);
+            }
+            else if (info.type_id == DataSourceTypeId::DateTime || info.type_id == DataSourceTypeId::DateTime64)
+            {
+                sql_data_type = "toInt16(" + std::to_string(SQL_DATE) + ")";
+                sql_datatype_sub = std::to_string(SQL_CODE_TIMESTAMP);
+            }
+
             query << "SELECT"
-                     " '"
-                  << info.type_name
-                  << "' AS TYPE_NAME"
-                     ", toInt16("
-                  << info.sql_type
-                  << ") AS DATA_TYPE"
-                     ", toInt32("
-                  << info.column_size
-                  << ") AS COLUMN_SIZE"
-                     ", '' AS LITERAL_PREFIX"
-                     ", '' AS LITERAL_SUFFIX"
-                     ", '' AS CREATE_PARAMS" /// TODO
-                     ", toInt16("
-                  << SQL_NO_NULLS
-                  << ") AS NULLABLE"
-                     ", toInt16("
-                  << SQL_TRUE
-                  << ") AS CASE_SENSITIVE"
-                     ", toInt16("
-                  << SQL_SEARCHABLE
-                  << ") AS SEARCHABLE"
-                     ", toInt16("
-                  << info.is_unsigned
-                  << ") AS UNSIGNED_ATTRIBUTE"
-                     ", toInt16("
-                  << SQL_FALSE
-                  << ") AS FIXED_PREC_SCALE"
-                     ", toInt16("
-                  << SQL_FALSE
-                  << ") AS AUTO_UNIQUE_VALUE"
+                     " '" << info.type_name << "' AS TYPE_NAME"
+                     ", toInt16(" << info.sql_type << ") AS DATA_TYPE"
+                     ", toInt32(" << info.column_size << ") AS COLUMN_SIZE"
+                     ", " << literal_prefix_suffix << " AS LITERAL_PREFIX"
+                     ", " << literal_prefix_suffix << " AS LITERAL_SUFFIX"
+                     ", " << create_params << " AS CREATE_PARAMS"
+                     ", toInt16(" << SQL_NULLABLE << ") AS NULLABLE"
+                     ", toInt16(" << SQL_TRUE << ") AS CASE_SENSITIVE"
+                     ", toInt16(" << SQL_SEARCHABLE << ") AS SEARCHABLE"
+                     ", toInt16(" << info.is_unsigned << ") AS UNSIGNED_ATTRIBUTE"
+                     ", toInt16(" << SQL_FALSE << ") AS FIXED_PREC_SCALE"
+                     ", toInt16(" << SQL_FALSE << ") AS AUTO_UNIQUE_VALUE"
                      ", TYPE_NAME AS LOCAL_TYPE_NAME"
-                     ", toInt16(0) AS MINIMUM_SCALE"
-                     ", toInt16(0) AS MAXIMUM_SCALE"
-                     ", DATA_TYPE AS SQL_DATA_TYPE"
-                     ", toInt16(0) AS SQL_DATETIME_SUB"
-                     ", toInt32(10) AS NUM_PREC_RADIX" /// TODO
+                     ", " << minimum_scale << " AS MINIMUM_SCALE"
+                     ", " << maximum_scale << " AS MAXIMUM_SCALE"
+                     ", " << sql_data_type << " AS SQL_DATA_TYPE"
+                     ", toNullable(toInt16(" << sql_datatype_sub << ")) AS SQL_DATETIME_SUB"
+                     ", toNullable(toInt32(" << radix << ")) AS NUM_PREC_RADIX"
                      ", toInt16(0) AS INTERVAL_PRECISION";
-        };
-
-        for (const auto & name_info : types_g) {
-            add_query_for_type(name_info.first, name_info.second);
-        }
-
-        // TODO (artpaul) check current version of ODBC.
-        //
-        //      In ODBC 3.x, the SQL date, time, and timestamp data types
-        //      are SQL_TYPE_DATE, SQL_TYPE_TIME, and SQL_TYPE_TIMESTAMP, respectively;
-        //      in ODBC 2.x, the data types are SQL_DATE, SQL_TIME, and SQL_TIMESTAMP.
-        {
-            auto info = statement.getTypeInfo("Date", "Date");
-            info.sql_type = SQL_DATE;
-            add_query_for_type("Date", info);
-        }
-
-        {
-            auto info = statement.getTypeInfo("DateTime", "DateTime");
-            info.sql_type = SQL_TIMESTAMP;
-            add_query_for_type("DateTime", info);
         }
 
         // TODO (slabko): From ODBC documentation for SQLGetTypeInfo:
