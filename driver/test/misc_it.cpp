@@ -1,6 +1,6 @@
-#include "driver/platform/platform.h"
 #include "driver/test/client_utils.h"
 #include "driver/test/client_test_base.h"
+#include "driver/test/result_set_reader.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -19,7 +19,7 @@ TEST_F(MiscellaneousTest, RowArraySizeAttribute) {
         rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
         ASSERT_EQ(size, 1);
     }
-    
+
     {
         size = 2;
         rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));

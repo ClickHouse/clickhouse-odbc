@@ -6,76 +6,172 @@
 #include "driver/exception.h"
 
 #include <algorithm>
-#include <sstream>
-#include <string>
+#include <array>
+#include <cassert>
+#include <cstring>
 #include <limits>
 #include <map>
-
-#include <cstring>
+#include <string>
 
 #define lengthof(a) (sizeof(a) / sizeof(a[0]))
 
-struct TypeInfo {
-    std::string sql_type_name;
-    bool is_unsigned;
-    SQLSMALLINT sql_type;
-
-    // https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/column-size-decimal-digits-transfer-octet-length-and-display-size
-    int32_t column_size;  // max width of value in textual represntation, e.g. number of decimal digits for numeric types.
-    int32_t octet_length; // max binary size of value in memory.
-
-    static constexpr auto string_max_size = 0xFFFFFF;
-
-    inline bool isIntegerType() const noexcept {
-        return sql_type == SQL_TINYINT || sql_type == SQL_SMALLINT || sql_type == SQL_INTEGER || sql_type == SQL_BIGINT;
-    }
-
-    inline bool isBufferType() const noexcept {
-        return
-            sql_type == SQL_CHAR || sql_type == SQL_VARCHAR || sql_type == SQL_LONGVARCHAR ||
-            sql_type == SQL_WCHAR || sql_type == SQL_WVARCHAR || sql_type == SQL_WLONGVARCHAR ||
-            sql_type == SQL_BINARY || sql_type == SQL_VARBINARY || sql_type == SQL_LONGVARBINARY
-        ;
-    }
-
-    inline bool isWideCharStringType() const noexcept {
-        return sql_type == SQL_WCHAR || sql_type == SQL_WVARCHAR || sql_type == SQL_WLONGVARCHAR;
-    }
-};
-
-extern const std::map<std::string, TypeInfo> types_g;
-
-inline const TypeInfo & type_info_for(const std::string & type) {
-    const auto it = types_g.find(type);
-    if (it == types_g.end())
-        throw std::runtime_error("unknown type");
-    return it->second;
-}
-
 enum class DataSourceTypeId {
-    Unknown,
-    Date,
-    DateTime,
-    DateTime64,
+    Nothing,
+    Int8,
+    UInt8,
+    Int16,
+    UInt16,
+    Int32,
+    UInt32,
+    Int64,
+    UInt64,
+    Float32,
+    Float64,
     Decimal,
     Decimal32,
     Decimal64,
     Decimal128,
-    FixedString,
-    Float32,
-    Float64,
-    Int8,
-    Int16,
-    Int32,
-    Int64,
-    Nothing,
     String,
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
-    UUID
+    FixedString,
+    Date,
+    DateTime,
+    DateTime64,
+    UUID,
+    Array,
+
+    // This item must be last, as it is also used
+    // to get the number of element in the Enum
+    // TODO(slabko): Do we really need this type_id?
+    // If not, we can replace it with the straightforward `COUNT`
+    Unknown,
 };
+
+constexpr size_t DataSourceTypeIdIndex(DataSourceTypeId type_id) {
+    const auto ret = static_cast<std::underlying_type_t<DataSourceTypeId>>(type_id);
+    return ret;
+}
+
+struct TypeInfo {
+    std::string type_name;
+    DataSourceTypeId type_id;
+    bool is_unsigned;
+    SQLSMALLINT sql_type;
+
+    // https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/column-size-decimal-digits-transfer-octet-length-and-display-size
+    int32_t column_size;  // max width of value in textual representation, e.g.
+                          // number of decimal digits for numeric types.
+    int32_t octet_length; // max binary size of value in memory.
+
+    TypeInfo(
+          std::string type_name,
+          const DataSourceTypeId type_id,
+          const bool is_unsigned,
+          const SQLSMALLINT sql_type,
+          const int32_t column_size,
+          const int32_t octet_length)
+        : type_name{std::move(type_name)},
+          type_id{type_id},
+          is_unsigned{is_unsigned},
+          sql_type{sql_type},
+          column_size{column_size},
+          octet_length{octet_length} {}
+
+    static const int32_t string_max_size = 0xFFFFFF;
+
+    inline bool isIntegerType() const noexcept {
+        using enum DataSourceTypeId;
+        switch (type_id) {
+            case Int8:
+            case UInt8:
+            case Int16:
+            case UInt16:
+            case Int32:
+            case UInt32:
+            case Int64:
+            case UInt64:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    inline bool isFixedPrecisionType() const noexcept {
+        using enum DataSourceTypeId;
+        switch (type_id) {
+            case Decimal:
+            case Decimal32:
+            case Decimal64:
+            case Decimal128:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    inline bool isFloatingPointType() const noexcept {
+        using enum DataSourceTypeId;
+        switch (type_id) {
+            case Float32:
+            case Float64:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    inline bool isBufferType() const noexcept {
+        using enum DataSourceTypeId;
+        switch (type_id) {
+            case String:
+            case FixedString:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    inline bool isWideCharStringType() const noexcept {
+        // We do not have any types that support non wide types (i.e. SQL_WVARCHAR)
+        return false;
+    }
+
+};
+
+class TypeInfoCatalog
+{
+
+private:
+    static constexpr size_t total_visible_types = DataSourceTypeIdIndex(DataSourceTypeId::Unknown);
+
+public:
+    static const std::array<const TypeInfo, total_visible_types> Types;
+
+    static const TypeInfo& Nothing;
+    static const TypeInfo& Int8;
+    static const TypeInfo& UInt8;
+    static const TypeInfo& Int16;
+    static const TypeInfo& UInt16;
+    static const TypeInfo& Int32;
+    static const TypeInfo& UInt32;
+    static const TypeInfo& Int64;
+    static const TypeInfo& UInt64;
+    static const TypeInfo& Float32;
+    static const TypeInfo& Float64;
+    static const TypeInfo& Decimal;
+    static const TypeInfo& Decimal32;
+    static const TypeInfo& Decimal64;
+    static const TypeInfo& Decimal128;
+    static const TypeInfo& String;
+    static const TypeInfo& FixedString;
+    static const TypeInfo& Date;
+    static const TypeInfo& DateTime;
+    static const TypeInfo& DateTime64;
+    static const TypeInfo& UUID;
+    static const TypeInfo& Array;
+};
+
+const TypeInfo * typeInfoIfExistsFor(const std::string & type);
+const TypeInfo & typeInfoFor(const std::string & type);
 
 DataSourceTypeId convertUnparametrizedTypeNameToTypeId(const std::string & type_name);
 std::string convertTypeIdToUnparametrizedCanonicalTypeName(DataSourceTypeId type_id);

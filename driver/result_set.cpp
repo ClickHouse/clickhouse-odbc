@@ -115,7 +115,7 @@ void ColumnInfo::updateTypeInfo() {
                 tmp_type_name = "Decimal";
             }
 
-            auto & type_info = type_info_for(tmp_type_name);
+            auto & type_info = typeInfoFor(tmp_type_name);
             display_size = type_info.column_size;
             break;
         }
