@@ -201,6 +201,7 @@ endif ()
 
 add_library (${libname} SHARED
     api/odbc.cpp
+    api/sql_columns_resultset_mutator.cpp
     ${WIN_SOURCES}
 )
 
