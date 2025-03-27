@@ -2,6 +2,7 @@
 #include "driver/api/impl/impl.h"
 #include "driver/utils/sql_encoding.h"
 #include "driver/utils/utils.h"
+#include "driver/api/sql_columns_resultset_mutator.h"
 #include "driver/utils/type_parser.h"
 #include "driver/attributes.h"
 #include "driver/diagnostics.h"
@@ -967,55 +968,6 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
     SQLTCHAR *      ColumnName,
     SQLSMALLINT     NameLength4
 ) {
-    class ColumnsMutator
-        : public ResultMutator
-    {
-    public:
-        explicit ColumnsMutator(Statement & statement_)
-            : statement(statement_)
-        {
-        }
-
-        void transformRow(const std::vector<ColumnInfo> & columns_info, Row & row) override {
-            ColumnInfo tmp_column_info;
-
-            std::visit([&] (auto & value) {
-                std::string type_name;
-                value_manip::from_value<std::decay_t<decltype(value)>>::template to_value<std::string>::convert(value, type_name);
-
-                TypeParser parser{type_name};
-                TypeAst ast;
-
-                if (parser.parse(&ast)) {
-                    tmp_column_info.assignTypeInfo(ast, Poco::Timezone::name());
-
-                    if (convertUnparametrizedTypeNameToTypeId(tmp_column_info.type_without_parameters) == DataSourceTypeId::Unknown) {
-                        // Interpret all unknown types as String.
-                        tmp_column_info.type_without_parameters = "String";
-                    }
-                }
-                else {
-                    // Interpret all unparsable types as String.
-                    tmp_column_info.type_without_parameters = "String";
-                }
-
-                tmp_column_info.updateTypeInfo();
-            }, row.fields.at(5).data);
-
-            const TypeInfo & type_info = statement.getTypeInfo(tmp_column_info.type, tmp_column_info.type_without_parameters);
-
-            row.fields.at(4).data = DataSourceType<DataSourceTypeId::Int16>{type_info.data_type};
-            row.fields.at(5).data = DataSourceType<DataSourceTypeId::String>{type_info.type_name};
-            row.fields.at(6).data = DataSourceType<DataSourceTypeId::Int32>{type_info.column_size};
-            row.fields.at(13).data = DataSourceType<DataSourceTypeId::Int16>{type_info.sql_data_type};
-            row.fields.at(15).data = DataSourceType<DataSourceTypeId::Int32>{type_info.octet_length};
-        }
-
-    private:
-        Statement & statement;
-
-
-    };
 
     auto func = [&](Statement & statement) {
         constexpr bool null_catalog_defaults_to_connected_database = true; // TODO: review and remove this behavior?
@@ -1027,33 +979,30 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
 
         // N.B.: here, an empty 'catalog', 'schema', 'table', or 'column' variable would mean, that an empty string
         // has been supplied, not a nullptr. In case of nullptr, it would contain "%".
-
-        // TODO: review types and set NULL everything than has to be NULL.
-
         std::stringstream query;
-        query << "SELECT"
-                 " database AS TABLE_CAT"   // 0
-                 ", '' AS TABLE_SCHEM"      // 1
-                 ", table AS TABLE_NAME"    // 2
-                 ", name AS COLUMN_NAME"    // 3
-                 ", 0 AS DATA_TYPE"         // 4
-                 ", type AS TYPE_NAME"      // 5
-                 ", 0 AS COLUMN_SIZE"       // 6
-                 ", 0 AS BUFFER_LENGTH"     // 7
-                 ", 0 AS DECIMAL_DIGITS"    // 8
-                 ", 0 AS NUM_PREC_RADIX"    // 9
-                 ", 0 AS NULLABLE"          // 10
-                 ", 0 AS REMARKS"           // 11
-                 ", 0 AS COLUMN_DEF"        // 12
-                 ", 0 AS SQL_DATA_TYPE"     // 13
-                 ", 0 AS SQL_DATETIME_SUB"  // 14
-                 ", 0 AS CHAR_OCTET_LENGTH" // 15
-                 ", 0 AS ORDINAL_POSITION"  // 16
-                 ", 0 AS IS_NULLABLE"       // 17
-                 " FROM system.columns"
-                 " WHERE (1 == 1)";
+        query << "SELECT "
+            "cast(database, 'Nullable(String)') AS TABLE_CAT, "
+            "cast('', 'Nullable(String)') AS TABLE_SCHEM, "
+            "cast(table, 'String') AS TABLE_NAME, "
+            "cast(name, 'String') AS COLUMN_NAME, "
+            "cast(0, 'Int16') AS DATA_TYPE, "
+            "cast(type, 'String') AS TYPE_NAME, "
+            "cast(NULL, 'Nullable(Int32)') AS COLUMN_SIZE, "
+            "cast(0, 'Nullable(Int32)') AS BUFFER_LENGTH, "
+            "cast(NULL, 'Nullable(Int16)') AS DECIMAL_DIGITS, "
+            "cast(NULL, 'Nullable(Int16)') AS NUM_PREC_RADIX, "
+            "cast(0, 'Int16') AS NULLABLE, "
+            "cast(NULL, 'Nullable(String)') AS REMARKS, "
+            "cast(NULL, 'Nullable(String)') AS COLUMN_DEF, "
+            "cast(0, 'Int16') AS SQL_DATA_TYPE, "
+            "cast(NULL, 'Nullable(Int16)') AS SQL_DATETIME_SUB, "
+            "cast(0, 'Nullable(Int32)') AS CHAR_OCTET_LENGTH, "
+            "cast(position, 'Int32') AS ORDINAL_POSITION, "
+            "cast(NULL, 'Nullable(String)') AS IS_NULLABLE "
+            "FROM system.columns "
+            "WHERE (1 == 1)";
 
-        // Completely ommit the condition part of the query, if the value of SQL_ATTR_METADATA_ID is SQL_TRUE
+        // Completely omit the condition part of the query, if the value of SQL_ATTR_METADATA_ID is SQL_TRUE
         // (i.e., values for the components are not patterns), and the component hasn't been supplied at all
         // (i.e. is nullptr; note, that actual empty strings are considered "supplied".)
 
@@ -1070,6 +1019,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
             query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') == '" << escapeForSQL(catalog) << "'";
         }
 
+        // FIXME(slabko): This does not make any sense, TABLE_SCHEM is always ''
         // Note, that 'schema' variable will be set to "%" above, even if SchemaName == nullptr.
         if (is_pattern) {
             if (!isMatchAnythingCatalogFnPatternArg(schema))
@@ -1098,7 +1048,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
         }
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
-        statement.executeQuery(query.str(), std::make_unique<ColumnsMutator>(statement));
+        statement.executeQuery(query.str(), std::make_unique<SQLColumnsResultSetMutator>(statement));
 
         return SQL_SUCCESS;
     };
