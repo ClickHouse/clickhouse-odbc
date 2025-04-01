@@ -94,6 +94,7 @@ jobs:
         CC=${{ fromJSON('{"AppleClang": "cc", "Clang": "/usr/local/opt/llvm/bin/clang", "GCC": "$COMPILER_PATH/gcc-11"}')[matrix.compiler] }}
         CXX=${{ fromJSON('{"AppleClang": "c++", "Clang": "/usr/local/opt/llvm/bin/clang++", "GCC": "$COMPILER_PATH/g++-11"}')[matrix.compiler] }}
         cmake -S ${{ github.workspace }}/source -B ${{ github.workspace }}/build
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DODBC_PROVIDER=${{ matrix.odbc_provider }}
         -DICU_ROOT=/usr/local/opt/icu4c
