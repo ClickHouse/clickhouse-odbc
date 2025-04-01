@@ -119,7 +119,7 @@ The list of parameters in the query string of the URL that are also recognized b
 |    Parameter     | Default value | Description                                                                                                                                                            |
 | :--------------: | :-----------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |    `database`    |   `default`   | Database name to connect to                                                                                                                                            |
-| `default_format` | `ODBCDriver2` | Default wire format of the resulting data that the server will send to the driver. Formats supported by the driver are: `ODBCDriver2` and `RowBinaryWithNamesAndTypes` |
+| `default_format` | `ODBCDriver2` | Default wire format of the resulting data that the server will send to the driver. Formats supported by the driver are: `ODBCDriver2` and `RowBinaryWithNamesAndTypes` (experimental) |
 
 Note, that currently there is a difference in timezone handling between `ODBCDriver2` and `RowBinaryWithNamesAndTypes` formats: in `ODBCDriver2` date and time values are presented to the ODBC application in server's timezone, wherease in `RowBinaryWithNamesAndTypes` they are converted to local timezone. This behavior will be changed/parametrized in future. If server and ODBC application timezones are the same, date and time values handling will effectively be identical between these two formats.
 
