@@ -211,24 +211,6 @@ inline bool isMatchAnythingCatalogFnPatternArg(const std::string & pattern) {
     return (!pattern.empty() && pattern.find_first_not_of('%') == std::string::npos);
 }
 
-// Escapes a SQL literal value for using it in a single-quoted notation in a SQL query.
-// Effectively, escapes ' and \ using \.
-inline auto escapeForSQL(const std::string & literal) {
-    std::string res;
-    res.reserve(literal.size() + 10);
-    for (auto ch : literal) {
-        switch (ch) {
-            case '\\':
-            case '\'': {
-                res += '\\';
-                break;
-            }
-        }
-        res += ch;
-    }
-    return res;
-}
-
 #define CASE_FALLTHROUGH(NAME) \
     case NAME:                 \
         if (!name)             \

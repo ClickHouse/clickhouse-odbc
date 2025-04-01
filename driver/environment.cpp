@@ -9,12 +9,12 @@ Environment::Environment(Driver & driver)
 }
 
 const TypeInfo & Environment::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters) const {
-    auto it = types_g.find(type_name);
+    const TypeInfo * type_info = typeInfoIfExistsFor(type_name);
 
-    if (it == types_g.end())
-        it = types_g.find(type_name_without_parameters);
+    if (!type_info)
+        type_info = typeInfoIfExistsFor(type_name_without_parameters);
 
-    if (it == types_g.end()) {
+    if (!type_info) {
         const auto tmp_type_without_parameters_id = convertUnparametrizedTypeNameToTypeId(type_name_without_parameters);
         auto tmp_type_name = convertTypeIdToUnparametrizedCanonicalTypeName(tmp_type_without_parameters_id);
 
@@ -26,11 +26,11 @@ const TypeInfo & Environment::getTypeInfo(const std::string & type_name, const s
             tmp_type_name = "Decimal";
         }
 
-        it = types_g.find(tmp_type_name);
+        type_info = typeInfoIfExistsFor(tmp_type_name);
     }
 
-    if (it != types_g.end())
-        return it->second;
+    if (type_info)
+        return *type_info;
 
     LOG("Unsupported type " << type_name << " : " << type_name_without_parameters);
 

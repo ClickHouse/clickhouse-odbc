@@ -1,6 +1,8 @@
 #include "driver/platform/platform.h"
 #include "driver/api/impl/impl.h"
+#include "driver/utils/sql_encoding.h"
 #include "driver/utils/utils.h"
+#include "driver/api/sql_columns_resultset_mutator.h"
 #include "driver/utils/type_parser.h"
 #include "driver/attributes.h"
 #include "driver/diagnostics.h"
@@ -604,7 +606,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
             CASE_FIELD_STR(SQL_DESC_BASE_TABLE_NAME, "");
             CASE_FIELD_NUM(SQL_DESC_CASE_SENSITIVE, SQL_TRUE);
             CASE_FIELD_STR(SQL_DESC_CATALOG_NAME, "");
-            CASE_FIELD_NUM(SQL_DESC_CONCISE_TYPE, type_info.sql_type);
+            CASE_FIELD_NUM(SQL_DESC_CONCISE_TYPE, type_info.data_type);
 
             case SQL_COLUMN_COUNT: /* fallthrough */
             CASE_FIELD_NUM(SQL_DESC_COUNT, result_set.getColumnCount());
@@ -638,10 +640,11 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
             CASE_FIELD_STR(SQL_DESC_SCHEMA_NAME, "");
             CASE_FIELD_NUM(SQL_DESC_SEARCHABLE, SQL_SEARCHABLE);
             CASE_FIELD_STR(SQL_DESC_TABLE_NAME, "");
-            CASE_FIELD_NUM(SQL_DESC_TYPE, type_info.sql_type);
-            CASE_FIELD_STR(SQL_DESC_TYPE_NAME, type_info.sql_type_name);
+            CASE_FIELD_NUM(SQL_DESC_TYPE, type_info.data_type);
+            CASE_FIELD_STR(SQL_DESC_TYPE_NAME, type_info.type_name);
             CASE_FIELD_NUM(SQL_DESC_UNNAMED, SQL_NAMED);
-            CASE_FIELD_NUM(SQL_DESC_UNSIGNED, (type_info.is_unsigned ? SQL_TRUE : SQL_FALSE));
+            CASE_FIELD_NUM(SQL_DESC_UNSIGNED,
+                (type_info.unsigned_attribute == UnsignedAttribute::Unsigned ? SQL_TRUE : SQL_FALSE));
 #ifdef SQL_ATTR_READ_ONLY
             CASE_FIELD_NUM(SQL_DESC_UPDATABLE, SQL_ATTR_READ_ONLY);
 #else
@@ -682,11 +685,11 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_hand
         const auto & column_info = result_set.getColumnInfo(column_idx);
         const auto & type_info = statement.getTypeInfo(column_info.type, column_info.type_without_parameters);
 
-        LOG(__FUNCTION__ << " column_number=" << column_number << " name=" << column_info.name << " type=" << type_info.sql_type
+        LOG(__FUNCTION__ << " column_number=" << column_number << " name=" << column_info.name << " type=" << type_info.data_type
                          << " size=" << type_info.column_size << " nullable=" << column_info.is_nullable);
 
         if (out_type)
-            *out_type = type_info.sql_type;
+            *out_type = type_info.data_type;
         if (out_column_size)
             *out_column_size = std::min<int32_t>(
                 statement.getParent().stringmaxlength, column_info.fixed_size ? column_info.fixed_size : type_info.column_size);
@@ -965,53 +968,6 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
     SQLTCHAR *      ColumnName,
     SQLSMALLINT     NameLength4
 ) {
-    class ColumnsMutator
-        : public ResultMutator
-    {
-    public:
-        explicit ColumnsMutator(Statement & statement_)
-            : statement(statement_)
-        {
-        }
-
-        void transformRow(const std::vector<ColumnInfo> & columns_info, Row & row) override {
-            ColumnInfo tmp_column_info;
-
-            std::visit([&] (auto & value) {
-                std::string type_name;
-                value_manip::from_value<std::decay_t<decltype(value)>>::template to_value<std::string>::convert(value, type_name);
-
-                TypeParser parser{type_name};
-                TypeAst ast;
-
-                if (parser.parse(&ast)) {
-                    tmp_column_info.assignTypeInfo(ast, Poco::Timezone::name());
-
-                    if (convertUnparametrizedTypeNameToTypeId(tmp_column_info.type_without_parameters) == DataSourceTypeId::Unknown) {
-                        // Interpret all unknown types as String.
-                        tmp_column_info.type_without_parameters = "String";
-                    }
-                }
-                else {
-                    // Interpret all unparsable types as String.
-                    tmp_column_info.type_without_parameters = "String";
-                }
-
-                tmp_column_info.updateTypeInfo();
-            }, row.fields.at(5).data);
-
-            const TypeInfo & type_info = statement.getTypeInfo(tmp_column_info.type, tmp_column_info.type_without_parameters);
-
-            row.fields.at(4).data = DataSourceType<DataSourceTypeId::Int16>{type_info.sql_type};
-            row.fields.at(5).data = DataSourceType<DataSourceTypeId::String>{type_info.sql_type_name};
-            row.fields.at(6).data = DataSourceType<DataSourceTypeId::Int32>{type_info.column_size};
-            row.fields.at(13).data = DataSourceType<DataSourceTypeId::Int16>{type_info.sql_type};
-            row.fields.at(15).data = DataSourceType<DataSourceTypeId::Int32>{type_info.octet_length};
-        }
-
-    private:
-        Statement & statement;
-    };
 
     auto func = [&](Statement & statement) {
         constexpr bool null_catalog_defaults_to_connected_database = true; // TODO: review and remove this behavior?
@@ -1023,33 +979,30 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
 
         // N.B.: here, an empty 'catalog', 'schema', 'table', or 'column' variable would mean, that an empty string
         // has been supplied, not a nullptr. In case of nullptr, it would contain "%".
-
-        // TODO: review types and set NULL everything than has to be NULL.
-
         std::stringstream query;
-        query << "SELECT"
-                 " database AS TABLE_CAT"   // 0
-                 ", '' AS TABLE_SCHEM"      // 1
-                 ", table AS TABLE_NAME"    // 2
-                 ", name AS COLUMN_NAME"    // 3
-                 ", 0 AS DATA_TYPE"         // 4
-                 ", type AS TYPE_NAME"      // 5
-                 ", 0 AS COLUMN_SIZE"       // 6
-                 ", 0 AS BUFFER_LENGTH"     // 7
-                 ", 0 AS DECIMAL_DIGITS"    // 8
-                 ", 0 AS NUM_PREC_RADIX"    // 9
-                 ", 0 AS NULLABLE"          // 10
-                 ", 0 AS REMARKS"           // 11
-                 ", 0 AS COLUMN_DEF"        // 12
-                 ", 0 AS SQL_DATA_TYPE"     // 13
-                 ", 0 AS SQL_DATETIME_SUB"  // 14
-                 ", 0 AS CHAR_OCTET_LENGTH" // 15
-                 ", 0 AS ORDINAL_POSITION"  // 16
-                 ", 0 AS IS_NULLABLE"       // 17
-                 " FROM system.columns"
-                 " WHERE (1 == 1)";
+        query << "SELECT "
+            "cast(database, 'Nullable(String)') AS TABLE_CAT, "
+            "cast('', 'Nullable(String)') AS TABLE_SCHEM, "
+            "cast(table, 'String') AS TABLE_NAME, "
+            "cast(name, 'String') AS COLUMN_NAME, "
+            "cast(0, 'Int16') AS DATA_TYPE, "
+            "cast(type, 'String') AS TYPE_NAME, "
+            "cast(NULL, 'Nullable(Int32)') AS COLUMN_SIZE, "
+            "cast(0, 'Nullable(Int32)') AS BUFFER_LENGTH, "
+            "cast(NULL, 'Nullable(Int16)') AS DECIMAL_DIGITS, "
+            "cast(NULL, 'Nullable(Int16)') AS NUM_PREC_RADIX, "
+            "cast(0, 'Int16') AS NULLABLE, "
+            "cast(NULL, 'Nullable(String)') AS REMARKS, "
+            "cast(NULL, 'Nullable(String)') AS COLUMN_DEF, "
+            "cast(0, 'Int16') AS SQL_DATA_TYPE, "
+            "cast(NULL, 'Nullable(Int16)') AS SQL_DATETIME_SUB, "
+            "cast(0, 'Nullable(Int32)') AS CHAR_OCTET_LENGTH, "
+            "cast(position, 'Int32') AS ORDINAL_POSITION, "
+            "cast(NULL, 'Nullable(String)') AS IS_NULLABLE "
+            "FROM system.columns "
+            "WHERE (1 == 1)";
 
-        // Completely ommit the condition part of the query, if the value of SQL_ATTR_METADATA_ID is SQL_TRUE
+        // Completely omit the condition part of the query, if the value of SQL_ATTR_METADATA_ID is SQL_TRUE
         // (i.e., values for the components are not patterns), and the component hasn't been supplied at all
         // (i.e. is nullptr; note, that actual empty strings are considered "supplied".)
 
@@ -1066,6 +1019,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
             query << " AND isNotNull(TABLE_CAT) AND coalesce(TABLE_CAT, '') == '" << escapeForSQL(catalog) << "'";
         }
 
+        // FIXME(slabko): This does not make any sense, TABLE_SCHEM is always ''
         // Note, that 'schema' variable will be set to "%" above, even if SchemaName == nullptr.
         if (is_pattern) {
             if (!isMatchAnythingCatalogFnPatternArg(schema))
@@ -1094,7 +1048,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumns)(
         }
 
         query << " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
-        statement.executeQuery(query.str(), std::make_unique<ColumnsMutator>(statement));
+        statement.executeQuery(query.str(), std::make_unique<SQLColumnsResultSetMutator>(statement));
 
         return SQL_SUCCESS;
     };
@@ -1114,75 +1068,49 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetTypeInfo)(
 
         bool first = true;
 
-        auto add_query_for_type = [&](const std::string & name, const TypeInfo & info) mutable {
-            if (type != SQL_ALL_TYPES && type != info.sql_type)
-                return;
+        for (auto info : TypeInfoCatalog::Types) {
+            if (type != SQL_ALL_TYPES && type != info.data_type)
+                continue;
+
+            // TODO(slabko): DecimalXXX will be removed in near future, only plain Decimal will remain.
+            // For now we do not even want the clients to know of DecimalXXX existence.
+            // This piece of code should be deleted when deleting DecimalXXX.
+            if (info.isFixedPrecisionType() && info.type_id != DataSourceTypeId::Decimal)
+                continue;
 
             if (!first)
                 query << " UNION ALL ";
             first = false;
 
-            query << "SELECT"
-                     " '"
-                  << info.sql_type_name
-                  << "' AS TYPE_NAME"
-                     ", toInt16("
-                  << info.sql_type
-                  << ") AS DATA_TYPE"
-                     ", toInt32("
-                  << info.column_size
-                  << ") AS COLUMN_SIZE"
-                     ", '' AS LITERAL_PREFIX"
-                     ", '' AS LITERAL_SUFFIX"
-                     ", '' AS CREATE_PARAMS" /// TODO
-                     ", toInt16("
-                  << SQL_NO_NULLS
-                  << ") AS NULLABLE"
-                     ", toInt16("
-                  << SQL_TRUE
-                  << ") AS CASE_SENSITIVE"
-                     ", toInt16("
-                  << SQL_SEARCHABLE
-                  << ") AS SEARCHABLE"
-                     ", toInt16("
-                  << info.is_unsigned
-                  << ") AS UNSIGNED_ATTRIBUTE"
-                     ", toInt16("
-                  << SQL_FALSE
-                  << ") AS FIXED_PREC_SCALE"
-                     ", toInt16("
-                  << SQL_FALSE
-                  << ") AS AUTO_UNIQUE_VALUE"
-                     ", TYPE_NAME AS LOCAL_TYPE_NAME"
-                     ", toInt16(0) AS MINIMUM_SCALE"
-                     ", toInt16(0) AS MAXIMUM_SCALE"
-                     ", DATA_TYPE AS SQL_DATA_TYPE"
-                     ", toInt16(0) AS SQL_DATETIME_SUB"
-                     ", toInt32(10) AS NUM_PREC_RADIX" /// TODO
-                     ", toInt16(0) AS INTERVAL_PRECISION";
-        };
-
-        for (const auto & name_info : types_g) {
-            add_query_for_type(name_info.first, name_info.second);
+            query << "SELECT "
+                "cast(" << toSqlQueryValue(info.type_name) << ", 'String') AS TYPE_NAME, "
+                "cast(" << toSqlQueryValue(info.data_type) << ", 'Int16') AS DATA_TYPE, "
+                "cast(" << toSqlQueryValue(info.column_size) << ", 'Nullable(Int32)') AS COLUMN_SIZE, "
+                "cast(" << toSqlQueryValue(info.literal_wrapper) << ", 'Nullable(String)') AS LITERAL_PREFIX, "
+                "cast(" << toSqlQueryValue(info.literal_wrapper) << ", 'Nullable(String)') AS LITERAL_SUFFIX, "
+                "cast(" << toSqlQueryValue(info.create_params) << ", 'Nullable(String)') AS CREATE_PARAMS, "
+                "cast(" << toSqlQueryValue(SQL_NULLABLE) << ", 'Int16') AS NULLABLE, "
+                "cast(" << toSqlQueryValue(SQL_TRUE) << ", 'Int16') AS CASE_SENSITIVE, "
+                "cast(" << toSqlQueryValue(SQL_SEARCHABLE) << ", 'Int16') AS SEARCHABLE, "
+                "cast(" << toSqlQueryValue(info.unsigned_attribute) << ", 'Nullable(Int16)') AS UNSIGNED_ATTRIBUTE, "
+                "cast(" << toSqlQueryValue(SQL_FALSE) << ", 'Int16') AS FIXED_PREC_SCALE, "
+                "cast(NULL, 'Nullable(Int16)') AS AUTO_UNIQUE_VALUE, "
+                "cast(NULL, 'Nullable(String)') AS LOCAL_TYPE_NAME, "
+                "cast(" << toSqlQueryValue(info.minimum_scale) << ", 'Nullable(Int16)') AS MINIMUM_SCALE, "
+                "cast(" << toSqlQueryValue(info.maximum_scale) << ", 'Nullable(Int16)') AS MAXIMUM_SCALE, "
+                "cast(" << toSqlQueryValue(info.sql_data_type) << ", 'Int16') AS SQL_DATA_TYPE, "
+                "cast(" << toSqlQueryValue(info.sql_datetime_sub) << ", 'Nullable(Int16)') AS SQL_DATETIME_SUB, "
+                "cast(" << toSqlQueryValue(info.num_prec_radix) << ", 'Nullable(Int32)') AS NUM_PREC_RADIX, "
+                "cast(NULL, 'Nullable(Int16)') AS INTERVAL_PRECISION";
         }
 
-        // TODO (artpaul) check current version of ODBC.
-        //
-        //      In ODBC 3.x, the SQL date, time, and timestamp data types
-        //      are SQL_TYPE_DATE, SQL_TYPE_TIME, and SQL_TYPE_TIMESTAMP, respectively;
-        //      in ODBC 2.x, the data types are SQL_DATE, SQL_TIME, and SQL_TIMESTAMP.
-        {
-            auto info = statement.getTypeInfo("Date", "Date");
-            info.sql_type = SQL_DATE;
-            add_query_for_type("Date", info);
-        }
-
-        {
-            auto info = statement.getTypeInfo("DateTime", "DateTime");
-            info.sql_type = SQL_TIMESTAMP;
-            add_query_for_type("DateTime", info);
-        }
-
+        // TODO (slabko): From ODBC documentation for SQLGetTypeInfo:
+        // "SQLGetTypeInfo returns the results as a standard result set,
+        // ordered by DATA_TYPE **and then by how closely the data type maps
+        // to the corresponding ODBC SQL data type**. Data types defined
+        // by the data source take precedence over user-defined data types."
+        // This, however, does not order by how closely the data type maps
+        // to the data type passed as parameter to SQLGetTypeInfo.
         query << ") ORDER BY DATA_TYPE";
 
         if (first)
