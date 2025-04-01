@@ -94,6 +94,7 @@ jobs:
         CC=${{ fromJSON('{"Clang": "clang", "GCC": "gcc"}')[matrix.compiler] }}
         CXX=${{ fromJSON('{"Clang": "clang++", "GCC": "g++"}')[matrix.compiler] }}
         cmake -S ${{ github.workspace }}/source -B ${{ github.workspace }}/build
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DODBC_PROVIDER=${{ matrix.odbc_provider }}
         -DCH_ODBC_RUNTIME_LINK_STATIC=${{ fromJSON('{"static-runtime": "ON", "dynamic-runtime": "OFF"}')[matrix.runtime_link] }}
@@ -131,48 +132,48 @@ jobs:
         TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
         Debug     = 1
         DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
-        
+
         [ODBC Drivers]
         ClickHouse ODBC Driver (ANSI)    = Installed
         ClickHouse ODBC Driver (Unicode) = Installed
-        
+
         [ClickHouse ODBC Driver (ANSI)]
         Driver     = ${{ github.workspace }}/build/driver/libclickhouseodbc.so
         Setup      = ${{ github.workspace }}/build/driver/libclickhouseodbc.so
         UsageCount = 1
-        
+
         [ClickHouse ODBC Driver (Unicode)]
         Driver     = ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
         Setup      = ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
         UsageCount = 1
         EOF
-        
+
         cat > ${{ github.workspace }}/run/.odbc.ini <<-EOF
         [ODBC]
         Trace     = 1
         TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
         Debug     = 1
         DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
-        
+
         [ODBC Data Sources]
         ClickHouse DSN (ANSI)         = ClickHouse ODBC Driver (ANSI)
         ClickHouse DSN (Unicode)      = ClickHouse ODBC Driver (Unicode)
         ClickHouse DSN (ANSI, RBWNAT) = ClickHouse ODBC Driver (ANSI)
-        
+
         [ClickHouse DSN (ANSI)]
         Driver        = ClickHouse ODBC Driver (ANSI)
         Description   = Test DSN for ClickHouse ODBC Driver (ANSI)
         Url           = http://${CLICKHOUSE_SERVER_IP}
         DriverLog     = yes
         DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
-        
+
         [ClickHouse DSN (Unicode)]
         Driver        = ClickHouse ODBC Driver (Unicode)
         Description   = Test DSN for ClickHouse ODBC Driver (Unicode)
         Url           = http://localhost:8123
         DriverLog     = yes
         DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver-w.log
-        
+
         [ClickHouse DSN (ANSI, RBWNAT)]
         Driver        = ClickHouse ODBC Driver (ANSI)
         Description   = Test DSN for ClickHouse ODBC Driver (ANSI) that uses RowBinaryWithNamesAndTypes as data source communication default format
