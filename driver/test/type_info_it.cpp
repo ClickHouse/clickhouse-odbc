@@ -9,6 +9,8 @@
 
 #include <Poco/Foundation.h>
 
+static std::string database_name = "default";
+
 class TypeInfoTest
     : public ClientTestBase
 {
@@ -187,6 +189,7 @@ TEST_F(TypeInfoTest, SQLGetTypeInfoResultSet)
 
     const std::string pre_sc = "precision,scale";
     const std::string length = "length";
+    const std::string scale = "scale";
 
     // clang-format off
     std::map<std::string, TypeInfoEntry> expected {
@@ -208,8 +211,8 @@ TEST_F(TypeInfoTest, SQLGetTypeInfoResultSet)
         {"String",      {SQL_VARCHAR,        max_size, "'", "'",  na,     na,    na, na,  SQL_VARCHAR,   na,  na,  }},
         {"FixedString", {SQL_VARCHAR,        max_size, "'", "'",  length, na,    na, na,  SQL_VARCHAR,   na,  na,  }},
         {"Date",        {SQL_TYPE_DATE,      10,       na,  na,   na,     na,    na, na,  SQL_DATE,      1,   na,  }},
+        {"DateTime64",  {SQL_TYPE_TIMESTAMP, 29,       na,  na,   scale,  na,    0,  9,   SQL_DATE,      3,   na,  }},
         {"DateTime",    {SQL_TYPE_TIMESTAMP, 19,       na,  na,   na,     na,    na, na,  SQL_DATE,      3,   na,  }},
-        {"DateTime64",  {SQL_TYPE_TIMESTAMP, 29,       na,  na,   na,     na,    0,  9,   SQL_DATE,      3,   na,  }},
         {"UUID",        {SQL_GUID,           35,       na,  na,   na,     na,    na, na,  SQL_GUID,      na,  na,  }},
         {"Array",       {SQL_VARCHAR,        max_size, na,  na,   na,     na,    na, na,  SQL_VARCHAR,   na,  na,  }},
     };
@@ -324,7 +327,6 @@ TEST_F(TypeInfoTest, SQLColumnTypeMapping)
 TEST_F(TypeInfoTest, AllTypesColumns)
 {
     static std::string table_name = "all_types_columns";
-    static std::string database_name = "default";
 
     struct SQLColumnsEntry
     {
@@ -450,4 +452,48 @@ TEST_F(TypeInfoTest, AllTypesColumns)
     for (const auto& [column, info] : expected) {
         EXPECT_TRUE(received_columns.contains(column)) << column << " is not in SQLColumns result set";
     }
+}
+
+// Inserts DateTime and DateTime64 values into a table and checks that
+// it can filter by these values and the resulting values are exactly
+// the same as the inserted values
+TEST_F(TypeInfoTest, TimestampTypes)
+{
+    static std::string table_name = "datetime_test";
+    SQL_TIMESTAMP_STRUCT datetime   {2025, 4, 15, 14, 45, 40, 0};
+    SQL_TIMESTAMP_STRUCT datetime64 {2025, 4, 15, 14, 45, 40, 123456789};
+
+    auto create_table_query = fromUTF8<SQLTCHAR>(std::format(R"(
+        CREATE OR REPLACE TABLE {}.{} (
+            dt DateTime,
+            dt64 DateTime64(9))
+        ENGINE MergeTree
+        ORDER BY dt)",
+        database_name, table_name));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, create_table_query.data(), SQL_NTS));
+
+    auto insert_query = fromUTF8<SQLTCHAR>(std::format(R"(
+        INSERT INTO {}.{} VALUES (?, ?))",
+        std::string(database_name), table_name));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, insert_query.data(), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
+        hstmt, 1, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 19, 0, &datetime, sizeof(datetime), nullptr));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
+        hstmt, 2, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 29, 9, &datetime64, sizeof(datetime64), nullptr));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+    auto select_query = fromUTF8<SQLTCHAR>(std::format(R"(
+        SELECT * FROM {}.{} WHERE dt = ? AND dt64 = ?)",
+        std::string(database_name), table_name));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, select_query.data(), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
+        hstmt, 1, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 19, 0, &datetime, sizeof(datetime), nullptr));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
+        hstmt, 2, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 29, 9, &datetime64, sizeof(datetime64), nullptr));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+    ResultSetReader reader{hstmt};
+    reader.fetch();
+    EXPECT_TRUE(compareOptionalSqlTimeStamps(reader.getData<SQL_TIMESTAMP_STRUCT>("dt"), datetime));
+    EXPECT_TRUE(compareOptionalSqlTimeStamps(reader.getData<SQL_TIMESTAMP_STRUCT>("dt64"), datetime64));
 }

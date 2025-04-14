@@ -73,3 +73,21 @@ inline void set_env_var(const std::string & name, const std::optional<std::strin
         unset_env_var(name);
     }
 }
+
+inline bool compareOptionalSqlTimeStamps(std::optional<SQL_TIMESTAMP_STRUCT> a, std::optional<SQL_TIMESTAMP_STRUCT> b)
+{
+    if (!a && !b)
+        return true;
+    else if (!a || !b)
+        return false;
+
+    return
+        a->year == b->year &&
+        a->month == b->month &&
+        a->day == b->day &&
+        a->hour == b->hour &&
+        a->minute == b->minute &&
+        a->second == b->second &&
+        a->fraction == b->fraction;
+}
+

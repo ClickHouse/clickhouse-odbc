@@ -473,7 +473,7 @@ std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info) {
             break;
 
         case SQL_TYPE_TIMESTAMP:
-            type_name = set_nullability("DateTime");
+            type_name = set_nullability("DateTime64(9)");
             break;
 
         case SQL_INTERVAL_MONTH:
