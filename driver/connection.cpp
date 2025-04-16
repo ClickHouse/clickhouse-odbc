@@ -92,6 +92,8 @@ Poco::URI Connection::getUri() const {
 
     bool database_set = false;
     bool default_format_set = false;
+    bool auto_session_id_set = false;
+    bool session_id_set = false;
 
     for (const auto& parameter : uri.getQueryParameters()) {
         if (Poco::UTF8::icompare(parameter.first, "default_format") == 0) {
@@ -99,6 +101,12 @@ Poco::URI Connection::getUri() const {
         }
         else if (Poco::UTF8::icompare(parameter.first, "database") == 0) {
             database_set = true;
+        }
+        else if (Poco::UTF8::icompare(parameter.first, "auto_session_id") == 0) {
+            auto_session_id_set = true;
+        }
+        else if (Poco::UTF8::icompare(parameter.first, "session_id") == 0 && !parameter.second.empty()) {
+            session_id_set = true;
         }
     }
 
@@ -109,16 +117,9 @@ Poco::URI Connection::getUri() const {
         uri.addQueryParameter("database", database);
 
     // To use some features of CH (e.g. TEMPORARY TABLEs) we need a (named) session.
-    {
-        const auto & parameters = uri.getQueryParameters();
-        const auto p = std::find_if(parameters.begin(), parameters.end(), [](const auto & param_kv) {
-            return param_kv.first == "session_id";
-        });
-
+    if (auto_session_id_set && !session_id_set) {
         // DO not overwrite user-set session_id, just in case...
-        if (p == parameters.end()) {
-            uri.addQueryParameter("session_id", session_id);
-        }
+        uri.addQueryParameter("session_id", session_id);
     }
 
     return uri;
