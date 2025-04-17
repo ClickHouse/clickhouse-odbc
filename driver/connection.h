@@ -41,6 +41,7 @@ public: // Configuration fields.
     std::string database;
     bool huge_int_as_string = false;
     std::int32_t stringmaxlength = 0;
+    bool auto_session_id = false;
 
 public:
     std::string useragent;

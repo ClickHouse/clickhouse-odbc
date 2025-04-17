@@ -58,6 +58,7 @@ void readDSNinfo(ConnInfo * ci, bool overwrite) {
     GET_CONFIG(stringmaxlength, INI_STRINGMAXLENGTH, INI_STRINGMAXLENGTH_DEFAULT);
     GET_CONFIG(driverlog,       INI_DRIVERLOG,       INI_DRIVERLOG_DEFAULT);
     GET_CONFIG(driverlogfile,   INI_DRIVERLOGFILE,   INI_DRIVERLOGFILE_DEFAULT);
+    GET_CONFIG(auto_session_id, INI_AUTO_SESSION_ID, INI_AUTO_SESSION_ID_DEFAULT);
 
 #undef GET_CONFIG
 }
@@ -99,6 +100,7 @@ void writeDSNinfo(const ConnInfo * ci) {
     WRITE_CONFIG(stringmaxlength, INI_STRINGMAXLENGTH);
     WRITE_CONFIG(driverlog,       INI_DRIVERLOG);
     WRITE_CONFIG(driverlogfile,   INI_DRIVERLOGFILE);
+    WRITE_CONFIG(auto_session_id, INI_AUTO_SESSION_ID);
 
 #undef WRITE_CONFIG
 }
@@ -342,7 +344,8 @@ key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
             INI_DATABASE,
             INI_STRINGMAXLENGTH,
             INI_DRIVERLOG,
-            INI_DRIVERLOGFILE
+            INI_DRIVERLOGFILE,
+            INI_AUTO_SESSION_ID
         }
     ) {
         if (

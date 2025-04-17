@@ -92,7 +92,6 @@ Poco::URI Connection::getUri() const {
 
     bool database_set = false;
     bool default_format_set = false;
-    bool auto_session_id_set = false;
     bool session_id_set = false;
 
     for (const auto& parameter : uri.getQueryParameters()) {
@@ -101,9 +100,6 @@ Poco::URI Connection::getUri() const {
         }
         else if (Poco::UTF8::icompare(parameter.first, "database") == 0) {
             database_set = true;
-        }
-        else if (Poco::UTF8::icompare(parameter.first, "auto_session_id") == 0) {
-            auto_session_id_set = true;
         }
         else if (Poco::UTF8::icompare(parameter.first, "session_id") == 0 && !parameter.second.empty()) {
             session_id_set = true;
@@ -117,7 +113,7 @@ Poco::URI Connection::getUri() const {
         uri.addQueryParameter("database", database);
 
     // To use some features of CH (e.g. TEMPORARY TABLEs) we need a (named) session.
-    if (auto_session_id_set && !session_id_set) {
+    if (auto_session_id && !session_id_set) {
         // DO not overwrite user-set session_id, just in case...
         uri.addQueryParameter("session_id", session_id);
     }
@@ -399,6 +395,13 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
             valid_value = (value.empty() || isYesOrNo(value));
             if (valid_value) {
                 getDriver().setAttr(CH_SQL_ATTR_DRIVERLOG, (isYes(value) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_AUTO_SESSION_ID) == 0) {
+            recognized_key = true;
+            valid_value = (value.empty() || isYesOrNo(value));
+            if (valid_value) {
+                auto_session_id = isYes(value);
             }
         }
 
