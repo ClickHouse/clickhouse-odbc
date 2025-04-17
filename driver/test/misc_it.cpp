@@ -19,7 +19,7 @@ TEST_F(MiscellaneousTest, RowArraySizeAttribute) {
         rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, &size, sizeof(size), 0));
         ASSERT_EQ(size, 1);
     }
-    
+
     {
         size = 2;
         rc = ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)size, 0));
@@ -227,7 +227,11 @@ INSTANTIATE_TEST_SUITE_P(
 
         std::make_tuple("AllGood_VerifyConnectionEarly_Empty", "VerifyConnectionEarly=",   FailOn::Never),
         std::make_tuple("AllGood_VerifyConnectionEarly_On",  "VerifyConnectionEarly=on",   FailOn::Never),
-        std::make_tuple("AllGood_VerifyConnectionEarly_Off", "VerifyConnectionEarly=off",  FailOn::Never)
+        std::make_tuple("AllGood_VerifyConnectionEarly_Off", "VerifyConnectionEarly=off",  FailOn::Never),
+
+        std::make_tuple("AllGood_AutoSessionId_Empty", "AutoSessionId=",   FailOn::Never),
+        std::make_tuple("AllGood_AutoSessionId_On",  "AutoSessionId=on",   FailOn::Never),
+        std::make_tuple("AllGood_AutoSessionId_Off", "AutoSessionId=off",  FailOn::Never)
     ),
     [] (const auto & param_info) {
         return std::get<0>(param_info.param);
