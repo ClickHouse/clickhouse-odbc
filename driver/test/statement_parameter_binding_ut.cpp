@@ -94,7 +94,7 @@ TEST_F(StatementBindingTest, FromCCharToOtherTypes) {
         "{odbc_positional_2:Decimal(10, 2)}, "
         "{odbc_positional_3:Date}, "
         "{odbc_positional_4:LowCardinality(String)}, "
-        "{odbc_positional_5:DateTime}, "
+        "{odbc_positional_5:DateTime64(9)}, "
         "{odbc_positional_6:UUID}");
     ASSERT_EQ(params.size(), 6);
     ASSERT_EQ(params["param_odbc_positional_1"], num_as_char);
@@ -186,7 +186,7 @@ TEST_F(StatementBindingTest, FromCDateTime) {
         "select "
         "{odbc_positional_1:Nullable(Date)}, "
         "{odbc_positional_2:LowCardinality(String)}, "
-        "{odbc_positional_3:Nullable(DateTime)}");
+        "{odbc_positional_3:Nullable(DateTime64(9))}");
     ASSERT_EQ(params.size(), 3);
     ASSERT_EQ(params["param_odbc_positional_1"], "2024-02-13");
     ASSERT_EQ(params["param_odbc_positional_2"], "15:30:45");

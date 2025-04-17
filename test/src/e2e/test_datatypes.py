@@ -23,6 +23,27 @@ from util import pyodbc_connection, create_table, rows_as_values
 #  Map
 #  LowCardinality
 class TestDataTypes:
+    def test_bool(self):
+        """ Bool are currently converted to a string.
+        This should be fixed in the future. The test demonstrates the problem.
+        """
+        table_name = "odbc_test_data_types_bool"
+        with (pyodbc_connection() as conn,
+              create_table(conn, table_name, "b Bool")):
+            values = ['true', 'false'] # strings, but should be `[True, False]`
+            conn.insert(table_name, "(true), (false)")
+
+            for value in values:
+                rows = conn.query(f"SELECT * FROM {table_name} WHERE b = ?", [value])
+                assert len(rows) == 1
+                assert rows_as_values(rows) == [value]
+                assert rows[0].cursor_description[0][0] == "b"
+                assert rows[0].cursor_description[0][1] == str # should be `bool`
+
+            rows = conn.query(f"SELECT * FROM {table_name}")
+            assert len(rows) == 2
+            assert rows_as_values(rows) == values
+
     def test_int8(self):
         table_name = "odbc_test_data_types_int8"
         with (pyodbc_connection() as conn,
@@ -400,6 +421,48 @@ class TestDataTypes:
             rows = conn.query(f"SELECT * FROM {table_name}")
             assert len(rows) == 3
             assert rows_as_values(rows) == values
+
+    def test_datetime64(self):
+        table_name = "odbc_test_data_types_datetime_insert"
+        # Python's datetime only supports microseconds precision
+        with (pyodbc_connection() as conn,
+              create_table(conn, table_name, "dt DateTime64(6)")):
+            values = [
+                datetime.datetime(2000, 12, 31, 23, 59, 59, 999999),
+                datetime.datetime(2020, 1, 1, 1, 1, 1, 1),
+                datetime.datetime(2106, 2, 7, 6, 28, 15, 0)]
+            conn.insert(table_name, "('2000-12-31 23:59:59.999999'), ('2020-01-01 01:01:01.000001'), ('2106-02-07 06:28:15')")
+
+            for value in values:
+                rows = conn.query(f"SELECT * FROM {table_name} WHERE dt = ?", [value])
+                assert len(rows) == 1
+                assert rows_as_values(rows) == [value]
+                assert rows[0].cursor_description[0][0] == "dt"
+                assert rows[0].cursor_description[0][1] == datetime.datetime
+
+            rows = conn.query(f"SELECT * FROM {table_name}")
+            assert len(rows) == 3
+            assert rows_as_values(rows) == values
+
+    def test_datetime_insert(self):
+        """Test inserting values into DateTime and DateTime64 columns
+
+        Python's `datetime` is bound to the DateTime64 type in ClickHouse. This is also true
+        for other client ODBC libraries—when they bind SQL_TYPE_TIMESTAMP, DateTime64 is
+        used under the hood. We need to ensure that we can insert into both DateTime64 and
+        DateTime using parameter binding.
+        """
+        table_name = "odbc_test_data_types_datetime_insert"
+        with (pyodbc_connection() as conn,
+              create_table(conn, table_name, "dt DateTime, dt64 DateTime64(6)")):
+
+            dt = datetime.datetime(2025, 4, 14, 11, 11, 5, 0)
+            dt64 = datetime.datetime(2025, 4, 14, 11, 11, 5, 123456)
+            conn.query(f"INSERT INTO {table_name} VALUES (?, ?)", [dt, dt64], fetch=False);
+
+            rows = conn.query(f"SELECT dt, dt64 FROM {table_name}");
+            assert len(rows) == 1
+            assert list(rows[0]) == [dt, dt64]
 
     def test_enum8(self):
         table_name = "odbc_test_data_types_enum8"

@@ -70,7 +70,7 @@ TEST_P(DateTime, GetData) {
     };
 
     const auto orig_local_tz = get_env_var("TZ");
-    set_env_var("TZ", params.local_tz);
+    setEnvVar("TZ", params.local_tz);
 
 #ifdef _win_
     _putenv_s("TZ", params.local_tz.c_str());
@@ -160,7 +160,7 @@ TEST_P(DateTime, GetData) {
     }
     catch (...) {
         try {
-            set_env_var("TZ", orig_local_tz);
+            setEnvVar("TZ", orig_local_tz);
         }
         catch (const std::exception & ex) {
             std::cerr << ex.what() << std::endl;
@@ -169,7 +169,7 @@ TEST_P(DateTime, GetData) {
         throw;
     }
 
-    set_env_var("TZ", orig_local_tz);
+    setEnvVar("TZ", orig_local_tz);
 }
 
 INSTANTIATE_TEST_SUITE_P(

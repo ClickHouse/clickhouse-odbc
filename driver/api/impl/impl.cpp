@@ -940,7 +940,7 @@ SQLRETURN GetDescField(
             CASE_FIELD_NUM_DEF ( SQL_DESC_BIND_TYPE,          SQLUINTEGER,   SQL_BIND_TYPE_DEFAULT );
             CASE_FIELD_NUM     ( SQL_DESC_COUNT,              SQLSMALLINT                          );
             CASE_FIELD_NUM     ( SQL_DESC_ROWS_PROCESSED_PTR, SQLULEN *                            );
-                
+
 #undef CASE_FIELD_NUM_DEF
 #undef CASE_FIELD_NUM
 
@@ -1271,7 +1271,7 @@ SQLRETURN fillBinding(
 
     if (binding_info.c_type == SQL_C_DEFAULT) {
         const auto & column_info = result_set.getColumnInfo(column_idx);
-        binding_info.c_type = convertSQLTypeToCType(statement.getTypeInfo(column_info.type, column_info.type_without_parameters).sql_type);
+        binding_info.c_type = convertSQLTypeToCType(statement.getTypeInfo(column_info.type, column_info.type_without_parameters).data_type);
     }
 
     if (
