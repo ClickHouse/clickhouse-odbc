@@ -32,6 +32,7 @@ struct ConnInfo {
     std::string stringmaxlength;
     std::string driverlog;
     std::string driverlogfile;
+    std::string auto_session_id;
 };
 
 void readDSNinfo(ConnInfo * ci, bool overwrite);
