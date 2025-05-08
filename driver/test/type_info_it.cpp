@@ -218,6 +218,8 @@ TEST_F(TypeInfoTest, SQLGetTypeInfoResultSet)
     };
     // clang-format on
 
+    expected["Nullable(Decimal)"] = expected["Decimal"];
+
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetTypeInfo(hstmt, SQL_ALL_TYPES));
 
     ResultSetReader reader{hstmt};
@@ -250,6 +252,36 @@ TEST_F(TypeInfoTest, SQLGetTypeInfoResultSet)
 
     for (const auto& [type, info] : expected) {
         EXPECT_TRUE(received_types.contains(type)) << type << " is not in SQLGetTypeInfo result set";
+    }
+}
+
+// Check the ClickHouse types associated by the driver with each of the SQL
+// types, i.e. SQL_VARCHAR is associated with String, SQL_BIGINT with Int64,
+// etc.
+TEST_F(TypeInfoTest, SQLToClickHouseAssociatedTypes)
+{
+    using enum DataSourceTypeId;
+    std::unordered_map<SQLSMALLINT, std::string> type_map {
+        {SQL_TINYINT, "Int8"},
+        {SQL_SMALLINT, "Int16"},
+        {SQL_INTEGER, "Int32"},
+        {SQL_BIGINT, "Int64"},
+        {SQL_REAL, "Float32"},
+        {SQL_DOUBLE, "Float64"},
+        {SQL_DECIMAL, "Nullable(Decimal)"},
+        {SQL_TYPE_DATE, "Date"},
+        {SQL_TYPE_TIMESTAMP, "DateTime64"},
+        {SQL_GUID, "UUID"},
+        {SQL_VARCHAR, "String"}
+    };
+
+    for (const auto& [sql_type, ch_type] : type_map)
+    {
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetTypeInfo(hstmt, sql_type));
+        ResultSetReader reader{hstmt};
+        reader.fetch();
+        EXPECT_EQ(reader.getData<std::string>("TYPE_NAME").value(), ch_type) << "for type " << sql_type;
+        SQLFreeStmt(hstmt, SQL_CLOSE);
     }
 }
 
@@ -486,6 +518,7 @@ TEST_F(TypeInfoTest, TimestampTypes)
         SELECT * FROM {}.{} WHERE dt = ? AND dt64 = ?)",
         std::string(database_name), table_name));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, select_query.data(), SQL_NTS));
+        SQLFreeStmt(hstmt, SQL_CLOSE);
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
         hstmt, 1, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 19, 0, &datetime, sizeof(datetime), nullptr));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
@@ -497,3 +530,4 @@ TEST_F(TypeInfoTest, TimestampTypes)
     EXPECT_TRUE(compareOptionalSqlTimeStamps(reader.getData<SQL_TIMESTAMP_STRUCT>("dt"), datetime));
     EXPECT_TRUE(compareOptionalSqlTimeStamps(reader.getData<SQL_TIMESTAMP_STRUCT>("dt64"), datetime64));
 }
+
