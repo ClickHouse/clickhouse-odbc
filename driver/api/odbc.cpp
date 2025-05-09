@@ -1068,7 +1068,18 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetTypeInfo)(
 
         bool first = true;
 
-        for (auto info : TypeInfoCatalog::Types) {
+        // Power BI casts numeric types (Int64, UInt64, etc.) to Decimal to avoid
+        // overflow, but this cast fails for nullable types. By placing `Nullable(Decimal)`
+        // before `Decimal` in the result, we give Power BI a hint that this type should be
+        // used when it wants to cast other types to the wider Decimal type.
+        std::vector<TypeInfo> types(TypeInfoCatalog::Types.cbegin(), TypeInfoCatalog::Types.cend());
+        auto decimal_index = DataSourceTypeIdIndex(DataSourceTypeId::Decimal);
+        auto nullable_decimal = types[decimal_index];
+        nullable_decimal.type_name = "Nullable(Decimal)";
+        nullable_decimal.nullable = true;
+        types.insert(types.begin() + DataSourceTypeIdIndex(DataSourceTypeId::Decimal), nullable_decimal);
+
+        for (auto info : types) {
             if (type != SQL_ALL_TYPES && type != info.data_type)
                 continue;
 

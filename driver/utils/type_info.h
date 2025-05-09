@@ -15,14 +15,14 @@
 #define lengthof(a) (sizeof(a) / sizeof(a[0]))
 
 enum class DataSourceTypeId {
-    Nothing,
     Int8,
     UInt8,
+    Nothing,
     Int16,
     UInt16,
     Int32,
-    UInt32,
     Int64,
+    UInt32,
     UInt64,
     Float32,
     Float64,
@@ -30,12 +30,12 @@ enum class DataSourceTypeId {
     Decimal32,
     Decimal64,
     Decimal128,
-    String,
-    FixedString,
     Date,
     DateTime64,
     DateTime,
     UUID,
+    String,
+    FixedString,
     Array,
 
     // This item must be last, as it is also used
@@ -148,22 +148,35 @@ public:
     using enum DataSourceTypeId;
     using enum UnsignedAttribute;
     const auto string_max_size = TypeInfo::string_max_size;
+
+    // This list defines a mapping from SQL_* types (SQL_INTEGER, SQL_VARCHAR)
+    // to ClickHouse types (Int32, String). This mapping is then used to produce
+    // the output of the `SQLGetTypeInfo` function. For each requested SQL type,
+    // it filters the compatible types by `date_type` and returns them in the
+    // order defined in this array. `SQLGetTypeInfo` also requires that the
+    // output is ordered by how closely the data type maps to the corresponding
+    // ODBC SQL data type. As a result, this array must be grouped by data types
+    // and then by "compatibility" with the SQL type.
+    // For example, String, FixedString, Array are all represented as
+    // SQL_VARCHAR However String is the closest type for SQL_VARCHAR and it
+    // should be ordered first in the array with across all the types with
+    // `data_type` set to SQL_VARCHAR.
     std::array<TypeInfo, total_visible_types> types = {{
-        {.type_id=Nothing, .type_name="Nothing", .column_size=1, .octet_length=1},
         {.type_id=Int8, .type_name="Int8", .data_type=SQL_TINYINT, .column_size=1 + 3,
             .unsigned_attribute=Signed, .num_prec_radix=10, .octet_length=1}, // one char for sign
         {.type_id=UInt8, .type_name="UInt8", .data_type=SQL_TINYINT, .column_size=3,
             .unsigned_attribute=Unsigned, .num_prec_radix=10, .octet_length=1},
+        {.type_id=Nothing, .type_name="Nothing", .column_size=1, .octet_length=1},
         {.type_id=Int16, .type_name="Int16", .data_type=SQL_SMALLINT, .column_size=1 + 5,
             .unsigned_attribute=Signed, .num_prec_radix=10, .octet_length=2},
         {.type_id=UInt16, .type_name="UInt16", .data_type=SQL_SMALLINT, .column_size=5,
             .unsigned_attribute=Unsigned, .num_prec_radix=10,.octet_length=2},
         {.type_id=Int32, .type_name="Int32", .data_type=SQL_INTEGER, .column_size=1 + 10,
             .unsigned_attribute=Signed, .num_prec_radix=10, .octet_length=4},
-        {.type_id=UInt32, .type_name="UInt32", .data_type=SQL_BIGINT , .column_size=10,
-            .unsigned_attribute=Unsigned, .num_prec_radix=10, .octet_length=4},
         {.type_id=Int64, .type_name="Int64", .data_type=SQL_BIGINT, .column_size=1 + 19,
             .unsigned_attribute=Signed, .num_prec_radix=10,.octet_length=8},
+        {.type_id=UInt32, .type_name="UInt32", .data_type=SQL_BIGINT , .column_size=10,
+            .unsigned_attribute=Unsigned, .num_prec_radix=10, .octet_length=4},
         {.type_id=UInt64, .type_name="UInt64", .data_type=SQL_BIGINT, .column_size=20,
             .unsigned_attribute=Unsigned, .num_prec_radix=10, .octet_length=8},
         {.type_id=Float32, .type_name="Float32", .data_type=SQL_REAL, .column_size=7,
@@ -179,10 +192,6 @@ public:
             .unsigned_attribute=Signed, .num_prec_radix=10,.octet_length=64},
         {.type_id=Decimal128, .type_name="Decimal128", .data_type=SQL_DECIMAL, .column_size=1 + 2 + 38,
             .unsigned_attribute=Signed, .octet_length=128},
-        {.type_id=String, .type_name="String", .data_type=SQL_VARCHAR, .column_size=string_max_size,
-            .literal_wrapper="'", .octet_length=string_max_size},
-        {.type_id=FixedString, .type_name="FixedString", .data_type=SQL_VARCHAR, .column_size=string_max_size,
-            .literal_wrapper="'", .create_params="length", .octet_length=string_max_size},
         {.type_id=Date, .type_name="Date", .data_type=SQL_TYPE_DATE, .column_size=10,
             .sql_data_type=SQL_DATE, .sql_datetime_sub=SQL_CODE_DATE, .octet_length=6},
         {.type_id=DateTime64, .type_name="DateTime64", .data_type=SQL_TYPE_TIMESTAMP, .column_size=29,
@@ -192,6 +201,10 @@ public:
             .sql_data_type=SQL_DATE, .sql_datetime_sub=SQL_CODE_TIMESTAMP, .octet_length=16},
         {.type_id=UUID, .type_name="UUID", .data_type=SQL_GUID, .column_size=8 + 1 + 4 + 1 + 4 + 1 + 4 + 12,
             .octet_length=sizeof(SQLGUID)},
+        {.type_id=String, .type_name="String", .data_type=SQL_VARCHAR, .column_size=string_max_size,
+            .literal_wrapper="'", .octet_length=string_max_size},
+        {.type_id=FixedString, .type_name="FixedString", .data_type=SQL_VARCHAR, .column_size=string_max_size,
+            .literal_wrapper="'", .create_params="length", .octet_length=string_max_size},
         {.type_id=Array, .type_name="Array", .data_type=SQL_VARCHAR, .column_size=string_max_size,
             .octet_length=string_max_size},
     }};
