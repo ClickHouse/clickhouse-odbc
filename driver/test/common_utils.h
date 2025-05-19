@@ -55,7 +55,7 @@ inline std::optional<std::string> get_env_var(const std::string & name) {
     return {};
 }
 
-inline void unset_env_var(const std::string & name) {
+inline void unsetEnvVar(const std::string & name) {
 #ifdef _win_
     Poco::Environment::set(name, "");
 #else
@@ -65,11 +65,29 @@ inline void unset_env_var(const std::string & name) {
 #endif
 }
 
-inline void set_env_var(const std::string & name, const std::optional<std::string> & value) {
+inline void setEnvVar(const std::string & name, const std::optional<std::string> & value) {
     if (value.has_value()) {
         Poco::Environment::set(name, value.value());
     }
     else {
-        unset_env_var(name);
+        unsetEnvVar(name);
     }
 }
+
+inline bool compareOptionalSqlTimeStamps(std::optional<SQL_TIMESTAMP_STRUCT> a, std::optional<SQL_TIMESTAMP_STRUCT> b)
+{
+    if (!a && !b)
+        return true;
+    else if (!a || !b)
+        return false;
+
+    return
+        a->year == b->year &&
+        a->month == b->month &&
+        a->day == b->day &&
+        a->hour == b->hour &&
+        a->minute == b->minute &&
+        a->second == b->second &&
+        a->fraction == b->fraction;
+}
+

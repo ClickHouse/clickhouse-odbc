@@ -2,80 +2,228 @@
 
 #include "driver/platform/platform.h"
 #include "driver/utils/utils.h"
+#include "driver/utils/sql_encoding.h"
 #include "driver/utils/conversion.h"
 #include "driver/exception.h"
 
 #include <algorithm>
-#include <sstream>
-#include <string>
-#include <limits>
-#include <map>
-
+#include <array>
 #include <cstring>
+#include <limits>
+#include <string>
 
 #define lengthof(a) (sizeof(a) / sizeof(a[0]))
 
-struct TypeInfo {
-    std::string sql_type_name;
-    bool is_unsigned;
-    SQLSMALLINT sql_type;
+enum class DataSourceTypeId {
+    Nothing,
+    Int8,
+    UInt8,
+    Int16,
+    UInt16,
+    Int32,
+    UInt32,
+    Int64,
+    UInt64,
+    Float32,
+    Float64,
+    Decimal,
+    Decimal32,
+    Decimal64,
+    Decimal128,
+    String,
+    FixedString,
+    Date,
+    DateTime64,
+    DateTime,
+    UUID,
+    Array,
 
-    // https://docs.microsoft.com/en-us/sql/odbc/reference/appendixes/column-size-decimal-digits-transfer-octet-length-and-display-size
-    int32_t column_size;  // max width of value in textual represntation, e.g. number of decimal digits for numeric types.
+    // This item must be last, as it is also used
+    // to get the number of element in the Enum
+    // TODO(slabko): Do we really need this type_id?
+    Unknown,
+};
+
+inline constexpr size_t DataSourceTypeIdIndex(DataSourceTypeId type_id) {
+    const auto ret = static_cast<std::underlying_type_t<DataSourceTypeId>>(type_id);
+    return ret;
+}
+
+enum class UnsignedAttribute : uint8_t
+{
+    NotApplicable,
+    Signed,
+    Unsigned
+};
+
+struct TypeInfo {
+    DataSourceTypeId type_id{DataSourceTypeId::Nothing};
+    std::string type_name{"Nothing"};
+    SQLSMALLINT data_type{SQL_TYPE_NULL};
+    int32_t column_size;
+    std::optional<std::string> literal_wrapper{std::nullopt}; // represent both LITERAL_PREFIX and LITERAL_SUFFIX
+    std::optional<std::string> create_params{std::nullopt};
+    bool nullable{false};
+    bool case_sensitive{true};
+    bool searchable{true};
+    UnsignedAttribute unsigned_attribute{UnsignedAttribute::NotApplicable};
+    bool fixed_prec_scale{false};
+    bool auto_unique_value{false};
+    std::optional<uint16_t> minimum_scale{std::nullopt};
+    std::optional<uint16_t> maximum_scale{std::nullopt};
+    SQLSMALLINT sql_data_type{SQL_TYPE_NULL};
+    std::optional<SQLSMALLINT> sql_datetime_sub{std::nullopt};
+    std::optional<SQLSMALLINT> num_prec_radix{std::nullopt};
     int32_t octet_length; // max binary size of value in memory.
 
     static constexpr auto string_max_size = 0xFFFFFF;
 
     inline bool isIntegerType() const noexcept {
-        return sql_type == SQL_TINYINT || sql_type == SQL_SMALLINT || sql_type == SQL_INTEGER || sql_type == SQL_BIGINT;
+        using enum DataSourceTypeId;
+        switch (type_id) {
+            case Int8:
+            case UInt8:
+            case Int16:
+            case UInt16:
+            case Int32:
+            case UInt32:
+            case Int64:
+            case UInt64:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    inline bool isFixedPrecisionType() const noexcept {
+        using enum DataSourceTypeId;
+        switch (type_id) {
+            case Decimal:
+            case Decimal32:
+            case Decimal64:
+            case Decimal128:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    inline bool isFloatingPointType() const noexcept {
+        using enum DataSourceTypeId;
+        switch (type_id) {
+            case Float32:
+            case Float64:
+                return true;
+            default:
+                return false;
+        }
     }
 
     inline bool isBufferType() const noexcept {
-        return
-            sql_type == SQL_CHAR || sql_type == SQL_VARCHAR || sql_type == SQL_LONGVARCHAR ||
-            sql_type == SQL_WCHAR || sql_type == SQL_WVARCHAR || sql_type == SQL_WLONGVARCHAR ||
-            sql_type == SQL_BINARY || sql_type == SQL_VARBINARY || sql_type == SQL_LONGVARBINARY
-        ;
+        using enum DataSourceTypeId;
+        switch (type_id) {
+            case String:
+            case FixedString:
+                return true;
+            default:
+                return false;
+        }
     }
 
     inline bool isWideCharStringType() const noexcept {
-        return sql_type == SQL_WCHAR || sql_type == SQL_WVARCHAR || sql_type == SQL_WLONGVARCHAR;
+        // We do not have any types that support non wide types (i.e. SQL_WVARCHAR)
+        return false;
     }
+
 };
 
-extern const std::map<std::string, TypeInfo> types_g;
+class TypeInfoCatalog
+{
 
-inline const TypeInfo & type_info_for(const std::string & type) {
-    const auto it = types_g.find(type);
-    if (it == types_g.end())
-        throw std::runtime_error("unknown type");
-    return it->second;
-}
+private:
+    static constexpr size_t total_visible_types = DataSourceTypeIdIndex(DataSourceTypeId::Unknown);
 
-enum class DataSourceTypeId {
-    Unknown,
-    Date,
-    DateTime,
-    DateTime64,
-    Decimal,
-    Decimal32,
-    Decimal64,
-    Decimal128,
-    FixedString,
-    Float32,
-    Float64,
-    Int8,
-    Int16,
-    Int32,
-    Int64,
-    Nothing,
-    String,
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
-    UUID
+public:
+    static inline const std::array<TypeInfo, total_visible_types> Types = [] {
+    using enum DataSourceTypeId;
+    using enum UnsignedAttribute;
+    const auto string_max_size = TypeInfo::string_max_size;
+    std::array<TypeInfo, total_visible_types> types = {{
+        {.type_id=Nothing, .type_name="Nothing", .column_size=1, .octet_length=1},
+        {.type_id=Int8, .type_name="Int8", .data_type=SQL_TINYINT, .column_size=1 + 3,
+            .unsigned_attribute=Signed, .num_prec_radix=10, .octet_length=1}, // one char for sign
+        {.type_id=UInt8, .type_name="UInt8", .data_type=SQL_TINYINT, .column_size=3,
+            .unsigned_attribute=Unsigned, .num_prec_radix=10, .octet_length=1},
+        {.type_id=Int16, .type_name="Int16", .data_type=SQL_SMALLINT, .column_size=1 + 5,
+            .unsigned_attribute=Signed, .num_prec_radix=10, .octet_length=2},
+        {.type_id=UInt16, .type_name="UInt16", .data_type=SQL_SMALLINT, .column_size=5,
+            .unsigned_attribute=Unsigned, .num_prec_radix=10,.octet_length=2},
+        {.type_id=Int32, .type_name="Int32", .data_type=SQL_INTEGER, .column_size=1 + 10,
+            .unsigned_attribute=Signed, .num_prec_radix=10, .octet_length=4},
+        {.type_id=UInt32, .type_name="UInt32", .data_type=SQL_BIGINT , .column_size=10,
+            .unsigned_attribute=Unsigned, .num_prec_radix=10, .octet_length=4},
+        {.type_id=Int64, .type_name="Int64", .data_type=SQL_BIGINT, .column_size=1 + 19,
+            .unsigned_attribute=Signed, .num_prec_radix=10,.octet_length=8},
+        {.type_id=UInt64, .type_name="UInt64", .data_type=SQL_BIGINT, .column_size=20,
+            .unsigned_attribute=Unsigned, .num_prec_radix=10, .octet_length=8},
+        {.type_id=Float32, .type_name="Float32", .data_type=SQL_REAL, .column_size=7,
+            .unsigned_attribute=Signed, .num_prec_radix=2, .octet_length=4},
+        {.type_id=Float64, .type_name="Float64", .data_type=SQL_DOUBLE, .column_size=15,
+            .unsigned_attribute=Signed, .num_prec_radix=2, .octet_length=8},
+        {.type_id=Decimal, .type_name="Decimal", .data_type=SQL_DECIMAL, .column_size=1 + 2 + 38,
+            .create_params="precision,scale", .unsigned_attribute=Signed,
+            .minimum_scale=1, .maximum_scale=76, .num_prec_radix=10, .octet_length=32}, // -0.
+        {.type_id=Decimal32, .type_name="Decimal32", .data_type=SQL_DECIMAL, .column_size=1 + 2 + 38,
+            .unsigned_attribute=Signed, .num_prec_radix=10, .octet_length=32},
+        {.type_id=Decimal64, .type_name="Decimal64", .data_type=SQL_DECIMAL, .column_size=1 + 2 + 38,
+            .unsigned_attribute=Signed, .num_prec_radix=10,.octet_length=64},
+        {.type_id=Decimal128, .type_name="Decimal128", .data_type=SQL_DECIMAL, .column_size=1 + 2 + 38,
+            .unsigned_attribute=Signed, .octet_length=128},
+        {.type_id=String, .type_name="String", .data_type=SQL_VARCHAR, .column_size=string_max_size,
+            .literal_wrapper="'", .octet_length=string_max_size},
+        {.type_id=FixedString, .type_name="FixedString", .data_type=SQL_VARCHAR, .column_size=string_max_size,
+            .literal_wrapper="'", .create_params="length", .octet_length=string_max_size},
+        {.type_id=Date, .type_name="Date", .data_type=SQL_TYPE_DATE, .column_size=10,
+            .sql_data_type=SQL_DATE, .sql_datetime_sub=SQL_CODE_DATE, .octet_length=6},
+        {.type_id=DateTime64, .type_name="DateTime64", .data_type=SQL_TYPE_TIMESTAMP, .column_size=29,
+             .create_params="scale", .minimum_scale=0, .maximum_scale=9,
+             .sql_data_type=SQL_DATE, .sql_datetime_sub=SQL_CODE_TIMESTAMP, .octet_length=16},
+        {.type_id=DateTime, .type_name="DateTime", .data_type=SQL_TYPE_TIMESTAMP, .column_size=19,
+            .sql_data_type=SQL_DATE, .sql_datetime_sub=SQL_CODE_TIMESTAMP, .octet_length=16},
+        {.type_id=UUID, .type_name="UUID", .data_type=SQL_GUID, .column_size=8 + 1 + 4 + 1 + 4 + 1 + 4 + 12,
+            .octet_length=sizeof(SQLGUID)},
+        {.type_id=Array, .type_name="Array", .data_type=SQL_VARCHAR, .column_size=string_max_size,
+            .octet_length=string_max_size},
+    }};
+
+    // To avoid repetition in the table above,
+    // if .sql_data_type is not set use value from .data_type
+    for (auto& type_info : types)
+        if (type_info.sql_data_type == SQL_TYPE_NULL)
+            type_info.sql_data_type = type_info.data_type;
+
+    // The array indices must match type_id, ensuring a direct mapping from DataSourceTypeId
+    // to its corresponding TypeInfo instance. These assertions enforce correct element
+    // ordering.
+    if (std::any_of(types.cbegin(), types.cend(), [index = 0UL](auto& type) mutable {
+        return index++ != DataSourceTypeIdIndex(type.type_id);
+    })) {
+        // TODO(slabko): Make `Types` constexpr once we upgrade to a libc++ version supporting
+        // constexpr std::string, so this check can be performed at compile time.
+        // At the time of writing, we use version 15, while version 19 already supports
+        // constexpr std::string.
+        // Note, while this is not the best to check in runtime,
+        // none of unit or integration pass if the array is not sorted correctly.
+        throw std::runtime_error("TypeInfoCatalog::Types are not sorted");
+    };
+
+    return types;
+}();
+
 };
+
+const TypeInfo * typeInfoIfExistsFor(const std::string & type);
+const TypeInfo & typeInfoFor(const std::string & type);
 
 DataSourceTypeId convertUnparametrizedTypeNameToTypeId(const std::string & type_name);
 std::string convertTypeIdToUnparametrizedCanonicalTypeName(DataSourceTypeId type_id);
@@ -2350,5 +2498,18 @@ inline auto writeDataFrom(const T & src, BindingInfo & dest, ConversionContext &
 
         default:
             throw std::runtime_error("Unable to write data into bound buffer: destination type representation not supported");
+    }
+}
+
+inline std::string toSqlQueryValue(UnsignedAttribute attr)
+{
+    using enum UnsignedAttribute;
+    switch (attr) {
+        case NotApplicable:
+            return std::string{"NULL"};
+        case Unsigned:
+            return toSqlQueryValue(SQL_TRUE);
+        case Signed:
+            return toSqlQueryValue(SQL_FALSE);
     }
 }
