@@ -36,6 +36,8 @@ Description = DSN (localhost) for ClickHouse ODBC Driver (ANSI)
 # DriverLog = yes
 # DriverLogFile = /tmp/chlickhouse-odbc-driver.log
 
+# AutoSessionId =  off
+
 [ClickHouse DSN (Unicode)]
 Driver      = ClickHouse ODBC Driver (Unicode)
 Description = DSN (localhost) for ClickHouse ODBC Driver (Unicode)
