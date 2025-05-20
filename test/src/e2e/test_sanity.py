@@ -3,6 +3,8 @@ from decimal import Decimal
 
 import pytest
 
+import pyodbc
+
 from util import pyodbc_connection, create_table
 
 TABLE_NAME = "test_sanity_simple_data_types"
@@ -97,3 +99,11 @@ class TestSanity:
                             [2, "test", datetime.date(2019, 5, 25)])
         assert len(result) == 1
         assert list(result[0]) == PYODBC_ROW2
+
+    def test_dbms_version(self, conn):
+        param_version = conn.connection.getinfo(pyodbc.SQL_DBMS_VER)
+
+        result = conn.query("SELECT version()")
+        query_version, = list(result[0])
+
+        assert param_version == query_version

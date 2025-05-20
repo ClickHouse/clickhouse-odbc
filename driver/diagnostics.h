@@ -41,3 +41,9 @@ public:
 private:
     std::vector<DiagnosticsRecord> records;
 };
+
+// This function is useful when we want to propagate the diagnostics from
+// an ephemeral handle, for example a statement handle created for just one
+// query to another container, for example a connection handle or an environment
+// handle.
+void copyDiagnosticsRecords(DiagnosticsContainer & from, DiagnosticsContainer & to);

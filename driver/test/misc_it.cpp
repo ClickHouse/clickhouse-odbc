@@ -10,6 +10,39 @@ class MiscellaneousTest
 {
 };
 
+TEST_F(MiscellaneousTest, GetDatabaseVersion) {
+    SQLRETURN res = SQL_SUCCESS;
+    std::basic_string<SQLTCHAR> param_version(256, '\0');
+    SQLSMALLINT param_version_len = 0;
+    ODBC_CALL_ON_DBC_THROW(hdbc, SQLGetInfo(
+        hdbc,
+        SQL_DBMS_VER,
+        param_version.data(),
+        param_version.size(),
+        &param_version_len));
+    ASSERT_GE(param_version_len, 0);
+    param_version.resize(param_version_len);
+
+    // Get version directly by calling `select version()`
+    auto query = fromUTF8<SQLTCHAR>("select version()");
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query.data(), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLFetch(hstmt));
+    std::basic_string<SQLTCHAR> query_version(256, '\0');
+    SQLLEN query_version_len = 0;
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(
+        hstmt,
+        1,
+        getCTypeFor<SQLTCHAR*>(),
+        query_version.data(),
+        query_version.size(),
+        &query_version_len
+    ));
+    ASSERT_GE(query_version_len, 0);
+    query_version.resize(query_version_len);
+
+    ASSERT_EQ(param_version, query_version);
+}
+
 TEST_F(MiscellaneousTest, RowArraySizeAttribute) {
     SQLRETURN rc = SQL_SUCCESS;
     SQLULEN size = 0;
