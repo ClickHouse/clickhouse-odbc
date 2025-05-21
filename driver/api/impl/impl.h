@@ -23,7 +23,7 @@ namespace impl {
         SQLHDBC connection_handle,
         SQLHDESC * out_descriptor_handle
     ) noexcept;
-    
+
     SQLRETURN freeHandle(
         SQLHANDLE handle
     ) noexcept;
@@ -203,5 +203,12 @@ namespace impl {
         SQLSMALLINT   FetchOrientation,
         SQLLEN        FetchOffset
     ) noexcept;
+
+    SQLRETURN getServerVersion(
+         SQLHDBC         conn,
+         SQLPOINTER      buffer_ptr,
+         SQLSMALLINT     buffer_len,
+         SQLSMALLINT *   string_length_ptr
+    );
 
 } // namespace impl

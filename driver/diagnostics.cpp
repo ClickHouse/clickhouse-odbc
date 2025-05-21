@@ -86,3 +86,13 @@ void DiagnosticsContainer::resetDiag() {
     header.setAttr(SQL_DIAG_NUMBER, 0);
     header.setAttr(SQL_DIAG_RETURNCODE, SQL_SUCCESS);
 }
+
+void copyDiagnosticsRecords(DiagnosticsContainer & from, DiagnosticsContainer & to)
+{
+    auto count = from.getDiagStatusCount();
+    for (size_t i = 1; i <= count; ++i)
+    {
+        auto record = from.getDiagStatus(i);
+        to.insertDiagStatus(std::move(record));
+    }
+}

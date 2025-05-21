@@ -1028,7 +1028,7 @@ SQLRETURN GetDescRec(
     auto func = [&] (Descriptor & descriptor) -> SQLRETURN {
         if (RecNumber < 0)
             throw SqlException("Invalid descriptor index", "07009");
-        
+
         if (RecNumber > descriptor.getRecordCount())
             return SQL_NO_DATA;
 
@@ -1495,6 +1495,69 @@ SQLRETURN FetchScroll(
     };
 
     return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, StatementHandle, func);
+}
+
+SQLRETURN getServerVersion(
+     SQLHDBC         hdbc,
+     SQLPOINTER      buffer_ptr,
+     SQLSMALLINT     buffer_len,
+     SQLSMALLINT *   string_length_ptr
+)
+{
+    SQLRETURN res = SQL_SUCCESS;
+    Connection * dbc = static_cast<Connection*>(hdbc);
+
+    // Because the server version is requested from the connection handle,
+    // create a temporary statement handle here, which is closed before the
+    // function completes.
+    Statement * stmt = nullptr;
+    res = impl::allocStmt((SQLHDBC)dbc, (SQLHSTMT *)&stmt);
+    if (!SQL_SUCCEEDED(res))
+        return res; // stmt is null, no need to free it
+
+    res = CALL_WITH_TYPED_HANDLE( SQL_HANDLE_STMT, stmt, [](Statement & stmt) {
+        const auto query = toUTF8("select version()");
+        stmt.executeQuery(query);
+        return SQL_SUCCESS;
+    });
+
+    if (SQL_SUCCEEDED(res))
+    {
+        res = impl::Fetch(stmt);
+
+        if (SQL_SUCCEEDED(res))
+        {
+            SQLLEN indicator = 0;
+
+            //  Binds `buffer_ptr` and other parameters directly to the result of the query
+            res = impl::GetData(
+                stmt,
+                1,
+                getCTypeFor<SQLTCHAR*>(),
+                buffer_ptr,
+                buffer_len,
+                &indicator
+            );
+
+            if (string_length_ptr)
+                *string_length_ptr = indicator;
+
+            if (indicator < 0)
+            {
+                // The server returned NULL or something very unexpected happened
+                stmt->fillDiag(SQL_ERROR, "HY000", "Unexpected server version", 1);
+                res = SQL_ERROR;
+            }
+        }
+    }
+
+    // All diagnostic records from the statement handle must be copied to
+    // the connection handle so that clients can still access the error and
+    // the warning messages.
+    copyDiagnosticsRecords(*stmt, *dbc);
+    dbc->setReturnCode(res);
+    impl::freeHandle(stmt);
+    return res;
 }
 
 } // namespace impl
