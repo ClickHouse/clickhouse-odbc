@@ -555,9 +555,11 @@ void Connection::verifyConnection() {
 
 std::string Connection::buildCredentialsString() const {
     std::ostringstream user_password_base64;
-    Poco::Base64Encoder base64_encoder(user_password_base64, Poco::BASE64_URL_ENCODING);
+    Poco::Base64Encoder base64_encoder(user_password_base64);
+    // Prevent the encoder from inserting a line break every 76 characters
+    base64_encoder.rdbuf()->setLineLength(0);
     base64_encoder << username << ":" << password;
-    base64_encoder.close();
+    base64_encoder.close(); // close to flush before reading the value
     return user_password_base64.str();
 }
 
