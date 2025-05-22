@@ -81,6 +81,7 @@ function (declare_odbc_test_targets libname UNICODE)
         statement_parameters_it.cpp
         performance_it.cpp
         type_info_it.cpp
+        authentication_it.cpp
     )
 
     target_link_libraries (${libname}-client-it
