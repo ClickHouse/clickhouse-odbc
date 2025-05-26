@@ -1,5 +1,6 @@
 import logging
 import os
+import base64
 from contextlib import contextmanager
 
 import pyodbc
@@ -102,12 +103,23 @@ def pyodbc_connection(encoding="utf-8", logs=None):
 
 @contextmanager
 def create_table(connection: PyODBCConnection, table_name: str, schema: str):
-    ddl = f"CREATE OR REPLACE TABLE {table_name} ({schema}) ENGINE = Memory"
-    connection.query(ddl, fetch=False)
-    yield
-    # No need to drop the table locally, might be useful for debugging
-    # connection.query(f"DROP TABLE IF EXISTS {table_name}", fetch=False)
+    try:
+        # We perform cleanup after executing the tests; however, the table might still
+        # exist due to a crash or cancellation of a previous test run.
+        # `CREATE OR REPLACE TABLE` would be ideal here, but it doesn't work on WSL or macOS—
+        # see https://github.com/ClickHouse/ClickHouse/issues/49339.
+        # Instead, we use `DROP TABLE IF EXISTS` followed by `CREATE TABLE`
+        # to simulate `CREATE OR REPLACE TABLE`.
+        connection.query(f"DROP TABLE IF EXISTS {table_name}", fetch=False)
+        ddl = f"CREATE TABLE {table_name} ({schema}) ENGINE = Memory"
+        connection.query(ddl, fetch=False)
+        yield
+    finally:
+        connection.query(f"DROP TABLE IF EXISTS {table_name}", fetch=False)
 
 
 def rows_as_values(rows: list[pyodbc.Row]) -> list:
     return list(map(lambda r: list(r)[0], rows))
+
+def to_base64(string):
+    return base64.b64encode(string.encode('utf-8')).decode('utf-8')
