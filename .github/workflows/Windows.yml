@@ -184,11 +184,9 @@ jobs:
       run: |
         ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '.*-ut.*'
 
-    - name: Test - Run Python e2e tests for the ANSI driver
+    - name: Prepare Pythons dependencies
       if: ${{ matrix.architecture == 'x64' }}
       working-directory: source/test
-      env:
-        DSN: "ClickHouse DSN ANSI"
       run: |
         Write-Host "Check python version and architecture"
         python --version
@@ -197,7 +195,20 @@ jobs:
         Write-Host "Prepare Python dependencies"
         python -m pip install -r requirements.txt
 
-        Write-Host "Run tests"
+    - name: Test - Run Python e2e tests for the ANSI driver
+      if: ${{ matrix.architecture == 'x64' }}
+      working-directory: source/test
+      env:
+        DSN: "ClickHouse DSN ANSI"
+      run: |
+        python -m pytest --log-level=DEBUG -v
+
+    - name: Test - Run Python e2e tests for the Unicode driver
+      if: ${{ matrix.architecture == 'x64' }}
+      working-directory: source/test
+      env:
+        DSN: "ClickHouse DSN Unicode"
+      run: |
         python -m pytest --log-level=DEBUG -v
 
     - name: Upload artifacts as release assets

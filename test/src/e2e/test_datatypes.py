@@ -5,7 +5,7 @@ import uuid
 
 import pytest
 
-from util import pyodbc_connection, create_table, rows_as_values
+from util import pyodbc_connection, create_table, rows_as_values, to_base64
 
 
 # FIXME: None is converted to an empty string (probably by PyODBC itself?)
@@ -326,7 +326,12 @@ class TestDataTypes:
                 utf8_string2,
                 binary_string
             ]
-            insert_values = ','.join(list(map(lambda x: f"('{x}')", values)))
+            insert_values = (
+                f"('hello'),"
+                f"(base64Decode('{to_base64(utf8_string1)}')),"
+                f"(base64Decode('{to_base64(utf8_string2)}')),"
+                f"(base64Decode('{to_base64(binary_string)}'))"
+            )
             conn.insert(table_name, insert_values)
 
             for value in values:
@@ -363,7 +368,7 @@ class TestDataTypes:
         with (pyodbc_connection() as conn,
               create_table(conn, table_name, "s FixedString(6)")):
             values = ["h¶\x00\x00\x00", "w¶¶\x00", "hellow"]  # ¶ = 2 bytes
-            conn.insert(table_name, "('h¶'), ('w¶¶'), ('hellow')")
+            conn.insert(table_name, f"(base64Decode('{to_base64('h¶')}')), (base64Decode('{to_base64('w¶¶')}')), ('hellow')")
 
             for value in values:
                 rows = conn.query(f"SELECT * FROM {table_name} WHERE s = ?", [value])
@@ -467,9 +472,9 @@ class TestDataTypes:
     def test_enum8(self):
         table_name = "odbc_test_data_types_enum8"
         with (pyodbc_connection() as conn,
-              create_table(conn, table_name, "e Enum8('hello' = -128, '¶' = 42, 'world' = 127)")):
-            values = ["hello", "¶", "world"]
-            conn.insert(table_name, "('hello'), ('¶'), ('world')")
+              create_table(conn, table_name, "e Enum8('hello' = -128, '7' = 42, 'world' = 127)")):
+            values = ["hello", "7", "world"]
+            conn.insert(table_name, "('hello'), ('7'), ('world')")
 
             for value in values:
                 rows = conn.query(f"SELECT * FROM {table_name} WHERE e = ?", [value])
@@ -485,9 +490,9 @@ class TestDataTypes:
     def test_enum16(self):
         table_name = "odbc_test_data_types_enum16"
         with (pyodbc_connection() as conn,
-              create_table(conn, table_name, "e Enum16('hello' = -32768, '¶' = 42, 'world' = 32767)")):
-            values = ["hello", "¶", "world"]
-            conn.insert(table_name, "('hello'), ('¶'), ('world')")
+              create_table(conn, table_name, "e Enum16('hello' = -32768, '7' = 42, 'world' = 32767)")):
+            values = ["hello", "7", "world"]
+            conn.insert(table_name, "('hello'), ('7'), ('world')")
 
             for value in values:
                 rows = conn.query(f"SELECT * FROM {table_name} WHERE e = ?", [value])
