@@ -16,6 +16,9 @@ concurrency:
   group: linux-${{ github.head_ref }}
   cancel-in-progress: true
 
+env:
+  LLVM_PROFILE_FILE: "profile_%p_%m.profraw"
+
 defaults:
   run:
     shell: bash
