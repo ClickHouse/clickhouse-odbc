@@ -21,6 +21,11 @@ function (declare_odbc_test_targets libname UNICODE)
         statement_parameter_binding_ut.cpp
     )
 
+    if (CH_ODBC_ENABLE_CODE_COVERAGE)
+        target_compile_options(${libname}-ut PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+        target_link_options(${libname}-ut PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+    endif()
+
     target_link_libraries (${libname}-ut
         PRIVATE ${libname}-impl
         PRIVATE gtest
@@ -83,6 +88,11 @@ function (declare_odbc_test_targets libname UNICODE)
         type_info_it.cpp
         authentication_it.cpp
     )
+
+    if (CH_ODBC_ENABLE_CODE_COVERAGE)
+        target_compile_options(${libname}-client-it PRIVATE -fprofile-instr-generate -fcoverage-mapping -fno-use-cxa-atexit)
+        target_link_options(${libname}-client-it PRIVATE -fprofile-instr-generate -fcoverage-mapping -fno-use-cxa-atexit)
+    endif()
 
     target_link_libraries (${libname}-client-it
         PRIVATE Poco::Foundation

@@ -121,6 +121,11 @@ add_library (${libname}-impl STATIC
     statement.h
 )
 
+if (CH_ODBC_ENABLE_CODE_COVERAGE)
+    target_compile_options(${libname}-impl PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+    target_link_options(${libname}-impl PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+endif()
+
 set (WIN_SOURCES)
 if (WIN32)
     set (WIN_SOURCES
@@ -204,6 +209,11 @@ add_library (${libname} SHARED
     api/sql_columns_resultset_mutator.cpp
     ${WIN_SOURCES}
 )
+
+if (CH_ODBC_ENABLE_CODE_COVERAGE)
+    target_compile_options(${libname} PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+    target_link_options(${libname} PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+endif()
 
 target_link_libraries (${libname}
     PRIVATE ${libname}-impl
