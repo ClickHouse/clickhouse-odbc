@@ -1068,9 +1068,21 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetTypeInfo)(
         std::stringstream query;
         query << "SELECT * FROM (";
 
-        bool first = true;
+        // Power BI requires a UTF-16 compatible type to pass string-based parameters.
+        // However, we do not use UTF-16 internally, and therefore do not declare such a type
+        // in the TypeInfoCatalog. Without it, Power BI cannot bind its input parameters,
+        // for example, in the WHERE clause.
+        // To solve this problem, we suggest that Power BI use the same `String` type for both
+        // UTF-16 and UTF-8. This way, Power BI will attempt to bind its input parameters as
+        // `SQL_WVARCHAR`, and the driver will convert them to UTF-8 as needed.
+        // By declaring this type only here, we also avoid cluttering the TypeInfoCatalog.
+        std::vector<TypeInfo> types(std::cbegin(TypeInfoCatalog::Types), std::cend(TypeInfoCatalog::Types));
+        auto string_u16 = TypeInfoCatalog::Types[DataSourceTypeIdIndex(DataSourceTypeId::String)];
+        string_u16.data_type = SQL_WVARCHAR;
+        types.push_back(string_u16);
 
-        for (auto info : TypeInfoCatalog::Types) {
+        bool first = true;
+        for (const auto & info : types) {
             if (type != SQL_ALL_TYPES && type != info.data_type)
                 continue;
 
