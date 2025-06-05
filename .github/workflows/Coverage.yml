@@ -1,4 +1,4 @@
-name: Code Coverage - Linux
+name: Code Coverage - json
 
 on:
   workflow_dispatch:
@@ -169,6 +169,17 @@ jobs:
             -ignore-filename-regex='.*test[/\\].*' \
             -output-dir=./coverage-report
 
+    - name: Convert report to JSON
+      working-directory: source
+      run: |
+        echo $(git describe --no-match --always --abbrev=0 --dirty --broken)
+        echo $(git show --no-patch --format=%ct HEAD)
+        python metrics/coverage.py \
+          ${{ github.workspace }}/build/coverage-report.txt \
+          $(git describe --no-match --always --abbrev=0 --dirty --broken) \
+          $(git show --no-patch --format=%ct HEAD) \
+          > ${{ github.workspace }}/build/coverage-report.json
+
     - name: Debug Coverage Data
       run: |
           ls -lh ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
@@ -177,6 +188,7 @@ jobs:
           ls -lh ${{ github.workspace }}/build/coverage-report
           tree ${{ github.workspace }}/build/coverage-report
           cat ${{ github.workspace }}/build/coverage-report.txt
+          cat ${{ github.workspace }}/build/coverage-report.json
 
     - name: Upload the artifacts
       uses: actions/upload-artifact@v4
@@ -186,5 +198,11 @@ jobs:
               ${{ github.workspace }}/build/driver/libclickhouseodbcw.so
               ${{ github.workspace }}/build/coverage.profdata
               ${{ github.workspace }}/build/coverage-report.txt
+              ${{ github.workspace }}/build/coverage-report.json
               ${{ github.workspace }}/build/coverage-report
 
+    - name: Upload the report to the database
+      if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+      run: |
+          curl "${{ secrets.BUILD_METRICS_DB_URL }}?query=INSERT%20INTO%20odbc.code_coverage%20FORMAT%20JSONEachRow" \
+            --data-binary @${{ github.workspace }}/build/coverage-report.json
