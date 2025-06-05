@@ -170,8 +170,23 @@ TEST_F(TypeInfoTest, SQLGetTypeInfoMapping)
 // Check that the SQLGetTypeInfo returns a dataset with the data as expected
 TEST_F(TypeInfoTest, SQLGetTypeInfoResultSet)
 {
+    // The same type can appear more than once in the result if it declares different SQL types. For example `String`
+    // represent both `SQL_VARCHAR` and `SQL_WVARCHAR`. Therefore we need a special type to uniquely represent each
+    // entry in `SQLGetTypeInfo`.
+    struct TypeInfoEntryKey{
+        std::string ch_type;
+        SQLSMALLINT sql_type;
+
+        // This operator is needed to use this struct as a key in `std::map`
+        bool operator<(const TypeInfoEntryKey & other) const
+        {
+            if (ch_type == other.ch_type)
+                return sql_type < other.sql_type;
+            return ch_type < other.ch_type;
+        }
+    };
+
     struct TypeInfoEntry{
-        SQLSMALLINT data_type;
         std::optional<SQLINTEGER> column_size;
         std::optional<std::string> literal_prefix;
         std::optional<std::string> literal_suffix;
@@ -192,29 +207,30 @@ TEST_F(TypeInfoTest, SQLGetTypeInfoResultSet)
     const std::string scale = "scale";
 
     // clang-format off
-    std::map<std::string, TypeInfoEntry> expected {
+    std::map<TypeInfoEntryKey, TypeInfoEntry> expected {
 
-    //                   ODBC                          pre/suffix create  unsi-  min/max                 date
-    //   type name       data type           size      params     params  gned   scale    sql data type  sub  radix
-        {"Nothing",     {SQL_TYPE_NULL,      1,        na,  na,   na,     na,    na, na,  SQL_TYPE_NULL, na,  na,  }},
-        {"Int8",        {SQL_TINYINT,        4,        na,  na,   na,     false, na, na,  SQL_TINYINT,   na,  10,  }},
-        {"UInt8",       {SQL_TINYINT,        3,        na,  na,   na,     true,  na, na,  SQL_TINYINT,   na,  10,  }},
-        {"Int16",       {SQL_SMALLINT,       6,        na,  na,   na,     false, na, na,  SQL_SMALLINT,  na,  10,  }},
-        {"UInt16",      {SQL_SMALLINT,       5,        na,  na,   na,     true,  na, na,  SQL_SMALLINT,  na,  10,  }},
-        {"Int32",       {SQL_INTEGER,        11,       na,  na,   na,     false, na, na,  SQL_INTEGER,   na,  10,  }},
-        {"UInt32",      {SQL_BIGINT,         10,       na,  na,   na,     true,  na, na,  SQL_BIGINT,    na,  10,  }},
-        {"Int64",       {SQL_BIGINT,         20,       na,  na,   na,     false, na, na,  SQL_BIGINT,    na,  10,  }},
-        {"UInt64",      {SQL_BIGINT,         20,       na,  na,   na,     true,  na, na,  SQL_BIGINT,    na,  10,  }},
-        {"Float32",     {SQL_REAL,           7,        na,  na,   na,     false, na, na,  SQL_REAL,      na,  2,   }},
-        {"Float64",     {SQL_DOUBLE,         15,       na,  na,   na,     false, na, na,  SQL_DOUBLE,    na,  2,   }},
-        {"Decimal",     {SQL_DECIMAL,        41,       na,  na,   pre_sc, false, 1,  76,  SQL_DECIMAL,   na,  10,  }},
-        {"String",      {SQL_VARCHAR,        max_size, "'", "'",  na,     na,    na, na,  SQL_VARCHAR,   na,  na,  }},
-        {"FixedString", {SQL_VARCHAR,        max_size, "'", "'",  length, na,    na, na,  SQL_VARCHAR,   na,  na,  }},
-        {"Date",        {SQL_TYPE_DATE,      10,       na,  na,   na,     na,    na, na,  SQL_DATE,      1,   na,  }},
-        {"DateTime64",  {SQL_TYPE_TIMESTAMP, 29,       na,  na,   scale,  na,    0,  9,   SQL_DATE,      3,   na,  }},
-        {"DateTime",    {SQL_TYPE_TIMESTAMP, 19,       na,  na,   na,     na,    na, na,  SQL_DATE,      3,   na,  }},
-        {"UUID",        {SQL_GUID,           35,       na,  na,   na,     na,    na, na,  SQL_GUID,      na,  na,  }},
-        {"Array",       {SQL_VARCHAR,        max_size, na,  na,   na,     na,    na, na,  SQL_VARCHAR,   na,  na,  }},
+    //                  ODBC                            pre/suffix create  unsi-  min/max                 date
+    //   type name      data type             size      params     params  gned   scale    sql data type  sub  radix
+        {{"Nothing",    SQL_TYPE_NULL     }, {1,        na,  na,   na,     na,    na, na,  SQL_TYPE_NULL, na,  na,  }},
+        {{"Int8",       SQL_TINYINT       }, {4,        na,  na,   na,     false, na, na,  SQL_TINYINT,   na,  10,  }},
+        {{"UInt8",      SQL_TINYINT       }, {3,        na,  na,   na,     true,  na, na,  SQL_TINYINT,   na,  10,  }},
+        {{"Int16",      SQL_SMALLINT      }, {6,        na,  na,   na,     false, na, na,  SQL_SMALLINT,  na,  10,  }},
+        {{"UInt16",     SQL_SMALLINT      }, {5,        na,  na,   na,     true,  na, na,  SQL_SMALLINT,  na,  10,  }},
+        {{"Int32",      SQL_INTEGER       }, {11,       na,  na,   na,     false, na, na,  SQL_INTEGER,   na,  10,  }},
+        {{"UInt32",     SQL_BIGINT        }, {10,       na,  na,   na,     true,  na, na,  SQL_BIGINT,    na,  10,  }},
+        {{"Int64",      SQL_BIGINT        }, {20,       na,  na,   na,     false, na, na,  SQL_BIGINT,    na,  10,  }},
+        {{"UInt64",     SQL_BIGINT        }, {20,       na,  na,   na,     true,  na, na,  SQL_BIGINT,    na,  10,  }},
+        {{"Float32",    SQL_REAL          }, {7,        na,  na,   na,     false, na, na,  SQL_REAL,      na,  2,   }},
+        {{"Float64",    SQL_DOUBLE        }, {15,       na,  na,   na,     false, na, na,  SQL_DOUBLE,    na,  2,   }},
+        {{"Decimal",    SQL_DECIMAL       }, {41,       na,  na,   pre_sc, false, 1,  76,  SQL_DECIMAL,   na,  10,  }},
+        {{"String",     SQL_VARCHAR       }, {max_size, "'", "'",  na,     na,    na, na,  SQL_VARCHAR,   na,  na,  }},
+        {{"String",     SQL_WVARCHAR      }, {max_size, "'", "'",  na,     na,    na, na,  SQL_VARCHAR,   na,  na,  }},
+        {{"FixedString",SQL_VARCHAR       }, {max_size, "'", "'",  length, na,    na, na,  SQL_VARCHAR,   na,  na,  }},
+        {{"Date",       SQL_TYPE_DATE     }, {10,       na,  na,   na,     na,    na, na,  SQL_DATE,      1,   na,  }},
+        {{"DateTime64", SQL_TYPE_TIMESTAMP}, {29,       na,  na,   scale,  na,    0,  9,   SQL_DATE,      3,   na,  }},
+        {{"DateTime",   SQL_TYPE_TIMESTAMP}, {19,       na,  na,   na,     na,    na, na,  SQL_DATE,      3,   na,  }},
+        {{"UUID",       SQL_GUID          }, {35,       na,  na,   na,     na,    na, na,  SQL_GUID,      na,  na,  }},
+        {{"Array",      SQL_VARCHAR       }, {max_size, na,  na,   na,     na,    na, na,  SQL_VARCHAR,   na,  na,  }},
     };
     // clang-format on
 
@@ -222,34 +238,36 @@ TEST_F(TypeInfoTest, SQLGetTypeInfoResultSet)
 
     ResultSetReader reader{hstmt};
 
-    std::set<std::string> received_types;
+    std::set<TypeInfoEntryKey> received_types;
     while (reader.fetch())
     {
-        std::string type = reader.getData<std::string>("TYPE_NAME").value();
-        SCOPED_TRACE(testing::Message() << "Failed for type " << type);
-        EXPECT_EQ(reader.getData<SQLSMALLINT>("DATA_TYPE"), expected.at(type).data_type);
-        EXPECT_EQ(reader.getData<SQLINTEGER>("COLUMN_SIZE"), expected.at(type).column_size);
-        EXPECT_EQ(reader.getData<std::string>("LITERAL_PREFIX"), expected.at(type).literal_prefix);
-        EXPECT_EQ(reader.getData<std::string>("LITERAL_SUFFIX"), expected.at(type).literal_suffix);
-        EXPECT_EQ(reader.getData<std::string>("CREATE_PARAMS"), expected.at(type).create_params);
+        auto ch_type = reader.getData<std::string>("TYPE_NAME").value();
+        auto sql_type = reader.getData<SQLSMALLINT>("DATA_TYPE").value();
+        SCOPED_TRACE(testing::Message() << "Failed for type " << ch_type);
+
+        EXPECT_EQ(reader.getData<SQLINTEGER>("COLUMN_SIZE"), expected.at({ch_type, sql_type}).column_size);
+        EXPECT_EQ(reader.getData<std::string>("LITERAL_PREFIX"), expected.at({ch_type, sql_type}).literal_prefix);
+        EXPECT_EQ(reader.getData<std::string>("LITERAL_SUFFIX"), expected.at({ch_type, sql_type}).literal_suffix);
+        EXPECT_EQ(reader.getData<std::string>("CREATE_PARAMS"), expected.at({ch_type, sql_type}).create_params);
         EXPECT_EQ(reader.getData<SQLSMALLINT>("NULLABLE"), SQL_NULLABLE);
         EXPECT_EQ(reader.getData<SQLSMALLINT>("CASE_SENSITIVE"), SQL_TRUE);
         EXPECT_EQ(reader.getData<SQLSMALLINT>("SEARCHABLE"), SQL_SEARCHABLE);
-        EXPECT_EQ(reader.getData<SQLINTEGER>("UNSIGNED_ATTRIBUTE"), expected.at(type).unsigned_attribute);
+        EXPECT_EQ(reader.getData<SQLINTEGER>("UNSIGNED_ATTRIBUTE"),
+                  expected.at({ch_type, sql_type}).unsigned_attribute);
         EXPECT_EQ(reader.getData<SQLINTEGER>("FIXED_PREC_SCALE"), SQL_FALSE);
         EXPECT_EQ(reader.getData<SQLINTEGER>("AUTO_UNIQUE_VALUE"), std::nullopt);
         EXPECT_EQ(reader.getData<std::string>("LOCAL_TYPE_NAME"), std::nullopt);
-        EXPECT_EQ(reader.getData<SQLSMALLINT>("MINIMUM_SCALE"), expected.at(type).minimum_scale);
-        EXPECT_EQ(reader.getData<SQLSMALLINT>("MAXIMUM_SCALE"), expected.at(type).maximum_scale);
-        EXPECT_EQ(reader.getData<SQLSMALLINT>("SQL_DATA_TYPE"), expected.at(type).sql_data_type);
-        EXPECT_EQ(reader.getData<SQLSMALLINT>("SQL_DATETIME_SUB"), expected.at(type).sql_datetime_sub);
-        EXPECT_EQ(reader.getData<SQLINTEGER>("NUM_PREC_RADIX"), expected.at(type).num_prec_radix);
+        EXPECT_EQ(reader.getData<SQLSMALLINT>("MINIMUM_SCALE"), expected.at({ch_type, sql_type}).minimum_scale);
+        EXPECT_EQ(reader.getData<SQLSMALLINT>("MAXIMUM_SCALE"), expected.at({ch_type, sql_type}).maximum_scale);
+        EXPECT_EQ(reader.getData<SQLSMALLINT>("SQL_DATA_TYPE"), expected.at({ch_type, sql_type}).sql_data_type);
+        EXPECT_EQ(reader.getData<SQLSMALLINT>("SQL_DATETIME_SUB"), expected.at({ch_type, sql_type}).sql_datetime_sub);
+        EXPECT_EQ(reader.getData<SQLINTEGER>("NUM_PREC_RADIX"), expected.at({ch_type, sql_type}).num_prec_radix);
         EXPECT_EQ(reader.getData<SQLINTEGER>("INTERVAL_PRECISION"), std::nullopt);
-        received_types.insert(type);
+        received_types.insert({ch_type, sql_type});
     }
 
     for (const auto& [type, info] : expected) {
-        EXPECT_TRUE(received_types.contains(type)) << type << " is not in SQLGetTypeInfo result set";
+        EXPECT_TRUE(received_types.contains(type)) << type.ch_type << " is not in SQLGetTypeInfo result set";
     }
 }
 
