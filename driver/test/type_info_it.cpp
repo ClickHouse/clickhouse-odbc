@@ -76,9 +76,9 @@ TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
     query_stream.seekp(-1, std::stringstream::cur) << " ";
     query_stream << "SETTINGS allow_suspicious_low_cardinality_types = 1";
 
-    auto query = fromUTF8<SQLTCHAR>(query_stream.str());
+    auto query = fromUTF8<PTChar>(query_stream.str());
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query.data(), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
 	SQLSMALLINT num_columns{};
@@ -87,12 +87,12 @@ TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
     SQLSMALLINT name_length = 0;
     SQLSMALLINT data_type = 0;
 
-    std::basic_string<SQLTCHAR> input_name(256, '\0');
+    std::basic_string<PTChar> input_name(256, '\0');
     for (SQLSMALLINT column = 1; column <= num_columns; ++column) {
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLDescribeCol(
             hstmt,
             column,
-            input_name.data(),
+            ptcharCast(input_name.data()),
             static_cast<SQLSMALLINT>(input_name.size()),
             &name_length,
             &data_type,
@@ -148,12 +148,12 @@ TEST_F(TypeInfoTest, SQLGetTypeInfoMapping)
     SQLSMALLINT data_type = 0;
     SQLSMALLINT nullable = 0;
 
-    std::basic_string<SQLTCHAR> input_name(256, '\0');
+    std::basic_string<PTChar> input_name(256, '\0');
     for (SQLSMALLINT column = 1; column <= num_columns; ++column) {
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLDescribeCol(
             hstmt,
             column,
-            input_name.data(),
+            ptcharCast(input_name.data()),
             static_cast<SQLSMALLINT>(input_name.size()),
             &name_length,
             &data_type,
@@ -305,14 +305,14 @@ TEST_F(TypeInfoTest, SQLColumnTypeMapping)
         {"IS_NULLABLE", SQL_VARCHAR, true},
     };
 
-    auto catalog_name = fromUTF8<SQLTCHAR>("system");
-    auto table_name = fromUTF8<SQLTCHAR>("databases");
+    auto catalog_name = fromUTF8<PTChar>("system");
+    auto table_name = fromUTF8<PTChar>("databases");
 
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLColumns(
         hstmt,
-        catalog_name.data(), catalog_name.size(),
+        ptcharCast(catalog_name.data()), catalog_name.size(),
         (SQLTCHAR*)"", 0,
-        table_name.data(), table_name.size(),
+        ptcharCast(table_name.data()), table_name.size(),
         nullptr, 0));
 
     SQLSMALLINT num_columns{};
@@ -322,12 +322,12 @@ TEST_F(TypeInfoTest, SQLColumnTypeMapping)
     SQLSMALLINT data_type = 0;
     SQLSMALLINT nullable = 0;
 
-    std::basic_string<SQLTCHAR> input_name(256, '\0');
+    std::basic_string<PTChar> input_name(256, '\0');
     for (SQLSMALLINT column = 1; column <= num_columns; ++column) {
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLDescribeCol(
             hstmt,
             column,
-            input_name.data(),
+            ptcharCast(input_name.data()),
             static_cast<SQLSMALLINT>(input_name.size()),
             &name_length,
             &data_type,
@@ -427,15 +427,15 @@ TEST_F(TypeInfoTest, AllTypesColumns)
     query_stream.seekp(-1, std::stringstream::cur) << " ";
     query_stream << ") engine MergeTree order by Int8";
 
-    auto query = fromUTF8<SQLTCHAR>(query_stream.str());
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query.data(), SQL_NTS));
-    auto database = fromUTF8<SQLTCHAR>(database_name);
-    auto table = fromUTF8<SQLTCHAR>(table_name);
+    auto query = fromUTF8<PTChar>(query_stream.str());
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
+    auto database = fromUTF8<PTChar>(database_name);
+    auto table = fromUTF8<PTChar>(table_name);
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLColumns(
         hstmt,
-        database.data(), database.size(),
+        ptcharCast(database.data()), database.size(),
         (SQLTCHAR*)"", 0,
-        table.data(), table.size(),
+        ptcharCast(table.data()), table.size(),
         nullptr, 0));
 
     ResultSetReader reader{hstmt};
@@ -488,20 +488,20 @@ TEST_F(TypeInfoTest, TimestampTypes)
         << "    dt64 DateTime64(9)) "
         << "ENGINE MergeTree "
         << "ORDER BY dt";
-    auto create_table_query = fromUTF8<SQLTCHAR>(create_table_query_stream.str());
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, create_table_query.data(), SQL_NTS));
+    auto create_table_query = fromUTF8<PTChar>(create_table_query_stream.str());
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(create_table_query.data()), SQL_NTS));
 
-    auto insert_query = fromUTF8<SQLTCHAR>("INSERT INTO " + database_name + "." + table_name + " VALUES (?, ?)");
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, insert_query.data(), SQL_NTS));
+    auto insert_query = fromUTF8<PTChar>("INSERT INTO " + database_name + "." + table_name + " VALUES (?, ?)");
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(insert_query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
         hstmt, 1, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 19, 0, &datetime, sizeof(datetime), nullptr));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
         hstmt, 2, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 29, 9, &datetime64, sizeof(datetime64), nullptr));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
-    auto select_query = fromUTF8<SQLTCHAR>(
+    auto select_query = fromUTF8<PTChar>(
         "SELECT * FROM " + database_name + "." + table_name + " WHERE dt = ? AND dt64 = ?");
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, select_query.data(), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(select_query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
         hstmt, 1, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 19, 0, &datetime, sizeof(datetime), nullptr));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(

@@ -42,10 +42,10 @@ protected:
         ODBC_CALL_ON_ENV_THROW(henv, SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc));
 
         if (!skip_connect_) {
-            const auto dsn = fromUTF8<SQLTCHAR>(TestEnvironment::getInstance().getDSN());
-            auto * dsn_wptr = const_cast<SQLTCHAR *>(dsn.c_str());
+            auto dsn = fromUTF8<PTChar>(TestEnvironment::getInstance().getDSN());
+            auto * dsn_wptr =dsn.data();
 
-            ODBC_CALL_ON_DBC_THROW(hdbc, SQLConnect(hdbc, dsn_wptr, SQL_NTS, NULL, 0, NULL, 0));
+            ODBC_CALL_ON_DBC_THROW(hdbc, SQLConnect(hdbc, ptcharCast(dsn_wptr), SQL_NTS, NULL, 0, NULL, 0));
             ODBC_CALL_ON_DBC_THROW(hdbc, SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt));
         }
     }

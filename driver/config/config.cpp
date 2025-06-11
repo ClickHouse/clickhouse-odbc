@@ -12,99 +12,6 @@
 #include <cctype>
 #include <cstring>
 
-void readDSNinfo(ConnInfo * ci, bool overwrite) {
-    std::basic_string<CharTypeLPCTSTR> dsn;
-    std::basic_string<CharTypeLPCTSTR> config_file;
-    std::basic_string<CharTypeLPCTSTR> name;
-    std::basic_string<CharTypeLPCTSTR> default_value;
-    std::basic_string<CharTypeLPCTSTR> value;
-
-    fromUTF8(ci->dsn, dsn);
-    fromUTF8(ODBC_INI, config_file);
-
-#define GET_CONFIG(NAME, INI_NAME, DEFAULT)              \
-    if (ci->NAME.empty() || overwrite) {                 \
-        fromUTF8(INI_NAME, name);                        \
-        fromUTF8(DEFAULT, default_value);                \
-        value.clear();                                   \
-        value.resize(MAX_DSN_VALUE_LEN);                 \
-        const auto read = SQLGetPrivateProfileString(    \
-            dsn.c_str(),                                 \
-            name.c_str(),                                \
-            default_value.c_str(),                       \
-            const_cast<CharTypeLPCTSTR *>(value.data()), \
-            value.size(),                                \
-            config_file.c_str()                          \
-        );                                               \
-        if (read < 0)                                    \
-            throw std::runtime_error("SQLGetPrivateProfileString failed to extract the value of " INI_NAME);        \
-        if (read >= value.size())                        \
-            throw std::runtime_error("SQLGetPrivateProfileString failed to extract the entire value of " INI_NAME); \
-        value.resize(read);                              \
-        ci->NAME = toUTF8(value);                        \
-    }
-
-    GET_CONFIG(desc,            INI_DESC,            INI_DESC_DEFAULT);
-    GET_CONFIG(url,             INI_URL,             INI_URL_DEFAULT);
-    GET_CONFIG(username,        INI_USERNAME,        INI_USERNAME_DEFAULT);
-    GET_CONFIG(password,        INI_PASSWORD,        INI_PASSWORD_DEFAULT);
-    GET_CONFIG(server,          INI_SERVER,          INI_SERVER_DEFAULT);
-    GET_CONFIG(port,            INI_PORT,            INI_PORT_DEFAULT);
-    GET_CONFIG(timeout,         INI_TIMEOUT,         INI_TIMEOUT_DEFAULT);
-    GET_CONFIG(verify_connection_early, INI_VERIFY_CONNECTION_EARLY, INI_VERIFY_CONNECTION_EARLY_DEFAULT);
-    GET_CONFIG(sslmode,         INI_SSLMODE,         INI_SSLMODE_DEFAULT);
-    GET_CONFIG(database,        INI_DATABASE,        INI_DATABASE_DEFAULT);
-    GET_CONFIG(huge_int_as_string, INI_HUGE_INT_AS_STRING, INI_HUGE_INT_AS_STRING_DEFAULT);
-    GET_CONFIG(stringmaxlength, INI_STRINGMAXLENGTH, INI_STRINGMAXLENGTH_DEFAULT);
-    GET_CONFIG(driverlog,       INI_DRIVERLOG,       INI_DRIVERLOG_DEFAULT);
-    GET_CONFIG(driverlogfile,   INI_DRIVERLOGFILE,   INI_DRIVERLOGFILE_DEFAULT);
-    GET_CONFIG(auto_session_id, INI_AUTO_SESSION_ID, INI_AUTO_SESSION_ID_DEFAULT);
-
-#undef GET_CONFIG
-}
-
-void writeDSNinfo(const ConnInfo * ci) {
-    std::basic_string<CharTypeLPCTSTR> dsn;
-    std::basic_string<CharTypeLPCTSTR> config_file;
-    std::basic_string<CharTypeLPCTSTR> name;
-    std::basic_string<CharTypeLPCTSTR> value;
-
-    fromUTF8(ci->dsn, dsn);
-    fromUTF8(ODBC_INI, config_file);
-
-#define WRITE_CONFIG(NAME, INI_NAME)                      \
-    {                                                     \
-        fromUTF8(INI_NAME, name);                         \
-        fromUTF8(ci->NAME, value);                        \
-        const auto result = SQLWritePrivateProfileString( \
-            dsn.c_str(),                                  \
-            name.c_str(),                                 \
-            value.c_str(),                                \
-            config_file.c_str()                           \
-        );                                                \
-        if (!result)                                      \
-            throw std::runtime_error("SQLWritePrivateProfileString failed to write value of " INI_NAME); \
-    }
-
-    WRITE_CONFIG(desc,            INI_DESC);
-    WRITE_CONFIG(url,             INI_URL);
-    WRITE_CONFIG(username,        INI_USERNAME);
-    WRITE_CONFIG(password,        INI_PASSWORD);
-    WRITE_CONFIG(server,          INI_SERVER);
-    WRITE_CONFIG(port,            INI_PORT);
-    WRITE_CONFIG(timeout,         INI_TIMEOUT);
-    WRITE_CONFIG(verify_connection_early, INI_VERIFY_CONNECTION_EARLY);
-    WRITE_CONFIG(sslmode,         INI_SSLMODE);
-    WRITE_CONFIG(database,        INI_DATABASE);
-    WRITE_CONFIG(huge_int_as_string, INI_HUGE_INT_AS_STRING);
-    WRITE_CONFIG(stringmaxlength, INI_STRINGMAXLENGTH);
-    WRITE_CONFIG(driverlog,       INI_DRIVERLOG);
-    WRITE_CONFIG(driverlogfile,   INI_DRIVERLOGFILE);
-    WRITE_CONFIG(auto_session_id, INI_AUTO_SESSION_ID);
-
-#undef WRITE_CONFIG
-}
-
 // Parses connection string in a form of "key1=value1;key2={value 2};..." into a key->value map.
 // Expects a syntax of connection string as defined in:
 //     https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqldriverconnect-function?view=sqlallproducts-allversions#comments
@@ -270,25 +177,25 @@ key_value_map_t readConnectionString(const std::string & connection_string) {
 key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
     key_value_map_t fields;
 
-    std::basic_string<CharTypeLPCTSTR> dsn;
-    std::basic_string<CharTypeLPCTSTR> config_file;
-    const std::basic_string<CharTypeLPCTSTR> default_value = fromUTF8<CharTypeLPCTSTR>("__default__"); // Assuming, __default__ will never be used as a value for any key.
-    std::list<std::basic_string<CharTypeLPCTSTR>> keys;
+    std::basic_string<PTChar> dsn;
+    std::basic_string<PTChar> config_file;
+    const auto default_value = fromUTF8<PTChar>("__default__"); // Assuming, __default__ will never be used as a value for any key.
+    std::list<std::basic_string<PTChar>> keys;
 
     fromUTF8(dsn_utf8, dsn);
     fromUTF8(ODBC_INI, config_file);
 
     // Read all key names under the specified DSN.
     {
-        std::basic_string<CharTypeLPCTSTR> keys_all(MAX_DSN_KEY_LEN * 1000, CharTypeLPCTSTR{});
+        std::basic_string<PTChar> keys_all(MAX_DSN_KEY_LEN * 1000, PTChar{});
 
         const auto read = SQLGetPrivateProfileString(
-            dsn.c_str(),
+            arrayPtrCast<const WinTChar>(dsn.c_str()),
             nullptr,
-            default_value.c_str(),
-            const_cast<CharTypeLPCTSTR *>(keys_all.data()),
+            arrayPtrCast<const WinTChar>(default_value.c_str()),
+            arrayPtrCast<WinTChar>(keys_all.data()),
             keys_all.size(),
-            config_file.c_str()
+            arrayPtrCast<const WinTChar>(config_file.c_str())
         );
 
         if (read < 0)
@@ -299,9 +206,9 @@ key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
 
         keys_all.resize(read);
 
-        std::basic_string<CharTypeLPCTSTR> key;
+        std::basic_string<PTChar> key;
         for (auto ch : keys_all) {
-            if (ch == CharTypeLPCTSTR{}) {
+            if (ch == WinTChar{}) {
                 if (!key.empty()) {
                     keys.push_back(key);
                     key.clear();
@@ -355,7 +262,7 @@ key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
                 [&] (const auto & key) { return (Poco::UTF8::icompare(known_key, toUTF8(key)) == 0); }
             ) == keys.end()
         ) {
-            keys.push_back(fromUTF8<CharTypeLPCTSTR>(known_key));
+            keys.push_back(fromUTF8<PTChar>(known_key));
         }
     }
 // END WORKAROUND
@@ -369,15 +276,15 @@ key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
             continue;
         }
 
-        std::basic_string<CharTypeLPCTSTR> value(MAX_DSN_VALUE_LEN, CharTypeLPCTSTR{});
+        std::basic_string<PTChar> value(MAX_DSN_VALUE_LEN, WinTChar{});
 
         const auto read = SQLGetPrivateProfileString(
-            dsn.c_str(),
-            key.c_str(),
-            default_value.c_str(),
-            const_cast<CharTypeLPCTSTR *>(value.data()),
+            arrayPtrCast<const WinTChar>(dsn.c_str()),
+            arrayPtrCast<const WinTChar>(key.c_str()),
+            arrayPtrCast<const WinTChar>(default_value.c_str()),
+            arrayPtrCast<WinTChar>(value.data()),
             value.size(),
-            config_file.c_str()
+            arrayPtrCast<const WinTChar>(config_file.c_str())
         );
 
         if (read < 0)

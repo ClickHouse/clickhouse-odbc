@@ -48,11 +48,6 @@ namespace value_manip {
         struct to_application {
             static inline void convert(const SourceType & src, DestinationType & dest); // Leave unimplemented for general case.
         };
-
-        template <typename DestinationType>
-        struct to_data_source {
-            static inline void convert(const SourceType & src, DestinationType & dest); // Leave unimplemented for general case.
-        };
     };
 
     template <typename SourceType>
@@ -63,7 +58,7 @@ namespace value_manip {
         };
     };
 
-    template <typename SourceCharType> // SQLCHAR or SQLWCHAR
+    template <typename SourceCharType> // char or char16_t
     struct from_application<SourceCharType *> {
         template <typename DestinationType>
         struct to_driver {
@@ -154,14 +149,9 @@ namespace value_manip {
         struct to_application {
             static inline void convert(const SourceType & src, DestinationType & dest); // Leave unimplemented for general case.
         };
-
-        template <typename DestinationType>
-        struct to_data_source {
-            static inline void convert(const SourceType & src, DestinationType & dest); // Leave unimplemented for general case.
-        };
     };
 
-    template <typename DestinationCharType> // SQLCHAR or SQLWCHAR
+    template <typename DestinationCharType> // char or char16_t
     struct from_driver<std::basic_string<DriverPivotNarrowCharType>>::to_application<DestinationCharType *> {
         using DestinationType = std::basic_string<DestinationCharType>;
 
@@ -336,6 +326,12 @@ inline auto toUTF8(const CharType * src, SQLLEN src_length, UnicodeConversionCon
     return dest;
 }
 
+template <>
+inline auto toUTF8<SQLTCHAR>(const SQLTCHAR * src, SQLLEN src_length, UnicodeConversionContext & context) {
+    static_assert(sizeof(SQLTCHAR) == sizeof(PTChar)); // Helps noticing stupid refactoring mistakes
+    return toUTF8(reinterpret_cast<const PTChar*>(src), src_length, context);
+}
+
 template <typename CharType>
 inline auto toUTF8(const CharType * src, UnicodeConversionContext & context) {
     return toUTF8(src, SQL_NTS, context);
@@ -432,3 +428,4 @@ template <typename CharType>
 inline void fromUTF8(const DriverPivotNarrowCharType * src, std::basic_string<CharType> & dest) {
     return fromUTF8<CharType>(src, SQL_NTS, dest);
 }
+

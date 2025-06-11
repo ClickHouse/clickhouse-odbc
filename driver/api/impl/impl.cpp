@@ -172,7 +172,7 @@ SQLRETURN SetConnectAttr(
             }
 
             case SQL_ATTR_CURRENT_CATALOG:
-                connection.database = toUTF8((SQLTCHAR *)value, value_length / sizeof(SQLTCHAR));
+                connection.database = toUTF8(static_cast<PTChar*>(value), value_length / sizeof(PTChar));
                 return SQL_SUCCESS;
 
             case SQL_ATTR_ANSI_APP:
@@ -193,7 +193,7 @@ SQLRETURN SetConnectAttr(
             }
 
             case CH_SQL_ATTR_DRIVERLOGFILE:
-                connection.getDriver().setAttr(CH_SQL_ATTR_DRIVERLOGFILE, toUTF8((SQLTCHAR *)value, value_length / sizeof(SQLTCHAR)));
+                connection.getDriver().setAttr(CH_SQL_ATTR_DRIVERLOGFILE, toUTF8(static_cast<PTChar*>(value), value_length / sizeof(PTChar)));
                 return SQL_SUCCESS;
 
 #if defined(SQL_APPLICATION_NAME)
@@ -251,7 +251,7 @@ SQLRETURN GetConnectAttr(
             CASE_NUM(SQL_ATTR_AUTOCOMMIT, SQLINTEGER, SQL_AUTOCOMMIT_ON);
 
             case SQL_ATTR_CURRENT_CATALOG:
-                return fillOutputString<SQLTCHAR>(
+                return fillOutputString<PTChar>(
                     connection.database,
                     out_value, out_value_max_length, out_value_length, true
                 );
@@ -266,7 +266,7 @@ SQLRETURN GetConnectAttr(
                 );
 
             case CH_SQL_ATTR_DRIVERLOGFILE:
-                return fillOutputString<SQLTCHAR>(
+                return fillOutputString<PTChar>(
                     connection.getDriver().getAttrAs<std::string>(CH_SQL_ATTR_DRIVERLOGFILE),
                     out_value, out_value_max_length, out_value_length, true
                 );
@@ -542,14 +542,14 @@ SQLRETURN GetDiagRec(
         if (out_sqlstate) {
             std::size_t size = 6;
             std::size_t written = 0;
-            fillOutputString<SQLTCHAR>(record.template getAttrAs<std::string>(SQL_DIAG_SQLSTATE), out_sqlstate, size, &written, false);
+            fillOutputString<PTChar>(record.template getAttrAs<std::string>(SQL_DIAG_SQLSTATE), out_sqlstate, size, &written, false);
         }
 
         if (out_native_error_code != nullptr) {
             *out_native_error_code = record.template getAttrAs<SQLINTEGER>(SQL_DIAG_NATIVE);
         }
 
-        return fillOutputString<SQLTCHAR>(record.template getAttrAs<std::string>(SQL_DIAG_MESSAGE_TEXT), out_message, out_message_max_size, out_message_size, false);
+        return fillOutputString<PTChar>(record.template getAttrAs<std::string>(SQL_DIAG_MESSAGE_TEXT), out_message, out_message_max_size, out_message_size, false);
     };
 
     return CALL_WITH_TYPED_HANDLE_SKIP_DIAG(handle_type, handle, func);
@@ -604,7 +604,7 @@ SQLRETURN GetDiagField(
 
 #define CASE_ATTR_STR(NAME) \
     case NAME: \
-        return fillOutputString<SQLTCHAR>(record.template getAttrAs<std::string>(NAME), out_message, out_message_max_size, out_message_size, true);
+        return fillOutputString<PTChar>(record.template getAttrAs<std::string>(NAME), out_message, out_message_max_size, out_message_size, true);
 
             CASE_ATTR_NUM(SQL_DIAG_CURSOR_ROW_COUNT, SQLLEN);
             CASE_ATTR_STR(SQL_DIAG_DYNAMIC_FUNCTION);
@@ -963,7 +963,7 @@ SQLRETURN GetDescField(
             case NAME: return fillOutputPOD<TYPE>(record.getAttrAs<TYPE>(NAME, DEFAULT), ValuePtr, StringLengthPtr);
 
 #define CASE_FIELD_STR(NAME) \
-            case NAME: return fillOutputString<SQLTCHAR>(record.getAttrAs<std::string>(NAME), ValuePtr, BufferLength, StringLengthPtr, true);
+            case NAME: return fillOutputString<PTChar>(record.getAttrAs<std::string>(NAME), ValuePtr, BufferLength, StringLengthPtr, true);
 
             CASE_FIELD_NUM     ( SQL_DESC_AUTO_UNIQUE_VALUE,           SQLINTEGER                              );
             CASE_FIELD_STR     ( SQL_DESC_BASE_COLUMN_NAME                                                     );
@@ -1055,7 +1055,7 @@ SQLRETURN GetDescRec(
         if (NullablePtr && record.hasAttrInteger(SQL_DESC_NULLABLE))
             *NullablePtr = record.getAttrAs<SQLSMALLINT>(SQL_DESC_NULLABLE);
 
-        return fillOutputString<SQLTCHAR>(record.getAttrAs<std::string>(SQL_DESC_NAME), Name, BufferLength, StringLengthPtr, false);
+        return fillOutputString<PTChar>(record.getAttrAs<std::string>(SQL_DESC_NAME), Name, BufferLength, StringLengthPtr, false);
     };
 
     return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DESC, DescriptorHandle, func);

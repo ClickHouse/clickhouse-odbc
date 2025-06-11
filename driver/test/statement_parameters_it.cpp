@@ -24,22 +24,21 @@ protected:
     }
 
     inline auto execute_with_decimal_as_string(const std::string & initial_str, const std::string & expected_str, bool case_sensitive = true) {
-        const auto query = fromUTF8<SQLTCHAR>("SELECT ?");
-        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+        auto query = fromUTF8<PTChar>("SELECT ?");
 
         SQLCHAR param[256] = {};
         SQLLEN param_ind = 0;
 
         char * param_ptr = reinterpret_cast<char *>(param);
         ASSERT_LT(initial_str.size(), lengthof(param));
-        std::strncpy(param_ptr, initial_str.c_str(), lengthof(param) - 1);
+        std::strncpy(param_ptr, initial_str.data(), lengthof(param) - 1);
 
         // We need this to autodetect actual precision and scale of the value in initial_str.
         SQL_NUMERIC_STRUCT param_typed;
         value_manip::to_null(param_typed);
         value_manip::from_value<std::string>::template to_value<SQL_NUMERIC_STRUCT>::convert(initial_str, param_typed);
 
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
         ODBC_CALL_ON_STMT_THROW(hstmt,
             SQLBindParameter(
                 hstmt,
@@ -106,9 +105,9 @@ protected:
         }
 
         if (case_sensitive)
-            ASSERT_STREQ(resulting_str.c_str(), expected_str.c_str());
+            ASSERT_STREQ(resulting_str.data(), expected_str.data());
         else
-            ASSERT_STRCASEEQ(resulting_str.c_str(), expected_str.c_str());
+            ASSERT_STRCASEEQ(resulting_str.data(), expected_str.data());
 
         ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
     }
@@ -130,8 +129,7 @@ private:
             !std::is_same<T, SQL_NUMERIC_STRUCT>::value
         >::type * = nullptr // T is a struct (except SQL_NUMERIC_STRUCT) or scalar type
     ) {
-        const auto query = fromUTF8<SQLTCHAR>("SELECT ?");
-        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+        auto query = fromUTF8<PTChar>("SELECT ?");
 
         T param;
         value_manip::to_null(param);
@@ -139,7 +137,7 @@ private:
 
         SQLLEN param_ind = 0;
 
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
         ODBC_CALL_ON_STMT_THROW(hstmt,
             SQLBindParameter(
                 hstmt,
@@ -189,9 +187,9 @@ private:
         value_manip::from_value<T>::template to_value<std::string>::convert(col, resulting_str);
 
         if (case_sensitive)
-            ASSERT_STREQ(resulting_str.c_str(), expected_str.c_str());
+            ASSERT_STREQ(resulting_str.data(), expected_str.data());
         else
-            ASSERT_STRCASEEQ(resulting_str.c_str(), expected_str.c_str());
+            ASSERT_STRCASEEQ(resulting_str.data(), expected_str.data());
 
         ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
     }
@@ -202,8 +200,7 @@ private:
             std::is_same<T, SQL_NUMERIC_STRUCT>::value
         >::type * = nullptr // T is SQL_NUMERIC_STRUCT
     ) {
-        const auto query = fromUTF8<SQLTCHAR>("SELECT ?");
-        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+        auto query = fromUTF8<PTChar>("SELECT ?");
 
         T param;
         value_manip::to_null(param);
@@ -211,7 +208,7 @@ private:
 
         SQLLEN param_ind = 0;
 
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
         ODBC_CALL_ON_STMT_THROW(hstmt,
             SQLBindParameter(
                 hstmt,
@@ -267,9 +264,9 @@ private:
         value_manip::from_value<T>::template to_value<std::string>::convert(col, resulting_str);
 
         if (case_sensitive)
-            ASSERT_STREQ(resulting_str.c_str(), expected_str.c_str());
+            ASSERT_STREQ(resulting_str.data(), expected_str.data());
         else
-            ASSERT_STRCASEEQ(resulting_str.c_str(), expected_str.c_str());
+            ASSERT_STRCASEEQ(resulting_str.data(), expected_str.data());
 
         ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
     }

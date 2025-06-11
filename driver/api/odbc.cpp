@@ -132,7 +132,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetInfo)(
 
 #define CASE_STRING(NAME, VALUE) \
             case NAME:           \
-                return fillOutputString<SQLTCHAR>(VALUE, out_value, out_value_max_length, out_value_length, true);
+                return fillOutputString<PTChar>(VALUE, out_value, out_value_max_length, out_value_length, true);
 
             CASE_STRING(SQL_DRIVER_VER, VERSION_STRING)
             CASE_STRING(SQL_DRIVER_ODBC_VER, "03.80")
@@ -489,7 +489,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDriverConnect)(
         }
 
         connection.connect(connection_string);
-        return fillOutputString<SQLTCHAR>(connection_string, OutConnectionString, out_buffer_length, StringLength2Ptr, false);
+        return fillOutputString<PTChar>(connection_string, OutConnectionString, out_buffer_length, StringLength2Ptr, false);
     });
 }
 
@@ -599,7 +599,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
                 return SQL_SUCCESS;
 
 #define CASE_FIELD_STR(NAME, VALUE) \
-            case NAME: return fillOutputString<SQLTCHAR>(VALUE, out_string_value, out_string_value_max_size, out_string_value_size, true);
+            case NAME: return fillOutputString<PTChar>(VALUE, out_string_value, out_string_value_max_size, out_string_value_size, true);
 
             // TODO: Use IRD (the descriptor) when column data representation is migrated there.
 
@@ -700,7 +700,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_hand
         if (out_is_nullable)
             *out_is_nullable = column_info.is_nullable ? SQL_NULLABLE : SQL_NO_NULLS;
 
-        return fillOutputString<SQLTCHAR>(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size, false);
+        return fillOutputString<PTChar>(column_info.name, out_column_name, out_column_name_max_size, out_column_name_size, false);
     };
 
     return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, func);
@@ -1156,7 +1156,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLNativeSql)(HDBC connection_handle
 
     return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, connection_handle, [&](Connection & connection) {
         std::string query_str = toUTF8(query, query_length);
-        return fillOutputString<SQLTCHAR>(query_str, out_query, out_query_max_length, out_query_length, false);
+        return fillOutputString<PTChar>(query_str, out_query, out_query_max_length, out_query_length, false);
     });
 }
 

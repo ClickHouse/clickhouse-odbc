@@ -73,7 +73,7 @@ TEST_P(DateTime, GetData) {
     setEnvVar("TZ", params.local_tz);
 
 #ifdef _win_
-    _putenv_s("TZ", params.local_tz.c_str());
+    _putenv_s("TZ", params.local_tz.data());
     _tzset();
 #endif
 
@@ -81,10 +81,9 @@ TEST_P(DateTime, GetData) {
 
     const std::string query_orig = "SELECT " + params.expr + " AS col FORMAT " + params.format;
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLFetch(hstmt));
 
     {
@@ -94,7 +93,7 @@ TEST_P(DateTime, GetData) {
     }
 
     {
-        SQLTCHAR col[64] = {};
+        PTChar col[64] = {};
         SQLLEN col_ind = 0;
 
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(

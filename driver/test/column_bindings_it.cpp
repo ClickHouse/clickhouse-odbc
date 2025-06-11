@@ -43,12 +43,11 @@ SELECT
 FROM numbers(
     )SQL" + std::to_string(total_rows_expected) + ")";
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR *>(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
     // Prepare, execute, and set attribues on te statement.
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_BIND_TYPE, (SQLPOINTER)SQL_BIND_BY_COLUMN, 0));
@@ -288,12 +287,11 @@ SELECT
 FROM numbers(
     )SQL" + std::to_string(total_rows_expected) + ")";
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR *>(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
     // Prepare, execute, and set attribues on te statement.
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
     struct Bindings {

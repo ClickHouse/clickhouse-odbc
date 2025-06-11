@@ -58,12 +58,11 @@ private:
 // API call that doesn't reach the driver, i.e., this is effectively (somewhat incomplete) Driver Manager overhead, just for the reference.
 TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(UnimplementedAPICallOverhead)) {
     constexpr std::size_t call_count = 1'000'000;
-    const auto tstr = fromUTF8<SQLTCHAR>("");
-    auto * tstr_wptr = const_cast<SQLTCHAR * >(tstr.c_str());
+    auto tstr = fromUTF8<PTChar>("");
 
     // Verify that SQLStatistics() is not implemented. Change to something else when implemented.
     {
-        const auto rc = SQLStatistics(hstmt, tstr_wptr, 0, tstr_wptr, 0, tstr_wptr, 0, SQL_INDEX_ALL, SQL_ENSURE);
+        const auto rc = SQLStatistics(hstmt, ptcharCast(tstr.data()), 0, ptcharCast(tstr.data()), 0, ptcharCast(tstr.data()), 0, SQL_INDEX_ALL, SQL_ENSURE);
         if (rc != SQL_ERROR) {
             throw std::runtime_error(
                 "SQLStatistics return code: " + std::to_string(rc) +
@@ -82,7 +81,7 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(UnimplementedAPICallOve
     START_MEASURING_TIME();
 
     for (std::size_t i = 0; i < call_count; ++i) {
-        SQLStatistics(hstmt, tstr_wptr, 0, tstr_wptr, 0, tstr_wptr, 0, SQL_INDEX_ALL, SQL_ENSURE);
+        SQLStatistics(hstmt, ptcharCast(tstr.data()), 0, ptcharCast(tstr.data()), 0, ptcharCast(tstr.data()), 0, SQL_INDEX_ALL, SQL_ENSURE);
     }
 
     STOP_MEASURING_TIME_AND_REPORT(call_count);
@@ -94,10 +93,9 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(NoOpAPICallOverhead)) {
 
     // Verify that several consequent SQLNumResultCols() calls  on an executed statement, without destination buffer, return SQL_SUCCESS.
     {
-        const auto query = fromUTF8<SQLTCHAR>("SELECT 1");
-        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+        auto query = fromUTF8<PTChar>("SELECT 1");
 
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLNumResultCols(hstmt, nullptr));
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLNumResultCols(hstmt, nullptr));
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLNumResultCols(hstmt, nullptr));
@@ -118,10 +116,9 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchNoExtractMultiType
 
     std::cout << "Executing query:\n\t" << query_orig << std::endl;
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
     std::size_t total_rows = 0;
@@ -158,10 +155,9 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchGetDataMultiType))
 
     std::cout << "Executing query:\n\t" << query_orig << std::endl;
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
     SQLTCHAR col1[32] = {};
@@ -253,10 +249,9 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColMultiType))
 
     std::cout << "Executing query:\n\t" << query_orig << std::endl;
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
     SQLTCHAR col1[32] = {};
@@ -348,10 +343,9 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColSingleType_
 
     std::cout << "Executing query:\n\t" << query_orig << std::endl;
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
     SQLCHAR col[32] = {};
@@ -401,10 +395,9 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColSingleType_
 
     std::cout << "Executing query:\n\t" << query_orig << std::endl;
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
     SQLWCHAR col[32] = {};
@@ -454,10 +447,9 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColSingleType_
 
     std::cout << "Executing query:\n\t" << query_orig << std::endl;
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
     SQLINTEGER col = 0;
@@ -507,10 +499,9 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchBindColSingleType_
 
     std::cout << "Executing query:\n\t" << query_orig << std::endl;
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
     SQLDOUBLE col = 0.0;
@@ -560,10 +551,9 @@ TEST_F(PerformanceTest, ENABLE_FOR_OPTIMIZED_BUILDS_ONLY(FetchArrayBindColSingle
 
     std::cout << "Executing query:\n\t" << query_orig << std::endl;
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
     SQLULEN rows_processed = 0;

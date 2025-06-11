@@ -33,6 +33,99 @@ INT_PTR CALLBACK ConfigDlgProc(
 
 namespace { namespace impl {
 
+void readDSNinfo(ConnInfo * ci, bool overwrite) {
+    std::basic_string<PTChar> dsn;
+    std::basic_string<PTChar> config_file;
+    std::basic_string<PTChar> name;
+    std::basic_string<PTChar> default_value;
+    std::basic_string<PTChar> value;
+
+    fromUTF8(ci->dsn, dsn);
+    fromUTF8(ODBC_INI, config_file);
+
+#define GET_CONFIG(NAME, INI_NAME, DEFAULT)              \
+    if (ci->NAME.empty() || overwrite) {                 \
+        fromUTF8(INI_NAME, name);                        \
+        fromUTF8(DEFAULT, default_value);                \
+        value.clear();                                   \
+        value.resize(MAX_DSN_VALUE_LEN);                 \
+        const auto read = SQLGetPrivateProfileString(    \
+            arrayPtrCast<const WinTChar>(dsn.c_str()),                                 \
+            arrayPtrCast<const WinTChar>(name.c_str()),                                \
+            arrayPtrCast<const WinTChar>(default_value.c_str()),                       \
+            arrayPtrCast<WinTChar>(value.data()), \
+            value.size(),                                \
+            arrayPtrCast<const WinTChar>(config_file.c_str())                          \
+        );                                               \
+        if (read < 0)                                    \
+            throw std::runtime_error("SQLGetPrivateProfileString failed to extract the value of " INI_NAME);        \
+        if (read >= value.size())                        \
+            throw std::runtime_error("SQLGetPrivateProfileString failed to extract the entire value of " INI_NAME); \
+        value.resize(read);                              \
+        ci->NAME = toUTF8(value);                        \
+    }
+
+    GET_CONFIG(desc,            INI_DESC,            INI_DESC_DEFAULT);
+    GET_CONFIG(url,             INI_URL,             INI_URL_DEFAULT);
+    GET_CONFIG(username,        INI_USERNAME,        INI_USERNAME_DEFAULT);
+    GET_CONFIG(password,        INI_PASSWORD,        INI_PASSWORD_DEFAULT);
+    GET_CONFIG(server,          INI_SERVER,          INI_SERVER_DEFAULT);
+    GET_CONFIG(port,            INI_PORT,            INI_PORT_DEFAULT);
+    GET_CONFIG(timeout,         INI_TIMEOUT,         INI_TIMEOUT_DEFAULT);
+    GET_CONFIG(verify_connection_early, INI_VERIFY_CONNECTION_EARLY, INI_VERIFY_CONNECTION_EARLY_DEFAULT);
+    GET_CONFIG(sslmode,         INI_SSLMODE,         INI_SSLMODE_DEFAULT);
+    GET_CONFIG(database,        INI_DATABASE,        INI_DATABASE_DEFAULT);
+    GET_CONFIG(huge_int_as_string, INI_HUGE_INT_AS_STRING, INI_HUGE_INT_AS_STRING_DEFAULT);
+    GET_CONFIG(stringmaxlength, INI_STRINGMAXLENGTH, INI_STRINGMAXLENGTH_DEFAULT);
+    GET_CONFIG(driverlog,       INI_DRIVERLOG,       INI_DRIVERLOG_DEFAULT);
+    GET_CONFIG(driverlogfile,   INI_DRIVERLOGFILE,   INI_DRIVERLOGFILE_DEFAULT);
+    GET_CONFIG(auto_session_id, INI_AUTO_SESSION_ID, INI_AUTO_SESSION_ID_DEFAULT);
+
+#undef GET_CONFIG
+}
+
+void writeDSNinfo(const ConnInfo * ci) {
+    std::basic_string<PTChar> dsn;
+    std::basic_string<PTChar> config_file;
+    std::basic_string<PTChar> name;
+    std::basic_string<PTChar> value;
+
+    fromUTF8(ci->dsn, dsn);
+    fromUTF8(ODBC_INI, config_file);
+
+#define WRITE_CONFIG(NAME, INI_NAME)                      \
+    {                                                     \
+        fromUTF8(INI_NAME, name);                         \
+        fromUTF8(ci->NAME, value);                        \
+        const auto result = SQLWritePrivateProfileString( \
+            arrayPtrCast<const WinTChar>(dsn.c_str()),                                  \
+            arrayPtrCast<const WinTChar>(name.c_str()),                                 \
+            arrayPtrCast<const WinTChar>(value.c_str()),                                \
+            arrayPtrCast<const WinTChar>(config_file.c_str())                           \
+        );                                                \
+        if (!result)                                      \
+            throw std::runtime_error("SQLWritePrivateProfileString failed to write value of " INI_NAME); \
+    }
+
+    WRITE_CONFIG(desc,            INI_DESC);
+    WRITE_CONFIG(url,             INI_URL);
+    WRITE_CONFIG(username,        INI_USERNAME);
+    WRITE_CONFIG(password,        INI_PASSWORD);
+    WRITE_CONFIG(server,          INI_SERVER);
+    WRITE_CONFIG(port,            INI_PORT);
+    WRITE_CONFIG(timeout,         INI_TIMEOUT);
+    WRITE_CONFIG(verify_connection_early, INI_VERIFY_CONNECTION_EARLY);
+    WRITE_CONFIG(sslmode,         INI_SSLMODE);
+    WRITE_CONFIG(database,        INI_DATABASE);
+    WRITE_CONFIG(huge_int_as_string, INI_HUGE_INT_AS_STRING);
+    WRITE_CONFIG(stringmaxlength, INI_STRINGMAXLENGTH);
+    WRITE_CONFIG(driverlog,       INI_DRIVERLOG);
+    WRITE_CONFIG(driverlogfile,   INI_DRIVERLOGFILE);
+    WRITE_CONFIG(auto_session_id, INI_AUTO_SESSION_ID);
+
+#undef WRITE_CONFIG
+}
+
 /* NOTE:  All these are used by the dialog procedures */
 struct SetupDialogData {
     HWND hwnd_parent;        /// Parent window handle
@@ -115,10 +208,10 @@ inline void parseAttributes(LPCTSTR lpszAttributes, SetupDialogData * lpsetupdlg
 }
 
 inline BOOL setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWORD * errcode) {
-    std::basic_string<CharTypeLPCTSTR> Driver;
+    std::basic_string<PTChar> Driver;
     fromUTF8(lpsetupdlg->driver_name, Driver);
 
-    std::basic_string<CharTypeLPCTSTR> DSN;
+    std::basic_string<PTChar> DSN;
     fromUTF8(lpsetupdlg->ci.dsn, DSN);
 
     if (errcode)
@@ -128,11 +221,11 @@ inline BOOL setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWOR
     if (lpsetupdlg->is_new_dsn && lpsetupdlg->ci.dsn.empty())
         return FALSE;
 
-    if (!SQLValidDSN(DSN.c_str()))
+    if (!SQLValidDSN(arrayPtrCast<const WinTChar>(DSN.c_str())))
         return FALSE;
 
     /* Write the data source name */
-    if (!SQLWriteDSNToIni(DSN.c_str(), Driver.c_str())) {
+    if (!SQLWriteDSNToIni(arrayPtrCast<const WinTChar>(DSN.c_str()), arrayPtrCast<const WinTChar>(Driver.c_str()))) {
         RETCODE ret = SQL_ERROR;
         DWORD err = SQL_ERROR;
         TCHAR szMsg[SQL_MAX_MESSAGE_LENGTH];
@@ -155,7 +248,7 @@ inline BOOL setDSNAttributes(HWND hwndParent, SetupDialogData * lpsetupdlg, DWOR
     /* If the data source name has changed, remove the old name */
     if (Poco::UTF8::icompare(lpsetupdlg->dsn, lpsetupdlg->ci.dsn) != 0) {
         fromUTF8(lpsetupdlg->dsn, DSN);
-        SQLRemoveDSNFromIni(DSN.c_str());
+        SQLRemoveDSNFromIni(arrayPtrCast<const WinTChar>(DSN.c_str()));
     }
 
     return TRUE;
@@ -217,13 +310,13 @@ inline INT_PTR ConfigDlgProc_(
             CenterDialog(hdlg); /* Center dialog */
             readDSNinfo(&ci, false);
 
-            std::basic_string<CharTypeLPCTSTR> value;
+            std::basic_string<PTChar> value;
 
 #define SET_DLG_ITEM(NAME, ID)                                    \
     {                                                             \
         value.clear();                                            \
         fromUTF8(ci.NAME, value);                                 \
-        const auto res = SetDlgItemText(hdlg, ID, value.c_str()); \
+        const auto res = SetDlgItemText(hdlg, ID, arrayPtrCast<const WinTChar>(value.c_str())); \
     }
 
             SET_DLG_ITEM(dsn, IDC_DSN_NAME);
@@ -248,13 +341,13 @@ inline INT_PTR ConfigDlgProc_(
                     auto & lpsetupdlg = *(SetupDialogData *)GetWindowLongPtr(hdlg, DWLP_USER);
                     auto & ci = lpsetupdlg.ci;
 
-                    std::basic_string<CharTypeLPCTSTR> value;
+                    std::basic_string<PTChar> value;
 
 #define GET_DLG_ITEM(NAME, ID)                                                   \
     {                                                                            \
         value.clear();                                                           \
         value.resize(MAX_DSN_VALUE_LEN);                                         \
-        const auto read = GetDlgItemText(hdlg, ID, const_cast<CharTypeLPCTSTR *>(value.data()), value.size()); \
+        const auto read = GetDlgItemText(hdlg, ID, arrayPtrCast<WinTChar>(value.data()), value.size()); \
         value.resize((read <= 0 || read > value.size()) ? 0 : read);             \
         ci.NAME = toUTF8(value);                                                 \
     }
@@ -314,9 +407,9 @@ inline BOOL ConfigDSN_(
 
         /* Otherwise remove data source from ODBC.INI */
         else {
-            std::basic_string<CharTypeLPCTSTR> DSN;
+            std::basic_string<PTChar> DSN;
             fromUTF8(lpsetupdlg->ci.dsn, DSN);
-            fSuccess = SQLRemoveDSNFromIni(DSN.c_str());
+            fSuccess = SQLRemoveDSNFromIni(arrayPtrCast<const WinTChar>(DSN.c_str()));
         }
     }
     /* Add or Configure data source */

@@ -10,10 +10,9 @@ class StatementParameterBindingsTest
 };
 
 TEST_F(StatementParameterBindingsTest, Missing) {
-    const auto query = fromUTF8<SQLTCHAR>("SELECT isNull(?)");
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>("SELECT isNull(?)");
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
     SQLRETURN rc = SQLFetch(hstmt);
 
@@ -47,13 +46,12 @@ TEST_F(StatementParameterBindingsTest, Missing) {
 }
 
 TEST_F(StatementParameterBindingsTest, NoBuffer) {
-    const auto query = fromUTF8<SQLTCHAR>("SELECT isNull(?)");
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>("SELECT isNull(?)");
 
     SQLINTEGER param = 0;
     SQLLEN param_ind = 0;
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt,
         SQLBindParameter(
             hstmt,
@@ -101,12 +99,11 @@ TEST_F(StatementParameterBindingsTest, NoBuffer) {
 }
 
 TEST_F(StatementParameterBindingsTest, NullValueForInteger) {
-    const auto query = fromUTF8<SQLTCHAR>("SELECT isNull(?)");
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>("SELECT isNull(?)");
 
     SQLLEN param_ind = SQL_NULL_DATA;
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt,
         SQLBindParameter(
             hstmt,
@@ -146,12 +143,11 @@ TEST_F(StatementParameterBindingsTest, NullValueForInteger) {
 }
 
 TEST_F(StatementParameterBindingsTest, NullValueForString) {
-    const auto query = fromUTF8<SQLTCHAR>("SELECT isNull(?)");
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>("SELECT isNull(?)");
 
     SQLLEN param_ind = SQL_NULL_DATA;
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt,
         SQLBindParameter(
             hstmt,
@@ -197,14 +193,13 @@ class StatementParameterArrayBindingsTest
 };
 
 TEST_F(StatementParameterBindingsTest, IntArray) {
-    const auto query = fromUTF8<SQLTCHAR>("SELECT ?");
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>("SELECT ?");
 
     SQLINTEGER param[] = { 1, 2, 3 };
     SQLLEN param_ind[] = { 0, 0, 0 };
 
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER)lengthof(param), 0));
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt,
         SQLBindParameter(
             hstmt,
@@ -256,14 +251,13 @@ TEST_F(StatementParameterBindingsTest, IntArray) {
 }
 
 TEST_F(StatementParameterBindingsTest, StringArray) {
-    const auto query = fromUTF8<SQLTCHAR>("SELECT ?");
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>("SELECT ?");
 
     SQLCHAR param[][10] = { "aaa", "bbbb", "ccccc" };
     SQLLEN param_ind[] = { SQL_NTS, 4, SQL_NTS };
 
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER)lengthof(param), 0));
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt,
         SQLBindParameter(
             hstmt,

@@ -12,7 +12,7 @@ class MiscellaneousTest
 
 TEST_F(MiscellaneousTest, GetDatabaseVersion) {
     SQLRETURN res = SQL_SUCCESS;
-    std::basic_string<SQLTCHAR> param_version(256, '\0');
+    std::basic_string<PTChar> param_version(256, '\0');
     SQLSMALLINT param_version_len = 0;
     ODBC_CALL_ON_DBC_THROW(hdbc, SQLGetInfo(
         hdbc,
@@ -24,10 +24,10 @@ TEST_F(MiscellaneousTest, GetDatabaseVersion) {
     param_version.resize(param_version_len);
 
     // Get version directly by calling `select version()`
-    auto query = fromUTF8<SQLTCHAR>("select version()");
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query.data(), SQL_NTS));
+    auto query = fromUTF8<PTChar>("select version()");
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLFetch(hstmt));
-    std::basic_string<SQLTCHAR> query_version(256, '\0');
+    std::basic_string<PTChar> query_version(256, '\0');
     SQLLEN query_version_len = 0;
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(
         hstmt,
@@ -94,10 +94,9 @@ TEST_F(MiscellaneousTest, SQLGetData_ZeroOutputBufferSize) {
     const std::string col_str = "1234567890";
     const std::string query_orig = "SELECT CAST('" + col_str + "', 'String') AS col";
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
 
     SQLTCHAR col[100] = {};
     SQLLEN col_ind = 0;
@@ -137,10 +136,9 @@ TEST_F(MiscellaneousTest, SQLGetData_ZeroOutputBufferSize) {
 TEST_F(MiscellaneousTest, NullableNothing) {
     const std::string query_orig = "SELECT NULL AS col";
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
 
     SQLSMALLINT sql_type = SQL_BIT;
     SQLSMALLINT nullable = SQL_NULLABLE_UNKNOWN;
@@ -178,10 +176,9 @@ protected:
 
         const std::string query_orig = "SELECT 1";
 
-        const auto query = fromUTF8<SQLTCHAR>(query_orig);
-        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+        auto query = fromUTF8<PTChar>(query_orig);
 
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
 
         // Free the original Connection and Statement instances, and create a new Connection,
         // but don't connect it yet - each test will do it on its own.
@@ -202,10 +199,9 @@ TEST_P(ConnectionFailureReporing, TryQuery) {
     {
         const auto & dsn_orig = TestEnvironment::getInstance().getDSN();
         std::string cs_orig = "DSN=" + dsn_orig + ";" + cs_extras;
-        const auto cs = fromUTF8<SQLTCHAR>(cs_orig);
-        auto * cs_wptr = const_cast<SQLTCHAR *>(cs.c_str());
+        auto cs = fromUTF8<PTChar>(cs_orig);
 
-        const auto rc = SQLDriverConnect(hdbc, NULL, cs_wptr, SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT);
+        const auto rc = SQLDriverConnect(hdbc, NULL, ptcharCast(cs.data()), SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT);
 
         if (fail_on == FailOn::Connect) {
             ASSERT_EQ(rc, SQL_ERROR) << "Expected to fail on Connect!";
@@ -221,10 +217,9 @@ TEST_P(ConnectionFailureReporing, TryQuery) {
     {
         const std::string query_orig = "SELECT 1";
 
-        const auto query = fromUTF8<SQLTCHAR>(query_orig);
-        auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+        auto query = fromUTF8<PTChar>(query_orig);
 
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, query_wptr, SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
 
         const auto rc = SQLExecute(hstmt);
 
@@ -295,10 +290,9 @@ public:
     void connect(const std::string & connection_string) {
         ASSERT_EQ(hstmt, nullptr);
 
-        const auto cs = fromUTF8<SQLTCHAR>(connection_string);
-        auto * cs_wptr = const_cast<SQLTCHAR *>(cs.c_str());
+        auto cs = fromUTF8<PTChar>(connection_string);
 
-        ODBC_CALL_ON_DBC_THROW(hdbc, SQLDriverConnect(hdbc, NULL, cs_wptr, SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT));
+        ODBC_CALL_ON_DBC_THROW(hdbc, SQLDriverConnect(hdbc, NULL, ptcharCast(cs.data()), SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT));
         ODBC_CALL_ON_DBC_THROW(hdbc, SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt));
     }
 };
@@ -311,12 +305,11 @@ TEST_P(HugeIntTypeReporting, Check) {
     const auto cs = "DSN=" + dsn + ";" + cs_extras;
     connect(cs);
 
-    const auto query_orig = "SELECT CAST('0', '" + type + "') AS col";
+    auto query_orig = "SELECT CAST('0', '" + type + "') AS col";
 
-    const auto query = fromUTF8<SQLTCHAR>(query_orig);
-    auto * query_wptr = const_cast<SQLTCHAR * >(query.c_str());
+    auto query = fromUTF8<PTChar>(query_orig);
 
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query_wptr, SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
 
     SQLLEN sql_type = SQL_TYPE_NULL;
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLColAttribute(hstmt, 1, SQL_DESC_TYPE, NULL, 0, NULL, &sql_type));

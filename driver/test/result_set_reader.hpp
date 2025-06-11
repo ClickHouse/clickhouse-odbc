@@ -1,6 +1,7 @@
 #include "driver/test/client_utils.h"
 
 #include <cassert>
+#include <unordered_map>
 
 /**
 * A very simple wrapper around ODBC's SQLFetch and SQLGetData functions.
@@ -38,12 +39,12 @@ public:
         // consistently across the whole code base. For now, I'll stick to this common,
         // yet incorrect, approach.
         // For reference: https://reviews.llvm.org/D138307
-        std::basic_string<SQLTCHAR> input_name(256, '\0');
+        std::basic_string<PTChar> input_name(256, '\0');
         for (SQLSMALLINT idx = 1; idx <= num_columns; ++idx) {
             ODBC_CALL_ON_STMT_THROW(stmt, SQLDescribeCol(
                 stmt,
                 idx,
-                input_name.data(),
+                ptcharCast(input_name.data()),
                 static_cast<SQLSMALLINT>(input_name.size()),
                 &name_length,
                 nullptr,
