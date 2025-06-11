@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include "driver/test/client_test_base.h"
+#include "driver/test/client_utils.h"
 #include "driver/test/result_set_reader.hpp"
 #include "driver/utils/sql_encoding.h"
 
@@ -37,9 +38,9 @@ public:
             << "    max(toInt32(substring(name, " << user_prefix.size() + 1 << "))) id "
             << "FROM system.users "
             << "WHERE name LIKE '" << user_prefix << "%';";
-        auto start_user_id_query = fromUTF8<SQLTCHAR>(start_user_id_query_stream.str());
+        auto start_user_id_query = fromUTF8<PTChar>(start_user_id_query_stream.str());
 
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, start_user_id_query.data(), SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(start_user_id_query.data()), SQL_NTS));
 
         ResultSetReader reader{hstmt};
         if(reader.fetch())
@@ -61,8 +62,8 @@ public:
             << "  name "
             << "FROM system.users "
             << "WHERE name LIKE '" << user_prefix << "%' ";
-        auto users_query = fromUTF8<SQLTCHAR>(users_query_stream.str());
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, users_query.data(), SQL_NTS));
+        auto users_query = fromUTF8<PTChar>(users_query_stream.str());
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(users_query.data()), SQL_NTS));
 
         std::vector<std::string> users{};
 
@@ -75,8 +76,8 @@ public:
 
         for (const auto& user : users)
         {
-            auto drop_user_query = fromUTF8<SQLTCHAR>("DROP USER IF EXISTS '" + user + "'");
-            ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, drop_user_query.data(), SQL_NTS));
+            auto drop_user_query = fromUTF8<PTChar>("DROP USER IF EXISTS '" + user + "'");
+            ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(drop_user_query.data()), SQL_NTS));
         }
 
         ClientTestBase::TearDown();
@@ -131,22 +132,22 @@ TEST_F(AuthenticationTest, PasswordEncoding)
         auto user = std::string(user_prefix) + std::to_string(getNextUserId());
         auto pass = passwords.at(i);
 
-        auto query = fromUTF8<SQLTCHAR>(
+        auto query = fromUTF8<PTChar>(
             "CREATE USER " + user + " IDENTIFIED WITH plaintext_password BY " + toSqlQueryValue(pass));
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query.data(), SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLFreeStmt(hstmt, SQL_CLOSE));
 
         users.insert({user, pass});
     }
 
-    auto dsn = fromUTF8<SQLTCHAR>(TestEnvironment::getInstance().getDSN());
+    auto dsn = fromUTF8<PTChar>(TestEnvironment::getInstance().getDSN());
 
     // Then attempt to log in with each of the users created above.
     for (const auto& [user, pass] : users)
     {
         SCOPED_TRACE(testing::Message() << "User: " << user << ", Password: " << pass);
-        auto user_utf = fromUTF8<SQLTCHAR>(user);
-        auto pass_utf = fromUTF8<SQLTCHAR>(pass);
+        auto user_utf = fromUTF8<PTChar>(user);
+        auto pass_utf = fromUTF8<PTChar>(pass);
 
         SQLHENV env = nullptr;
         SQLHDBC dbc = nullptr;
@@ -158,14 +159,14 @@ TEST_F(AuthenticationTest, PasswordEncoding)
             ODBC_CALL_ON_ENV_THROW(env, SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, (SQLPOINTER*)SQL_OV_ODBC3, 0));
             ODBC_CALL_ON_ENV_THROW(env, SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc));
             ODBC_CALL_ON_DBC_THROW(dbc, SQLConnect(dbc,
-                dsn.data(), SQL_NTS,
-                user_utf.data(), SQL_NTS,
-                pass_utf.data(), SQL_NTS));
+                ptcharCast(dsn.data()), SQL_NTS,
+                ptcharCast(user_utf.data()), SQL_NTS,
+                ptcharCast(pass_utf.data()), SQL_NTS));
 
             ODBC_CALL_ON_DBC_THROW(dbc, SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt));
 
-            auto query = fromUTF8<SQLTCHAR>("SELECT user() name");
-            ODBC_CALL_ON_STMT_THROW(stmt, SQLExecDirect(stmt, query.data(), SQL_NTS));
+            auto query = fromUTF8<PTChar>("SELECT user() name");
+            ODBC_CALL_ON_STMT_THROW(stmt, SQLExecDirect(stmt, ptcharCast(query.data()), SQL_NTS));
 
             ResultSetReader reader{stmt};
             EXPECT_TRUE(reader.fetch());

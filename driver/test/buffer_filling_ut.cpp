@@ -1,5 +1,6 @@
 #include "driver/utils/utils.h"
 #include "driver/utils/type_info.h"
+#include "driver/test/client_utils.h"
 
 #include <gtest/gtest.h>
 
@@ -108,8 +109,8 @@ INSTANTIATE_TEST_SUITE_P(                     \
     )                                         \
 );
 
-using SQLNarrowChar = SQLCHAR;
-using SQLWideChar = SQLWCHAR;
+using SQLNarrowChar = char;
+using SQLWideChar = char16_t;
 
 DECLARE_TEST_GROUP(SQLNarrowChar);
 DECLARE_TEST_GROUP(SQLWideChar);

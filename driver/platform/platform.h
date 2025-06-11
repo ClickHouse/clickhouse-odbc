@@ -72,24 +72,6 @@
 #        define strcpy strcpy_s
 #        define stricmp _stricmp
 #    endif
-#else
-
-// Fix missing declarations in iodbc
-#    if defined(_IODBCUNIX_H)
-#        if defined(UNICODE)
-#            define LPTSTR LPWSTR
-#        else
-#            define LPTSTR LPSTR
-#        endif
-#    endif
-#    if !defined(LPCTSTR)
-#        if defined(UNICODE)
-#            define LPCTSTR LPCWSTR
-#        else
-#            define LPCTSTR LPCSTR
-#        endif
-#    endif
-
 #endif
 
 #define SIZEOF_CHAR sizeof(SQLTCHAR)
@@ -134,3 +116,4 @@
 
 #define CH_SQL_ATTR_DRIVERLOG            (SQL_ATTR_TRACE + CH_SQL_OFFSET)
 #define CH_SQL_ATTR_DRIVERLOGFILE        (SQL_ATTR_TRACEFILE + CH_SQL_OFFSET)
+

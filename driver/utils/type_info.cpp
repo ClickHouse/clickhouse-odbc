@@ -2,6 +2,7 @@
 
 #include <Poco/String.h>
 #include <stdexcept>
+#include <unordered_map>
 
 const TypeInfo* typeInfoIfExistsFor(const std::string & type) {
     static const auto types = [](){
