@@ -71,7 +71,7 @@ TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
     for(const auto& [type, input, sql_type] : types) {
         auto type_escaped = Poco::replace(type, "'", "\\'");
         sql_types[std::string(type)] = sql_type;
-        query_stream << std::format(" CAST({}, '{}') as `{}`,", input, type_escaped, type);
+        query_stream << " CAST(" + input + ", '" + type_escaped + "') as `" + type + "`,";
     }
     query_stream.seekp(-1, std::stringstream::cur) << " ";
     query_stream << "SETTINGS allow_suspicious_low_cardinality_types = 1";
@@ -481,18 +481,17 @@ TEST_F(TypeInfoTest, TimestampTypes)
     SQL_TIMESTAMP_STRUCT datetime   {2025, 4, 15, 14, 45, 40, 0};
     SQL_TIMESTAMP_STRUCT datetime64 {2025, 4, 15, 14, 45, 40, 123456789};
 
-    auto create_table_query = fromUTF8<SQLTCHAR>(std::format(R"(
-        CREATE OR REPLACE TABLE {}.{} (
-            dt DateTime,
-            dt64 DateTime64(9))
-        ENGINE MergeTree
-        ORDER BY dt)",
-        database_name, table_name));
+    std::stringstream create_table_query_stream;
+    create_table_query_stream
+        << "CREATE OR REPLACE TABLE " << database_name << "." << table_name << " ("
+        << "    dt DateTime, "
+        << "    dt64 DateTime64(9)) "
+        << "ENGINE MergeTree "
+        << "ORDER BY dt";
+    auto create_table_query = fromUTF8<SQLTCHAR>(create_table_query_stream.str());
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, create_table_query.data(), SQL_NTS));
 
-    auto insert_query = fromUTF8<SQLTCHAR>(std::format(R"(
-        INSERT INTO {}.{} VALUES (?, ?))",
-        std::string(database_name), table_name));
+    auto insert_query = fromUTF8<SQLTCHAR>("INSERT INTO " + database_name + "." + table_name + " VALUES (?, ?)");
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, insert_query.data(), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
         hstmt, 1, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 19, 0, &datetime, sizeof(datetime), nullptr));
@@ -500,9 +499,8 @@ TEST_F(TypeInfoTest, TimestampTypes)
         hstmt, 2, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 29, 9, &datetime64, sizeof(datetime64), nullptr));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
-    auto select_query = fromUTF8<SQLTCHAR>(std::format(R"(
-        SELECT * FROM {}.{} WHERE dt = ? AND dt64 = ?)",
-        std::string(database_name), table_name));
+    auto select_query = fromUTF8<SQLTCHAR>(
+        "SELECT * FROM " + database_name + "." + table_name + " WHERE dt = ? AND dt64 = ?");
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, select_query.data(), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
         hstmt, 1, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 19, 0, &datetime, sizeof(datetime), nullptr));

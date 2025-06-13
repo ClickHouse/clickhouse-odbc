@@ -31,13 +31,13 @@ public:
     void SetUp() override
     {
         ClientTestBase::SetUp();
-
-        auto start_user_id_query = fromUTF8<SQLTCHAR>(std::format(
-            "SELECT "
-            "    max(toInt32(substring(name, {}))) id "
-            "FROM system.users "
-            "WHERE name LIKE '{}%';",
-            user_prefix.size() + 1, user_prefix));
+        std::stringstream start_user_id_query_stream;
+        start_user_id_query_stream
+            << "SELECT "
+            << "    max(toInt32(substring(name, " << user_prefix.size() + 1 << "))) id "
+            << "FROM system.users "
+            << "WHERE name LIKE '" << user_prefix << "%';";
+        auto start_user_id_query = fromUTF8<SQLTCHAR>(start_user_id_query_stream.str());
 
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, start_user_id_query.data(), SQL_NTS));
 
@@ -55,13 +55,15 @@ public:
         // Close the statement in case the tests failed to do so
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLFreeStmt(hstmt, SQL_CLOSE));
 
-        auto users_query = fromUTF8<SQLTCHAR>(std::format(
-            "SELECT "
-            "  name "
-            "FROM system.users "
-            "WHERE name LIKE '{}%' ",
-            user_prefix));
+        std::stringstream users_query_stream;
+        users_query_stream
+            << "SELECT "
+            << "  name "
+            << "FROM system.users "
+            << "WHERE name LIKE '" << user_prefix << "%' ";
+        auto users_query = fromUTF8<SQLTCHAR>(users_query_stream.str());
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, users_query.data(), SQL_NTS));
+
         std::vector<std::string> users{};
 
         ResultSetReader reader{hstmt};
@@ -73,7 +75,7 @@ public:
 
         for (const auto& user : users)
         {
-            auto drop_user_query = fromUTF8<SQLTCHAR>(std::format("DROP USER IF EXISTS '{}'", user));
+            auto drop_user_query = fromUTF8<SQLTCHAR>("DROP USER IF EXISTS '" + user + "'");
             ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, drop_user_query.data(), SQL_NTS));
         }
 
@@ -126,12 +128,11 @@ TEST_F(AuthenticationTest, PasswordEncoding)
 
     for (size_t i = 0; i < passwords.size(); ++i)
     {
-        auto user = std::format("{}{}", user_prefix, getNextUserId());
+        auto user = std::string(user_prefix) + std::to_string(getNextUserId());
         auto pass = passwords.at(i);
 
-        auto query = fromUTF8<SQLTCHAR>(std::format(
-            "CREATE USER {} IDENTIFIED WITH plaintext_password BY {}", user, toSqlQueryValue(pass)));
-
+        auto query = fromUTF8<SQLTCHAR>(
+            "CREATE USER " + user + " IDENTIFIED WITH plaintext_password BY " + toSqlQueryValue(pass));
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, query.data(), SQL_NTS));
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLFreeStmt(hstmt, SQL_CLOSE));
 
@@ -143,7 +144,7 @@ TEST_F(AuthenticationTest, PasswordEncoding)
     // Then attempt to log in with each of the users created above.
     for (const auto& [user, pass] : users)
     {
-        SCOPED_TRACE(testing::Message() << std::format("User: {}, Password: {}", user, pass));
+        SCOPED_TRACE(testing::Message() << "User: " << user << ", Password: " << pass);
         auto user_utf = fromUTF8<SQLTCHAR>(user);
         auto pass_utf = fromUTF8<SQLTCHAR>(pass);
 
@@ -172,8 +173,8 @@ TEST_F(AuthenticationTest, PasswordEncoding)
         }
         catch (const std::exception& ex)
         {
-            ADD_FAILURE() << std::format(
-                "Authentication failed for user: '{}', password: '{}'\n{}", user, pass, ex.what());
+            ADD_FAILURE() <<
+                "Authentication failed for user: '" << user << "', password: '" << pass << "'\n" << ex.what();
         }
 
         // Cleanup works because all failures are non-fatal:
