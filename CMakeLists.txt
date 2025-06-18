@@ -11,7 +11,7 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "Minimum OS X deployment ver
 
 project (
     clickhouse-odbc
-    VERSION 1.4.1.20250523
+    VERSION 1.4.2.20250618
     DESCRIPTION "The official ODBC driver implementation for accessing ClickHouse as a data source."
     HOMEPAGE_URL "https://github.com/ClickHouse/clickhouse-odbc"
     LANGUAGES C CXX
