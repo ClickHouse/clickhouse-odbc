@@ -11,11 +11,6 @@ execute_process (COMMAND
     COMMAND_ERROR_IS_FATAL ANY
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-# Apparently, in clang-19, the UBSan support library for C++ was moved out into ubsan_standalone_cxx.a, so we have to include both.
-if (SANITIZE STREQUAL undefined)
-    string(REPLACE "builtins.a" "ubsan_standalone_cxx.a" EXTRA_BUILTINS_LIBRARY "${BUILTINS_LIBRARY}")
-endif ()
-
 if (NOT EXISTS "${BUILTINS_LIBRARY}")
     set (BUILTINS_LIBRARY "-lgcc")
 endif ()
