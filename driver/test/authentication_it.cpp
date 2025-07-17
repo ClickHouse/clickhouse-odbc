@@ -149,6 +149,27 @@ TEST_F(AuthenticationTest, PasswordEncoding)
         auto user_utf = fromUTF8<PTChar>(user);
         auto pass_utf = fromUTF8<PTChar>(pass);
 
+        auto user_utf_size = SQL_NTS;
+        auto pass_utf_size = SQL_NTS;
+
+#if defined(__has_feature)
+#    if __has_feature(address_sanitizer) || __has_feature(memory_sanitizer)
+        // UnixODBC seems to have a bug. It happens only with an UTF16
+        // application and ANSI driver. When the size of the user name or
+        // password are SQL_NTS, it calls iconv with fixed size of the input
+        // buffer leading the AddressSanitizer complaining about out of bounds
+        // memory access.
+        // For reference:
+        // - https://github.com/lurcher/unixODBC/blob/master/DriverManager/SQLConnectW.c#L622
+        // - https://github.com/lurcher/unixODBC/blob/master/DriverManager/__info.c#L787
+        // I put this in a separate block to make sure that it screams enough to
+        // be noticed. It should be deleted when the bug in UnixODBC is
+        // eventually fixed.
+        user_utf_size = std::ssize(user_utf);
+        pass_utf_size = std::ssize(pass_utf);
+#    endif
+#endif
+
         SQLHENV env = nullptr;
         SQLHDBC dbc = nullptr;
         SQLHSTMT stmt = nullptr;
@@ -160,8 +181,8 @@ TEST_F(AuthenticationTest, PasswordEncoding)
             ODBC_CALL_ON_ENV_THROW(env, SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc));
             ODBC_CALL_ON_DBC_THROW(dbc, SQLConnect(dbc,
                 ptcharCast(dsn.data()), SQL_NTS,
-                ptcharCast(user_utf.data()), SQL_NTS,
-                ptcharCast(pass_utf.data()), SQL_NTS));
+                ptcharCast(user_utf.data()), user_utf_size,
+                ptcharCast(pass_utf.data()), pass_utf_size));
 
             ODBC_CALL_ON_DBC_THROW(dbc, SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt));
 
