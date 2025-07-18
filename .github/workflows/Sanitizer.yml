@@ -90,10 +90,6 @@ jobs:
         echo "Preparing ODBC ini configs"
         cat > ${{ github.workspace }}/run/.odbcinst.ini <<-EOF
         [ODBC]
-        Trace     = 1
-        TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
-        Debug     = 1
-        DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
 
         [ODBC Drivers]
         ClickHouse ODBC Driver (ANSI)    = Installed
@@ -112,10 +108,6 @@ jobs:
 
         cat > ${{ github.workspace }}/run/.odbc.ini <<-EOF
         [ODBC]
-        Trace     = 1
-        TraceFile = ${{ github.workspace }}/run/odbc-driver-manager-trace.log
-        Debug     = 1
-        DebugFile = ${{ github.workspace }}/run/odbc-driver-manager-debug.log
 
         [ODBC Data Sources]
         ClickHouse DSN (ANSI)         = ClickHouse ODBC Driver (ANSI)
