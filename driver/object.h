@@ -20,10 +20,6 @@ public:
 
     explicit Object() noexcept;
 
-#if !defined(WORKAROUND_ALLOW_UNSAFE_DISPATCH)
-    explicit Object(SQLHANDLE h) noexcept;
-#endif
-
     virtual ~Object() = default;
 
     SQLHANDLE getHandle() const noexcept;
@@ -43,20 +39,19 @@ public:
     explicit Child(Parent & p) noexcept
         : parent(p)
     {
-        getDriver().registerDescendant(getSelf());
+        // At this point, the object cannot be considered of type `Self` because
+        // `Self`'s constructor has not been called yet. This (rightfully) trips
+        // UBSan. However, out of all the possible fixes, this is probably the
+        // safest.
+        getDriver().registerDescendant(*reinterpret_cast<Self *>(this));
     }
-
-#if !defined(WORKAROUND_ALLOW_UNSAFE_DISPATCH)
-    explicit Child(Parent & p, SQLHANDLE h) noexcept
-        : Object(h)
-        , parent(p)
-    {
-        getDriver().registerDescendant(getSelf());
-    }
-#endif
 
     virtual ~Child() {
-        getDriver().unregisterDescendant(getSelf());
+        // At this point, the object cannot be considered of type `Self` because
+        // `Self`'s destructor has already been called. This (rightfully) trips
+        // UBSan. However, out of all the possible fixes, this is probably the
+        // safest.
+        getDriver().unregisterDescendant(*reinterpret_cast<Self *>(this));
     }
 
     Driver & getDriver() const noexcept {
