@@ -45,7 +45,6 @@ public:
 private:
 	typedef std::map<std::string, std::string> StringMap;
 	
-	static StringMap _map;
 	static FastMutex _mutex;
 };
 
