@@ -505,6 +505,14 @@ SQLRETURN GetStmtAttr(
             CASE_NUM(SQL_ATTR_RETRIEVE_DATA, SQLULEN, SQL_RD_ON);
             CASE_NUM(SQL_ATTR_USE_BOOKMARKS, SQLULEN, SQL_UB_OFF);
 
+            case SQL_CH_STMT_ATTR_LAST_QUERY_ID: {
+                auto & query_id = statement.getQueryId();
+                if (query_id.empty())
+                    throw SqlException("Invalid cursor state", "24000");
+
+                return fillOutputString<PTChar>(query_id, out_value, out_value_max_length, out_value_length, true);
+            }
+
             case SQL_ATTR_FETCH_BOOKMARK_PTR:
             case SQL_ATTR_KEYSET_SIZE:
             case SQL_ATTR_SIMULATE_CURSOR:

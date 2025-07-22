@@ -85,6 +85,7 @@ function (declare_odbc_test_targets libname UNICODE)
         performance_it.cpp
         type_info_it.cpp
         authentication_it.cpp
+        error_handling_it.cpp
     )
 
     if (CH_ODBC_ENABLE_CODE_COVERAGE)

@@ -23,9 +23,10 @@ public:
 
     ~AmortizedIStreamReader() {
         // Put back any pre-read characters, just in case...
+        // (it should be done in reverse order)
         if (available() > 0) {
-            for (std::size_t i = buffer_.size() - 1; i >= offset_; --i) {
-                raw_stream_.putback(buffer_[i]);
+            for (auto it = buffer_.rbegin(); it < buffer_.rend() - offset_; ++it) {
+                raw_stream_.putback(*it);
             }
         }
     }

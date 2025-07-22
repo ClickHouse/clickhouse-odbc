@@ -93,6 +93,8 @@ protected:
     virtual void onAttrChange(int attr) final override;
 
 private:
+    std::string addContextInfoToExceptionMessage(const std::string & message, SQLHANDLE handle, SQLSMALLINT handle_type) const;
+
     template <typename Callable>
     static inline SQLRETURN doCall(Callable & callable,
         typename std::enable_if<
@@ -235,27 +237,31 @@ inline SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLIN
                     return doCall(callable, descendant, skip_diag);
                 }
                 catch (const SqlException & ex) {
-                    LOG(ex.getSQLState() << " (" << ex.what() << ")" << "[rc: " << ex.getReturnCode() << "]");
+                    auto error_message = addContextInfoToExceptionMessage(ex.what(), handle, handle_type);
+                    LOG(ex.getSQLState() << " (" << error_message << ")" << "[rc: " << ex.getReturnCode() << "]");
                     if (!skip_diag)
-                        descendant.fillDiag(ex.getReturnCode(), ex.getSQLState(), ex.what(), 1);
+                        descendant.fillDiag(ex.getReturnCode(), ex.getSQLState(), error_message, 1);
                     return ex.getReturnCode();
                 }
                 catch (const Poco::Exception & ex) {
-                    LOG("HY000 (" << ex.displayText() << ")");
+                    auto error_message = addContextInfoToExceptionMessage(ex.displayText(), handle, handle_type);
+                    LOG("HY000 (" << error_message << ")");
                     if (!skip_diag)
-                        descendant.fillDiag(SQL_ERROR, "HY000", ex.displayText(), 1);
+                        descendant.fillDiag(SQL_ERROR, "HY000", error_message, 1);
                     return SQL_ERROR;
                 }
                 catch (const std::exception & ex) {
-                    LOG("HY000 (" << ex.what() << ")");
+                    auto error_message = addContextInfoToExceptionMessage(ex.what(), handle, handle_type);
+                    LOG("HY000 (" << error_message << ")");
                     if (!skip_diag)
-                        descendant.fillDiag(SQL_ERROR, "HY000", ex.what(), 1);
+                        descendant.fillDiag(SQL_ERROR, "HY000", error_message, 1);
                     return SQL_ERROR;
                 }
                 catch (...) {
+                    auto error_message = addContextInfoToExceptionMessage("Unknown exception", handle, handle_type);
                     LOG("HY000 (Unknown exception)");
                     if (!skip_diag)
-                        descendant.fillDiag(SQL_ERROR, "HY000", "Unknown exception", 2);
+                        descendant.fillDiag(SQL_ERROR, "HY000", error_message, 2);
                     return SQL_ERROR;
                 }
             };
