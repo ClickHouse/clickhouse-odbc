@@ -1266,8 +1266,8 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLGetFunctions)(HDBC connection_handle, SQL
             SET_EXISTS(SQL_API_SQLSETENVATTR);
             //SET_EXISTS(SQL_API_SQLSETPOS);
             SET_EXISTS(SQL_API_SQLSETSTMTATTR);
-            //SET_EXISTS(SQL_API_SQLSPECIALCOLUMNS);
-            //SET_EXISTS(SQL_API_SQLSTATISTICS);
+            SET_EXISTS(SQL_API_SQLSPECIALCOLUMNS);
+            SET_EXISTS(SQL_API_SQLSTATISTICS);
             //SET_EXISTS(SQL_API_SQLTABLEPRIVILEGES);
             SET_EXISTS(SQL_API_SQLTABLES);
 
@@ -1323,8 +1323,23 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLSpecialColumns)(HSTMT StatementHa
     SQLSMALLINT NameLength3,
     SQLUSMALLINT Scope,
     SQLUSMALLINT Nullable) {
-    LOG(__FUNCTION__);
-    return SQL_ERROR;
+    std::stringstream query;
+    query << "SELECT "
+        "cast(NULL, 'Nullable(Int16)') AS SCOPE, "
+        "cast(NULL, 'Nullable(String)') AS COLUMN_NAME, "
+        "cast(NULL, 'Nullable(Int16)') AS DATA_TYPE, "
+        "cast(NULL, 'Nullable(String)') AS TYPE_NAME, "
+        "cast(NULL, 'Nullable(Int32)') AS COLUMN_SIZE, "
+        "cast(NULL, 'Nullable(Int32)') AS BUFFER_LENGTH, "
+        "cast(NULL, 'Nullable(Int16)') AS DECIMAL_DIGITS, "
+        "cast(NULL, 'Nullable(Int16)') AS PSEUDO_COLUMN "
+        "WHERE (1 == 0)";
+    auto func = [&](Statement & statement) {
+        LOG(__FUNCTION__);
+        statement.executeQuery(query.str());
+        return SQL_SUCCESS;
+    };    
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, StatementHandle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLStatistics)(HSTMT StatementHandle,
@@ -1337,7 +1352,48 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLStatistics)(HSTMT StatementHandle
     SQLUSMALLINT Unique,
     SQLUSMALLINT Reserved) {
     LOG(__FUNCTION__);
-    return SQL_ERROR;
+
+    auto func = [&](Statement & statement) {
+        const auto catalog = (CatalogName ? toUTF8(CatalogName, NameLength1) : statement.getParent().database);
+        const auto schema = (SchemaName ? toUTF8(SchemaName, NameLength2) : "");
+        const auto table = (TableName ? toUTF8(TableName, NameLength3) : "");
+
+        // Build query to retrieve index/statistics information
+        // ClickHouse has indices which we can report as statistics
+        std::stringstream query;
+        query << "SELECT "
+            "cast(database, 'Nullable(String)') AS TABLE_CAT, "
+            "cast('', 'Nullable(String)') AS TABLE_SCHEM, "
+            "cast(table, 'String') AS TABLE_NAME, "
+            "cast(0, 'Int16') AS NON_UNIQUE, "
+            "cast(NULL, 'Nullable(String)') AS INDEX_QUALIFIER, "
+            "cast(name, 'Nullable(String)') AS INDEX_NAME, "
+            "cast(3, 'Int16') AS TYPE, "
+            "cast(1, 'Int16') AS ORDINAL_POSITION, "
+            "cast(NULL, 'Nullable(String)') AS COLUMN_NAME, "
+            "cast(NULL, 'Nullable(String)') AS ASC_OR_DESC, "
+            "cast(NULL, 'Nullable(Int32)') AS CARDINALITY, "
+            "cast(NULL, 'Nullable(Int32)') AS PAGES, "
+            "cast(NULL, 'Nullable(String)') AS FILTER_CONDITION "
+            "FROM system.data_skipping_indices "
+            "WHERE (1 == 1)";
+
+        // Add filters based on provided parameters
+        if (!catalog.empty() && catalog != "%") {
+            query << " AND database = '" << escapeForSQL(catalog) << "'";
+        }
+        
+        if (!table.empty() && table != "%") {
+            query << " AND table = '" << escapeForSQL(table) << "'";
+        }
+
+        query << " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION";
+        statement.executeQuery(query.str());
+
+        return SQL_SUCCESS;
+    };
+
+    return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, StatementHandle, func);
 }
 
 SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColumnPrivileges)(HSTMT hstmt,
