@@ -99,6 +99,7 @@ Statement::HttpRequestData Statement::prepareHttpRequest()
 
 void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mutator) {
     result_reader.reset();
+    query_id.clear();
 
     const auto param_set_array_size = getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
     if (next_param_set_idx >= param_set_array_size)
@@ -166,6 +167,13 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
                 throw;
         }
     }
+
+    // response->get accepts default value as `const std::string &`
+    // and so we cannot pass an rvalue to it (e.g.`std::string()`),
+    // it will be deleted when the function returns.
+    // We use a static variable that will never be deleted.
+    static const std::string empty_query_id{};
+    query_id = response->get("X-ClickHouse-Query-Id", empty_query_id);
 
     Poco::Net::HTTPResponse::HTTPStatus status = response->getStatus();
     if (status != Poco::Net::HTTPResponse::HTTP_OK) {
@@ -355,6 +363,10 @@ ResultSet & Statement::getResultSet() {
     return result_reader->getResultSet();
 }
 
+const std::string & Statement::getQueryId() const {
+    return query_id;
+}
+
 bool Statement::advanceToNextResultSet() {
     if (!is_executed)
         return false;
@@ -382,6 +394,7 @@ void Statement::closeCursor() {
     }
 
     result_reader.reset();
+    query_id.clear();
     in = nullptr;
     response.reset();
 

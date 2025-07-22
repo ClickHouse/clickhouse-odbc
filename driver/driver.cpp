@@ -140,3 +140,16 @@ void Driver::writeLogSessionEnd(std::ostream & stream) {
     }
     stream << " ====================" << std::endl;
 }
+
+std::string Driver::addContextInfoToExceptionMessage(const std::string & message, SQLHANDLE handle, SQLSMALLINT handle_type) const
+{
+    // Add query_id to exceptions related to statements
+    if (handle_type == SQL_HANDLE_STMT) {
+        auto * statement  = static_cast<Statement *>(handle);
+        const auto query_id = statement->getQueryId();
+        if (!query_id.empty()) {
+            return "Error while processing query " + query_id + ": " + message;
+        }
+    }
+    return message;
+}

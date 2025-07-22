@@ -44,8 +44,11 @@ public:
     /// Indicates whether there is an result set available for reading.
     bool hasResultSet() const;
 
-    /// Get the current resukt set.
+    /// Get the current result set.
     ResultSet & getResultSet();
+
+    /// Get the current query id, or an empty string if query id is not applicable or not available.
+    const std::string & getQueryId() const;
 
     /// Make the next result set current, if any.
     bool advanceToNextResultSet();
@@ -113,5 +116,6 @@ private:
     std::unique_ptr<Poco::Net::HTTPResponse> response;
     std::istream* in = nullptr;
     std::unique_ptr<ResultReader> result_reader;
+    std::string query_id;
     std::size_t next_param_set_idx = 0;
 };

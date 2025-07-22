@@ -117,3 +117,7 @@
 #define CH_SQL_ATTR_DRIVERLOG            (SQL_ATTR_TRACE + CH_SQL_OFFSET)
 #define CH_SQL_ATTR_DRIVERLOGFILE        (SQL_ATTR_TRACEFILE + CH_SQL_OFFSET)
 
+// User range is between SQL_DRIVER_STMT_ATTR_BASE (0x00004000) and 0x00007FFF, see
+// https://learn.microsoft.com/en-us/sql/odbc/reference/develop-app/driver-specific-data-types-descriptor-information-diagnostic
+#define SQL_CH_STMT_ATTR_BASE (SQL_DRIVER_STMT_ATTR_BASE + 1)
+#define SQL_CH_STMT_ATTR_LAST_QUERY_ID (SQL_CH_STMT_ATTR_BASE + 1)
