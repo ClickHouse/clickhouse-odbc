@@ -948,6 +948,11 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLTables)(
                     query << ")";
                 }
             }
+
+            if (!catalog.empty() && catalog != "%") {
+                query << " AND database = '" << escapeForSQL(catalog) << "'";
+            }
+            
         }
 
         query << " ORDER BY TABLE_TYPE, TABLE_CAT, TABLE_SCHEM, TABLE_NAME";
