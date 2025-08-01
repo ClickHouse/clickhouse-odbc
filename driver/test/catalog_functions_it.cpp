@@ -13,7 +13,7 @@ class CatalogFunctionsTest
 {
 };
 
-// Test SQLSpecialColumns function
+// Test that `SQLSpecialColumns` returns a dataset in the expected format without any data.
 TEST_F(CatalogFunctionsTest, SQLSpecialColumns)
 {
     SQLRETURN rc = SQL_SUCCESS;
