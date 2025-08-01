@@ -1370,7 +1370,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLStatistics)(HSTMT StatementHandle
             "cast(database, 'Nullable(String)') AS TABLE_CAT, "
             "cast('', 'Nullable(String)') AS TABLE_SCHEM, "
             "cast(table, 'String') AS TABLE_NAME, "
-            "cast(0, 'Int16') AS NON_UNIQUE, "
+            "cast(" + toSqlQueryValue(SQL_FALSE) + ", 'Int16') AS NON_UNIQUE, "
             "cast(NULL, 'Nullable(String)') AS INDEX_QUALIFIER, "
             "cast(name, 'Nullable(String)') AS INDEX_NAME, "
             "cast(" + toSqlQueryValue(SQL_INDEX_OTHER) + ", 'Int16') AS TYPE, "
