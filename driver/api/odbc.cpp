@@ -1373,7 +1373,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLStatistics)(HSTMT StatementHandle
             "cast(0, 'Int16') AS NON_UNIQUE, "
             "cast(NULL, 'Nullable(String)') AS INDEX_QUALIFIER, "
             "cast(name, 'Nullable(String)') AS INDEX_NAME, "
-            "cast(3, 'Int16') AS TYPE, "
+            "cast(" + toSqlQueryValue(SQL_INDEX_OTHER) + ", 'Int16') AS TYPE, "
             "cast(1, 'Int16') AS ORDINAL_POSITION, "
             "cast(NULL, 'Nullable(String)') AS COLUMN_NAME, "
             "cast(NULL, 'Nullable(String)') AS ASC_OR_DESC, "
