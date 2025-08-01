@@ -1331,9 +1331,9 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLSpecialColumns)(HSTMT StatementHa
     std::stringstream query;
     query << "SELECT "
         "cast(NULL, 'Nullable(Int16)') AS SCOPE, "
-        "cast(NULL, 'Nullable(String)') AS COLUMN_NAME, "
-        "cast(NULL, 'Nullable(Int16)') AS DATA_TYPE, "
-        "cast(NULL, 'Nullable(String)') AS TYPE_NAME, "
+        "cast('', 'String') AS COLUMN_NAME, "
+        "cast(0, 'Int16') AS DATA_TYPE, "
+        "cast('', 'String') AS TYPE_NAME, "
         "cast(NULL, 'Nullable(Int32)') AS COLUMN_SIZE, "
         "cast(NULL, 'Nullable(Int32)') AS BUFFER_LENGTH, "
         "cast(NULL, 'Nullable(Int16)') AS DECIMAL_DIGITS, "
