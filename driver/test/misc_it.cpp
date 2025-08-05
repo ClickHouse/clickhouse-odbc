@@ -291,15 +291,6 @@ public:
         : Base(/*skip_connect = */true)
     {
     }
-
-    void connect(const std::string & connection_string) {
-        ASSERT_EQ(hstmt, nullptr);
-
-        auto cs = fromUTF8<PTChar>(connection_string);
-
-        ODBC_CALL_ON_DBC_THROW(hdbc, SQLDriverConnect(hdbc, NULL, ptcharCast(cs.data()), SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT));
-        ODBC_CALL_ON_DBC_THROW(hdbc, SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt));
-    }
 };
 
 TEST_P(HugeIntTypeReporting, Check) {
@@ -350,15 +341,6 @@ public:
     using Base = ClientTestWithParamBase<std::tuple<std::optional<std::string>, std::string>>;
     explicit CustomClientName()
         : Base(/*skip_connect = */true) {}
-
-    void connect(const std::string & connection_string) {
-        ASSERT_EQ(hstmt, nullptr);
-
-        auto cs = fromUTF8<PTChar>(connection_string);
-
-        ODBC_CALL_ON_DBC_THROW(hdbc, SQLDriverConnect(hdbc, NULL, ptcharCast(cs.data()), SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT));
-        ODBC_CALL_ON_DBC_THROW(hdbc, SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt));
-    }
 };
 
 INSTANTIATE_TEST_SUITE_P(CustomUserAgentParams, CustomClientName, ::testing::Values(
