@@ -42,10 +42,9 @@ public: // Configuration fields.
     bool huge_int_as_string = false;
     std::int32_t stringmaxlength = 0;
     bool auto_session_id = false;
+    std::string client_name;
 
 public:
-    std::string useragent;
-
     std::unique_ptr<Poco::Net::HTTPClientSession> session;
     int retry_count = 3;
     int redirect_limit = 10;

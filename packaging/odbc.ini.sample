@@ -38,6 +38,8 @@ Description = DSN (localhost) for ClickHouse ODBC Driver (ANSI)
 
 # AutoSessionId =  off
 
+# ClientName =
+
 [ClickHouse DSN (Unicode)]
 Driver      = ClickHouse ODBC Driver (Unicode)
 Description = DSN (localhost) for ClickHouse ODBC Driver (Unicode)

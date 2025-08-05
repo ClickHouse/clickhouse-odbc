@@ -32,6 +32,7 @@
 #define INI_DRIVERLOG       "DriverLog"
 #define INI_DRIVERLOGFILE   "DriverLogFile"
 #define INI_AUTO_SESSION_ID "AutoSessionId"
+#define INI_CLIENT_NAME     "ClientName"
 
 #if defined(UNICODE)
 #   define INI_DSN_DEFAULT          DSN_DEFAULT_UNICODE
@@ -52,6 +53,7 @@
 #define INI_HUGE_INT_AS_STRING_DEFAULT "off"
 #define INI_STRINGMAXLENGTH_DEFAULT "1048575"
 #define INI_AUTO_SESSION_ID_DEFAULT "off"
+#define INI_CLIENT_NAME_DEFAULT     ""
 
 #ifdef NDEBUG
 #    define INI_DRIVERLOG_DEFAULT "off"
