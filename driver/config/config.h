@@ -32,7 +32,8 @@ struct ConnInfo {
     std::string stringmaxlength;
     std::string driverlog;
     std::string driverlogfile;
-    std::string auto_session_id;
+    std::string autoSessionId;
+    std::string clientName;
 };
 
 key_value_map_t readDSNInfo(const std::string & dsn);

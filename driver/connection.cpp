@@ -404,6 +404,13 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
                 auto_session_id = isYes(value);
             }
         }
+        else if (Poco::UTF8::icompare(key, INI_CLIENT_NAME) == 0) {
+            recognized_key = true;
+            valid_value = true;
+            if (valid_value) {
+                client_name = value;
+            }
+        }
 
         return std::make_tuple(recognized_key, valid_value);
     };
@@ -565,12 +572,12 @@ std::string Connection::buildCredentialsString() const {
 
 std::string Connection::buildUserAgentString() const {
     std::ostringstream user_agent;
+    if (!client_name.empty())
+        user_agent << client_name << " ";
     user_agent << "clickhouse-odbc/" << VERSION_STRING << " (" << SYSTEM_STRING << ")";
 #if defined(UNICODE)
     user_agent << " UNICODE";
 #endif
-    if (!useragent.empty())
-        user_agent << " " << useragent;
     return user_agent.str();
 }
 

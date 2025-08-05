@@ -1,6 +1,7 @@
 #include "driver/platform/platform.h"
 #include "driver/test/client_utils.h"
 #include "driver/test/client_test_base.h"
+#include "driver/test/result_set_reader.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -259,7 +260,11 @@ INSTANTIATE_TEST_SUITE_P(
 
         std::make_tuple("AllGood_AutoSessionId_Empty", "AutoSessionId=",   FailOn::Never),
         std::make_tuple("AllGood_AutoSessionId_On",  "AutoSessionId=on",   FailOn::Never),
-        std::make_tuple("AllGood_AutoSessionId_Off", "AutoSessionId=off",  FailOn::Never)
+        std::make_tuple("AllGood_AutoSessionId_Off", "AutoSessionId=off",  FailOn::Never),
+
+        std::make_tuple("AllGood_ClientName_Empty", "ClientName=",   FailOn::Never),
+        std::make_tuple("AllGood_ClientName_Plain",  "ClientName=TestApp/0.1 (TestOS)",   FailOn::Never),
+        std::make_tuple("AllGood_ClientName_Wrapped", "ClientName={TestApp/0.1; (TestOS)}",  FailOn::Never)
     ),
     [] (const auto & param_info) {
         return std::get<0>(param_info.param);
@@ -337,3 +342,62 @@ INSTANTIATE_TEST_SUITE_P(
         return std::get<0>(std::get<1>(param_info.param)) + "_with_" + std::get<0>(param_info.param);
     }
 );
+
+class CustomClientName
+    : public ClientTestWithParamBase<std::tuple<std::optional<std::string>, std::string>>
+{
+public:
+    using Base = ClientTestWithParamBase<std::tuple<std::optional<std::string>, std::string>>;
+    explicit CustomClientName()
+        : Base(/*skip_connect = */true) {}
+
+    void connect(const std::string & connection_string) {
+        ASSERT_EQ(hstmt, nullptr);
+
+        auto cs = fromUTF8<PTChar>(connection_string);
+
+        ODBC_CALL_ON_DBC_THROW(hdbc, SQLDriverConnect(hdbc, NULL, ptcharCast(cs.data()), SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT));
+        ODBC_CALL_ON_DBC_THROW(hdbc, SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt));
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(CustomUserAgentParams, CustomClientName, ::testing::Values(
+    std::make_tuple("Test/0.0 (TestOS)", "Test/0.0 (TestOS) "),
+    std::make_tuple("{Test/0.0 (TestOS)}", "Test/0.0 (TestOS) "),
+    std::make_tuple("", ""),
+    std::make_tuple(std::nullopt, "")
+));
+
+TEST_P(CustomClientName, UserAgentTest) {
+    const auto & [client_name, user_agent_prefix] = GetParam();
+
+    // Example: TestApp/0.1 (TestOS) clickhouse-odbc/1.4.2.20250618 (Linux-6.14.6-200.fc41.x86_64) UNICODE
+    const std::string expected_user_agent
+        = user_agent_prefix + "clickhouse-odbc/" + VERSION_STRING + " (" + SYSTEM_STRING + ")";
+
+    const auto & dsn = TestEnvironment::getInstance().getDSN();
+    auto cs = "DSN=" + dsn;
+    if (client_name)
+        cs += ";ClientName=" + *client_name;
+    connect(cs);
+
+    auto query = fromUTF8<PTChar>("SELECT query_id, http_user_agent FROM system.processes");
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
+
+    SQLLEN sql_type = SQL_TYPE_NULL;
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLColAttribute(hstmt, 1, SQL_DESC_TYPE, NULL, 0, NULL, &sql_type));
+
+    const auto query_id = getQueryId();
+
+    ResultSetReader reader{hstmt};
+    while (reader.fetch())
+    {
+        if (reader.getData<std::string>("query_id").value() == query_id)
+        {
+            const auto entry_user_agent = reader.getData<std::string>("http_user_agent").value_or("");
+            ASSERT_TRUE(entry_user_agent.starts_with(expected_user_agent));
+            return;
+        }
+        FAIL() << "Entry for query id " << query_id << " has not been found";
+    }
+}
