@@ -34,6 +34,19 @@ public:
         }
     }
 
+    void connectWithDSN(const std::string & dsn)
+    {
+        auto encoded_dsn = fromUTF8<PTChar>(dsn);
+        ODBC_CALL_ON_DBC_THROW(hdbc, SQLConnect(hdbc, ptcharCast(encoded_dsn.data()), SQL_NTS, NULL, 0, NULL, 0));
+        ODBC_CALL_ON_DBC_THROW(hdbc, SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt));
+    }
+
+    void connect(const std::string & connection_string) {
+        auto encoded_cs = fromUTF8<PTChar>(connection_string);
+        ODBC_CALL_ON_DBC_THROW(hdbc, SQLDriverConnect(hdbc, NULL, ptcharCast(encoded_cs.data()), SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT));
+        ODBC_CALL_ON_DBC_THROW(hdbc, SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt));
+    }
+
     std::string getQueryId()
     {
         char query_id_data[74] = {};
@@ -70,13 +83,8 @@ protected:
 
         ODBC_CALL_ON_ENV_THROW(henv, SQLAllocHandle(SQL_HANDLE_DBC, henv, &hdbc));
 
-        if (!skip_connect_) {
-            auto dsn = fromUTF8<PTChar>(TestEnvironment::getInstance().getDSN());
-            auto * dsn_wptr =dsn.data();
-
-            ODBC_CALL_ON_DBC_THROW(hdbc, SQLConnect(hdbc, ptcharCast(dsn_wptr), SQL_NTS, NULL, 0, NULL, 0));
-            ODBC_CALL_ON_DBC_THROW(hdbc, SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &hstmt));
-        }
+        if (!skip_connect_)
+            connectWithDSN(TestEnvironment::getInstance().getDSN());
     }
 
     virtual void TearDown() override {
