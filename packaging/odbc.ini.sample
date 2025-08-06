@@ -8,37 +8,40 @@ ClickHouse DSN (Unicode) = ClickHouse ODBC Driver (Unicode)
 Driver      = ClickHouse ODBC Driver (ANSI)
 Description = DSN (localhost) for ClickHouse ODBC Driver (ANSI)
 
-### New all-in one way to specify connection with [optional] settings:
-# Url = https://default:password@localhost:8443/query?database=default&max_result_bytes=4000000&buffer_size=3000000
-
+### All-in one way to specify connection with [optional] settings:
+# Url = https://default:password@localhost:8443/query?database=default
+#
 # ...or minimal (will connect to port 8443 if protocol is "https://" or 8123 if it is "http://"):
 # Url = https://localhost
-
-### Old way:
-# Server = localhost
-# Database = default
-# UID = default
-# PWD = password
-# Port = 8123
-# Proto = http
-
-# Timeout for http queries to ClickHouse server (default is 30 seconds)
-# Timeout=60
-
-# SSLMode:
-#   allow   - ignore self-signed and bad certificates
-#   require - check certificates (and fail connection if something wrong)
-# SSLMode = require
-# PrivateKeyFile =
-# CertificateFile =
-# CALocation =
-
-# DriverLog = yes
-# DriverLogFile = /tmp/chlickhouse-odbc-driver.log
-
-# AutoSessionId =  off
-
-# ClientName =
+#
+# Otherwise you can set the Server, Database, UID, PWD, Port and Proto parameters.
+#
+# Possible parameters with default values:
+#
+# Url =                         # URL that points to a running ClickHouse instance, may include username, password, port, database, etc.
+# Proto =                       # One of: http, https. When empty it is deduced from Url, or from Port and SSLMode: https if 443 or 8443 or SSLMode is not empty, http otherwise.
+# Server =                      # IP or hostname of a server with a running ClickHouse instance on it. When empty it is deduced from URL.
+# Host =                        # Alias for Server.
+# Port =                        # Port on which the ClickHouse instance is listening. When empty it is deduced from Url, or from Proto: 8443 if https, 8123 otherwise.
+# Path = /query                 # The URL path.
+# Username = default
+# UID =                         # Alias for Username.
+# Password =
+# PWD =                         # Alias for Password.
+# Database = default            # Database name.
+# Timeout = 30                  # Connection timeout in seconds.
+# VerifyConnectionEarly = off   # Verify the connection and credentials during SQLConnect and similar calls, otherwise it is done when querying the data.
+# SSLMode =                     # Certificate verification method (for TLS/SSL connections, ignored in Windows), use `allow` to ignore self-signed and bad certificates.
+#                               # Other values, including empty, enable strict verification
+# PrivateKeyFile =              # Path to private key file (for TLS/SSL connections, ignored in Windows)
+# CertificateFile =             # Path to certificate file (for TLS/SSL connections, ignored in Windows)
+# CALocation =                  # Path to the file or directory containing the CA/root certificates (used by TLS/SSL connections, ignored in Windows)
+# HugeIntAsString =             # Report integer column types that may underflow or overflow 64-bit signed integer (SQL_BIGINT) as a String/SQL_VARCHAR
+# DriverLog = off               # Enable or disable the extended driver logging (enabled by default for Debug builds)
+# DriverLogFile = \temp\clickhouse-odbc-driver.log # or /tmp/clickhouse-odbc-driver.log on Linux and macOS.
+#                               # Path to the extended driver log file
+# AutoSessionId = off           # Auto generate session_id required to use some features of CH (e.g. TEMPORARY TABLE)
+# ClientName =                  # Sets additional information about the calling application. This string will be used as a prefix for the User-Agent header.
 
 [ClickHouse DSN (Unicode)]
 Driver      = ClickHouse ODBC Driver (Unicode)
