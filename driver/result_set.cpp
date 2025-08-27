@@ -1,6 +1,7 @@
 #include "driver/result_set.h"
 #include "driver/format/ODBCDriver2.h"
 #include "driver/format/RowBinaryWithNamesAndTypes.h"
+#include "Poco/InflatingStream.h"
 
 const std::string::size_type initial_string_capacity_g = std::string{}.capacity();
 
@@ -323,15 +324,32 @@ std::unique_ptr<ResultMutator> ResultReader::releaseMutator() {
     return std::move(result_mutator);
 }
 
-std::unique_ptr<ResultReader> make_result_reader(const std::string & format, const std::string & timezone, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator) {
+std::unique_ptr<ResultReader>
+make_result_reader(const std::string &format, const std::string &timezone,
+                   const std::string &compression, std::istream &raw_stream,
+                   std::unique_ptr<ResultMutator> &&mutator) {
     if (format == "ODBCDriver2") {
-        return std::make_unique<ODBCDriver2ResultReader>(timezone, raw_stream, std::move(mutator));
-    }
-    else if (format == "RowBinaryWithNamesAndTypes") {
-        if (!isLittleEndian())
-            throw std::runtime_error("'" + format + "' format is supported only on little-endian platforms");
+        std::istream *stream_ptr = nullptr;
 
-        return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(timezone, raw_stream, std::move(mutator));
+        if (compression == "gzip") {
+            Poco::InflatingInputStream inflater(
+                raw_stream, Poco::InflatingStreamBuf::STREAM_GZIP);
+            stream_ptr = &inflater;
+        } else {
+            stream_ptr = &raw_stream;
+        }
+
+        return std::make_unique<ODBCDriver2ResultReader>(timezone, raw_stream,
+            std::move(mutator));
+
+    } else if (format == "RowBinaryWithNamesAndTypes") {
+        if (!isLittleEndian())
+            throw std::runtime_error(
+                "'" + format +
+                "' format is supported only on little-endian platforms");
+
+        return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(
+            timezone, raw_stream, std::move(mutator));
     }
 
     throw std::runtime_error("'" + format + "' format is not supported");

@@ -153,7 +153,10 @@ protected:
     std::unique_ptr<ResultSet> result_set;
 };
 
-std::unique_ptr<ResultReader> make_result_reader(const std::string & format, const std::string & timezone, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator);
+std::unique_ptr<ResultReader>
+make_result_reader(const std::string &format, const std::string &timezone, const std::string &compression,
+                   std::istream &raw_stream,
+                   std::unique_ptr<ResultMutator> &&mutator);
 
 template <typename ConversionContext>
 SQLRETURN Field::extract(BindingInfo & binding_info, ConversionContext && context) const {
