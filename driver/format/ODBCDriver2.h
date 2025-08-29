@@ -62,7 +62,8 @@ class ODBCDriver2ResultReader
     : public ResultReader
 {
 public:
-    explicit ODBCDriver2ResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator);
+    explicit ODBCDriver2ResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator);
+    explicit ODBCDriver2ResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<Poco::InflatingInputStream> && inflating_input_stream);
     virtual ~ODBCDriver2ResultReader() override = default;
 
     virtual bool advanceToNextResultSet() override;
