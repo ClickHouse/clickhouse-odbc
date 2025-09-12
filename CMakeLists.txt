@@ -47,7 +47,7 @@ string (TOUPPER "${CMAKE_CONFIGURATION_TYPES}" CMAKE_CONFIGURATION_TYPES_UC)
 include(CMakeDependentOption)
 
 include (cmake/os.cmake)
-option(BUILD_TESTING "Build test targets" ON)
+option(BUILD_TESTING "Build test targets" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
 option (CH_ODBC_ALLOW_UNSAFE_DISPATCH "Allow unchecked handle dispatching (may slightly increase performance in some scenarios)" ON)
