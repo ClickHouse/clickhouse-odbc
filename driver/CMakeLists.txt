@@ -188,7 +188,7 @@ endif()
 
 if (OS_LINUX OR OS_DARWIN)
     target_link_libraries (${libname}-impl
-        PRIVATE ch_contrib::unixodbc
+        PUBLIC ch_contrib::unixodbc
         PRIVATE ch_contrib::nanodbc
     )
 elseif (OS_WINDOWS)
