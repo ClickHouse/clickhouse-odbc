@@ -77,6 +77,8 @@ jobs:
         -D ODBC_PROVIDER=UnixODBC
         -D TEST_DSN_LIST="ClickHouse DSN (ANSI);ClickHouse DSN (Unicode)"
         -D CH_ODBC_ENABLE_CODE_COVERAGE=ON
+        -D BUILD_TESTING=YES
+
 
     - name: Build
       run: cmake --build ${{ github.workspace }}/build --config Debug --parallel $(nproc)
