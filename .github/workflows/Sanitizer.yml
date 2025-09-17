@@ -72,6 +72,7 @@ jobs:
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DTEST_DSN_LIST="ClickHouse DSN (ANSI);ClickHouse DSN (Unicode)"
         -DSANITIZE=${{ matrix.sanitizer }}
+        -DBUILD_TESTING=YES
 
     - name: Build
       run: >

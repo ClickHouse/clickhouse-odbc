@@ -61,11 +61,13 @@ jobs:
       run: >
         cmake -S ${{ github.workspace }}/source -B ${{ github.workspace }}/build
         -A ${{ fromJSON('{"x86": "Win32", "x64": "x64"}')[matrix.architecture] }}
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DODBC_PROVIDER=${{ matrix.odbc_provider }}
         -DCH_ODBC_RUNTIME_LINK_STATIC=OFF
         -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=ON
         -DTEST_DSN_LIST="ClickHouse DSN ANSI;ClickHouse DSN Unicode"
+        -DBUILD_TESTING=YES
 
     - name: Build
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }}

@@ -100,6 +100,8 @@ jobs:
         -DCH_ODBC_RUNTIME_LINK_STATIC=${{ fromJSON('{"static-runtime": "ON", "dynamic-runtime": "OFF"}')[matrix.runtime_link] }}
         -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=${{ fromJSON('{"bundled-third-parties": "ON", "system-third-parties": "OFF"}')[matrix.third_parties] }}
         -DTEST_DSN_LIST="ClickHouse DSN (ANSI);ClickHouse DSN (Unicode)"
+        -DBUILD_TESTING=YES
+
 
     - name: Build
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --parallel $(nproc)
