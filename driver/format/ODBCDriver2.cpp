@@ -254,7 +254,7 @@ ODBCDriver2ResultReader::ODBCDriver2ResultReader(const std::string & timezone_, 
     result_set = std::make_unique<ODBCDriver2ResultSet>(timezone, stream, releaseMutator());
 }
 
-ODBCDriver2ResultReader::ODBCDriver2ResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<Poco::InflatingInputStream> && inflating_input_stream)
+ODBCDriver2ResultReader::ODBCDriver2ResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream /*Poco::InflatingInputStream*/> && inflating_input_stream)
   : ResultReader(timezone_, raw_stream, std::move(mutator), std::move(inflating_input_stream))
 {
     if (stream.eof())

@@ -77,6 +77,7 @@ add_library (${libname}-impl STATIC
     object.cpp
     result_set.cpp
     statement.cpp
+		lz4_inflating_input_stream.cpp
 
 
     ${CMAKE_CURRENT_BINARY_DIR}/platform/config_cmake${WIDECHAR_SUFFIX}.h
@@ -119,6 +120,7 @@ add_library (${libname}-impl STATIC
     object.h
     result_set.h
     statement.h
+		lz4_inflating_input_stream.h
 )
 
 if (CH_ODBC_ENABLE_CODE_COVERAGE)
