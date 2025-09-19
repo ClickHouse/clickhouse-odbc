@@ -139,7 +139,7 @@ protected:
 class ResultReader {
 protected:
     explicit ResultReader(const std::string & timezone_, std::istream * stream, std::unique_ptr<ResultMutator> && mutator);
-  explicit ResultReader(const std::string & timezone_, std::istream * stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream);
+    explicit ResultReader(const std::string & timezone_, std::istream * stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream);
 
 public:
     virtual ~ResultReader() = default;

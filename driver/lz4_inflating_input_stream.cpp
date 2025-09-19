@@ -14,7 +14,7 @@ LZ4InflatingStreamBuf::LZ4InflatingStreamBuf(std::istream & istr)
     if (LZ4F_isError(ret))
         throw SqlException("Cannot decompress data received from server");
 
-    compressedBuffer.resize(STREAM_BUFFER_SIZE);
+    compressed_buffer.resize(STREAM_BUFFER_SIZE);
 }
 
 LZ4InflatingStreamBuf::~LZ4InflatingStreamBuf() {
@@ -40,16 +40,16 @@ int LZ4InflatingStreamBuf::readFromDevice(char * dst_buffer, std::streamsize len
             }
             if (need_more_input) {
                 assert(bytes_left);
-                if (compressedBuffer.size() <= bytes_left) {
+                if (compressed_buffer.size() <= bytes_left) {
                     throw Poco::IOException(std::string("LZ4 decompression failed, internal error (not enough room to create data chunk"));
                 }
                 LOG("LZ4InflatingInputStream::readFromDevice: moving tail of " << bytes_left << " bytes (pretty rare case)");
-                memmove(compressedBuffer.data(), src_buffer, bytes_left);
+                memmove(compressed_buffer.data(), src_buffer, bytes_left);
             }
 
-            pIstr->read(compressedBuffer.data() + bytes_left, static_cast<std::streamsize>(compressedBuffer.size() - bytes_left));
+            pIstr->read(compressed_buffer.data() + bytes_left, static_cast<std::streamsize>(compressed_buffer.size() - bytes_left));
             bytes_left += pIstr->gcount();
-            src_buffer = compressedBuffer.data();
+            src_buffer = compressed_buffer.data();
             LOG("LZ4InflatingInputStream::readFromDevice: bytes_left=" << bytes_left);
         }
 

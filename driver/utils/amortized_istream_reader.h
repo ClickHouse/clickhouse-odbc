@@ -83,6 +83,9 @@ private:
     }
 
     void tryPrepare(std::size_t count) {
+        if (!raw_stream_)
+            return;
+
         const auto avail = available();
 
         if (avail < count) {

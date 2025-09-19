@@ -312,7 +312,7 @@ ResultReader::ResultReader(const std::string & timezone_, std::istream * raw_str
 {
 }
 
-ResultReader::ResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream /*Poco::InflatingInputStream*/> && inflating_input_stream_)
+ResultReader::ResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream_)
     : timezone(timezone_)
     , stream(raw_stream)
     , result_mutator(std::move(mutator))
