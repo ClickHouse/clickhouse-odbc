@@ -2,6 +2,10 @@
 #include "driver/format/ODBCDriver2.h"
 #include "driver/format/RowBinaryWithNamesAndTypes.h"
 
+#include "driver/lz4_inflating_input_stream.h"
+#include "Poco/InflatingStream.h"
+#include <Poco/BufferedStreamBuf.h>
+
 const std::string::size_type initial_string_capacity_g = std::string{}.capacity();
 
 void ColumnInfo::assignTypeInfo(const TypeAst & ast, const std::string & default_timezone) {
@@ -301,10 +305,18 @@ void ResultSet::retireRow(Row && row) {
     row_pool.put(std::move(row));
 }
 
-ResultReader::ResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
+ResultReader::ResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator)
     : timezone(timezone_)
     , stream(raw_stream)
     , result_mutator(std::move(mutator))
+{
+}
+
+ResultReader::ResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream_)
+    : timezone(timezone_)
+    , stream(raw_stream)
+    , result_mutator(std::move(mutator))
+    , inflating_input_stream(std::move(inflating_input_stream_))
 {
 }
 
@@ -323,15 +335,33 @@ std::unique_ptr<ResultMutator> ResultReader::releaseMutator() {
     return std::move(result_mutator);
 }
 
-std::unique_ptr<ResultReader> make_result_reader(const std::string & format, const std::string & timezone, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator) {
-    if (format == "ODBCDriver2") {
-        return std::make_unique<ODBCDriver2ResultReader>(timezone, raw_stream, std::move(mutator));
+std::unique_ptr<ResultReader> make_result_reader(const std::string & format,
+        const std::string & timezone,
+        const std::string & compression,
+        std::istream & raw_stream,
+        std::unique_ptr<ResultMutator> && mutator) {
+    std::istream * stream_ptr = nullptr;
+    std::unique_ptr<std::istream> inflating_input_stream;
+
+    if (compression == "gzip" || compression == "deflate") {
+        inflating_input_stream = make_unique<Poco::InflatingInputStream>(raw_stream, Poco::InflatingStreamBuf::STREAM_GZIP);
+        stream_ptr = inflating_input_stream.get();
+    } else if (compression == "lz4") {
+        inflating_input_stream = make_unique<LZ4InflatingInputStream>(raw_stream);
+        stream_ptr = inflating_input_stream.get();
+    } else {
+        stream_ptr = &raw_stream;
     }
-    else if (format == "RowBinaryWithNamesAndTypes") {
+
+    if (format == "ODBCDriver2") {
+        return std::make_unique<ODBCDriver2ResultReader>(timezone, stream_ptr, std::move(mutator), std::move(inflating_input_stream));
+
+    } else if (format == "RowBinaryWithNamesAndTypes") {
         if (!isLittleEndian())
             throw std::runtime_error("'" + format + "' format is supported only on little-endian platforms");
 
-        return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(timezone, raw_stream, std::move(mutator));
+        return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(
+            timezone, stream_ptr, std::move(mutator), std::move(inflating_input_stream));
     }
 
     throw std::runtime_error("'" + format + "' format is not supported");
