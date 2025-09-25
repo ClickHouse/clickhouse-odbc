@@ -19,12 +19,14 @@ public:
     explicit AmortizedIStreamReader(std::istream * raw_stream)
         : raw_stream_(raw_stream)
     {
+        if (!raw_stream)
+            throw std::invalid_argument("raw_stream is required, internal error");
     }
 
     ~AmortizedIStreamReader() {
         // Put back any pre-read characters, just in case...
         // (it should be done in reverse order)
-        if (available() > 0) {
+        if (raw_stream_ && available() > 0) {
             for (auto it = buffer_.rbegin(); it < buffer_.rend() - offset_; ++it) {
                 raw_stream_->putback(*it);
             }
