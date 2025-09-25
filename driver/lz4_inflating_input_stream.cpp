@@ -41,7 +41,7 @@ int LZ4InflatingStreamBuf::readFromDevice(char * dst_buffer, std::streamsize len
             if (need_more_input) {
                 assert(bytes_left);
                 if (compressed_buffer.size() <= bytes_left) {
-                    throw Poco::IOException(std::string("LZ4 decompression failed, internal error (not enough room to create data chunk"));
+                    throw Poco::IOException(std::string("LZ4 decompression failed, internal error (not enough room to create data chunk)"));
                 }
                 LOG("LZ4InflatingInputStream::readFromDevice: moving tail of " << bytes_left << " bytes (pretty rare case)");
                 memmove(compressed_buffer.data(), src_buffer, bytes_left);
