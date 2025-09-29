@@ -212,14 +212,14 @@ BinaryWriter& BinaryWriter::operator << (double value)
 }
 
 
-#if defined(POCO_HAVE_INT64) && !defined(POCO_LONG_IS_64_BIT)
+#if defined(POCO_HAVE_INT64)
 
 
-BinaryWriter& BinaryWriter::operator << (Int64 value)
+BinaryWriter& BinaryWriter::operator << (long long value)
 {
 	if (_flipBytes)
 	{
-		Int64 fValue = ByteOrder::flipBytes(value);
+		Int64 fValue = ByteOrder::flipBytes(static_cast<Int64>(value));
 		_ostr.write((const char*) &fValue, sizeof(fValue));
 	}
 	else
@@ -230,11 +230,11 @@ BinaryWriter& BinaryWriter::operator << (Int64 value)
 }
 
 
-BinaryWriter& BinaryWriter::operator << (UInt64 value)
+BinaryWriter& BinaryWriter::operator << (unsigned long long value)
 {
 	if (_flipBytes)
 	{
-		UInt64 fValue = ByteOrder::flipBytes(value);
+		UInt64 fValue = ByteOrder::flipBytes(static_cast<UInt64>(value));
 		_ostr.write((const char*) &fValue, sizeof(fValue));
 	}
 	else
@@ -271,7 +271,7 @@ BinaryWriter& BinaryWriter::operator << (const std::string& value)
 BinaryWriter& BinaryWriter::operator << (const char* value)
 {
 	poco_check_ptr (value);
-	
+
 	if (_pTextConverter)
 	{
 		std::string converted;
@@ -331,6 +331,15 @@ void BinaryWriter::writeRaw(const std::string& rawData)
 void BinaryWriter::writeRaw(const char* buffer, std::streamsize length)
 {
 	_ostr.write(buffer, length);
+}
+
+
+void BinaryWriter::writeCString(const char* cString, std::streamsize maxLength)
+{
+	const std::size_t len = ::strnlen(cString, static_cast<std::size_t>(maxLength));
+	writeRaw(cString, len);
+	static const char zero = '\0';
+	_ostr.write(&zero, sizeof(zero));
 }
 
 

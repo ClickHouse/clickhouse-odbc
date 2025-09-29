@@ -16,6 +16,7 @@
 #include "Poco/Path.h"
 #include "Poco/DirectoryIterator.h"
 #include "Poco/Timestamp.h"
+#include <algorithm>
 
 
 namespace Poco {
@@ -58,6 +59,26 @@ void PurgeStrategy::list(const std::string& path, std::vector<File>& files)
 
 
 //
+// NullPurgeStrategy
+// 
+
+
+NullPurgeStrategy::NullPurgeStrategy()
+{
+}
+
+
+NullPurgeStrategy::~NullPurgeStrategy()
+{
+}
+
+
+void NullPurgeStrategy::purge(const std::string& path)
+{
+}
+
+
+//
 // PurgeByAgeStrategy
 //
 
@@ -76,11 +97,11 @@ void PurgeByAgeStrategy::purge(const std::string& path)
 {
 	std::vector<File> files;
 	list(path, files);
-	for (std::vector<File>::iterator it = files.begin(); it != files.end(); ++it)
+	for (auto& f: files)
 	{
-		if (it->getLastModified().isElapsed(_age.totalMicroseconds()))
+		if (f.getLastModified().isElapsed(_age.totalMicroseconds()))
 		{
-			it->remove();
+			f.remove();
 		}
 	}
 }
@@ -106,6 +127,14 @@ void PurgeByCountStrategy::purge(const std::string& path)
 {
 	std::vector<File> files;
 	list(path, files);
+
+	// Order files in ascending name order. Files with largest
+	// sequence number will be deleted in case that multiple files
+	// have the same modification time.
+	std::sort (files.begin(), files.end(),
+		[](const Poco::File& a, const Poco::File& b) { return a.path() < b.path(); }
+	);
+
 	while (files.size() > _count)
 	{
 		std::vector<File>::iterator it = files.begin();

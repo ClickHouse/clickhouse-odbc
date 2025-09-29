@@ -3,7 +3,7 @@
 //
 // Library: Foundation
 // Package: Notifications
-// Module:  NotificationCenter
+// Module:  NObserver
 //
 // Definition of the NObserver class template.
 //
@@ -30,92 +30,124 @@ template <class C, class N>
 class NObserver: public AbstractObserver
 	/// This template class implements an adapter that sits between
 	/// a NotificationCenter and an object receiving notifications
-	/// from it. It is quite similar in concept to the 
+	/// from it. It is quite similar in concept to the
 	/// RunnableAdapter, but provides some NotificationCenter
 	/// specific additional methods.
 	/// See the NotificationCenter class for information on how
 	/// to use this template class.
 	///
 	/// This class template is quite similar to the Observer class
-	/// template. The only difference is that the NObserver
-	/// expects the callback function to accept a const AutoPtr& 
-	/// instead of a plain pointer as argument, thus simplifying memory
-	/// management.
+	/// template. The differences are:
+	///
+	///   - NObserver expects the callback function to accept a const AutoPtr&
+	///     instead of a plain pointer as argument, thus simplifying memory
+	///     management.
+	///
+	///   - In addition to dispatching notifications based on the Notification runtime
+	///     type, NObserver can also notify subscribers based on the Notification name.
+	///     To enable this functionality, a matcher function must be provided.
+	///     Null matcher means no matching is performed and all notificiations
+	///     of the type subscribed to are dispatched.
 {
 public:
-	typedef AutoPtr<N> NotificationPtr;
-	typedef void (C::*Callback)(const NotificationPtr&);
+	using Type = NObserver<C, N>;
+	using NotificationPtr = AutoPtr<N>;
+	using Callback = void (C::*)(const NotificationPtr&);
+	using Handler = Callback;
+	using Matcher = bool (C::*)(const std::string&) const;
 
-	NObserver(C& object, Callback method): 
-		_pObject(&object), 
-		_method(method)
+	NObserver() = delete;
+
+	NObserver(C& object, Handler method, Matcher matcher = nullptr):
+		_pObject(&object),
+		_handler(method),
+		_matcher(matcher)
 	{
 	}
-	
+
 	NObserver(const NObserver& observer):
 		AbstractObserver(observer),
-		_pObject(observer._pObject), 
-		_method(observer._method)
+		_pObject(observer._pObject),
+		_handler(observer._handler),
+		_matcher(observer._matcher)
 	{
 	}
-	
+
 	~NObserver()
 	{
 	}
-	
+
 	NObserver& operator = (const NObserver& observer)
 	{
 		if (&observer != this)
 		{
 			_pObject = observer._pObject;
-			_method  = observer._method;
+			_handler  = observer._handler;
+			_matcher  = observer._matcher;
 		}
 		return *this;
 	}
-	
-	void notify(Notification* pNf) const
-	{
-		Poco::Mutex::ScopedLock lock(_mutex);
 
-		if (_pObject)
-		{
-			N* pCastNf = dynamic_cast<N*>(pNf);
-			if (pCastNf)
-			{
-				NotificationPtr ptr(pCastNf, true);
-				(_pObject->*_method)(ptr);
-			}
-		}
+	virtual void notify(Notification* pNf) const
+	{
+		handle(NotificationPtr(static_cast<N*>(pNf), true));
 	}
-	
-	bool equals(const AbstractObserver& abstractObserver) const
+
+	virtual bool equals(const AbstractObserver& abstractObserver) const
 	{
 		const NObserver* pObs = dynamic_cast<const NObserver*>(&abstractObserver);
-		return pObs && pObs->_pObject == _pObject && pObs->_method == _method;
+		return pObs && pObs->_pObject == _pObject && pObs->_handler == _handler && pObs->_matcher == _matcher;
 	}
 
-	bool accepts(Notification* pNf) const
+	POCO_DEPRECATED("use `bool accepts(const Notification::Ptr&)` instead")
+	virtual bool accepts(Notification* pNf, const char* pName) const
 	{
-		return dynamic_cast<N*>(pNf) != 0;
+		return (!pName || pNf->name() == pName) && dynamic_cast<N*>(pNf) != nullptr;
 	}
-	
-	AbstractObserver* clone() const
+
+	virtual bool accepts(const Notification::Ptr& pNf) const
+	{
+		return (match(pNf) && (pNf.template cast<N>() != nullptr));
+	}
+
+	virtual AbstractObserver* clone() const
 	{
 		return new NObserver(*this);
 	}
-	
-	void disable()
+
+	virtual void disable()
 	{
 		Poco::Mutex::ScopedLock lock(_mutex);
-		
-		_pObject = 0;
+
+		_pObject = nullptr;
+	}
+
+protected:
+
+	void handle(const NotificationPtr& ptr) const
+	{
+		Mutex::ScopedLock lock(_mutex);
+
+		if (_pObject)
+			(_pObject->*_handler)(ptr);
+	}
+
+	bool match(const Notification::Ptr& ptr) const
+	{
+		Mutex::ScopedLock l(_mutex);
+
+		return _pObject && (!_matcher || (_pObject->*_matcher)(ptr->name()));
+	}
+
+	Mutex& mutex() const
+	{
+		return _mutex;
 	}
 
 private:
-	NObserver();
-
 	C*       _pObject;
-	Callback _method;
+	Callback _handler;
+	Matcher _matcher;
 	mutable Poco::Mutex _mutex;
 };
 

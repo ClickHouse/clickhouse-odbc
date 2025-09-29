@@ -16,13 +16,18 @@
 #include "Poco/Exception.h"
 #include "Poco/UnicodeConverter.h"
 #include "Poco/Buffer.h"
+
 #include <sstream>
 #include <cstring>
+#include <memory>
 #include "Poco/UnWindows.h"
+
 #include <winsock2.h>
-#include <wincrypt.h>
-#include <ws2ipdef.h>
 #include <iphlpapi.h>
+
+#if defined(_MSC_VER)
+#pragma warning(disable:4996) // deprecation warnings
+#endif
 
 
 namespace Poco {
@@ -87,16 +92,23 @@ std::string EnvironmentImpl::osNameImpl()
 
 std::string EnvironmentImpl::osDisplayNameImpl()
 {
-	OSVERSIONINFOEX vi;	// OSVERSIONINFOEX is supported starting at Windows 2000 
+	OSVERSIONINFOEX vi;	// OSVERSIONINFOEX is supported starting at Windows 2000
 	vi.dwOSVersionInfoSize = sizeof(vi);
-	if (GetVersionEx((OSVERSIONINFO*) &vi) == 0) throw SystemException("Cannot get OS version information");
+	if (GetVersionEx((OSVERSIONINFO*)&vi) == 0) throw SystemException("Cannot get OS version information");
 	switch (vi.dwMajorVersion)
 	{
 	case 10:
 		switch (vi.dwMinorVersion)
 		{
 		case 0:
-			return vi.wProductType == VER_NT_WORKSTATION ? "Windows 10" : "Windows Server 2016";
+			if (vi.dwBuildNumber >= 22000)
+				return "Windows 11";
+			else if (vi.dwBuildNumber >= 20348 && vi.wProductType != VER_NT_WORKSTATION)
+				return "Windows Server 2022";
+			else if (vi.dwBuildNumber >= 17763 && vi.wProductType != VER_NT_WORKSTATION)
+				return "Windows Server 2019";
+			else
+				return vi.wProductType == VER_NT_WORKSTATION ? "Windows 10" : "Windows Server 2016";
 		}
 	case 6:
 		switch (vi.dwMinorVersion)
@@ -148,27 +160,39 @@ std::string EnvironmentImpl::osVersionImpl()
 std::string EnvironmentImpl::osArchitectureImpl()
 {
 	SYSTEM_INFO si;
-	GetSystemInfo(&si);
+	GetNativeSystemInfo(&si);
 	switch (si.wProcessorArchitecture)
 	{
 	case PROCESSOR_ARCHITECTURE_INTEL:
-		return "IA32";
+		return "IA32"s;
 	case PROCESSOR_ARCHITECTURE_MIPS:
-		return "MIPS";
+		return "MIPS"s;
 	case PROCESSOR_ARCHITECTURE_ALPHA:
-		return "ALPHA";
+		return "ALPHA"s;
 	case PROCESSOR_ARCHITECTURE_PPC:
-		return "PPC";
+		return "PPC"s;
+	case PROCESSOR_ARCHITECTURE_SHX:
+		return "SHX"s;
+	case PROCESSOR_ARCHITECTURE_ARM:
+		return "ARM"s;
 	case PROCESSOR_ARCHITECTURE_IA64:
 		return "IA64";
-#ifdef PROCESSOR_ARCHITECTURE_IA32_ON_WIN64
-	case PROCESSOR_ARCHITECTURE_IA32_ON_WIN64:
-		return "IA64/32";
-#endif
-#ifdef PROCESSOR_ARCHITECTURE_AMD64
+	case PROCESSOR_ARCHITECTURE_ALPHA64:
+		return "ALPHA64"s;
+	case PROCESSOR_ARCHITECTURE_MSIL:
+		return "MSIL"s;
 	case PROCESSOR_ARCHITECTURE_AMD64:
-		return "AMD64";
-#endif
+		return "AMD64"s;
+	case PROCESSOR_ARCHITECTURE_IA32_ON_WIN64:
+		return "IA64/32"s;
+	case PROCESSOR_ARCHITECTURE_NEUTRAL:
+		return "NEUTRAL"s;
+	case PROCESSOR_ARCHITECTURE_ARM64:
+		return "ARM64"s;
+	case PROCESSOR_ARCHITECTURE_ARM32_ON_WIN64:
+		return "IA64/ARM"s;
+	case PROCESSOR_ARCHITECTURE_IA32_ON_ARM64:
+		return "ARM64/IA32"s;
 	default:
 		return "Unknown";
 	}
@@ -190,44 +214,67 @@ void EnvironmentImpl::nodeIdImpl(NodeId& id)
 {
 	std::memset(&id, 0, sizeof(id));
 
-	PIP_ADAPTER_INFO pAdapterInfo;
-	PIP_ADAPTER_INFO pAdapter = 0;
-	ULONG len    = sizeof(IP_ADAPTER_INFO);
-	pAdapterInfo = reinterpret_cast<IP_ADAPTER_INFO*>(new char[len]);
-	// Make an initial call to GetAdaptersInfo to get
-	// the necessary size into len
-	DWORD rc = GetAdaptersInfo(pAdapterInfo, &len);
-	if (rc == ERROR_BUFFER_OVERFLOW) 
+	// Preallocate buffer for some adapters to avoid calling
+	// GetAdaptersAddresses multiple times.
+	static constexpr int STARTING_BUFFER_SIZE = 20000;
+
+	auto buffer = std::make_unique<unsigned char[]>(STARTING_BUFFER_SIZE);
+	ULONG len = STARTING_BUFFER_SIZE;
+
+	// use GAA_FLAG_SKIP_DNS_SERVER because we're only interested in the physical addresses of the interfaces
+	const DWORD rc = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_DNS_SERVER, nullptr, reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.get()), &len);
+
+	if (rc == ERROR_BUFFER_OVERFLOW)
 	{
-		delete [] reinterpret_cast<char*>(pAdapterInfo);
-		pAdapterInfo = reinterpret_cast<IP_ADAPTER_INFO*>(new char[len]);
+		// Buffer is not large enough: reallocate and retry.
+		buffer = std::make_unique<unsigned char[]>(len);
+
+		if (GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_DNS_SERVER, nullptr, reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.get()), &len) != ERROR_SUCCESS)
+		{
+			throw SystemException("cannot get network adapter list");
+		}
 	}
 	else if (rc != ERROR_SUCCESS)
 	{
-		return;
+		throw SystemException("cannot get network adapter list");
 	}
-	if (GetAdaptersInfo(pAdapterInfo, &len) == NO_ERROR) 
+
+	IP_ADAPTER_ADDRESSES* pAdapter = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.get());
+	while (pAdapter)
 	{
-		pAdapter = pAdapterInfo;
-		bool found = false;
-		while (pAdapter && !found) 
+		if (pAdapter->IfType == IF_TYPE_ETHERNET_CSMACD && pAdapter->PhysicalAddressLength == sizeof(id))
 		{
-			if (pAdapter->Type == MIB_IF_TYPE_ETHERNET && pAdapter->AddressLength == sizeof(id))
-			{
-				found = true;
-				std::memcpy(&id, pAdapter->Address, pAdapter->AddressLength);
-			}
-			pAdapter = pAdapter->Next;
+			std::memcpy(&id, pAdapter->PhysicalAddress, pAdapter->PhysicalAddressLength);
+
+			// found an ethernet adapter, we can return now
+			return;
 		}
+		pAdapter = pAdapter->Next;
 	}
-	delete [] reinterpret_cast<char*>(pAdapterInfo);
+
+	// if an ethernet adapter was not found, search for a wifi adapter
+	pAdapter = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.get());
+	while (pAdapter)
+	{
+		if (pAdapter->IfType == IF_TYPE_IEEE80211 && pAdapter->PhysicalAddressLength == sizeof(id))
+		{
+			std::memcpy(&id, pAdapter->PhysicalAddress, pAdapter->PhysicalAddressLength);
+
+			// found a wifi adapter, we can return now
+			return;
+		}
+		pAdapter = pAdapter->Next;
+	}
+
+	// ethernet and wifi adapters not found, fail the search
+	throw SystemException("no ethernet or wifi adapter found");
 }
 
 
 unsigned EnvironmentImpl::processorCountImpl()
 {
 	SYSTEM_INFO si;
-	GetSystemInfo(&si);
+	GetNativeSystemInfo(&si);
 	return si.dwNumberOfProcessors;
 }
 

@@ -36,14 +36,15 @@ DatagramSocketImpl::DatagramSocketImpl(SocketAddress::Family family)
 	else if (family == SocketAddress::IPv6)
 		init(AF_INET6);
 #endif
-#if defined(POCO_OS_FAMILY_UNIX)
+// on windows, UDP is not supported for local sockets
+#if defined(POCO_OS_FAMILY_UNIX) && defined(POCO_HAS_UNIX_SOCKET)
 	else if (family == SocketAddress::UNIX_LOCAL)
 		init(AF_UNIX);
 #endif
 	else throw InvalidArgumentException("Invalid or unsupported address family passed to DatagramSocketImpl");
 }
 
-	
+
 DatagramSocketImpl::DatagramSocketImpl(poco_socket_t sockfd): SocketImpl(sockfd)
 {
 }

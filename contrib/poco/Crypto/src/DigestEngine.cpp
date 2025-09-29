@@ -37,7 +37,11 @@ DigestEngine::~DigestEngine()
 
 int DigestEngine::nid() const
 {
-	return EVP_MD_type(EVP_MD_CTX_md(_pContext));
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	return EVP_MD_nid(EVP_MD_CTX_get0_md(_pContext));
+#else
+	return EVP_MD_nid(EVP_MD_CTX_md(_pContext));
+#endif
 }
 
 std::size_t DigestEngine::digestLength() const
@@ -48,7 +52,7 @@ std::size_t DigestEngine::digestLength() const
 
 void DigestEngine::reset()
 {
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 	EVP_MD_CTX_free(_pContext);
 	_pContext = EVP_MD_CTX_create();
 #else

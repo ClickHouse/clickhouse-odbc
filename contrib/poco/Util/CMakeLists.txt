@@ -1,24 +1,26 @@
-file (GLOB SRCS src/*.cpp)
+# Sources
+file(GLOB SRCS_G "src/*.cpp")
+POCO_SOURCES_AUTO(SRCS ${SRCS_G})
 
-add_library (_poco_util ${SRCS})
-add_library (Poco::Util ALIAS _poco_util)
+# Headers
+file(GLOB_RECURSE HDRS_G "include/*.h")
+POCO_HEADERS_AUTO(SRCS ${HDRS_G})
 
-if (NOT MSVC)
-# TODO: remove these warning exclusions
-    target_compile_options (_poco_util
-        PRIVATE
-            -Wno-deprecated-dynamic-exception-spec
-            -Wno-extra-semi-stmt
-            -Wno-newline-eof
-            -Wno-old-style-cast
-            -Wno-shadow
-            -Wno-sign-compare
-            -Wno-suggest-destructor-override
-            -Wno-suggest-override
-            -Wno-unused-parameter
-            -Wno-zero-as-null-pointer-constant
-    )
-endif()
-target_compile_definitions(_poco_util PRIVATE POCO_UTIL_NO_XMLCONFIGURATION POCO_UTIL_NO_JSONCONFIGURATION)
-target_link_libraries(_poco_util PUBLIC Poco::Foundation)
-target_include_directories (_poco_util SYSTEM PUBLIC "include")
+POCO_SOURCES_AUTO_PLAT(SRCS WIN32
+	src/WinRegistryConfiguration.cpp
+	src/WinRegistryKey.cpp
+	src/WinService.cpp
+)
+
+add_library(Util ${SRCS})
+add_library(Poco::Util ALIAS Util)
+
+target_link_libraries(Util PUBLIC Poco::Foundation)
+target_compile_definitions(Util PUBLIC POCO_UTIL_NO_XMLCONFIGURATION)
+target_compile_definitions(Util PUBLIC POCO_UTIL_NO_JSONCONFIGURATION)
+
+target_include_directories(Util
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+

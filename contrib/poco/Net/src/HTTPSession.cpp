@@ -111,14 +111,14 @@ int HTTPSession::get()
 {
 	if (_pCurrent == _pEnd)
 		refill();
-	
+
 	if (_pCurrent < _pEnd)
 		return *_pCurrent++;
 	else
 		return std::char_traits<char>::eof();
 }
 
-	
+
 int HTTPSession::peek()
 {
 	if (_pCurrent == _pEnd)
@@ -130,7 +130,7 @@ int HTTPSession::peek()
 		return std::char_traits<char>::eof();
 }
 
-	
+
 int HTTPSession::read(char* buffer, std::streamsize length)
 {
 	if (_pCurrent < _pEnd)
@@ -196,10 +196,18 @@ void HTTPSession::connect(const SocketAddress& address)
 	_socket.connect(address, _connectionTimeout);
 	_socket.setReceiveTimeout(_receiveTimeout);
 	_socket.setSendTimeout(_sendTimeout);
-	_socket.setNoDelay(true);
+	if (address.family() != SocketAddress::UNIX_LOCAL)
+		_socket.setNoDelay(true);
 	// There may be leftover data from a previous (failed) request in the buffer,
 	// so we clear it.
 	_pCurrent = _pEnd = _pBuffer;
+}
+
+
+void HTTPSession::connect(const SocketAddress& targetAddress, const SocketAddress& sourceAddress)
+{
+	_socket.bind(sourceAddress, true);
+	connect(targetAddress);
 }
 
 

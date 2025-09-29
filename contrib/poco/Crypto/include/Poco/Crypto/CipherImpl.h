@@ -18,55 +18,52 @@
 #define Crypto_CipherImpl_INCLUDED
 
 
-#include <openssl/evp.h>
+#include "Poco/Crypto/Crypto.h"
 #include "Poco/Crypto/Cipher.h"
 #include "Poco/Crypto/CipherKey.h"
-#include "Poco/Crypto/Crypto.h"
 #include "Poco/Crypto/OpenSSLInitializer.h"
+#include <openssl/evp.h>
 
 
-namespace Poco
+namespace Poco {
+namespace Crypto {
+
+
+class CipherImpl: public Cipher
+	/// An implementation of the Cipher class for OpenSSL's crypto library.
 {
-namespace Crypto
+public:
+	CipherImpl(const CipherKey& key);
+		/// Creates a new CipherImpl object for the given CipherKey.
+
+	virtual ~CipherImpl();
+		/// Destroys the CipherImpl.
+
+	const std::string& name() const;
+		/// Returns the name of the cipher.
+
+	CryptoTransform::Ptr createEncryptor();
+		/// Creates an encryptor object.
+
+	CryptoTransform::Ptr createDecryptor();
+		/// Creates a decryptor object.
+
+private:
+	CipherKey _key;
+	OpenSSLInitializer _openSSLInitializer;
+};
+
+
+//
+// Inlines
+//
+inline const std::string& CipherImpl::name() const
 {
-
-
-    class CipherImpl : public Cipher
-    /// An implementation of the Cipher class for OpenSSL's crypto library.
-    {
-    public:
-        CipherImpl(const CipherKey & key);
-        /// Creates a new CipherImpl object for the given CipherKey.
-
-        virtual ~CipherImpl();
-        /// Destroys the CipherImpl.
-
-        const std::string & name() const;
-        /// Returns the name of the cipher.
-
-        CryptoTransform * createEncryptor();
-        /// Creates an encryptor object.
-
-        CryptoTransform * createDecryptor();
-        /// Creates a decryptor object.
-
-    private:
-        CipherKey _key;
-        OpenSSLInitializer _openSSLInitializer;
-    };
-
-
-    //
-    // Inlines
-    //
-    inline const std::string & CipherImpl::name() const
-    {
-        return _key.name();
-    }
-
-
+	return _key.name();
 }
-} // namespace Poco::Crypto
+
+
+} } // namespace Poco::Crypto
 
 
 #endif // Crypto_CipherImpl_INCLUDED

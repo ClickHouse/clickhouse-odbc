@@ -13,6 +13,7 @@
 
 
 #include "Poco/Net/CertificateHandlerFactoryMgr.h"
+#include "Poco/Net/ConsoleCertificateHandler.h"
 #include "Poco/Net/AcceptCertificateHandler.h"
 #include "Poco/Net/RejectCertificateHandler.h"
 
@@ -23,6 +24,7 @@ namespace Net {
 
 CertificateHandlerFactoryMgr::CertificateHandlerFactoryMgr()
 {
+	setFactory("ConsoleCertificateHandler", new CertificateHandlerFactoryImpl<ConsoleCertificateHandler>());
 	setFactory("AcceptCertificateHandler", new CertificateHandlerFactoryImpl<AcceptCertificateHandler>());
 	setFactory("RejectCertificateHandler", new CertificateHandlerFactoryImpl<RejectCertificateHandler>());
 }
@@ -40,14 +42,14 @@ void CertificateHandlerFactoryMgr::setFactory(const std::string& name, Certifica
 		delete pFactory;
 	poco_assert(success);
 }
-		
+
 
 bool CertificateHandlerFactoryMgr::hasFactory(const std::string& name) const
 {
 	return _factories.find(name) != _factories.end();
 }
-		
-	
+
+
 const CertificateHandlerFactory* CertificateHandlerFactoryMgr::getFactory(const std::string& name) const
 {
 	FactoriesMap::const_iterator it = _factories.find(name);

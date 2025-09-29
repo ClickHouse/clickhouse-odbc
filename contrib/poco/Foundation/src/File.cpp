@@ -15,16 +15,12 @@
 #include "Poco/File.h"
 #include "Poco/Path.h"
 #include "Poco/DirectoryIterator.h"
+#include "Poco/Environment.h"
+#include "Poco/StringTokenizer.h"
 
 
-#if defined(POCO_OS_FAMILY_WINDOWS) && defined(POCO_WIN32_UTF8)
-#if defined(_WIN32_WCE)
-#include "File_WINCE.cpp"
-#else
+#if defined(POCO_OS_FAMILY_WINDOWS)
 #include "File_WIN32U.cpp"
-#endif
-#elif defined(POCO_OS_FAMILY_WINDOWS)
-#include "File_WIN32.cpp"
 #elif defined(POCO_VXWORKS)
 #include "File_VX.cpp"
 #elif defined(POCO_OS_FAMILY_UNIX)
@@ -95,15 +91,80 @@ File& File::operator = (const Path& path)
 }
 
 
-void File::swap(File& file)
+void File::swap(File& file) noexcept
 {
 	swapImpl(file);
 }
 
 
+std::string File::absolutePath() const
+{
+	std::string ret;
+
+	if (Path(path()).isAbsolute())
+		// TODO: Should this return empty string if file does not exists to be consistent
+		// with the function documentation?
+		ret = getPathImpl();
+	else
+	{
+		Path curPath(Path::current());
+		curPath.append(path());
+		if (File(curPath).exists())
+			ret = curPath.toString();
+		else
+		{
+			const std::string envPath = Environment::get("PATH", "");
+			const std::string pathSeparator(1, Path::pathSeparator());
+			if (!envPath.empty())
+			{
+				const StringTokenizer st(envPath, pathSeparator,
+					StringTokenizer::TOK_IGNORE_EMPTY | StringTokenizer::TOK_TRIM);
+
+				for (const auto& p: st)
+				{
+					try
+					{
+						std::string fileName(p);
+						if (p.size() && p.back() != Path::separator())
+							fileName.append(1, Path::separator());
+						fileName.append(path());
+						if (File(fileName).exists())
+						{
+							ret = fileName;
+							break;
+						}
+					}
+					catch (const Poco::PathSyntaxException&)
+					{
+						// shield against bad PATH environment entries
+					}
+				}
+			}
+		}
+	}
+
+	return ret;
+}
+
+
 bool File::exists() const
 {
+	if (path().empty()) return false;
 	return existsImpl();
+}
+
+
+bool File::existsAnywhere() const
+{
+	if (path().empty()) return false;
+
+	if (Path(path()).isAbsolute())
+		return existsImpl();
+
+	if (File(absolutePath()).exists())
+		return true;
+
+	return false;
 }
 
 
@@ -121,7 +182,14 @@ bool File::canWrite() const
 
 bool File::canExecute() const
 {
-	return canExecuteImpl();
+	// Resolve (platform-specific) executable path and absolute path from relative.
+	const auto execPath { getExecutablePathImpl() };
+	const auto absPath { File(execPath).absolutePath() };
+	if (absPath.empty() || !File(absPath).exists())
+	{
+		return false;
+	}
+	return canExecuteImpl(absPath);
 }
 
 
@@ -208,7 +276,7 @@ File& File::setExecutable(bool flag)
 }
 
 
-void File::copyTo(const std::string& path) const
+void File::copyTo(const std::string& path, int options) const
 {
 	Path src(getPathImpl());
 	Path dest(path);
@@ -219,13 +287,13 @@ void File::copyTo(const std::string& path) const
 		dest.setFileName(src.getFileName());
 	}
 	if (isDirectory())
-		copyDirectory(dest.toString());
+		copyDirectory(dest.toString(), options);
 	else
-		copyToImpl(dest.toString());
+		copyToImpl(dest.toString(), options);
 }
 
 
-void File::copyDirectory(const std::string& path) const
+void File::copyDirectory(const std::string& path, int options) const
 {
 	File target(path);
 	target.createDirectories();
@@ -236,22 +304,22 @@ void File::copyDirectory(const std::string& path) const
 	DirectoryIterator end;
 	for (; it != end; ++it)
 	{
-		it->copyTo(path);
+		it->copyTo(path, options);
 	}
 }
 
 
-void File::moveTo(const std::string& path)
+void File::moveTo(const std::string& path, int options)
 {
-	copyTo(path);
+	copyTo(path, options);
 	remove(true);
 	setPathImpl(path);
 }
 
 
-void File::renameTo(const std::string& path)
+void File::renameTo(const std::string& path, int options)
 {
-	renameToImpl(path);
+	renameToImpl(path, options);
 	setPathImpl(path);
 }
 
@@ -268,9 +336,9 @@ void File::remove(bool recursive)
 	{
 		std::vector<File> files;
 		list(files);
-		for (std::vector<File>::iterator it = files.begin(); it != files.end(); ++it)
+		for (auto& f: files)
 		{
-			it->remove(true);
+			f.remove(true);
 		}
 
 		// Note: On Windows, removing a directory may not succeed at first

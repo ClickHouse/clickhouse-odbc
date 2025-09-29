@@ -62,7 +62,7 @@ public:
 		HTTP_SEE_OTHER                       = 303,
 		HTTP_NOT_MODIFIED                    = 304,
 		HTTP_USE_PROXY                       = 305,
-		HTTP_USEPROXY                        = 305, /// @deprecated
+		HTTP_USEPROXY POCO_DEPRECATED("use HTTP_USE_PROXY") = 305,
 		// UNUSED: 306
 		HTTP_TEMPORARY_REDIRECT              = 307,
 		HTTP_PERMANENT_REDIRECT              = 308,
@@ -80,11 +80,11 @@ public:
 		HTTP_LENGTH_REQUIRED                 = 411,
 		HTTP_PRECONDITION_FAILED             = 412,
 		HTTP_REQUEST_ENTITY_TOO_LARGE        = 413,
-		HTTP_REQUESTENTITYTOOLARGE           = 413, /// @deprecated
+		HTTP_REQUESTENTITYTOOLARGE POCO_DEPRECATED("") = 413,
 		HTTP_REQUEST_URI_TOO_LONG            = 414,
-		HTTP_REQUESTURITOOLONG               = 414, /// @deprecated
+		HTTP_REQUESTURITOOLONG POCO_DEPRECATED("") = 414,
 		HTTP_UNSUPPORTED_MEDIA_TYPE          = 415,
-		HTTP_UNSUPPORTEDMEDIATYPE            = 415, /// @deprecated
+		HTTP_UNSUPPORTEDMEDIATYPE POCO_DEPRECATED("") = 415,
 		HTTP_REQUESTED_RANGE_NOT_SATISFIABLE = 416,
 		HTTP_EXPECTATION_FAILED              = 417,
 		HTTP_IM_A_TEAPOT                     = 418,
@@ -93,6 +93,7 @@ public:
 		HTTP_UNPROCESSABLE_ENTITY            = 422,
 		HTTP_LOCKED                          = 423,
 		HTTP_FAILED_DEPENDENCY               = 424,
+		HTTP_TOO_EARLY                       = 425,
 		HTTP_UPGRADE_REQUIRED                = 426,
 		HTTP_PRECONDITION_REQUIRED           = 428,
 		HTTP_TOO_MANY_REQUESTS               = 429,
@@ -113,7 +114,7 @@ public:
 
 	HTTPResponse();
 		/// Creates the HTTPResponse with OK status.
-		
+
 	HTTPResponse(HTTPStatus status, const std::string& reason);
 		/// Creates the HTTPResponse with the given status
 		/// and reason phrase.
@@ -121,41 +122,47 @@ public:
 	HTTPResponse(const std::string& version, HTTPStatus status, const std::string& reason);
 		/// Creates the HTTPResponse with the given version, status
 		/// and reason phrase.
-		
-	HTTPResponse(HTTPStatus status);
+
+	explicit HTTPResponse(HTTPStatus status);
 		/// Creates the HTTPResponse with the given status
-		/// an an appropriate reason phrase.
+		/// and an appropriate reason phrase.
 
 	HTTPResponse(const std::string& version, HTTPStatus status);
 		/// Creates the HTTPResponse with the given version, status
-		/// an an appropriate reason phrase.
+		/// and an appropriate reason phrase.
 
-	virtual ~HTTPResponse();
+	HTTPResponse(const HTTPResponse& other);
+		/// Creates the HTTPResponse by copying another one.
+
+	~HTTPResponse() override;
 		/// Destroys the HTTPResponse.
+
+	HTTPResponse& operator = (const HTTPResponse& other);
+		/// Assignment operator.
 
 	void setStatus(HTTPStatus status);
 		/// Sets the HTTP status code.
 		///
 		/// Does not change the reason phrase.
-		
+
 	HTTPStatus getStatus() const;
 		/// Returns the HTTP status code.
-		
+
 	void setStatus(const std::string& status);
 		/// Sets the HTTP status code.
 		///
 		/// The string must contain a valid
 		/// HTTP numerical status code.
-		
+
 	void setReason(const std::string& reason);
 		/// Sets the HTTP reason phrase.
-		
+
 	const std::string& getReason() const;
 		/// Returns the HTTP reason phrase.
 
 	void setStatusAndReason(HTTPStatus status, const std::string& reason);
 		/// Sets the HTTP status code and reason phrase.
-		
+
 	void setStatusAndReason(HTTPStatus status);
 		/// Sets the HTTP status code and reason phrase.
 		///
@@ -163,13 +170,22 @@ public:
 
 	void setDate(const Poco::Timestamp& dateTime);
 		/// Sets the Date header to the given date/time value.
-		
+
 	Poco::Timestamp getDate() const;
 		/// Returns the value of the Date header.
 
 	void addCookie(const HTTPCookie& cookie);
 		/// Adds the cookie to the response by
 		/// adding a Set-Cookie header.
+
+	void removeCookie(const std::string& cookieName);
+		/// Removes the Set-Cookie header for the cookie with the given name,
+		/// if the header is present. Otherwise does nothing.
+
+	void replaceCookie(const HTTPCookie& cookie);
+		/// Replaces a Set-Cookie header for the given cookie with the
+		/// updated cookie, or adds a new Set-Cookie header of none
+		/// is present for the given cookie.
 
 	void getCookies(std::vector<HTTPCookie>& cookies) const;
 		/// Returns a vector with all the cookies
@@ -178,16 +194,16 @@ public:
 		/// May throw an exception in case of a malformed
 		/// Set-Cookie header.
 
-	void write(std::ostream& ostr) const;
+	void write(std::ostream& ostr) const override;
 		/// Writes the HTTP response to the given
 		/// output stream.
 
-	void read(std::istream& istr);
+	void read(std::istream& istr) override;
 		/// Reads the HTTP response from the
 		/// given input stream.
 		///
 		/// 100 Continue responses are ignored.
-	
+
 	static const std::string& getReasonForStatus(HTTPStatus status);
 		/// Returns an appropriate reason phrase
 		/// for the given status code.
@@ -237,6 +253,7 @@ public:
 	static const std::string HTTP_REASON_UNPROCESSABLE_ENTITY;
 	static const std::string HTTP_REASON_LOCKED;
 	static const std::string HTTP_REASON_FAILED_DEPENDENCY;
+	static const std::string HTTP_REASON_TOO_EARLY;
 	static const std::string HTTP_REASON_UPGRADE_REQUIRED;
 	static const std::string HTTP_REASON_PRECONDITION_REQUIRED;
 	static const std::string HTTP_REASON_TOO_MANY_REQUESTS;
@@ -254,7 +271,7 @@ public:
 	static const std::string HTTP_REASON_NOT_EXTENDED;
 	static const std::string HTTP_REASON_NETWORK_AUTHENTICATION_REQUIRED;
 	static const std::string HTTP_REASON_UNKNOWN;
-	
+
 	static const std::string DATE;
 	static const std::string SET_COOKIE;
 
@@ -265,12 +282,9 @@ private:
 		MAX_STATUS_LENGTH  = 3,
 		MAX_REASON_LENGTH  = 512
 	};
-	
+
 	HTTPStatus  _status;
 	std::string _reason;
-	
-	HTTPResponse(const HTTPResponse&);
-	HTTPResponse& operator = (const HTTPResponse&);
 };
 
 

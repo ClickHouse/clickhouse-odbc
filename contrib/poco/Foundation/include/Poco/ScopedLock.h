@@ -37,12 +37,12 @@ public:
 	{
 		_mutex.lock();
 	}
-	
+
 	ScopedLock(M& mutex, long milliseconds): _mutex(mutex)
 	{
 		_mutex.lock(milliseconds);
 	}
-	
+
 	~ScopedLock()
 	{
 		try
@@ -77,14 +77,20 @@ class ScopedLockWithUnlock
 public:
 	explicit ScopedLockWithUnlock(M& mutex): _pMutex(&mutex)
 	{
+		poco_assert(_pMutex != nullptr);
+
 		_pMutex->lock();
+		_locked = true;
 	}
-	
+
 	ScopedLockWithUnlock(M& mutex, long milliseconds): _pMutex(&mutex)
 	{
+		poco_assert(_pMutex != nullptr);
+
 		_pMutex->lock(milliseconds);
+		_locked = true;
 	}
-	
+
 	~ScopedLockWithUnlock()
 	{
 		try
@@ -96,18 +102,30 @@ public:
 			poco_unexpected();
 		}
 	}
-	
+
+	void lock()
+	{
+		poco_assert(_pMutex != nullptr);
+		poco_assert(_locked == false);
+
+		_pMutex->lock();
+		_locked = true;
+	}
+
 	void unlock()
 	{
-		if (_pMutex)
+		if (_locked)
 		{
+			poco_assert(_pMutex != nullptr);
+
 			_pMutex->unlock();
-			_pMutex = 0;
+			_locked = false;
 		}
 	}
 
 private:
 	M* _pMutex;
+	bool _locked = false;
 
 	ScopedLockWithUnlock();
 	ScopedLockWithUnlock(const ScopedLockWithUnlock&);

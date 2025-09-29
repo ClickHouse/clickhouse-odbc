@@ -14,6 +14,7 @@
 
 #include "Poco/Util/AbstractConfiguration.h"
 #include "Poco/Util/ConfigurationView.h"
+#include "Poco/Util/LocalConfigurationView.h"
 #include "Poco/Exception.h"
 #include "Poco/NumberParser.h"
 #include "Poco/NumberFormatter.h"
@@ -33,7 +34,7 @@ namespace Poco {
 namespace Util {
 
 
-AbstractConfiguration::AbstractConfiguration(): 
+AbstractConfiguration::AbstractConfiguration():
 	_depth(0),
 	_eventsEnabled(true)
 {
@@ -65,7 +66,7 @@ bool AbstractConfiguration::has(const std::string& key) const
 	return hasProperty(key);
 }
 
-	
+
 std::string AbstractConfiguration::getString(const std::string& key) const
 {
 	Mutex::ScopedLock lock(_mutex);
@@ -77,7 +78,7 @@ std::string AbstractConfiguration::getString(const std::string& key) const
 		throw NotFoundException(key);
 }
 
-	
+
 std::string AbstractConfiguration::getString(const std::string& key, const std::string& defaultValue) const
 {
 	Mutex::ScopedLock lock(_mutex);
@@ -101,10 +102,9 @@ std::string AbstractConfiguration::getRawString(const std::string& key) const
 		throw NotFoundException(key);
 }
 
-	
+
 std::string AbstractConfiguration::getRawString(const std::string& key, const std::string& defaultValue) const
 {
-	
 	Mutex::ScopedLock lock(_mutex);
 
 	std::string value;
@@ -114,7 +114,7 @@ std::string AbstractConfiguration::getRawString(const std::string& key, const st
 		return defaultValue;
 }
 
-	
+
 int AbstractConfiguration::getInt(const std::string& key) const
 {
 	Mutex::ScopedLock lock(_mutex);
@@ -126,7 +126,7 @@ int AbstractConfiguration::getInt(const std::string& key) const
 		throw NotFoundException(key);
 }
 
-	
+
 int AbstractConfiguration::getInt(const std::string& key, int defaultValue) const
 {
 	Mutex::ScopedLock lock(_mutex);
@@ -163,6 +163,55 @@ unsigned AbstractConfiguration::getUInt(const std::string& key, unsigned default
 }
 
 
+Poco::Int16 AbstractConfiguration::getInt16(const std::string& key) const
+{
+	Mutex::ScopedLock lock(_mutex);
+
+	std::string value;
+	if (getRaw(key, value))
+		return parseInt16(internalExpand(value));
+	else
+		throw NotFoundException(key);
+}
+
+	
+Poco::Int16 AbstractConfiguration::getInt16(const std::string& key, Poco::Int16 defaultValue) const
+{
+	Mutex::ScopedLock lock(_mutex);
+
+	std::string value;
+	if (getRaw(key, value))
+		return parseInt16(internalExpand(value));
+	else
+		return defaultValue;
+}
+
+
+Poco::UInt16 AbstractConfiguration::getUInt16(const std::string& key) const
+{
+	Mutex::ScopedLock lock(_mutex);
+
+	std::string value;
+	if (getRaw(key, value))
+		return parseUInt16(internalExpand(value));
+	else
+		throw NotFoundException(key);
+}
+
+
+Poco::UInt16 AbstractConfiguration::getUInt16(const std::string& key, Poco::UInt16 defaultValue) const
+{
+	Mutex::ScopedLock lock(_mutex);
+
+	std::string value;
+	if (getRaw(key, value))
+		return parseUInt16(internalExpand(value));
+	else
+		return defaultValue;
+}
+
+
+#if defined(POCO_HAVE_INT64)
 
 
 Int64 AbstractConfiguration::getInt64(const std::string& key) const
@@ -213,6 +262,7 @@ UInt64 AbstractConfiguration::getUInt64(const std::string& key, UInt64 defaultVa
 }
 
 
+#endif // defined(POCO_HAVE_INT64)
 
 
 double AbstractConfiguration::getDouble(const std::string& key) const
@@ -226,7 +276,7 @@ double AbstractConfiguration::getDouble(const std::string& key) const
 		throw NotFoundException(key);
 }
 
-	
+
 double AbstractConfiguration::getDouble(const std::string& key, double defaultValue) const
 {
 	Mutex::ScopedLock lock(_mutex);
@@ -268,19 +318,44 @@ void AbstractConfiguration::setString(const std::string& key, const std::string&
 	setRawWithEvent(key, value);
 }
 
-	
+
 void AbstractConfiguration::setInt(const std::string& key, int value)
 {
 	setRawWithEvent(key, NumberFormatter::format(value));
 }
 
-	
+
 void AbstractConfiguration::setUInt(const std::string& key, unsigned int value)
 {
 	setRawWithEvent(key, NumberFormatter::format(value));
 }
 
 
+void AbstractConfiguration::setInt16(const std::string& key, Poco::Int16 value)
+{
+	setRawWithEvent(key, NumberFormatter::format(value));
+}
+
+	
+void AbstractConfiguration::setUInt16(const std::string& key, Poco::UInt16 value)
+{
+	setRawWithEvent(key, NumberFormatter::format(value));
+}
+
+
+void AbstractConfiguration::setInt32(const std::string& key, Poco::Int32 value)
+{
+	setRawWithEvent(key, NumberFormatter::format(value));
+}
+
+	
+void AbstractConfiguration::setUInt32(const std::string& key, Poco::UInt32 value)
+{
+	setRawWithEvent(key, NumberFormatter::format(value));
+}
+
+
+#if defined(POCO_HAVE_INT64)
 
 
 void AbstractConfiguration::setInt64(const std::string& key, Int64 value)
@@ -299,6 +374,7 @@ void AbstractConfiguration::setUInt64(const std::string& key, UInt64 value)
 }
 
 
+#endif // defined(POCO_HAVE_INT64)
 
 
 void AbstractConfiguration::setDouble(const std::string& key, double value)
@@ -332,15 +408,27 @@ void AbstractConfiguration::keys(const std::string& key, Keys& range) const
 }
 
 
-const AbstractConfiguration* AbstractConfiguration::createView(const std::string& prefix) const
+const AbstractConfiguration::Ptr AbstractConfiguration::createView(const std::string& prefix) const
 {
-	return new ConfigurationView(prefix, const_cast<AbstractConfiguration*>(this));
+	return new ConfigurationView(prefix, AbstractConfiguration::Ptr(const_cast<AbstractConfiguration*>(this), true));
 }
 
 
-AbstractConfiguration* AbstractConfiguration::createView(const std::string& prefix)
+AbstractConfiguration::Ptr AbstractConfiguration::createView(const std::string& prefix)
 {
-	return new ConfigurationView(prefix, this);
+	return new ConfigurationView(prefix, AbstractConfiguration::Ptr(this, true));
+}
+
+
+const AbstractConfiguration::Ptr AbstractConfiguration::createLocalView(const std::string& prefix) const
+{
+	return new LocalConfigurationView(prefix, AbstractConfiguration::Ptr(const_cast<AbstractConfiguration*>(this), true));
+}
+
+
+AbstractConfiguration::Ptr AbstractConfiguration::createLocalView(const std::string& prefix)
+{
+	return new LocalConfigurationView(prefix, AbstractConfiguration::Ptr(this, true));
 }
 
 
@@ -353,12 +441,12 @@ namespace
 		{
 			++_count;
 		}
-		
+
 		~AutoCounter()
 		{
 			--_count;
 		}
-		
+
 	private:
 		int& _count;
 	};
@@ -380,7 +468,7 @@ void AbstractConfiguration::remove(const std::string& key)
 		propertyRemoving(this, key);
 	}
 	{
-		
+
 		Mutex::ScopedLock lock(_mutex);
 		removeRaw(key);
 	}
@@ -396,7 +484,7 @@ void AbstractConfiguration::enableEvents(bool enable)
 	_eventsEnabled = enable;
 }
 
-	
+
 bool AbstractConfiguration::eventsEnabled() const
 {
 	return _eventsEnabled;
@@ -431,12 +519,32 @@ std::string AbstractConfiguration::uncheckedExpand(const std::string& value) con
 			{
 				++it;
 				std::string prop;
-				while (it != end && *it != '}') prop += *it++;
+				std::string deflt;
+				bool haveDefault = false;
+				while (it != end && *it != '}')
+				{
+					if (*it == ':')
+					{
+						++it;
+						if (it != end && *it == '-')
+						{
+							haveDefault = true;
+							++it;
+							while (it != end && *it != '}') deflt += *it++;
+						}
+						else prop += ':';
+					}
+					else prop += *it++;
+				}
 				if (it != end) ++it;
 				std::string value;
 				if (getRaw(prop, value))
 				{
 					result.append(internalExpand(value));
+				}
+				else if (haveDefault)
+				{
+					result.append(deflt);
 				}
 				else
 				{
@@ -468,6 +576,34 @@ unsigned AbstractConfiguration::parseUInt(const std::string& value)
 		return NumberParser::parseHex(value);
 	else
 		return NumberParser::parseUnsigned(value);
+}
+
+
+Poco::Int16 AbstractConfiguration::parseInt16(const std::string& value)
+{
+	int intValue = 0;
+	if ((value.compare(0, 2, "0x") == 0) || (value.compare(0, 2, "0X") == 0))
+		intValue = static_cast<int>(NumberParser::parseHex(value));
+	else
+		intValue = NumberParser::parse(value);
+	if (intValue >= -32768 && intValue <= 32767)
+		return static_cast<Poco::Int16>(intValue);
+	else
+		throw Poco::RangeException("Not a valid 16-bit integer value", value);
+}
+
+
+Poco::UInt16 AbstractConfiguration::parseUInt16(const std::string& value)
+{
+	unsigned uintValue;
+	if ((value.compare(0, 2, "0x") == 0) || (value.compare(0, 2, "0X") == 0))
+		uintValue = NumberParser::parseHex(value);
+	else
+		uintValue = NumberParser::parseUnsigned(value);
+	if (uintValue <= 65535)
+		return static_cast<Poco::UInt16>(uintValue);
+	else
+		throw Poco::RangeException("Not a valid unsigned 16-bit integer value", value);
 }
 
 
@@ -506,7 +642,7 @@ bool AbstractConfiguration::parseBool(const std::string& value)
 		return false;
 	else if (icompare(value, "off") == 0)
 		return false;
-	else 
+	else
 		throw SyntaxException("Cannot convert to boolean", value);
 }
 

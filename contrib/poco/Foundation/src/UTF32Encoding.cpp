@@ -28,24 +28,24 @@ const char* UTF32Encoding::_names[] =
 };
 
 
-const TextEncoding::CharacterMap UTF32Encoding::_charMap = 
+const TextEncoding::CharacterMap UTF32Encoding::_charMap =
 {
-	/* 00 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* 10 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* 20 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* 30 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* 40 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* 50 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* 60 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* 70 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* 80 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* 90 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* a0 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* b0 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* c0 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* d0 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* e0 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
-	/* f0 */	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, 
+	/* 00 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* 10 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* 20 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* 30 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* 40 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* 50 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* 60 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* 70 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* 80 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* 90 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* a0 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* b0 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* c0 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* d0 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* e0 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
+	/* f0 */	-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
 };
 
 
@@ -54,13 +54,13 @@ UTF32Encoding::UTF32Encoding(ByteOrderType byteOrder)
 	setByteOrder(byteOrder);
 }
 
-	
+
 UTF32Encoding::UTF32Encoding(int byteOrderMark)
 {
 	setByteOrder(byteOrderMark);
 }
 
-	
+
 UTF32Encoding::~UTF32Encoding()
 {
 }
@@ -75,7 +75,7 @@ UTF32Encoding::ByteOrderType UTF32Encoding::getByteOrder() const
 #endif
 }
 
-	
+
 void UTF32Encoding::setByteOrder(ByteOrderType byteOrder)
 {
 #if defined(POCO_ARCH_BIG_ENDIAN)
@@ -85,7 +85,7 @@ void UTF32Encoding::setByteOrder(ByteOrderType byteOrder)
 #endif
 }
 
-	
+
 void UTF32Encoding::setByteOrder(int byteOrderMark)
 {
 	_flipBytes = byteOrderMark != 0xFEFF;
@@ -118,7 +118,7 @@ const TextEncoding::CharacterMap& UTF32Encoding::characterMap() const
 int UTF32Encoding::convert(const unsigned char* bytes) const
 {
 	UInt32 uc;
-	unsigned char* p = (unsigned char*) &uc;
+	unsigned char* p = reinterpret_cast<unsigned char*>(&uc);
 	*p++ = *bytes++;
 	*p++ = *bytes++;
 	*p++ = *bytes++;
@@ -126,10 +126,10 @@ int UTF32Encoding::convert(const unsigned char* bytes) const
 
 	if (_flipBytes)
 	{
-		ByteOrder::flipBytes(uc);
+		uc = ByteOrder::flipBytes(uc);
 	}
 
-	return uc;
+	return safeToInt(uc);
 }
 
 
@@ -138,7 +138,7 @@ int UTF32Encoding::convert(int ch, unsigned char* bytes, int length) const
 	if (bytes && length >= 4)
 	{
 		UInt32 ch1 = _flipBytes ? ByteOrder::flipBytes((UInt32) ch) : (UInt32) ch;
-		unsigned char* p = (unsigned char*) &ch1;
+		unsigned char* p = reinterpret_cast<unsigned char*>(&ch1);
 		*bytes++ = *p++;
 		*bytes++ = *p++;
 		*bytes++ = *p++;
@@ -155,14 +155,16 @@ int UTF32Encoding::queryConvert(const unsigned char* bytes, int length) const
 	if (length >= 4)
 	{
 		UInt32 uc;
-		unsigned char* p = (unsigned char*) &uc;
+		unsigned char* p = reinterpret_cast<unsigned char*>(&uc);
 		*p++ = *bytes++;
 		*p++ = *bytes++;
 		*p++ = *bytes++;
 		*p++ = *bytes++;
-		if (_flipBytes) 
-			ByteOrder::flipBytes(uc);
-		return uc;
+		if (_flipBytes)
+		{
+			uc = ByteOrder::flipBytes(uc);
+		}
+		ret = safeToInt(uc);
 	}
 
 	return ret;
