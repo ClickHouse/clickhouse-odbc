@@ -7,6 +7,7 @@ file(GLOB_RECURSE HDRS_G "include/*.h")
 POCO_HEADERS_AUTO(SRCS ${HDRS_G})
 
 add_library(NetSSL ${SRCS})
+set_target_properties(NetSSL PROPERTIES CXX_STANDARD 17)
 add_library(Poco::NetSSL ALIAS NetSSL)
 
 target_link_libraries(NetSSL PUBLIC Poco::Crypto Poco::Util Poco::Net)
