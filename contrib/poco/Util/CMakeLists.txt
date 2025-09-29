@@ -13,6 +13,7 @@ POCO_SOURCES_AUTO_PLAT(SRCS WIN32
 )
 
 add_library(Util ${SRCS})
+set_target_properties(Util PROPERTIES CXX_STANDARD 17)
 add_library(Poco::Util ALIAS Util)
 
 target_link_libraries(Util PUBLIC Poco::Foundation)
