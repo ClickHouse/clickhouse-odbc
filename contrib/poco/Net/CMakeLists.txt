@@ -34,6 +34,7 @@ if(MSVC AND BUILD_SHARED_LIBS)
 endif()
 
 add_library(Net ${SRCS})
+set_target_properties(Net PROPERTIES CXX_STANDARD 17)
 add_library(Poco::Net ALIAS Net)
 
 target_link_libraries(Net PUBLIC Poco::Foundation)

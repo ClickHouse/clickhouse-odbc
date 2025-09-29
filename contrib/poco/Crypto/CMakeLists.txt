@@ -7,6 +7,7 @@ file(GLOB_RECURSE HDRS_G "include/*.h")
 POCO_HEADERS_AUTO(SRCS ${HDRS_G})
 
 add_library(Crypto ${SRCS})
+set_target_properties(Crypto PROPERTIES CXX_STANDARD 17)
 add_library(Poco::Crypto ALIAS Crypto)
 
 target_link_libraries(Crypto PUBLIC Poco::Foundation OpenSSL::SSL OpenSSL::Crypto)

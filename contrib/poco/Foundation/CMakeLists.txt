@@ -68,6 +68,7 @@ POCO_SOURCES(SRCS utf8proc
 )
 
 add_library(Foundation ${SRCS})
+set_target_properties(Foundation PROPERTIES CXX_STANDARD 17)
 add_library(Poco::Foundation ALIAS Foundation)
 target_compile_definitions(Foundation PUBLIC UTF8PROC_STATIC)
 target_compile_definitions(Foundation PUBLIC POCO_CMAKE)
