@@ -12,6 +12,11 @@
 //
 
 
+#if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
+
 #include "Poco/Util/SystemConfiguration.h"
 #include "Poco/Environment.h"
 #include "Poco/Path.h"
@@ -19,13 +24,16 @@
 #include "Poco/DateTimeFormatter.h"
 #include "Poco/DateTimeFormat.h"
 #include "Poco/NumberFormatter.h"
+#if !defined(POCO_VXWORKS)
 #include "Poco/Process.h"
+#endif
 #include "Poco/Exception.h"
 #include <cstdio>
 
 
 using Poco::Environment;
 using Poco::Path;
+using namespace std::string_literals;
 
 
 namespace Poco {
@@ -46,7 +54,9 @@ const std::string SystemConfiguration::TEMPHOMEDIR    = "system.tempHomeDir";
 const std::string SystemConfiguration::TEMPDIR        = "system.tempDir";
 const std::string SystemConfiguration::CONFIGDIR      = "system.configDir";
 const std::string SystemConfiguration::DATETIME       = "system.dateTime";
+#if !defined(POCO_VXWORKS)
 const std::string SystemConfiguration::PID            = "system.pid";
+#endif
 const std::string SystemConfiguration::ENV            = "system.env.";
 
 
@@ -85,9 +95,7 @@ bool SystemConfiguration::getRaw(const std::string& key, std::string& value) con
 			Poco::Environment::NodeId id;
 			Poco::Environment::nodeId(id);
 			char result[13];
-			std::snprintf(result, 
-                sizeof(result),
-                "%02x%02x%02x%02x%02x%02x",
+			std::snprintf(result, sizeof(result), "%02x%02x%02x%02x%02x%02x",
 				id[0],
 				id[1],
 				id[2],
@@ -121,7 +129,6 @@ bool SystemConfiguration::getRaw(const std::string& key, std::string& value) con
 	{
 		value = Path::dataHome();
 	}
-
 	else if (key == TEMPHOMEDIR)
 	{
 		value = Path::tempHome();
@@ -138,11 +145,13 @@ bool SystemConfiguration::getRaw(const std::string& key, std::string& value) con
 	{
 		value = Poco::DateTimeFormatter::format(Poco::DateTime(), Poco::DateTimeFormat::ISO8601_FORMAT);
 	}
+#if !defined(POCO_VXWORKS)
 	else if (key == PID)
 	{
 		value = "0";
 		value = Poco::NumberFormatter::format(Poco::Process::id());
 	}
+#endif
 	else if (key.compare(0, ENV.size(), ENV) == 0)
 	{
 		return getEnv(key.substr(ENV.size()), value);
@@ -162,26 +171,28 @@ void SystemConfiguration::enumerate(const std::string& key, Keys& range) const
 {
 	if (key.empty())
 	{
-		range.push_back("system");
+		range.push_back("system"s);
 	}
 	else if (key == "system")
 	{
-		range.push_back("osName");
-		range.push_back("osVersion");
-		range.push_back("osArchitecture");
-		range.push_back("nodeName");
-		range.push_back("nodeId");
-		range.push_back("currentDir");
-		range.push_back("homeDir");
-		range.push_back("configHomeDir");
-		range.push_back("cacheHomeDir");
-		range.push_back("dataHomeDir");
-		range.push_back("tempHomeDir");
-		range.push_back("tempDir");
-		range.push_back("configDir");
-		range.push_back("dateTime");
-		range.push_back("pid");
-		range.push_back("env");
+		range.push_back("osName"s);
+		range.push_back("osVersion"s);
+		range.push_back("osArchitecture"s);
+		range.push_back("nodeName"s);
+		range.push_back("nodeId"s);
+		range.push_back("currentDir"s);
+		range.push_back("homeDir"s);
+		range.push_back("configHomeDir"s);
+		range.push_back("cacheHomeDir"s);
+		range.push_back("dataHomeDir"s);
+		range.push_back("tempHomeDir"s);
+		range.push_back("tempDir"s);
+		range.push_back("configDir"s);
+		range.push_back("dateTime"s);
+#if !defined(POCO_VXWORKS)
+		range.push_back("pid"s);
+#endif
+		range.push_back("env"s);
 	}
 }
 

@@ -1,32 +1,21 @@
-if (ENABLE_SSL)
-    file (GLOB SRCS src/*.cpp)
+# Sources
+file(GLOB SRCS_G "src/*.cpp")
+POCO_SOURCES_AUTO(SRCS ${SRCS_G})
 
-    add_library (_poco_net_ssl ${SRCS})
-    add_library (Poco::Net::SSL ALIAS _poco_net_ssl)
+# Headers
+file(GLOB_RECURSE HDRS_G "include/*.h")
+POCO_HEADERS_AUTO(SRCS ${HDRS_G})
 
-    # TODO: remove these warning exclusions
-    target_compile_options (_poco_net_ssl
-        PRIVATE
-            -Wno-cast-qual
-            -Wno-covered-switch-default
-            -Wno-deprecated-copy-with-user-provided-dtor
-            -Wno-deprecated-dynamic-exception-spec
-            -Wno-extra-semi
-            -Wno-extra-semi-stmt
-            -Wno-implicit-fallthrough
-            -Wno-old-style-cast
-            -Wno-shorten-64-to-32
-            -Wno-sign-compare
-            -Wno-unused-exception-parameter
-            -Wno-unused-macros
-            -Wno-unused-parameter
-            -Wno-zero-as-null-pointer-constant
-    )
-    target_include_directories (_poco_net_ssl SYSTEM PUBLIC "include")
-    target_link_libraries (_poco_net_ssl PUBLIC Poco::Crypto Poco::Net Poco::Util)
-else ()
-    add_library (_poco_net_ssl INTERFACE)
-    add_library (Poco::Net::SSL ALIAS _poco_net_ssl)
+add_library(NetSSL ${SRCS})
+add_library(Poco::NetSSL ALIAS NetSSL)
 
-    message (STATUS "Not using Poco::Net::SSL")
-endif ()
+target_link_libraries(NetSSL PUBLIC Poco::Crypto Poco::Util Poco::Net)
+target_include_directories(NetSSL
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+if(MSVC AND OPENSSL_USE_STATIC_LIBS)
+	target_link_libraries(NetSSL PUBLIC ws2_32.lib Crypt32.lib)
+endif()
+

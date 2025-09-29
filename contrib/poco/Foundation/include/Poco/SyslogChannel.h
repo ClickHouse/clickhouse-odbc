@@ -17,7 +17,6 @@
 #ifndef Foundation_SyslogChannel_INCLUDED
 #define Foundation_SyslogChannel_INCLUDED
 
-#if !defined(POCO_OS_FAMILY_WINDOWS)
 
 #include "Poco/Foundation.h"
 #include "Poco/Channel.h"
@@ -30,6 +29,8 @@ class Foundation_API SyslogChannel: public Channel
 	/// This Unix-only channel works with the Unix syslog service.
 {
 public:
+	using Ptr = AutoPtr<SyslogChannel>;
+
 	enum Option
 	{
 		SYSLOG_PID    = 0x01, /// log the pid with each message
@@ -37,7 +38,7 @@ public:
 		SYSLOG_NDELAY = 0x08, /// don't delay open
 		SYSLOG_PERROR = 0x20  /// log to stderr as well (not supported on all platforms)
 	};
-	
+
 	enum Facility
 	{
 		SYSLOG_KERN     = ( 0<<3), /// kernel messages
@@ -61,22 +62,22 @@ public:
 		SYSLOG_LOCAL6   = (22<<3), /// reserved for local use
 		SYSLOG_LOCAL7   = (23<<3)  /// reserved for local use
 	};
-	
+
 	SyslogChannel();
 		/// Creates a SyslogChannel.
-		
+
 	SyslogChannel(const std::string& name, int options = SYSLOG_CONS, int facility = SYSLOG_USER);
 		/// Creates a SyslogChannel with the given name, options and facility.
-	
+
 	void open();
 		/// Opens the SyslogChannel.
-		
+
 	void close();
 		/// Closes the SyslogChannel.
-		
+
 	void log(const Message& msg);
 		/// Sens the message's text to the syslog service.
-		
+
 	void setProperty(const std::string& name, const std::string& value);
 		/// Sets the property with the given value.
 		///
@@ -84,7 +85,7 @@ public:
 		///     * name:     The name used to identify the source of log messages.
 		///     * facility: The facility added to each log message. See the Facility enumeration for a list of supported values.
 		///     * options:  The logging options. See the Option enumeration for a list of supported values.
-		
+
 	std::string getProperty(const std::string& name) const;
 		/// Returns the value of the property with the given name.
 
@@ -108,5 +109,3 @@ private:
 
 
 #endif // Foundation_SyslogChannel_INCLUDED
-
-#endif

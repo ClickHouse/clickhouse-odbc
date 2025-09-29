@@ -22,6 +22,7 @@
 #include "Poco/Mutex.h"
 #include "Poco/RefCountedObject.h"
 #include "Poco/AutoPtr.h"
+#include <memory>
 
 
 namespace Poco {
@@ -35,9 +36,9 @@ class Foundation_API Notification: public RefCountedObject
 	/// template class.
 {
 public:
-	typedef AutoPtr<Notification> Ptr;
-	
-	Notification();
+	using Ptr = AutoPtr<Notification>;
+
+	Notification(const std::string& name = ""s);
 		/// Creates the notification.
 
 	virtual std::string name() const;
@@ -46,6 +47,7 @@ public:
 
 protected:
 	virtual ~Notification();
+	std::unique_ptr<std::string> _pName;
 };
 
 

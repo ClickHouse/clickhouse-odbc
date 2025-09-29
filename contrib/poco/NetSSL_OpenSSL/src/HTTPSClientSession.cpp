@@ -13,7 +13,6 @@
 
 
 #include "Poco/Net/HTTPSClientSession.h"
-#include "Poco/Net/HTTPSSessionInstantiator.h"
 #include "Poco/Net/SecureStreamSocket.h"
 #include "Poco/Net/SecureStreamSocketImpl.h"
 #include "Poco/Net/SSLManager.h"
@@ -37,16 +36,15 @@ HTTPSClientSession::HTTPSClientSession():
 	_pContext(SSLManager::instance().defaultClientContext())
 {
 	setPort(HTTPS_PORT);
-	_proxySessionFactory.registerProtocol("https", new HTTPSSessionInstantiator);
 }
 
 
-HTTPSClientSession::HTTPSClientSession(const SecureStreamSocket& socket):
+HTTPSClientSession::HTTPSClientSession(const SecureStreamSocket& socket, const std::string& host, Poco::UInt16 port):
 	HTTPClientSession(socket),
 	_pContext(socket.context())
 {
-	setPort(HTTPS_PORT);
-	_proxySessionFactory.registerProtocol("https", new HTTPSSessionInstantiator);
+	setHost(host);
+	setPort(port);
 }
 
 
@@ -56,7 +54,6 @@ HTTPSClientSession::HTTPSClientSession(const SecureStreamSocket& socket, Session
 	_pSession(pSession)
 {
 	setPort(HTTPS_PORT);
-	_proxySessionFactory.registerProtocol("https", new HTTPSSessionInstantiator);
 }
 
 
@@ -66,7 +63,6 @@ HTTPSClientSession::HTTPSClientSession(const std::string& host, Poco::UInt16 por
 {
 	setHost(host);
 	setPort(port);
-	_proxySessionFactory.registerProtocol("https", new HTTPSSessionInstantiator);
 }
 
 
@@ -74,7 +70,6 @@ HTTPSClientSession::HTTPSClientSession(Context::Ptr pContext):
 	HTTPClientSession(SecureStreamSocket(pContext)),
 	_pContext(pContext)
 {
-	_proxySessionFactory.registerProtocol("https", new HTTPSSessionInstantiator(pContext));
 }
 
 
@@ -83,7 +78,6 @@ HTTPSClientSession::HTTPSClientSession(Context::Ptr pContext, Session::Ptr pSess
 	_pContext(pContext),
 	_pSession(pSession)
 {
-	_proxySessionFactory.registerProtocol("https", new HTTPSSessionInstantiator(pContext));
 }
 
 
@@ -93,7 +87,6 @@ HTTPSClientSession::HTTPSClientSession(const std::string& host, Poco::UInt16 por
 {
 	setHost(host);
 	setPort(port);
-	_proxySessionFactory.registerProtocol("https", new HTTPSSessionInstantiator(pContext));
 }
 
 
@@ -104,13 +97,11 @@ HTTPSClientSession::HTTPSClientSession(const std::string& host, Poco::UInt16 por
 {
 	setHost(host);
 	setPort(port);
-	_proxySessionFactory.registerProtocol("https", new HTTPSSessionInstantiator(pContext));
 }
 
 
 HTTPSClientSession::~HTTPSClientSession()
 {
-	_proxySessionFactory.unregisterProtocol("https");
 }
 
 
@@ -136,16 +127,7 @@ X509Certificate HTTPSClientSession::serverCertificate()
 
 std::string HTTPSClientSession::proxyRequestPrefix() const
 {
-	std::string result("https://");
-	result.append(getHost());
-	/// Do not append default by default, since this may break some servers.
-	/// One example of such server is GCS (Google Cloud Storage).
-	if (getPort() != HTTPS_PORT)
-	{
-		result.append(":");
-		NumberFormatter::append(result, getPort());
-	}
-	return result;
+	return std::string();
 }
 
 
@@ -156,24 +138,12 @@ void HTTPSClientSession::proxyAuthenticate(HTTPRequest& request)
 
 void HTTPSClientSession::connect(const SocketAddress& address)
 {
-	bool useProxy = !getProxyHost().empty() && !bypassProxy();
-	
-	if (useProxy && isProxyTunnel())
-	{
-		StreamSocket proxySocket(proxyConnect());
-		SecureStreamSocket secureSocket = SecureStreamSocket::attach(proxySocket, getHost(), _pContext, _pSession);
-		attachSocket(secureSocket);
-		if (_pContext->sessionCacheEnabled())
-		{
-			_pSession = secureSocket.currentSession();
-		}
-	}
-	else
+	if (getProxyHost().empty() || bypassProxy())
 	{
 		SecureStreamSocket sss(socket());
 		if (sss.getPeerHostName().empty())
 		{
-			sss.setPeerHostName(useProxy ? getProxyHost() : getHost());
+			sss.setPeerHostName(getHost());
 		}
 		if (_pContext->sessionCacheEnabled())
 		{
@@ -185,6 +155,16 @@ void HTTPSClientSession::connect(const SocketAddress& address)
 			_pSession = sss.currentSession();
 		}
 	}
+	else
+	{
+		StreamSocket proxySocket(proxyConnect());
+		SecureStreamSocket secureSocket = SecureStreamSocket::attach(proxySocket, getHost(), _pContext, _pSession);
+		attachSocket(secureSocket);
+		if (_pContext->sessionCacheEnabled())
+		{
+			_pSession = secureSocket.currentSession();
+		}
+	}
 }
 
 
@@ -194,7 +174,7 @@ int HTTPSClientSession::read(char* buffer, std::streamsize length)
 	{
 		return HTTPSession::read(buffer, length);
 	}
-	catch(SSLConnectionUnexpectedlyClosedException&)
+	catch (SSLConnectionUnexpectedlyClosedException&)
 	{
 		return 0;
 	}

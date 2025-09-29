@@ -12,12 +12,16 @@
 //
 
 
+#if defined(_MSC_VER)
+#pragma warning(disable:4996) // deprecation warnings
+#endif
+
+
 #include "Poco/Net/SSLManager.h"
 #include "Poco/Net/Context.h"
 #include "Poco/Net/Utility.h"
 #include "Poco/Net/PrivateKeyPassphraseHandler.h"
 #include "Poco/Net/RejectCertificateHandler.h"
-#include "Poco/SingletonHolder.h"
 #include "Poco/Delegate.h"
 #include "Poco/Util/Application.h"
 #include "Poco/Util/OptionException.h"
@@ -52,6 +56,7 @@ const std::string SSLManager::CFG_CLIENT_PREFIX("schannel.client.");
 const std::string SSLManager::CFG_REQUIRE_TLSV1("requireTLSv1");
 const std::string SSLManager::CFG_REQUIRE_TLSV1_1("requireTLSv1_1");
 const std::string SSLManager::CFG_REQUIRE_TLSV1_2("requireTLSv1_2");
+const std::string SSLManager::CFG_REQUIRE_TLSV1_3("requireTLSv1_3");
 
 
 SSLManager::SSLManager():
@@ -75,15 +80,10 @@ SSLManager::~SSLManager()
 }
 
 
-namespace
-{
-	static Poco::SingletonHolder<SSLManager> singleton;
-}
-
-
 SSLManager& SSLManager::instance()
 {
-	return *singleton.get();
+	static SSLManager sm;
+	return sm;
 }
 
 
@@ -123,7 +123,7 @@ Context::Ptr SSLManager::defaultClientContext()
 		try
 		{
 			initDefaultContext(false);
-		} 
+		}
 		catch (Poco::IllegalStateException&)
 		{
 			_ptrClientCertificateHandler = new RejectCertificateHandler(false);
@@ -195,6 +195,7 @@ void SSLManager::initDefaultContext(bool server)
 	bool requireTLSv1 = config.getBool(prefix + CFG_REQUIRE_TLSV1, false);
 	bool requireTLSv1_1 = config.getBool(prefix + CFG_REQUIRE_TLSV1_1, false);
 	bool requireTLSv1_2 = config.getBool(prefix + CFG_REQUIRE_TLSV1_2, false);
+	bool requireTLSv1_3 = config.getBool(prefix + CFG_REQUIRE_TLSV1_3, false);
 
 	// optional options for which we have defaults defined
 	Context::VerificationMode verMode = VAL_VER_MODE;
@@ -214,7 +215,7 @@ void SSLManager::initDefaultContext(bool server)
 	if (trustRoots) options |= Context::OPT_TRUST_ROOTS_WIN_CERT_STORE;
 	if (useMachineStore) options |= Context::OPT_USE_MACHINE_STORE;
 	if (useStrongCrypto) options |= Context::OPT_USE_STRONG_CRYPTO;
-	if (!certPath.empty()) 
+	if (!certPath.empty())
 	{
 		options |= Context::OPT_LOAD_CERT_FROM_FILE;
 		certName = certPath;
@@ -223,7 +224,9 @@ void SSLManager::initDefaultContext(bool server)
 	Context::Usage usage;
 	if (server)
 	{
-		if (requireTLSv1_2)
+		if (requireTLSv1_3)
+			usage = Context::TLSV1_3_SERVER_USE;
+		else if (requireTLSv1_2)
 			usage = Context::TLSV1_2_SERVER_USE;
 		else if (requireTLSv1_1)
 			usage = Context::TLSV1_1_SERVER_USE;
@@ -235,7 +238,9 @@ void SSLManager::initDefaultContext(bool server)
 	}
 	else
 	{
-		if (requireTLSv1_2)
+		if (requireTLSv1_3)
+			usage = Context::TLSV1_3_CLIENT_USE;
+		else if (requireTLSv1_2)
 			usage = Context::TLSV1_2_CLIENT_USE;
 		else if (requireTLSv1_1)
 			usage = Context::TLSV1_1_CLIENT_USE;
@@ -259,7 +264,7 @@ void SSLManager::initPassphraseHandler(bool server)
 {
 	if (server && _ptrServerPassphraseHandler) return;
 	if (!server && _ptrClientPassphraseHandler) return;
-	
+
 	std::string prefix = server ? CFG_SERVER_PREFIX : CFG_CLIENT_PREFIX;
 	Poco::Util::AbstractConfiguration& config = appConfig();
 
@@ -338,10 +343,7 @@ void SSLManager::loadSecurityLibrary()
 	if (!GetVersionEx(&VerInfo))
 		throw Poco::SystemException("Cannot determine OS version");
 
-#if defined(_WIN32_WCE)
-	dllPath = L"Secur32.dll";
-#else
-	if (VerInfo.dwPlatformId == VER_PLATFORM_WIN32_NT 
+	if (VerInfo.dwPlatformId == VER_PLATFORM_WIN32_NT
 		&& VerInfo.dwMajorVersion == 4)
 	{
 		dllPath = L"Security.dll";
@@ -355,7 +357,6 @@ void SSLManager::loadSecurityLibrary()
 	{
 		throw Poco::SystemException("Cannot determine which security DLL to use");
 	}
-#endif
 
 	//
 	//  Load Security DLL
@@ -367,11 +368,7 @@ void SSLManager::loadSecurityLibrary()
 		throw Poco::SystemException("Failed to load security DLL");
 	}
 
-#if defined(_WIN32_WCE)
-	INIT_SECURITY_INTERFACE pInitSecurityInterface = (INIT_SECURITY_INTERFACE)GetProcAddressW( _hSecurityModule, L"InitSecurityInterfaceW");
-#else
 	INIT_SECURITY_INTERFACE pInitSecurityInterface = (INIT_SECURITY_INTERFACE)GetProcAddress( _hSecurityModule, "InitSecurityInterfaceW");
-#endif
 
 	if (!pInitSecurityInterface)
 	{
@@ -421,7 +418,7 @@ Poco::Util::AbstractConfiguration& SSLManager::appConfig()
 void initializeSSL()
 {
 }
-	
+
 
 void uninitializeSSL()
 {

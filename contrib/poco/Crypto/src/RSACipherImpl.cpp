@@ -114,7 +114,6 @@ namespace
 		switch (_paddingMode)
 		{
 		case RSA_PADDING_PKCS1:
-		case RSA_PADDING_SSLV23:
 			size -= 11;
 			break;
 		case RSA_PADDING_PKCS1_OAEP:
@@ -327,13 +326,13 @@ RSACipherImpl::~RSACipherImpl()
 }
 
 
-CryptoTransform* RSACipherImpl::createEncryptor()
+CryptoTransform::Ptr RSACipherImpl::createEncryptor()
 {
 	return new RSAEncryptImpl(_key.impl()->getRSA(), _paddingMode);
 }
 
 
-CryptoTransform* RSACipherImpl::createDecryptor()
+CryptoTransform::Ptr RSACipherImpl::createDecryptor()
 {
 	return new RSADecryptImpl(_key.impl()->getRSA(), _paddingMode);
 }

@@ -12,14 +12,11 @@
 //
 
 
-#if defined(POCO_OS_FAMILY_WINDOWS)
-
 #include "Poco/EventLogChannel.h"
 #include "Poco/Message.h"
 #include "Poco/String.h"
-#if defined(POCO_WIN32_UTF8)
+#include "pocomsg.h"
 #include "Poco/UnicodeConverter.h"
-#endif
 
 
 namespace Poco {
@@ -31,12 +28,11 @@ const std::string EventLogChannel::PROP_LOGHOST = "loghost";
 const std::string EventLogChannel::PROP_LOGFILE = "logfile";
 
 
-EventLogChannel::EventLogChannel(): 
+EventLogChannel::EventLogChannel():
 	_logFile("Application"),
 	_h(0)
 {
 	const DWORD maxPathLen = MAX_PATH + 1;
-#if defined(POCO_WIN32_UTF8)
 	wchar_t name[maxPathLen];
 	int n = GetModuleFileNameW(NULL, name, maxPathLen);
 	if (n > 0)
@@ -47,30 +43,19 @@ EventLogChannel::EventLogChannel():
 		std::wstring uname(end);
 		UnicodeConverter::toUTF8(uname, _name);
 	}
-#else
-	char name[maxPathLen];
-	int n = GetModuleFileNameA(NULL, name, maxPathLen);
-	if (n > 0)
-	{
-		char* end = name + n - 1;
-		while (end > name && *end != '\\') --end;
-		if (*end == '\\') ++end;
-		_name = end;
-	}
-#endif
 }
 
 
-EventLogChannel::EventLogChannel(const std::string& name): 
-	_name(name), 
+EventLogChannel::EventLogChannel(const std::string& name):
+	_name(name),
 	_logFile("Application"),
 	_h(0)
 {
 }
 
 
-EventLogChannel::EventLogChannel(const std::string& name, const std::string& host): 
-	_name(name), 
+EventLogChannel::EventLogChannel(const std::string& name, const std::string& host):
+	_name(name),
 	_host(host),
 	_logFile("Application"),
 	_h(0)
@@ -94,15 +79,11 @@ EventLogChannel::~EventLogChannel()
 void EventLogChannel::open()
 {
 	setUpRegistry();
-#if defined(POCO_WIN32_UTF8)
 	std::wstring uhost;
 	UnicodeConverter::toUTF16(_host, uhost);
 	std::wstring uname;
 	UnicodeConverter::toUTF16(_name, uname);
 	_h = RegisterEventSourceW(uhost.empty() ? NULL : uhost.c_str(), uname.c_str());
-#else
-	_h = RegisterEventSource(_host.empty() ? NULL : _host.c_str(), _name.c_str());
-#endif
 	if (!_h) throw SystemException("cannot register event source");
 }
 
@@ -117,15 +98,10 @@ void EventLogChannel::close()
 void EventLogChannel::log(const Message& msg)
 {
 	if (!_h) open();
-#if defined(POCO_WIN32_UTF8)
 	std::wstring utext;
 	UnicodeConverter::toUTF16(msg.getText(), utext);
 	const wchar_t* pMsg = utext.c_str();
-	ReportEventW(_h, getType(msg), getCategory(msg), 0x1000, NULL, 1, 0, &pMsg, NULL); 
-#else
-	const char* pMsg = msg.getText().c_str();
-	ReportEvent(_h, getType(msg), getCategory(msg), POCO_MSG_LOG, NULL, 1, 0, &pMsg, NULL); 
-#endif
+	ReportEventW(_h, getType(msg), getCategory(msg), POCO_MSG_LOG, NULL, 1, 0, &pMsg, NULL);
 }
 
 
@@ -181,21 +157,21 @@ int EventLogChannel::getCategory(const Message& msg)
 	switch (msg.getPriority())
 	{
 	case Message::PRIO_TRACE:
-		return 0x8;
+		return POCO_CTG_TRACE;
 	case Message::PRIO_DEBUG:
-		return 0x7;
+		return POCO_CTG_DEBUG;
 	case Message::PRIO_INFORMATION:
-		return 0x6;
+		return POCO_CTG_INFORMATION;
 	case Message::PRIO_NOTICE:
-		return 0x5;
+		return POCO_CTG_NOTICE;
 	case Message::PRIO_WARNING:
-		return 0x4;
+		return POCO_CTG_WARNING;
 	case Message::PRIO_ERROR:
-		return 0x3;
+		return POCO_CTG_ERROR;
 	case Message::PRIO_CRITICAL:
-		return 0x2;
+		return POCO_CTG_CRITICAL;
 	case Message::PRIO_FATAL:
-		return 0x1;
+		return POCO_CTG_FATAL;
 	default:
 		return 0;
 	}
@@ -210,81 +186,47 @@ void EventLogChannel::setUpRegistry() const
 	key.append(_name);
 	HKEY hKey;
 	DWORD disp;
-#if defined(POCO_WIN32_UTF8)
 	std::wstring ukey;
 	UnicodeConverter::toUTF16(key, ukey);
 	DWORD rc = RegCreateKeyExW(HKEY_LOCAL_MACHINE, ukey.c_str(), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, &disp);
-#else
-	DWORD rc = RegCreateKeyEx(HKEY_LOCAL_MACHINE, key.c_str(), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, &disp);
-#endif
 	if (rc != ERROR_SUCCESS) return;
-	
+
 	if (disp == REG_CREATED_NEW_KEY)
 	{
-#if defined(POCO_WIN32_UTF8)
 		std::wstring path;
 		#if defined(POCO_DLL)
 			#if defined(_DEBUG)
-				#if defined(_WIN64)
+				#if defined(_WIN64) && !defined(POCO_CMAKE)
 					path = findLibrary(L"PocoFoundation64d.dll");
 				#else
 					path = findLibrary(L"PocoFoundationd.dll");
 				#endif
 			#else
-				#if defined(_WIN64)
+				#if defined(_WIN64) && !defined(POCO_CMAKE)
 					path = findLibrary(L"PocoFoundation64.dll");
 				#else
 					path = findLibrary(L"PocoFoundation.dll");
 				#endif
 			#endif
 		#endif
-		
+
 		if (path.empty())
 			path = findLibrary(L"PocoMsg.dll");
-#else
-		std::string path;
-		#if defined(POCO_DLL)
-			#if defined(_DEBUG)
-				#if defined(_WIN64)
-					path = findLibrary("PocoFoundation64d.dll");
-				#else
-					path = findLibrary("PocoFoundationd.dll");
-				#endif
-			#else
-				#if defined(_WIN64)
-					path = findLibrary("PocoFoundation64.dll");
-				#else
-					path = findLibrary("PocoFoundation.dll");
-				#endif
-			#endif
-		#endif
-		
-		if (path.empty())
-			path = findLibrary("PocoMsg.dll");
-#endif
-		
+
 		if (!path.empty())
 		{
 			DWORD count = 8;
 			DWORD types = 7;
-#if defined(POCO_WIN32_UTF8)
 			RegSetValueExW(hKey, L"CategoryMessageFile", 0, REG_SZ, (const BYTE*) path.c_str(), static_cast<DWORD>(sizeof(wchar_t)*(path.size() + 1)));
 			RegSetValueExW(hKey, L"EventMessageFile", 0, REG_SZ, (const BYTE*) path.c_str(), static_cast<DWORD>(sizeof(wchar_t)*(path.size() + 1)));
 			RegSetValueExW(hKey, L"CategoryCount", 0, REG_DWORD, (const BYTE*) &count, static_cast<DWORD>(sizeof(count)));
 			RegSetValueExW(hKey, L"TypesSupported", 0, REG_DWORD, (const BYTE*) &types, static_cast<DWORD>(sizeof(types)));
-#else
-			RegSetValueEx(hKey, "CategoryMessageFile", 0, REG_SZ, (const BYTE*) path.c_str(), static_cast<DWORD>(path.size() + 1));
-			RegSetValueEx(hKey, "EventMessageFile", 0, REG_SZ, (const BYTE*) path.c_str(), static_cast<DWORD>(path.size() + 1));
-			RegSetValueEx(hKey, "CategoryCount", 0, REG_DWORD, (const BYTE*) &count, static_cast<DWORD>(sizeof(count)));
-			RegSetValueEx(hKey, "TypesSupported", 0, REG_DWORD, (const BYTE*) &types, static_cast<DWORD>(sizeof(types)));
-#endif
 		}
 	}
 	RegCloseKey(hKey);
 }
 
 
-#if defined(POCO_WIN32_UTF8)
 std::wstring EventLogChannel::findLibrary(const wchar_t* name)
 {
 	std::wstring path;
@@ -292,31 +234,13 @@ std::wstring EventLogChannel::findLibrary(const wchar_t* name)
 	if (dll)
 	{
 		const DWORD maxPathLen = MAX_PATH + 1;
-		wchar_t name[maxPathLen];
-		int n = GetModuleFileNameW(dll, name, maxPathLen);
-		if (n > 0) path = name;
+		wchar_t moduleName[maxPathLen];
+		int n = GetModuleFileNameW(dll, moduleName, maxPathLen);
+		if (n > 0) path = moduleName;
 		FreeLibrary(dll);
 	}
 	return path;
 }
-#else
-std::string EventLogChannel::findLibrary(const char* name)
-{
-	std::string path;
-	HMODULE dll = LoadLibraryA(name);
-	if (dll)
-	{
-		const DWORD maxPathLen = MAX_PATH + 1;
-		char name[maxPathLen];
-		int n = GetModuleFileNameA(dll, name, maxPathLen);
-		if (n > 0) path = name;
-		FreeLibrary(dll);
-	}
-	return path;
-}
-#endif
 
 
 } // namespace Poco
-
-#endif

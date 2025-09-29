@@ -18,38 +18,35 @@
 #define NetSSL_AcceptCertificateHandler_INCLUDED
 
 
-#include "Poco/Net/InvalidCertificateHandler.h"
 #include "Poco/Net/NetSSL.h"
+#include "Poco/Net/InvalidCertificateHandler.h"
 
 
-namespace Poco
+namespace Poco {
+namespace Net {
+
+
+class NetSSL_API AcceptCertificateHandler: public InvalidCertificateHandler
+	/// A AcceptCertificateHandler is invoked whenever an error
+	/// occurs verifying the certificate. It always accepts
+	/// the certificate.
+	///
+	/// Should be using for testing purposes only.
 {
-namespace Net
-{
+public:
+	AcceptCertificateHandler(bool handleErrorsOnServerSide);
+		/// Creates the AcceptCertificateHandler
+
+	virtual ~AcceptCertificateHandler();
+		/// Destroys the AcceptCertificateHandler.
+
+	void onInvalidCertificate(const void* pSender, VerificationErrorArgs& errorCert);
+		/// Receives the questionable certificate in parameter errorCert. If one wants to accept the
+		/// certificate, call errorCert.setIgnoreError(true).
+};
 
 
-    class NetSSL_API AcceptCertificateHandler : public InvalidCertificateHandler
-    /// A AcceptCertificateHandler is invoked whenever an error
-    /// occurs verifying the certificate. It always accepts
-    /// the certificate.
-    ///
-    /// Should be using for testing purposes only.
-    {
-    public:
-        AcceptCertificateHandler(bool handleErrorsOnServerSide);
-        /// Creates the AcceptCertificateHandler
-
-        virtual ~AcceptCertificateHandler();
-        /// Destroys the AcceptCertificateHandler.
-
-        void onInvalidCertificate(const void * pSender, VerificationErrorArgs & errorCert);
-        /// Receives the questionable certificate in parameter errorCert. If one wants to accept the
-        /// certificate, call errorCert.setIgnoreError(true).
-    };
-
-
-}
-} // namespace Poco::Net
+} } // namespace Poco::Net
 
 
 #endif // NetSSL_AcceptCertificateHandler_INCLUDED

@@ -20,92 +20,100 @@
 
 #include "Poco/Net/NetSSL.h"
 #include "Poco/Net/X509Certificate.h"
+#include "Poco/Net/Context.h"
 
 
-namespace Poco
+namespace Poco {
+namespace Net {
+
+
+class NetSSL_API VerificationErrorArgs
+	/// A utility class for certificate error handling.
 {
-namespace Net
+public:
+	VerificationErrorArgs(Poco::Net::Context::Ptr pContext, const X509Certificate& cert, int errDepth, int errNum, const std::string& errMsg);
+		/// Creates the VerificationErrorArgs. _ignoreError is per default set to false.
+
+	~VerificationErrorArgs();
+		/// Destroys the VerificationErrorArgs.
+
+	Poco::Net::Context::Ptr context() const;
+		/// Returns the Context of the underlying connection causing the error.
+
+	const X509Certificate& certificate() const;
+		/// Returns the certificate that caused the error.
+
+	int errorDepth() const;
+		/// Returns the position of the certificate in the certificate chain.
+
+	int errorNumber() const;
+		/// Returns the id of the error
+
+	const std::string& errorMessage() const;
+		/// Returns the textual presentation of the errorNumber.
+
+	void setIgnoreError(bool ignoreError);
+		/// setIgnoreError to true, if a verification error is judged non-fatal by the user.
+
+	bool getIgnoreError() const;
+		/// returns the value of _ignoreError
+
+private:
+	Poco::Net::Context::Ptr _pContext;
+	X509Certificate	_cert;
+	int             _errorDepth;
+	int             _errorNumber;
+	std::string     _errorMessage; /// Textual representation of the _errorNumber
+	bool            _ignoreError;
+};
+
+
+//
+// inlines
+//
+inline Poco::Net::Context::Ptr VerificationErrorArgs::context() const
 {
-
-
-    class NetSSL_API VerificationErrorArgs
-    /// A utility class for certificate error handling.
-    {
-    public:
-        VerificationErrorArgs(const X509Certificate & cert, int errDepth, int errNum, const std::string & errMsg);
-        /// Creates the VerificationErrorArgs. _ignoreError is per default set to false.
-
-        ~VerificationErrorArgs();
-        /// Destroys the VerificationErrorArgs.
-
-        const X509Certificate & certificate() const;
-        /// Returns the certificate that caused the error.
-
-        int errorDepth() const;
-        /// Returns the position of the certificate in the certificate chain.
-
-        int errorNumber() const;
-        /// Returns the id of the error
-
-        const std::string & errorMessage() const;
-        /// Returns the textual presentation of the errorNumber.
-
-        void setIgnoreError(bool ignoreError);
-        /// setIgnoreError to true, if a verification error is judged non-fatal by the user.
-
-        bool getIgnoreError() const;
-        /// returns the value of _ignoreError
-
-    private:
-        X509Certificate _cert;
-        int _errorDepth;
-        int _errorNumber;
-        std::string _errorMessage; /// Textual representation of the _errorNumber
-        bool _ignoreError;
-    };
-
-
-    //
-    // inlines
-    //
-    inline const X509Certificate & VerificationErrorArgs::certificate() const
-    {
-        return _cert;
-    }
-
-
-    inline int VerificationErrorArgs::errorDepth() const
-    {
-        return _errorDepth;
-    }
-
-
-    inline int VerificationErrorArgs::errorNumber() const
-    {
-        return _errorNumber;
-    }
-
-
-    inline const std::string & VerificationErrorArgs::errorMessage() const
-    {
-        return _errorMessage;
-    }
-
-
-    inline void VerificationErrorArgs::setIgnoreError(bool ignoreError)
-    {
-        _ignoreError = ignoreError;
-    }
-
-
-    inline bool VerificationErrorArgs::getIgnoreError() const
-    {
-        return _ignoreError;
-    }
-
-
+	return _pContext;
 }
-} // namespace Poco::Net
+
+
+inline const X509Certificate& VerificationErrorArgs::certificate() const
+{
+	return _cert;
+}
+
+
+inline int VerificationErrorArgs::errorDepth() const
+{
+	return _errorDepth;
+}
+
+
+inline int VerificationErrorArgs::errorNumber() const
+{
+	return _errorNumber;
+}
+
+
+inline const std::string& VerificationErrorArgs::errorMessage() const
+{
+	return _errorMessage;
+}
+
+
+inline void VerificationErrorArgs::setIgnoreError(bool ignoreError)
+{
+	_ignoreError = ignoreError;
+}
+
+
+inline bool VerificationErrorArgs::getIgnoreError() const
+{
+	return _ignoreError;
+}
+
+
+} } // namespace Poco::Net
 
 
 #endif // NetSSL_VerificationErrorArgs_INCLUDED

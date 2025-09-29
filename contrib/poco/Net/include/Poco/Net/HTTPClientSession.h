@@ -20,7 +20,9 @@
 
 #include "Poco/Net/Net.h"
 #include "Poco/Net/HTTPSession.h"
-#include "Poco/Net/HTTPSessionFactory.h"
+#include "Poco/Net/HTTPBasicCredentials.h"
+#include "Poco/Net/HTTPDigestCredentials.h"
+#include "Poco/Net/HTTPNTLMCredentials.h"
 #include "Poco/Net/SocketAddress.h"
 #include "Poco/SharedPtr.h"
 #include <istream>
@@ -63,11 +65,20 @@ class Net_API HTTPClientSession: public HTTPSession
 	/// set up a session through a proxy.
 {
 public:
+	enum ProxyAuthentication
+	{
+		PROXY_AUTH_NONE,        /// No proxy authentication
+		PROXY_AUTH_HTTP_BASIC,  /// HTTP Basic proxy authentication (default, if username and password are supplied)
+		PROXY_AUTH_HTTP_DIGEST, /// HTTP Digest proxy authentication
+		PROXY_AUTH_NTLM         /// NTLMv2 proxy authentication
+	};
+
 	struct ProxyConfig
 		/// HTTP proxy server configuration.
 	{
 		ProxyConfig():
-			port(HTTP_PORT), protocol("http"), tunnel(true)
+			port(HTTP_PORT),
+			authMethod(PROXY_AUTH_HTTP_BASIC)
 		{
 		}
 
@@ -75,11 +86,6 @@ public:
 			/// Proxy server host name or IP address.
 		Poco::UInt16 port;
 			/// Proxy server TCP port.
-		std::string  protocol;
-			/// Protocol to use (http or https).
-		bool tunnel;
-			/// Use proxy as tunnel (establish 2-way communication through CONNECT request).
-			/// If tunnel option is 'false' request will be send directly to proxy without CONNECT request.
 		std::string  username;
 			/// Proxy server username.
 		std::string  password;
@@ -88,6 +94,9 @@ public:
 			/// A regular expression defining hosts for which the proxy should be bypassed,
 			/// e.g. "localhost|127\.0\.0\.1|192\.168\.0\.\d+". Can also be an empty
 			/// string to disable proxy bypassing.
+
+		ProxyAuthentication authMethod;
+			/// The authentication method to use - HTTP Basic or NTLM.
 	};
 
 	HTTPClientSession();
@@ -106,6 +115,9 @@ public:
 
 	HTTPClientSession(const std::string& host, Poco::UInt16 port, const ProxyConfig& proxyConfig);
 		/// Creates a HTTPClientSession using the given host, port and proxy configuration.
+
+	HTTPClientSession(const StreamSocket& socket, const ProxyConfig& proxyConfig);
+		/// Creates a HTTPClientSession using the given socket and proxy configuration.
 
 	virtual ~HTTPClientSession();
 		/// Destroys the HTTPClientSession and closes
@@ -126,16 +138,37 @@ public:
 		/// The port number must not be changed once there is an
 		/// open connection to the server.
 
-	void setResolvedHost(std::string resolved_host) { _resolved_host.swap(resolved_host); }
-
 	Poco::UInt16 getPort() const;
 		/// Returns the port number of the target HTTP server.
 
-	std::string getResolvedAddress() const;
-		/// Returns the resolved host name and port of the target HTTP server.
+	void setSourceAddress(const SocketAddress& address);
+		/// Sets the source IP address and source port for the HTTPClientSession
+		/// socket.
+		///
+		/// Function can be called repeatedly to set one source address value for
+		/// IPv4 and one for IPv6, in the case where it is not known ahead of time
+		/// which type of address family the target host is part of.
+		///
+		/// The source address must not be changed once there
+		/// is an open connection to the server.
+		///
+		/// Note: Both the source IP address and source port can be set
+		/// using this function, but the typical client use is to set
+		/// the source IP address only and the source port portion
+		/// would normally be passed as 0 meaning that any port value
+		/// can be used on the source side of the socket.
 
-	void setProxy(const std::string& host, Poco::UInt16 port = HTTPSession::HTTP_PORT, const std::string& protocol = "http", bool tunnel = true);
-		/// Sets the proxy host name, port number, protocol (http or https) and tunnel behaviour.
+	const SocketAddress& getSourceAddress();
+		/// Returns the last source address set with setSourceAddress
+
+	const SocketAddress& getSourceAddress4();
+		/// Returns the last IPv4 source address set with setSourceAddress
+
+	const SocketAddress& getSourceAddress6();
+		/// Returns the last IPV6 source address set with setSourceAddress
+
+	void setProxy(const std::string& host, Poco::UInt16 port = HTTPSession::HTTP_PORT);
+		/// Sets the proxy host name and port number.
 
 	void setProxyHost(const std::string& host);
 		/// Sets the host name of the proxy server.
@@ -143,23 +176,11 @@ public:
 	void setProxyPort(Poco::UInt16 port);
 		/// Sets the port number of the proxy server.
 
-	void setProxyProtocol(const std::string& protocol);
-		/// Sets the proxy protocol (http or https).
-
-	void setProxyTunnel(bool tunnel);
-		/// If 'true' proxy will be used as tunnel.
-
 	const std::string& getProxyHost() const;
 		/// Returns the proxy host name.
 
 	Poco::UInt16 getProxyPort() const;
 		/// Returns the proxy port number.
-
-	const std::string& getProxyProtocol() const;
-		/// Returns the proxy protocol.
-
-	bool isProxyTunnel() const;
-		/// Returns 'true' if proxy is configured as tunnel.
 
 	void setProxyCredentials(const std::string& username, const std::string& password);
 		/// Sets the username and password for proxy authentication.
@@ -306,6 +327,9 @@ protected:
 	int write(const char* buffer, std::streamsize length);
 		/// Tries to re-connect if keep-alive is on.
 
+	std::ostream& sendRequestImpl(const HTTPRequest& request);
+		/// Sends the given HTTPRequest over an existing connection.
+
 	virtual std::string proxyRequestPrefix() const;
 		/// Returns the prefix prepended to the URI for proxy requests
 		/// (e.g., "http://myhost.com").
@@ -317,9 +341,19 @@ protected:
 		/// Sets the proxy credentials (Proxy-Authorization header), if
 		/// proxy username and password have been set.
 
-	void proxyAuthenticateImpl(HTTPRequest& request);
+	void proxyAuthenticateImpl(HTTPRequest& request, const ProxyConfig& proxyConfig);
 		/// Sets the proxy credentials (Proxy-Authorization header), if
 		/// proxy username and password have been set.
+
+	void proxyAuthenticateDigest(HTTPRequest& request);
+		/// Initiates a HTTP Digest authentication handshake with the proxy.
+
+	void proxyAuthenticateNTLM(HTTPRequest& request);
+		/// Initiates a HTTP NTLM authentication handshake with the proxy.
+
+	void sendChallengeRequest(const HTTPRequest& request, HTTPResponse& response);
+		/// Sends a probe request for Digest and NTLM authentication
+		/// to obtain the server challenge.
 
 	StreamSocket proxyConnect();
 		/// Sends a CONNECT request to the proxy server and returns
@@ -329,21 +363,28 @@ protected:
 		/// Calls proxyConnect() and attaches the resulting StreamSocket
 		/// to the HTTPClientSession.
 
-	HTTPSessionFactory _proxySessionFactory;
-		/// Factory to create HTTPClientSession to proxy.
 private:
-	std::string     _host;
-	std::string _resolved_host;
-	Poco::UInt16    _port;
-	ProxyConfig     _proxyConfig;
-	Poco::Timespan  _keepAliveTimeout;
-	Poco::Timestamp _lastRequest;
-	bool            _reconnect;
-	bool            _mustReconnect;
-	bool            _expectResponseBody;
-	bool            _responseReceived;
-	Poco::SharedPtr<std::ostream> _pRequestStream;
-	Poco::SharedPtr<std::istream> _pResponseStream;
+	using OStreamPtr = Poco::SharedPtr<std::ostream>;
+	using IStreamPtr = Poco::SharedPtr<std::istream>;
+
+	std::string           _host;
+	Poco::UInt16          _port;
+	SocketAddress         _sourceAddress;
+	SocketAddress         _sourceAddress4;
+	SocketAddress         _sourceAddress6;
+	ProxyConfig           _proxyConfig;
+	Poco::Timespan        _keepAliveTimeout;
+	Poco::Timestamp       _lastRequest;
+	bool                  _reconnect;
+	bool                  _mustReconnect;
+	bool                  _expectResponseBody;
+	bool                  _responseReceived;
+	OStreamPtr            _pRequestStream;
+	IStreamPtr            _pResponseStream;
+	HTTPBasicCredentials  _proxyBasicCreds;
+	HTTPDigestCredentials _proxyDigestCreds;
+	HTTPNTLMCredentials   _proxyNTLMCreds;
+	bool                  _ntlmProxyAuthenticated = false;
 
 	static ProxyConfig _globalProxyConfig;
 
@@ -357,13 +398,6 @@ private:
 //
 // inlines
 //
-
-inline std::string HTTPClientSession::getResolvedAddress() const
-{
-	return (_resolved_host.empty() ? _host : _resolved_host) + ':' + std::to_string(_port);
-}
-
-
 inline const std::string& HTTPClientSession::getHost() const
 {
 	return _host;
@@ -385,18 +419,6 @@ inline const std::string& HTTPClientSession::getProxyHost() const
 inline Poco::UInt16 HTTPClientSession::getProxyPort() const
 {
 	return _proxyConfig.port;
-}
-
-
-inline const std::string& HTTPClientSession::getProxyProtocol() const
-{
-	return _proxyConfig.protocol;
-}
-
-
-inline bool HTTPClientSession::isProxyTunnel() const
-{
-	return _proxyConfig.tunnel;
 }
 
 
