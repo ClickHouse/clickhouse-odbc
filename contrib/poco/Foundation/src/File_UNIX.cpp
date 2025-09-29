@@ -16,6 +16,7 @@
 #include "Poco/Buffer.h"
 #include "Poco/Exception.h"
 #include "Poco/Error.h"
+#include "Poco/Path.h"
 #include <algorithm>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -23,7 +24,7 @@
 #if defined(POCO_OS_FAMILY_BSD)
 #include <sys/param.h>
 #include <sys/mount.h>
-#elif (POCO_OS == POCO_OS_SOLARIS)
+#elif (POCO_OS == POCO_OS_SOLARIS) || (POCO_OS == POCO_OS_QNX)
 #include <sys/statvfs.h>
 #else
 #include <sys/statfs.h>
@@ -35,7 +36,7 @@
 #include <utime.h>
 #include <cstring>
 
-#if (POCO_OS == POCO_OS_SOLARIS)
+#if (POCO_OS == POCO_OS_SOLARIS) || (POCO_OS == POCO_OS_QNX)
 #define STATFSFN statvfs
 #define STATFSSTRUCT statvfs
 #else
@@ -77,6 +78,12 @@ void FileImpl::setPathImpl(const std::string& path)
 	std::string::size_type n = _path.size();
 	if (n > 1 && _path[n - 1] == '/')
 		_path.resize(n - 1);
+}
+
+
+std::string FileImpl::getExecutablePathImpl() const
+{
+	return _path;
 }
 
 
@@ -127,12 +134,12 @@ bool FileImpl::canWriteImpl() const
 }
 
 
-bool FileImpl::canExecuteImpl() const
+bool FileImpl::canExecuteImpl(const std::string& absolutePath) const
 {
-	poco_assert (!_path.empty());
+	poco_assert (!absolutePath.empty());
 
 	struct stat st;
-	if (stat(_path.c_str(), &st) == 0)
+	if (stat(absolutePath.c_str(), &st) == 0)
 	{
 		if (st.st_uid == geteuid() || geteuid() == 0)
 			return (st.st_mode & S_IXUSR) != 0;
@@ -212,19 +219,24 @@ Timestamp FileImpl::createdImpl() const
 {
 	poco_assert (!_path.empty());
 
-#if defined(__APPLE__) && defined(st_birthtime) && !defined(POCO_NO_STAT64) // st_birthtime is available only on 10.5
-	struct stat64 st;
-	if (stat64(_path.c_str(), &st) == 0)
-		return Timestamp::fromEpochTime(st.st_birthtime);
-#elif defined(__FreeBSD__)
+	using TV = Timestamp::TimeVal;
+
+	// Nanosecond to timestamp resolution factor
+	static constexpr TV nsk = 1'000'000'000ll / Timestamp::resolution();
+
 	struct stat st;
-	if (stat(_path.c_str(), &st) == 0)
-		return Timestamp::fromEpochTime(st.st_birthtime);
+	if (::stat(_path.c_str(), &st) == 0)
+	{
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(_DARWIN_FEATURE_64_BIT_INODE))
+		const TV tv = static_cast<TV>(st.st_birthtimespec.tv_sec) * Timestamp::resolution() + st.st_birthtimespec.tv_nsec/nsk;
+		return Timestamp(tv);
+#elif POCO_OS == POCO_OS_LINUX
+		const TV tv = static_cast<TV>(st.st_ctim.tv_sec) * Timestamp::resolution() + st.st_ctim.tv_nsec/nsk;
+		return Timestamp(tv);
 #else
-	struct stat st;
-	if (stat(_path.c_str(), &st) == 0)
 		return Timestamp::fromEpochTime(st.st_ctime);
 #endif
+	}
 	else
 		handleLastErrorImpl(_path);
 	return 0;
@@ -235,9 +247,24 @@ Timestamp FileImpl::getLastModifiedImpl() const
 {
 	poco_assert (!_path.empty());
 
+	using TV = Timestamp::TimeVal;
+
+	// Nanosecond to timestamp resolution factor
+	static constexpr TV nsk = 1'000'000'000ll / Timestamp::resolution();
+
 	struct stat st;
-	if (stat(_path.c_str(), &st) == 0)
+	if (::stat(_path.c_str(), &st) == 0)
+	{
+#if defined(__FreeBSD__) || (defined(__APPLE__) && defined(_DARWIN_FEATURE_64_BIT_INODE))
+		const TV tv = static_cast<TV>(st.st_mtimespec.tv_sec) * Timestamp::resolution() + st.st_mtimespec.tv_nsec/nsk;
+		return Timestamp(tv);
+#elif POCO_OS == POCO_OS_LINUX
+		const TV tv = static_cast<TV>(st.st_mtim.tv_sec) * Timestamp::resolution() + st.st_mtim.tv_nsec/nsk;
+		return Timestamp(tv);
+#else
 		return Timestamp::fromEpochTime(st.st_mtime);
+#endif
+	}
 	else
 		handleLastErrorImpl(_path);
 	return 0;
@@ -248,10 +275,11 @@ void FileImpl::setLastModifiedImpl(const Timestamp& ts)
 {
 	poco_assert (!_path.empty());
 
-	struct utimbuf tb;
-	tb.actime  = ts.epochTime();
-	tb.modtime = ts.epochTime();
-	if (utime(_path.c_str(), &tb) != 0)
+	const ::time_t s = ts.epochTime();
+	const ::suseconds_t us = ts.epochMicroseconds() % 1'000'000;
+	const ::timeval times[2] = { {s, us}, {s, us} };
+
+	if (::utimes(_path.c_str(), times) != 0)
 		handleLastErrorImpl(_path);
 }
 
@@ -326,7 +354,7 @@ void FileImpl::setExecutableImpl(bool flag)
 }
 
 
-void FileImpl::copyToImpl(const std::string& path) const
+void FileImpl::copyToImpl(const std::string& path, int options) const
 {
 	poco_assert (!_path.empty());
 
@@ -336,16 +364,22 @@ void FileImpl::copyToImpl(const std::string& path) const
 	struct stat st;
 	if (fstat(sd, &st) != 0)
 	{
+		int err = errno;
 		close(sd);
-		handleLastErrorImpl(_path);
+		handleLastErrorImpl(err, _path);
 	}
 	const long blockSize = st.st_blksize;
-
-	int dd = open(path.c_str(), O_CREAT | O_TRUNC | O_WRONLY, st.st_mode);
+	int dd;
+	if (options & OPT_FAIL_ON_OVERWRITE_IMPL) {
+		dd = open(path.c_str(), O_CREAT | O_TRUNC | O_EXCL | O_WRONLY, st.st_mode);
+	} else {
+		dd = open(path.c_str(), O_CREAT | O_TRUNC | O_WRONLY, st.st_mode);
+	}
 	if (dd == -1)
 	{
+		int err = errno;
 		close(sd);
-		handleLastErrorImpl(path);
+		handleLastErrorImpl(err, path);
 	}
 	Buffer<char> buffer(blockSize);
 	try
@@ -357,7 +391,9 @@ void FileImpl::copyToImpl(const std::string& path) const
 				handleLastErrorImpl(path);
 		}
 		if (n < 0)
+		{
 			handleLastErrorImpl(_path);
+		}
 	}
 	catch (...)
 	{
@@ -368,17 +404,25 @@ void FileImpl::copyToImpl(const std::string& path) const
 	close(sd);
 	if (fsync(dd) != 0)
 	{
+		int err = errno;
 		close(dd);
-		handleLastErrorImpl(path);
+		handleLastErrorImpl(err, path);
 	}
 	if (close(dd) != 0)
+	{
 		handleLastErrorImpl(path);
+	}
 }
 
 
-void FileImpl::renameToImpl(const std::string& path)
+void FileImpl::renameToImpl(const std::string& path, int options)
 {
 	poco_assert (!_path.empty());
+
+	struct stat st;
+
+	if (stat(path.c_str(), &st) == 0 && (options & OPT_FAIL_ON_OVERWRITE_IMPL))
+		throw FileExistsException(path, EEXIST);
 
 	if (rename(_path.c_str(), path.c_str()) != 0)
 		handleLastErrorImpl(_path);
@@ -481,42 +525,48 @@ FileImpl::FileSizeImpl FileImpl::freeSpaceImpl() const
 }
 
 
-void FileImpl::handleLastErrorImpl(const std::string& path)
+void FileImpl::handleLastErrorImpl(int err, const std::string& path)
 {
-	switch (errno)
+	switch (err)
 	{
 	case EIO:
-		throw IOException(path, errno);
+		throw IOException(path, err);
 	case EPERM:
-		throw FileAccessDeniedException("insufficient permissions", path, errno);
+		throw FileAccessDeniedException("insufficient permissions", path, err);
 	case EACCES:
-		throw FileAccessDeniedException(path, errno);
+		throw FileAccessDeniedException(path, err);
 	case ENOENT:
-		throw FileNotFoundException(path, errno);
+		throw FileNotFoundException(path, err);
 	case ENOTDIR:
-		throw OpenFileException("not a directory", path, errno);
+		throw OpenFileException("not a directory", path, err);
 	case EISDIR:
-		throw OpenFileException("not a file", path, errno);
+		throw OpenFileException("not a file", path, err);
 	case EROFS:
-		throw FileReadOnlyException(path, errno);
+		throw FileReadOnlyException(path, err);
 	case EEXIST:
-		throw FileExistsException(path, errno);
+		throw FileExistsException(path, err);
 	case ENOSPC:
-		throw FileException("no space left on device", path, errno);
+		throw FileException("no space left on device", path, err);
 	case EDQUOT:
-		throw FileException("disk quota exceeded", path, errno);
+		throw FileException("disk quota exceeded", path, err);
 #if !defined(_AIX)
 	case ENOTEMPTY:
-		throw DirectoryNotEmptyException(path, errno);
+		throw DirectoryNotEmptyException(path, err);
 #endif
 	case ENAMETOOLONG:
-		throw PathSyntaxException(path, errno);
+		throw PathSyntaxException(path, err);
 	case ENFILE:
 	case EMFILE:
-		throw FileException("too many open files", path, errno);
+		throw FileException("too many open files", path, err);
 	default:
-		throw FileException(Error::getMessage(errno), path, errno);
+		throw FileException(Error::getMessage(err), path, err);
 	}
+}
+
+
+void FileImpl::handleLastErrorImpl(const std::string& path)
+{
+	handleLastErrorImpl(errno, path);
 }
 
 

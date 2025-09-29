@@ -21,6 +21,25 @@
 #include <openssl/evp.h>
 
 
+namespace
+{
+	void throwError()
+	{
+		unsigned long err;
+		std::string msg;
+
+		while ((err = ERR_get_error()))
+		{
+			if (!msg.empty())
+				msg.append("; ");
+			msg.append(ERR_error_string(err, 0));
+		}
+
+		throw Poco::IOException(msg);
+	}
+}
+
+
 namespace Poco {
 namespace Crypto {
 
@@ -46,7 +65,7 @@ CipherKeyImpl::CipherKeyImpl(const std::string& name,
 	_pDigest = EVP_get_digestbyname(digest.c_str());
 
 	if (!_pDigest)
-		throw Poco::NotFoundException("Digest " + name + " was not found");
+		throw Poco::NotFoundException("Digest " + digest + " was not found");
 
 	_key = ByteVec(keySize());
 	_iv = ByteVec(ivSize());
@@ -122,6 +141,8 @@ CipherKeyImpl::Mode CipherKeyImpl::mode() const
 	case EVP_CIPH_GCM_MODE:
 		return MODE_GCM;
 
+	case EVP_CIPH_CCM_MODE:
+		return MODE_CCM;
 #endif
 	}
 	throw Poco::IllegalStateException("Unexpected value of EVP_CIPHER_mode()");
@@ -183,6 +204,8 @@ void CipherKeyImpl::generateKey(
 		iterationCount,
 		keyBytes,
 		ivBytes);
+
+	if (!keySize) throwError();
 
 	// Copy the buffers to our member byte vectors.
 	_key.assign(keyBytes, keyBytes + keySize);

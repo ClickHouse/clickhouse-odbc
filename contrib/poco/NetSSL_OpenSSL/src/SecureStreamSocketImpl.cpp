@@ -22,16 +22,14 @@ namespace Net {
 
 
 SecureStreamSocketImpl::SecureStreamSocketImpl(Context::Ptr pContext):
-    underlying_socket(new StreamSocketImpl),
-	_impl(underlying_socket, pContext),
+	_impl(new StreamSocketImpl, pContext),
 	_lazyHandshake(false)
 {
 }
 
 
 SecureStreamSocketImpl::SecureStreamSocketImpl(StreamSocketImpl* pStreamSocket, Context::Ptr pContext):
-    underlying_socket(pStreamSocket),
-	_impl(underlying_socket, pContext),
+	_impl(pStreamSocket, pContext),
 	_lazyHandshake(false)
 {
 	pStreamSocket->duplicate();
@@ -51,17 +49,6 @@ SecureStreamSocketImpl::~SecureStreamSocketImpl()
 	}
 }
 
-void SecureStreamSocketImpl::setSendTimeout(const Poco::Timespan& timeout)
-{
-    underlying_socket->setSendTimeout(timeout);
-    _sndTimeout = underlying_socket->getSendTimeout();
-}
-
-void SecureStreamSocketImpl::setReceiveTimeout(const Poco::Timespan& timeout)
-{
-    underlying_socket->setReceiveTimeout(timeout);
-    _recvTimeout = underlying_socket->getReceiveTimeout();
-}
 
 SocketImpl* SecureStreamSocketImpl::acceptConnection(SocketAddress& clientAddr)
 {
@@ -87,7 +74,7 @@ void SecureStreamSocketImpl::connect(const SocketAddress& address, const Poco::T
 	_impl.connect(address, timeout, !_lazyHandshake);
 	reset(_impl.sockfd());
 }
-	
+
 
 void SecureStreamSocketImpl::connectNB(const SocketAddress& address)
 {
@@ -100,19 +87,19 @@ void SecureStreamSocketImpl::connectSSL()
 {
 	_impl.connectSSL(!_lazyHandshake);
 }
-	
 
-void SecureStreamSocketImpl::bind(const SocketAddress& address, bool reuseAddress, bool reusePort)
+
+void SecureStreamSocketImpl::bind(const SocketAddress& address, bool reuseAddress)
 {
 	throw Poco::InvalidAccessException("Cannot bind() a SecureStreamSocketImpl");
 }
 
-	
+
 void SecureStreamSocketImpl::listen(int backlog)
 {
 	throw Poco::InvalidAccessException("Cannot listen() on a SecureStreamSocketImpl");
 }
-	
+
 
 void SecureStreamSocketImpl::close()
 {
@@ -168,15 +155,16 @@ void SecureStreamSocketImpl::shutdownReceive()
 {
 }
 
-	
-void SecureStreamSocketImpl::shutdownSend()
+
+int SecureStreamSocketImpl::shutdownSend()
 {
+	return _impl.shutdown();
 }
 
-	
-void SecureStreamSocketImpl::shutdown()
+
+int SecureStreamSocketImpl::shutdown()
 {
-	_impl.shutdown();
+	return _impl.shutdown();
 }
 
 
@@ -213,7 +201,7 @@ void SecureStreamSocketImpl::setLazyHandshake(bool flag)
 	_lazyHandshake = flag;
 }
 
-	
+
 bool SecureStreamSocketImpl::getLazyHandshake() const
 {
 	return _lazyHandshake;
@@ -237,14 +225,28 @@ int SecureStreamSocketImpl::completeHandshake()
 	return _impl.completeHandshake();
 }
 
-bool SecureStreamSocketImpl::getBlocking() const
-{
-    return _impl.getBlocking();
-}
 
 void SecureStreamSocketImpl::setBlocking(bool flag)
 {
-    _impl.setBlocking(flag);
+	_impl.socket()->setBlocking(flag);
+}
+
+
+bool SecureStreamSocketImpl::getBlocking() const
+{
+	return _impl.socket()->getBlocking();
+}
+
+
+void SecureStreamSocketImpl::setRawOption(int level, int option, const void* value, poco_socklen_t length)
+{
+	_impl.socket()->setRawOption(level, option, value, length);
+}
+
+
+void SecureStreamSocketImpl::getRawOption(int level, int option, void* value, poco_socklen_t& length)
+{
+	_impl.socket()->getRawOption(level, option, value, length);
 }
 
 

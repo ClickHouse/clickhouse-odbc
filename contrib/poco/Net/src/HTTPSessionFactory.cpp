@@ -17,7 +17,6 @@
 #include "Poco/Exception.h"
 
 
-using Poco::SingletonHolder;
 using Poco::FastMutex;
 using Poco::NotFoundException;
 using Poco::ExistsException;
@@ -27,24 +26,29 @@ namespace Poco {
 namespace Net {
 
 
-HTTPSessionFactory::HTTPSessionFactory():
-	_proxyPort(0)
+HTTPSessionFactory::HTTPSessionFactory()
 {
 }
 
 
-HTTPSessionFactory::HTTPSessionFactory(const std::string& proxyHost, Poco::UInt16 proxyPort):
-	_proxyHost(proxyHost),
-	_proxyPort(proxyPort)
+HTTPSessionFactory::HTTPSessionFactory(const std::string& proxyHost, Poco::UInt16 proxyPort)
+{
+	_proxyConfig.host = proxyHost;
+	_proxyConfig.port = proxyPort;
+}
+
+
+HTTPSessionFactory::HTTPSessionFactory(const HTTPClientSession::ProxyConfig& proxyConfig):
+	_proxyConfig(proxyConfig)
 {
 }
 
 
 HTTPSessionFactory::~HTTPSessionFactory()
 {
-	for (Instantiators::iterator it = _instantiators.begin(); it != _instantiators.end(); ++it)
+	for (auto& p: _instantiators)
 	{
-		delete it->second.pIn;
+		delete p.second.pIn;
 	}
 }
 
@@ -55,7 +59,7 @@ void HTTPSessionFactory::registerProtocol(const std::string& protocol, HTTPSessi
 
 	FastMutex::ScopedLock lock(_mutex);
 	std::pair<Instantiators::iterator, bool> tmp = _instantiators.insert(make_pair(protocol, InstantiatorInfo(pSessionInstantiator)));
-	if (!tmp.second) 
+	if (!tmp.second)
 	{
 		++tmp.first->second.cnt;
 		delete pSessionInstantiator;
@@ -66,7 +70,7 @@ void HTTPSessionFactory::registerProtocol(const std::string& protocol, HTTPSessi
 void HTTPSessionFactory::unregisterProtocol(const std::string& protocol)
 {
 	FastMutex::ScopedLock lock(_mutex);
-	
+
 	Instantiators::iterator it = _instantiators.find(protocol);
 	if (it != _instantiators.end())
 	{
@@ -84,7 +88,7 @@ void HTTPSessionFactory::unregisterProtocol(const std::string& protocol)
 bool HTTPSessionFactory::supportsProtocol(const std::string& protocol)
 {
 	FastMutex::ScopedLock lock(_mutex);
-	
+
 	Instantiators::iterator it = _instantiators.find(protocol);
 	return it != _instantiators.end();
 }
@@ -93,14 +97,13 @@ bool HTTPSessionFactory::supportsProtocol(const std::string& protocol)
 HTTPClientSession* HTTPSessionFactory::createClientSession(const Poco::URI& uri)
 {
 	FastMutex::ScopedLock lock(_mutex);
-	
+
 	if (uri.isRelative()) throw Poco::UnknownURISchemeException("Relative URIs are not supported by HTTPSessionFactory.");
 
 	Instantiators::iterator it = _instantiators.find(uri.getScheme());
 	if (it != _instantiators.end())
 	{
-		it->second.pIn->setProxy(_proxyHost, _proxyPort);
-		it->second.pIn->setProxyCredentials(_proxyUsername, _proxyPassword);
+		it->second.pIn->setProxyConfig(_proxyConfig);
 		return it->second.pIn->createClientSession(uri);
 	}
 	else throw Poco::UnknownURISchemeException(uri.getScheme());
@@ -111,8 +114,8 @@ void HTTPSessionFactory::setProxy(const std::string& host, Poco::UInt16 port)
 {
 	FastMutex::ScopedLock lock(_mutex);
 
-	_proxyHost = host;
-	_proxyPort = port;
+	_proxyConfig.host = host;
+	_proxyConfig.port = port;
 }
 
 
@@ -120,20 +123,23 @@ void HTTPSessionFactory::setProxyCredentials(const std::string& username, const 
 {
 	FastMutex::ScopedLock lock(_mutex);
 
-	_proxyUsername = username;
-	_proxyPassword = password;
+	_proxyConfig.username = username;
+	_proxyConfig.password = password;
 }
 
 
-namespace
+void HTTPSessionFactory::setProxyConfig(const HTTPClientSession::ProxyConfig& proxyConfig)
 {
-	static SingletonHolder<HTTPSessionFactory> singleton;
+	FastMutex::ScopedLock lock(_mutex);
+
+	_proxyConfig = proxyConfig;
 }
 
 
 HTTPSessionFactory& HTTPSessionFactory::defaultFactory()
 {
-	return *singleton.get();
+	static HTTPSessionFactory f;
+	return f;
 }
 
 

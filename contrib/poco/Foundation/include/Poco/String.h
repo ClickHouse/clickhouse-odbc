@@ -21,10 +21,54 @@
 #include "Poco/Foundation.h"
 #include "Poco/Ascii.h"
 #include <cstring>
+#if !defined(POCO_NO_WSTRING)
+#include <cwchar>
+#endif
 #include <algorithm>
 
 
+// ignore loop unrolling warnings in this file
+#if defined(__clang__) && ((__clang_major__ > 3) || (__clang_major__ == 3 && __clang_minor__ >= 6))
+#	pragma clang diagnostic push
+#	pragma clang diagnostic ignored "-Wpass-failed"
+#endif
+
+
 namespace Poco {
+
+
+template <typename C>
+std::size_t cstrlen(const C* str)
+	/// Returns the length of a zero-terminated C string.
+	/// For char and wchar_t based strings, overloads are
+	/// provided that call strlen() and wcslen().
+{
+	const C* end = str;
+    while (*end) ++end;
+    return end - str;
+}
+
+
+inline std::size_t cstrlen(const char* str)
+	/// Returns the length of a zero-terminated C string.
+	/// This implementation calls std::strlen().
+{
+	return std::strlen(str);
+}
+
+
+#if !defined(POCO_NO_WSTRING)
+
+
+inline std::size_t cstrlen(const wchar_t* str)
+	/// Returns the length of a zero-terminated C string.
+	/// This implementation calls std::wcslen().
+{
+	return std::wcslen(str);
+}
+
+
+#endif
 
 
 template <class S>
@@ -58,7 +102,7 @@ S trimRight(const S& str)
 	/// Returns a copy of str with all trailing
 	/// whitespace removed.
 {
-	int pos = int(str.size()) - 1;
+	std::ptrdiff_t pos = static_cast<std::ptrdiff_t>(str.size()) - 1;
 
 	while (pos >= 0 && Ascii::isSpace(str[pos])) --pos;
 	return S(str, 0, pos + 1);
@@ -69,7 +113,7 @@ template <class S>
 S& trimRightInPlace(S& str)
 	/// Removes all trailing whitespace in str.
 {
-	int pos = int(str.size()) - 1;
+	std::ptrdiff_t pos = static_cast<std::ptrdiff_t>(str.size()) - 1;
 
 	while (pos >= 0 && Ascii::isSpace(str[pos])) --pos;
 	str.resize(pos + 1);
@@ -83,8 +127,8 @@ S trim(const S& str)
 	/// Returns a copy of str with all leading and
 	/// trailing whitespace removed.
 {
-	int first = 0;
-	int last  = int(str.size()) - 1;
+	std::ptrdiff_t first = 0;
+	std::ptrdiff_t last  = static_cast<std::ptrdiff_t>(str.size()) - 1;
 
 	while (first <= last && Ascii::isSpace(str[first])) ++first;
 	while (last >= first && Ascii::isSpace(str[last])) --last;
@@ -97,15 +141,17 @@ template <class S>
 S& trimInPlace(S& str)
 	/// Removes all leading and trailing whitespace in str.
 {
-	int first = 0;
-	int last  = int(str.size()) - 1;
+	std::ptrdiff_t first = 0;
+	std::ptrdiff_t last  = static_cast<std::ptrdiff_t>(str.size()) - 1;
 
 	while (first <= last && Ascii::isSpace(str[first])) ++first;
 	while (last >= first && Ascii::isSpace(str[last])) --last;
 
-	str.resize(last + 1);
-	str.erase(0, first);
-
+	if (last >= 0)
+	{
+		str.resize(last + 1);
+		str.erase(0, first);
+	}
 	return str;
 }
 
@@ -114,12 +160,22 @@ template <class S>
 S toUpper(const S& str)
 	/// Returns a copy of str containing all upper-case characters.
 {
-	typename S::const_iterator it  = str.begin();
-	typename S::const_iterator end = str.end();
+	S result(str);
 
-	S result;
-	result.reserve(str.size());
-	while (it != end) result += static_cast<typename S::value_type>(Ascii::toUpper(*it++));
+	typename S::iterator it  = result.begin();
+	typename S::iterator end = result.end();
+
+#if defined(__clang__) && ((__clang_major__ > 3) || (__clang_major__ == 3 && __clang_minor__ >= 6))
+#	pragma clang loop unroll(enable)
+#elif defined(POCO_MSVS_VERSION) && (POCO_MSVS_VERSION >= 2017)
+#	pragma loop(hint_parallel(0))
+#endif
+	while (it != end)
+	{
+		int ch = static_cast<unsigned char>(*it);
+		*it = static_cast<typename S::value_type>(Ascii::toUpper(ch));
+		++it;
+	}
 	return result;
 }
 
@@ -131,7 +187,17 @@ S& toUpperInPlace(S& str)
 	typename S::iterator it  = str.begin();
 	typename S::iterator end = str.end();
 
-	while (it != end) { *it = static_cast<typename S::value_type>(Ascii::toUpper(*it)); ++it; }
+#if defined(__clang__) && ((__clang_major__ > 3) || (__clang_major__ == 3 && __clang_minor__ >= 6))
+#	pragma clang loop unroll(enable)
+#elif defined(POCO_MSVS_VERSION) && (POCO_MSVS_VERSION >= 2017)
+#	pragma loop(hint_parallel(0))
+#endif
+	while (it != end)
+	{
+		int ch = static_cast<unsigned char>(*it);
+		*it = static_cast<typename S::value_type>(Ascii::toUpper(ch));
+		++it;
+	}
 	return str;
 }
 
@@ -140,12 +206,22 @@ template <class S>
 S toLower(const S& str)
 	/// Returns a copy of str containing all lower-case characters.
 {
-	typename S::const_iterator it  = str.begin();
-	typename S::const_iterator end = str.end();
+	S result(str);
 
-	S result;
-	result.reserve(str.size());
-	while (it != end) result += static_cast<typename S::value_type>(Ascii::toLower(*it++));
+	typename S::iterator it  = result.begin();
+	typename S::iterator end = result.end();
+
+#if defined(__clang__) && ((__clang_major__ > 3) || (__clang_major__ == 3 && __clang_minor__ >= 6))
+#	pragma clang loop unroll(enable)
+#elif defined(POCO_MSVS_VERSION) && (POCO_MSVS_VERSION >= 2017)
+#	pragma loop(hint_parallel(0))
+#endif
+	while (it != end)
+	{
+		int ch = static_cast<unsigned char>(*it);
+		*it = static_cast<typename S::value_type>(Ascii::toLower(ch));
+		++it;
+	}
 	return result;
 }
 
@@ -157,7 +233,17 @@ S& toLowerInPlace(S& str)
 	typename S::iterator it  = str.begin();
 	typename S::iterator end = str.end();
 
-	while (it != end) { *it = static_cast<typename S::value_type>(Ascii::toLower(*it)); ++it; }
+#if defined(__clang__) && ((__clang_major__ > 3) || (__clang_major__ == 3 && __clang_minor__ >= 6))
+#	pragma clang loop unroll(enable)
+#elif defined(POCO_MSVS_VERSION) && (POCO_MSVS_VERSION >= 2017)
+#	pragma loop(hint_parallel(0))
+#endif
+	while (it != end)
+	{
+		int ch = static_cast<unsigned char>(*it);
+		*it = static_cast<typename S::value_type>(Ascii::toLower(ch));
+		++it;
+	}
 	return str;
 }
 
@@ -314,7 +400,8 @@ int icompare(
 	typename S::size_type pos,
 	const typename S::value_type* ptr)
 {
-	return icompare(str, pos, str.size() - pos, ptr);
+	int n = static_cast<int>(pos < str.size() ? str.size() - pos : 0);
+	return icompare(str, pos, n, ptr);
 }
 
 
@@ -447,7 +534,7 @@ S& replaceInPlace(S& str, const typename S::value_type* from, const typename S::
 
 	S result;
 	typename S::size_type pos = 0;
-	typename S::size_type fromLen = std::strlen(from);
+	typename S::size_type fromLen = cstrlen(from);
 	result.append(str, 0, start);
 	do
 	{
@@ -627,6 +714,22 @@ S cat(const S& delim, const It& begin, const It& end)
 }
 
 
+template <class S>
+bool startsWith(const S& str, const S& prefix)
+	/// Tests whether the string starts with the given prefix.
+{
+	return str.size() >= prefix.size() && equal(prefix.begin(), prefix.end(), str.begin());
+}
+
+
+template <class S>
+bool endsWith(const S& str, const S& suffix)
+	/// Tests whether the string ends with the given suffix.
+{
+	return str.size() >= suffix.size() && equal(suffix.rbegin(), suffix.rend(), str.rbegin());
+}
+
+
 //
 // case-insensitive string equality
 //
@@ -670,7 +773,7 @@ struct i_char_traits : public std::char_traits<charT>
 };
 
 
-typedef std::basic_string<char, i_char_traits<char> > istring;
+typedef std::basic_string<char, i_char_traits<char>> istring;
 	/// Case-insensitive std::string counterpart.
 
 
@@ -700,7 +803,24 @@ struct CILess
 };
 
 
+template <typename T>
+void secureClear(T& str)
+	/// Securely clears a string's contents by first overwriting
+	/// the entire buffer (up to capacity) with zeroes, then
+	/// clearing the string.
+{
+	str.resize(str.capacity());
+	std::fill(str.begin(), str.end(), typename T::value_type());
+	str.clear();
+}
+
+
 } // namespace Poco
+
+
+#if defined(__clang__) && ((__clang_major__ > 3) || (__clang_major__ == 3 && __clang_minor__ >= 6))
+#	pragma clang diagnostic pop
+#endif
 
 
 #endif // Foundation_String_INCLUDED

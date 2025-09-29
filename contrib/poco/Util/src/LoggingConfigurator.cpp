@@ -13,7 +13,6 @@
 
 
 #include "Poco/Util/LoggingConfigurator.h"
-#include "Poco/Util/AbstractConfiguration.h"
 #include "Poco/AutoPtr.h"
 #include "Poco/Channel.h"
 #include "Poco/FormattingChannel.h"
@@ -33,6 +32,7 @@ using Poco::FormattingChannel;
 using Poco::Logger;
 using Poco::LoggingRegistry;
 using Poco::LoggingFactory;
+using namespace std::string_literals;
 
 
 namespace Poco {
@@ -49,152 +49,148 @@ LoggingConfigurator::~LoggingConfigurator()
 }
 
 
-void LoggingConfigurator::configure(AbstractConfiguration* pConfig)
+void LoggingConfigurator::configure(AbstractConfiguration::Ptr pConfig)
 {
 	poco_check_ptr (pConfig);
 
-	AutoPtr<AbstractConfiguration> pFormattersConfig(pConfig->createView("logging.formatters"));
+	AbstractConfiguration::Ptr pFormattersConfig(pConfig->createView("logging.formatters"s));
 	configureFormatters(pFormattersConfig);
 
-	AutoPtr<AbstractConfiguration> pChannelsConfig(pConfig->createView("logging.channels"));
+	AbstractConfiguration::Ptr pChannelsConfig(pConfig->createView("logging.channels"s));
 	configureChannels(pChannelsConfig);
 
-	AutoPtr<AbstractConfiguration> pLoggersConfig(pConfig->createView("logging.loggers"));
+	AbstractConfiguration::Ptr pLoggersConfig(pConfig->createView("logging.loggers"s));
 	configureLoggers(pLoggersConfig);
 }
 
 
-void LoggingConfigurator::configureFormatters(AbstractConfiguration* pConfig)
+void LoggingConfigurator::configureFormatters(AbstractConfiguration::Ptr pConfig)
 {
 	AbstractConfiguration::Keys formatters;
 	pConfig->keys(formatters);
-	for (AbstractConfiguration::Keys::const_iterator it = formatters.begin(); it != formatters.end(); ++it)
+	for (const auto& f: formatters)
 	{
-		AutoPtr<AbstractConfiguration> pFormatterConfig(pConfig->createView(*it));
+		AutoPtr<AbstractConfiguration> pFormatterConfig(pConfig->createView(f));
 		AutoPtr<Formatter> pFormatter(createFormatter(pFormatterConfig));
-		LoggingRegistry::defaultRegistry().registerFormatter(*it, pFormatter);
+		LoggingRegistry::defaultRegistry().registerFormatter(f, pFormatter);
 	}
 }
 
 
-void LoggingConfigurator::configureChannels(AbstractConfiguration* pConfig)
+void LoggingConfigurator::configureChannels(AbstractConfiguration::Ptr pConfig)
 {
 	AbstractConfiguration::Keys channels;
 	pConfig->keys(channels);
-	for (AbstractConfiguration::Keys::const_iterator it = channels.begin(); it != channels.end(); ++it)
+	for (const auto& c: channels)
 	{
-		AutoPtr<AbstractConfiguration> pChannelConfig(pConfig->createView(*it));
+		AutoPtr<AbstractConfiguration> pChannelConfig(pConfig->createView(c));
 		AutoPtr<Channel> pChannel = createChannel(pChannelConfig);
-		LoggingRegistry::defaultRegistry().registerChannel(*it, pChannel);
+		LoggingRegistry::defaultRegistry().registerChannel(c, pChannel);
 	}
-	for (AbstractConfiguration::Keys::const_iterator it = channels.begin(); it != channels.end(); ++it)
+	for (const auto& c: channels)
 	{
-		AutoPtr<AbstractConfiguration> pChannelConfig(pConfig->createView(*it));
-		Channel* pChannel = LoggingRegistry::defaultRegistry().channelForName(*it);
+		AutoPtr<AbstractConfiguration> pChannelConfig(pConfig->createView(c));
+		Channel::Ptr pChannel = LoggingRegistry::defaultRegistry().channelForName(c);
 		configureChannel(pChannel, pChannelConfig);
 	}
 }
 
 
-void LoggingConfigurator::configureLoggers(AbstractConfiguration* pConfig)
+void LoggingConfigurator::configureLoggers(AbstractConfiguration::Ptr pConfig)
 {
-	typedef std::map<std::string, AutoPtr<AbstractConfiguration> > LoggerMap;
+	using LoggerMap = std::map<std::string, AutoPtr<AbstractConfiguration>>;
 
 	AbstractConfiguration::Keys loggers;
 	pConfig->keys(loggers);
 	// use a map to sort loggers by their name, ensuring initialization in correct order (parents before children)
-	LoggerMap loggerMap; 
-	for (AbstractConfiguration::Keys::const_iterator it = loggers.begin(); it != loggers.end(); ++it)
+	LoggerMap loggerMap;
+	for (const auto& l: loggers)
 	{
-		AutoPtr<AbstractConfiguration> pLoggerConfig(pConfig->createView(*it));
-		loggerMap[pLoggerConfig->getString("name", "")] = pLoggerConfig;
+		AutoPtr<AbstractConfiguration> pLoggerConfig(pConfig->createView(l));
+		loggerMap[pLoggerConfig->getString("name"s, ""s)] = pLoggerConfig;
 	}
-	for (LoggerMap::iterator it = loggerMap.begin(); it != loggerMap.end(); ++it)
+	for (const auto& p: loggerMap)
 	{
-		configureLogger(it->second);
+		configureLogger(p.second);
 	}
 }
 
 
-Formatter* LoggingConfigurator::createFormatter(AbstractConfiguration* pConfig)
+Formatter::Ptr LoggingConfigurator::createFormatter(AbstractConfiguration::Ptr pConfig)
 {
-	AutoPtr<Formatter> pFormatter(LoggingFactory::defaultFactory().createFormatter(pConfig->getString("class")));
+	Formatter::Ptr pFormatter(LoggingFactory::defaultFactory().createFormatter(pConfig->getString("class"s)));
 	AbstractConfiguration::Keys props;
 	pConfig->keys(props);
-	for (AbstractConfiguration::Keys::const_iterator it = props.begin(); it != props.end(); ++it)
+	for (const auto& p: props)
 	{
-		if (*it != "class")
-			pFormatter->setProperty(*it, pConfig->getString(*it));		
+		if (p != "class"s)
+			pFormatter->setProperty(p, pConfig->getString(p));
 	}
-	return pFormatter.duplicate();
+	return pFormatter;
 }
 
 
-Channel* LoggingConfigurator::createChannel(AbstractConfiguration* pConfig)
+Channel::Ptr LoggingConfigurator::createChannel(AbstractConfiguration::Ptr pConfig)
 {
-	AutoPtr<Channel> pChannel(LoggingFactory::defaultFactory().createChannel(pConfig->getString("class")));
-	AutoPtr<Channel> pWrapper(pChannel);
+	Channel::Ptr pChannel(LoggingFactory::defaultFactory().createChannel(pConfig->getString("class"s)));
+	Channel::Ptr pWrapper(pChannel);
 	AbstractConfiguration::Keys props;
 	pConfig->keys(props);
-	for (AbstractConfiguration::Keys::const_iterator it = props.begin(); it != props.end(); ++it)
+	for (const auto& p: props)
 	{
-		if (*it == "pattern")
+		if (p == "pattern"s)
 		{
-			AutoPtr<Formatter> pPatternFormatter(new PatternFormatter(pConfig->getString(*it)));
+			AutoPtr<Formatter> pPatternFormatter(new PatternFormatter(pConfig->getString(p)));
 			pWrapper = new FormattingChannel(pPatternFormatter, pChannel);
 		}
-		else if (*it == "formatter")
+		else if (p == "formatter"s)
 		{
 			AutoPtr<FormattingChannel> pFormattingChannel(new FormattingChannel(0, pChannel));
-			if (pConfig->hasProperty("formatter.class"))
+			if (pConfig->hasProperty("formatter.class"s))
 			{
-				AutoPtr<AbstractConfiguration> pFormatterConfig(pConfig->createView(*it));	
+				AutoPtr<AbstractConfiguration> pFormatterConfig(pConfig->createView(p));
 				AutoPtr<Formatter> pFormatter(createFormatter(pFormatterConfig));
 				pFormattingChannel->setFormatter(pFormatter);
 			}
-			else pFormattingChannel->setProperty(*it, pConfig->getString(*it));
-#if defined(__GNUC__) && __GNUC__ < 3
-			pWrapper = pFormattingChannel.duplicate();
-#else
+			else pFormattingChannel->setProperty(p, pConfig->getString(p));
 			pWrapper = pFormattingChannel;
-#endif
 		}
 	}
-	return pWrapper.duplicate();
+	return pWrapper;
 }
 
 
-void LoggingConfigurator::configureChannel(Channel* pChannel, AbstractConfiguration* pConfig)
+void LoggingConfigurator::configureChannel(Channel::Ptr pChannel, AbstractConfiguration::Ptr pConfig)
 {
 	AbstractConfiguration::Keys props;
 	pConfig->keys(props);
-	for (AbstractConfiguration::Keys::const_iterator it = props.begin(); it != props.end(); ++it)
+	for (const auto& p: props)
 	{
-		if (*it != "pattern" && *it != "formatter" && *it != "class")
+		if (p != "pattern"s && p != "formatter"s && p != "class"s)
 		{
-			pChannel->setProperty(*it, pConfig->getString(*it));
+			pChannel->setProperty(p, pConfig->getString(p));
 		}
 	}
 }
 
 
-void LoggingConfigurator::configureLogger(AbstractConfiguration* pConfig)
+void LoggingConfigurator::configureLogger(AbstractConfiguration::Ptr pConfig)
 {
-	Logger& logger = Logger::get(pConfig->getString("name", ""));
+	Logger& logger = Logger::get(pConfig->getString("name"s, ""s));
 	AbstractConfiguration::Keys props;
 	pConfig->keys(props);
-	for (AbstractConfiguration::Keys::const_iterator it = props.begin(); it != props.end(); ++it)
+	for (const auto& p: props)
 	{
-		if (*it == "channel" && pConfig->hasProperty("channel.class"))
+		if (p == "channel"s && pConfig->hasProperty("channel.class"s))
 		{
-			AutoPtr<AbstractConfiguration> pChannelConfig(pConfig->createView(*it));	
+			AutoPtr<AbstractConfiguration> pChannelConfig(pConfig->createView(p));
 			AutoPtr<Channel> pChannel(createChannel(pChannelConfig));
 			configureChannel(pChannel, pChannelConfig);
 			Logger::setChannel(logger.name(), pChannel);
 		}
-		else if (*it != "name")
+		else if (p != "name"s)
 		{
-			Logger::setProperty(logger.name(), *it, pConfig->getString(*it));
+			Logger::setProperty(logger.name(), p, pConfig->getString(p));
 		}
 	}
 }

@@ -14,6 +14,7 @@
 
 #include "Poco/File_WIN32U.h"
 #include "Poco/Exception.h"
+#include "Poco/Path.h"
 #include "Poco/String.h"
 #include "Poco/UnicodeConverter.h"
 #include "Poco/UnWindows.h"
@@ -88,6 +89,19 @@ void FileImpl::setPathImpl(const std::string& path)
 	convertPath(_path, _upath);
 }
 
+std::string FileImpl::getExecutablePathImpl() const
+{
+	// Windows specific: An executable can be invoked without
+	// the extension .exe, but the file has it nevertheless.
+	// This function appends extension "exe" if the file path does not have it.
+	Path p(_path);
+	if (!p.getExtension().empty())
+	{
+		return _path;
+	}
+	return p.setExtension("exe"s).toString();
+}
+
 
 bool FileImpl::existsImpl() const
 {
@@ -100,7 +114,6 @@ bool FileImpl::existsImpl() const
 		{
 		case ERROR_FILE_NOT_FOUND:
 		case ERROR_PATH_NOT_FOUND:
-		case ERROR_NOT_READY:
 		case ERROR_INVALID_DRIVE:
 			return false;
 		default:
@@ -141,9 +154,9 @@ bool FileImpl::canWriteImpl() const
 }
 
 
-bool FileImpl::canExecuteImpl() const
+bool FileImpl::canExecuteImpl(const std::string& absolutePath) const
 {
-	Path p(_path);
+	Path p(absolutePath);
 	return icompare(p.getExtension(), "exe") == 0;
 }
 
@@ -291,25 +304,30 @@ void FileImpl::setExecutableImpl(bool flag)
 }
 
 
-void FileImpl::copyToImpl(const std::string& path) const
+void FileImpl::copyToImpl(const std::string& path, int options) const
 {
 	poco_assert (!_path.empty());
 
 	std::wstring upath;
 	convertPath(path, upath);
-	if (CopyFileW(_upath.c_str(), upath.c_str(), FALSE) == 0)
+	if (CopyFileW(_upath.c_str(), upath.c_str(), (options & OPT_FAIL_ON_OVERWRITE_IMPL) != 0) == 0)
 		handleLastErrorImpl(_path);
 }
 
 
-void FileImpl::renameToImpl(const std::string& path)
+void FileImpl::renameToImpl(const std::string& path, int options)
 {
 	poco_assert (!_path.empty());
 
 	std::wstring upath;
 	convertPath(path, upath);
-	if (MoveFileExW(_upath.c_str(), upath.c_str(), MOVEFILE_REPLACE_EXISTING) == 0)
-		handleLastErrorImpl(_path);
+	if (options & OPT_FAIL_ON_OVERWRITE_IMPL) {
+		if (MoveFileExW(_upath.c_str(), upath.c_str(), 0) == 0)
+			handleLastErrorImpl(_path);
+	} else {
+		if (MoveFileExW(_upath.c_str(), upath.c_str(), MOVEFILE_REPLACE_EXISTING) == 0)
+			handleLastErrorImpl(_path);
+	}
 }
 
 
@@ -434,6 +452,8 @@ void FileImpl::handleLastErrorImpl(const std::string& path)
 	case ERROR_CANT_RESOLVE_FILENAME:
 	case ERROR_INVALID_DRIVE:
 		throw PathNotFoundException(path, err);
+	case ERROR_NOT_READY:
+		throw FileNotReadyException(path, err);
 	case ERROR_ACCESS_DENIED:
 		throw FileAccessDeniedException(path, err);
 	case ERROR_ALREADY_EXISTS:

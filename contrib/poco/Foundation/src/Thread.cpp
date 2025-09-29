@@ -21,11 +21,7 @@
 
 
 #if defined(POCO_OS_FAMILY_WINDOWS)
-#if defined(_WIN32_WCE)
-#include "Thread_WINCE.cpp"
-#else
 #include "Thread_WIN32.cpp"
-#endif
 #elif defined(POCO_VXWORKS)
 #include "Thread_VX.cpp"
 #else
@@ -37,6 +33,7 @@ namespace Poco {
 
 
 namespace {
+
 
 class RunnableHolder: public Runnable
 {
@@ -69,11 +66,9 @@ public:
 	{
 	}
 
-	~CallableHolder()
-	{
-	}
+	~CallableHolder() override = default;
 
-	void run()
+	void run() override
 	{
 		_callable(_pData);
 	}
@@ -87,21 +82,27 @@ private:
 } // namespace
 
 
-Thread::Thread(): 
-	_id(uniqueId()), 
-	_name(makeName()), 
-	_pTLS(0),
-	_event(true)
+Thread::Thread(uint32_t sigMask):
+	_id(uniqueId()),
+	_pTLS(nullptr),
+	_event(Event::EVENT_AUTORESET)
 {
+	setNameImpl(makeName());
+#if defined(POCO_OS_FAMILY_UNIX)
+	setSignalMaskImpl(sigMask);
+#endif
 }
 
 
-Thread::Thread(const std::string& name): 
-	_id(uniqueId()), 
-	_name(name), 
-	_pTLS(0),
-	_event(true)
+Thread::Thread(const std::string& name, uint32_t sigMask):
+	_id(uniqueId()),
+	_pTLS(nullptr),
+	_event(Event::EVENT_AUTORESET)
 {
+	setNameImpl(name);
+#if defined(POCO_OS_FAMILY_UNIX)
+	setSignalMaskImpl(sigMask);
+#endif
 }
 
 
@@ -126,6 +127,12 @@ Thread::Priority Thread::getPriority() const
 void Thread::start(Runnable& target)
 {
 	startImpl(new RunnableHolder(target));
+}
+
+
+void Thread::start(Poco::SharedPtr<Runnable> pTarget)
+{
+	startImpl(pTarget);
 }
 
 
@@ -181,7 +188,7 @@ void Thread::clearTLS()
 	if (_pTLS)
 	{
 		delete _pTLS;
-		_pTLS = 0;
+		_pTLS = nullptr;
 	}
 }
 
@@ -203,9 +210,7 @@ int Thread::uniqueId()
 
 void Thread::setName(const std::string& name)
 {
-	FastMutex::ScopedLock lock(_mutex);
-
-	_name = name;
+	setNameImpl(name);
 }
 
 

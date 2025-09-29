@@ -40,24 +40,23 @@ HTTPServerRequestImpl::HTTPServerRequestImpl(HTTPServerResponseImpl& response, H
 	response.attachRequest(this);
 
 	HTTPHeaderInputStream hs(session);
+	setAutoDecode(_pParams->getAutoDecodeHeaders());
 	read(hs);
-	
+
 	// Now that we know socket is still connected, obtain addresses
 	_clientAddress = session.clientAddress();
 	_serverAddress = session.serverAddress();
-	
+
 	if (getChunkedTransferEncoding())
-		_pStream = new HTTPChunkedInputStream(session);
+		_pStream = new HTTPChunkedInputStream(session, &session.requestTrailer());
 	else if (hasContentLength())
 #if defined(POCO_HAVE_INT64)
 		_pStream = new HTTPFixedLengthInputStream(session, getContentLength64());
 #else
 		_pStream = new HTTPFixedLengthInputStream(session, getContentLength());
 #endif
-	else if (getMethod() == HTTPRequest::HTTP_GET || getMethod() == HTTPRequest::HTTP_HEAD || getMethod() == HTTPRequest::HTTP_DELETE)
+	else 
 		_pStream = new HTTPFixedLengthInputStream(session, 0);
-	else
-		_pStream = new HTTPInputStream(session);
 }
 
 

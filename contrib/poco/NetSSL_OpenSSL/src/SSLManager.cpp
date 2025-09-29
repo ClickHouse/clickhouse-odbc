@@ -12,6 +12,11 @@
 //
 
 
+#if defined(_MSC_VER)
+#pragma warning(disable:4996) // deprecation warnings
+#endif
+
+
 #include "Poco/Net/SSLManager.h"
 #include "Poco/Net/Context.h"
 #include "Poco/Net/Utility.h"
@@ -19,11 +24,14 @@
 #include "Poco/Net/RejectCertificateHandler.h"
 #include "Poco/Crypto/OpenSSLInitializer.h"
 #include "Poco/Net/SSLException.h"
-#include "Poco/SingletonHolder.h"
 #include "Poco/Delegate.h"
 #include "Poco/StringTokenizer.h"
 #include "Poco/Util/Application.h"
 #include "Poco/Util/OptionException.h"
+#if OPENSSL_VERSION_NUMBER >= 0x10001000L
+#include <openssl/ocsp.h>
+#include <openssl/tls1.h>
+#endif
 
 
 namespace Poco {
@@ -46,7 +54,7 @@ const std::string SSLManager::CFG_PREFER_SERVER_CIPHERS("preferServerCiphers");
 const std::string SSLManager::CFG_DELEGATE_HANDLER("privateKeyPassphraseHandler.name");
 const std::string SSLManager::VAL_DELEGATE_HANDLER("KeyConsoleHandler");
 const std::string SSLManager::CFG_CERTIFICATE_HANDLER("invalidCertificateHandler.name");
-const std::string SSLManager::VAL_CERTIFICATE_HANDLER("RejectCertificateHandler");
+const std::string SSLManager::VAL_CERTIFICATE_HANDLER("ConsoleCertificateHandler");
 const std::string SSLManager::CFG_SERVER_PREFIX("openSSL.server.");
 const std::string SSLManager::CFG_CLIENT_PREFIX("openSSL.client.");
 const std::string SSLManager::CFG_CACHE_SESSIONS("cacheSessions");
@@ -57,6 +65,7 @@ const std::string SSLManager::CFG_EXTENDED_VERIFICATION("extendedVerification");
 const std::string SSLManager::CFG_REQUIRE_TLSV1("requireTLSv1");
 const std::string SSLManager::CFG_REQUIRE_TLSV1_1("requireTLSv1_1");
 const std::string SSLManager::CFG_REQUIRE_TLSV1_2("requireTLSv1_2");
+const std::string SSLManager::CFG_REQUIRE_TLSV1_3("requireTLSv1_3");
 const std::string SSLManager::CFG_DISABLE_PROTOCOLS("disableProtocols");
 const std::string SSLManager::CFG_DH_PARAMS_FILE("dhParamsFile");
 const std::string SSLManager::CFG_ECDH_CURVE("ecdhCurve");
@@ -66,7 +75,9 @@ const bool        SSLManager::VAL_FIPS_MODE(false);
 #endif
 
 
-SSLManager::SSLManager()
+SSLManager::SSLManager():
+	_contextIndex(SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr)),
+	_socketIndex(SSL_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr))
 {
 }
 
@@ -89,25 +100,21 @@ void SSLManager::shutdown()
 	PrivateKeyPassphraseRequired.clear();
 	ClientVerificationError.clear();
 	ServerVerificationError.clear();
-	_ptrDefaultServerContext = 0;
-	_ptrDefaultClientContext = 0;
-}
-
-
-namespace
-{
-	static Poco::SingletonHolder<SSLManager> singleton;
+	_ptrDefaultServerContext = nullptr;
+	_ptrDefaultClientContext = nullptr;
 }
 
 
 SSLManager& SSLManager::instance()
 {
-	return *singleton.get();
+	static SSLManager sm;
+	return sm;
 }
 
 
 void SSLManager::initializeServer(PrivateKeyPassphraseHandlerPtr ptrPassphraseHandler, InvalidCertificateHandlerPtr ptrHandler, Context::Ptr ptrContext)
 {
+	Poco::FastMutex::ScopedLock lock(_mutex);
 	_ptrServerPassphraseHandler  = ptrPassphraseHandler;
 	_ptrServerCertificateHandler = ptrHandler;
 	_ptrDefaultServerContext     = ptrContext;
@@ -116,6 +123,7 @@ void SSLManager::initializeServer(PrivateKeyPassphraseHandlerPtr ptrPassphraseHa
 
 void SSLManager::initializeClient(PrivateKeyPassphraseHandlerPtr ptrPassphraseHandler, InvalidCertificateHandlerPtr ptrHandler, Context::Ptr ptrContext)
 {
+	Poco::FastMutex::ScopedLock lock(_mutex);
 	_ptrClientPassphraseHandler  = ptrPassphraseHandler;
 	_ptrClientCertificateHandler = ptrHandler;
 	_ptrDefaultClientContext     = ptrContext;
@@ -203,16 +211,45 @@ int SSLManager::verifyCallback(bool server, int ok, X509_STORE_CTX* pStore)
 {
 	if (!ok)
 	{
+		SSLManager& sslManager = SSLManager::instance();
+		SSL* pSSL = reinterpret_cast<SSL*>(X509_STORE_CTX_get_ex_data(pStore, SSL_get_ex_data_X509_STORE_CTX_idx()));
+		poco_assert_dbg (pSSL);
+		SSL_CTX* pSSLContext = SSL_get_SSL_CTX(pSSL);
+		poco_assert_dbg (pSSLContext);
+
+		Context* pContext = reinterpret_cast<Context*>(SSL_CTX_get_ex_data(pSSLContext, sslManager.contextIndex()));
+		poco_assert_dbg (pContext);
+
 		X509* pCert = X509_STORE_CTX_get_current_cert(pStore);
 		X509Certificate x509(pCert, true);
 		int depth = X509_STORE_CTX_get_error_depth(pStore);
 		int err = X509_STORE_CTX_get_error(pStore);
 		std::string error(X509_verify_cert_error_string(err));
-		VerificationErrorArgs args(x509, depth, err, error);
+		VerificationErrorArgs args(Context::Ptr(pContext, true), x509, depth, err, error);
 		if (server)
-			SSLManager::instance().ServerVerificationError.notify(&SSLManager::instance(), args);
+		{
+			if (pContext->getInvalidCertificateHandler())
+			{
+				pContext->getInvalidCertificateHandler()->onInvalidCertificate(&sslManager, args);
+			}
+			else if (sslManager._ptrServerCertificateHandler)
+			{
+				sslManager._ptrServerCertificateHandler->onInvalidCertificate(&sslManager, args);
+			}
+			sslManager.ServerVerificationError.notify(&sslManager, args);
+		}
 		else
-			SSLManager::instance().ClientVerificationError.notify(&SSLManager::instance(), args);
+		{
+			if (pContext->getInvalidCertificateHandler())
+			{
+				pContext->getInvalidCertificateHandler()->onInvalidCertificate(&sslManager, args);
+			}
+			else if (sslManager._ptrClientCertificateHandler)
+			{
+				sslManager._ptrClientCertificateHandler->onInvalidCertificate(&sslManager, args);
+			}
+			sslManager.ClientVerificationError.notify(&sslManager, args);
+		}
 		ok = args.getIgnoreError() ? 1 : 0;
 	}
 
@@ -231,6 +268,145 @@ int SSLManager::privateKeyPassphraseCallback(char* pBuf, int size, int flag, voi
 		size = (int) pwd.length();
 
 	return size;
+}
+
+
+int SSLManager::verifyOCSPResponseCallback(SSL* pSSL, void* arg)
+{
+#if OPENSSL_VERSION_NUMBER >= 0x10001000L
+	const long OCSP_VALIDITY_LEEWAY = 5*60;
+
+	Poco::Net::Context* pContext = static_cast<Poco::Net::Context*>(arg);
+
+	// Fetch the OSCP verify flag
+	bool ocspVerifyFlag = pContext->ocspStaplingResponseVerificationEnabled();
+
+	const unsigned char* pResp;
+	int len = SSL_get_tlsext_status_ocsp_resp(pSSL, &pResp);
+	if (!pResp)
+	{
+		// OCSP response not received
+		return ocspVerifyFlag ? 0 : 1;
+	}
+
+	OCSP_RESPONSE* pOcspResp = d2i_OCSP_RESPONSE(nullptr, &pResp, len);
+	if (!pOcspResp) return 0;
+
+	if (OCSP_response_status(pOcspResp) != OCSP_RESPONSE_STATUS_SUCCESSFUL)
+	{
+		OCSP_RESPONSE_free(pOcspResp);
+		return 0;
+	}
+
+	OCSP_BASICRESP* pBasicResp = OCSP_response_get1_basic(pOcspResp);
+	if (!pBasicResp)
+	{
+		OCSP_RESPONSE_free(pOcspResp);
+		return 0;
+	}
+
+	X509* pPeerCert = SSL_get_peer_certificate(pSSL);
+	if (!pPeerCert)
+	{
+		OCSP_BASICRESP_free(pBasicResp);
+		OCSP_RESPONSE_free(pOcspResp);
+		return 0;
+	}
+
+	X509* pPeerIssuerCert = nullptr;
+	STACK_OF(X509)* pCertChain = SSL_get_peer_cert_chain(pSSL);
+	unsigned certChainLen = sk_X509_num(pCertChain);
+	for (int i= 0; i < certChainLen ; i++)
+	{
+		if (!pPeerIssuerCert)
+		{
+			X509* pIssuerCert = sk_X509_value(pCertChain, i);
+			if (X509_check_issued(pIssuerCert, pPeerCert) == X509_V_OK)
+			{
+				pPeerIssuerCert = pIssuerCert;
+				break;
+			}
+		}
+	}
+	if (!pPeerIssuerCert)
+	{
+		X509_free(pPeerCert);
+		OCSP_BASICRESP_free(pBasicResp);
+		OCSP_RESPONSE_free(pOcspResp);
+		return 0;
+	}
+
+	STACK_OF(X509)* pCerts = sk_X509_new_null();
+	if (pCerts)
+	{
+		X509* pCert = X509_dup(pPeerIssuerCert);
+		if (pCert && !sk_X509_push(pCerts, pCert))
+		{
+			X509_free(pCert);
+			sk_X509_free(pCerts);
+			pCerts = nullptr;
+		}
+	}
+
+	X509_STORE* pStore = SSL_CTX_get_cert_store(SSL_get_SSL_CTX(pSSL));
+
+	int verifyStatus = OCSP_basic_verify(pBasicResp, pCerts, pStore, OCSP_TRUSTOTHER);
+
+	sk_X509_pop_free(pCerts, X509_free);
+
+	if (verifyStatus <= 0)
+	{
+		X509_free(pPeerCert);
+		OCSP_BASICRESP_free(pBasicResp);
+		OCSP_RESPONSE_free(pOcspResp);
+		return 0;
+	}
+
+	OCSP_CERTID* pCertId = OCSP_cert_to_id(nullptr, pPeerCert, pPeerIssuerCert);
+	if (!pCertId)
+	{
+		X509_free(pPeerCert);
+		OCSP_BASICRESP_free(pBasicResp);
+		OCSP_RESPONSE_free(pOcspResp);
+		return 0;
+	}
+
+	X509_free(pPeerCert);
+
+	ASN1_GENERALIZEDTIME* pRevTime;
+	ASN1_GENERALIZEDTIME* pThisUpdate;
+	ASN1_GENERALIZEDTIME* pNextUpdate;
+	int certStatus;
+	int reason;
+	if (!OCSP_resp_find_status(pBasicResp, pCertId, &certStatus, &reason, &pRevTime, &pThisUpdate, &pNextUpdate))
+	{
+		OCSP_CERTID_free(pCertId);
+		OCSP_BASICRESP_free(pBasicResp);
+		OCSP_RESPONSE_free(pOcspResp);
+		return 0;
+	}
+
+	OCSP_CERTID_free(pCertId);
+
+	if (certStatus != V_OCSP_CERTSTATUS_GOOD)
+	{
+		OCSP_BASICRESP_free(pBasicResp);
+		OCSP_RESPONSE_free(pOcspResp);
+		return 0;
+	}
+
+	if (!OCSP_check_validity(pThisUpdate, pNextUpdate, OCSP_VALIDITY_LEEWAY, -1))
+	{
+		OCSP_BASICRESP_free(pBasicResp);
+		OCSP_RESPONSE_free(pOcspResp);
+		return 0;
+	}
+
+	OCSP_BASICRESP_free(pBasicResp);
+	OCSP_RESPONSE_free(pOcspResp);
+#endif
+
+	return 1;
 }
 
 
@@ -278,6 +454,7 @@ void SSLManager::initDefaultContext(bool server)
 	bool requireTLSv1 = config.getBool(prefix + CFG_REQUIRE_TLSV1, false);
 	bool requireTLSv1_1 = config.getBool(prefix + CFG_REQUIRE_TLSV1_1, false);
 	bool requireTLSv1_2 = config.getBool(prefix + CFG_REQUIRE_TLSV1_2, false);
+	bool requireTLSv1_3 = config.getBool(prefix + CFG_REQUIRE_TLSV1_3, false);
 
 	params.dhParamsFile = config.getString(prefix + CFG_DH_PARAMS_FILE, "");
 	params.ecdhCurve    = config.getString(prefix + CFG_ECDH_CURVE, "");
@@ -286,7 +463,9 @@ void SSLManager::initDefaultContext(bool server)
 
 	if (server)
 	{
-		if (requireTLSv1_2)
+		if (requireTLSv1_3)
+			usage = Context::TLSV1_3_SERVER_USE;
+		else if (requireTLSv1_2)
 			usage = Context::TLSV1_2_SERVER_USE;
 		else if (requireTLSv1_1)
 			usage = Context::TLSV1_1_SERVER_USE;
@@ -298,7 +477,9 @@ void SSLManager::initDefaultContext(bool server)
 	}
 	else
 	{
-		if (requireTLSv1_2)
+		if (requireTLSv1_3)
+			usage = Context::TLSV1_3_CLIENT_USE;
+		else if (requireTLSv1_2)
 			usage = Context::TLSV1_2_CLIENT_USE;
 		else if (requireTLSv1_1)
 			usage = Context::TLSV1_1_CLIENT_USE;
@@ -324,6 +505,8 @@ void SSLManager::initDefaultContext(bool server)
 			disabledProtocols |= Context::PROTO_TLSV1_1;
 		else if (*it == "tlsv1_2")
 			disabledProtocols |= Context::PROTO_TLSV1_2;
+		else if (*it == "tlsv1_3")
+			disabledProtocols |= Context::PROTO_TLSV1_3;
 	}
 	if (server)
 		_ptrDefaultServerContext->disableProtocols(disabledProtocols);
@@ -425,23 +608,6 @@ void SSLManager::initCertificateHandler(bool server)
 			_ptrClientCertificateHandler = pFactory->create(false);
 	}
 	else throw Poco::Util::UnknownOptionException(std::string("No InvalidCertificate handler known with the name ") + className);
-}
-
-
-Context::Ptr SSLManager::getCustomServerContext(const std::string & name)
-{
-	Poco::FastMutex::ScopedLock lock(_mutex);
-	auto it = _mapPtrServerContexts.find(name);
-	if (it != _mapPtrServerContexts.end())
-		return it->second;
-	return nullptr;
-}
-
-Context::Ptr SSLManager::setCustomServerContext(const std::string & name, Context::Ptr ctx)
-{
-	Poco::FastMutex::ScopedLock lock(_mutex);
-	ctx = _mapPtrServerContexts.insert({name, ctx}).first->second;
-	return ctx;
 }
 
 

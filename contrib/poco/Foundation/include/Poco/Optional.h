@@ -20,7 +20,7 @@
 
 #include "Poco/Foundation.h"
 #include "Poco/Exception.h"
-#include <algorithm>
+#include <optional>
 
 
 namespace Poco {
@@ -32,7 +32,7 @@ class Optional
 	/// that allows to introduce a specified/unspecified state
 	/// to value objects.
 	///
-	/// An Optional can be default constructed. In this case, 
+	/// An Optional can be default constructed. In this case,
 	/// the Optional will have a Null value and isSpecified() will
 	/// return false. Calling value()(without default value) on
 	/// a Null object will throw a NullValueException.
@@ -53,24 +53,32 @@ class Optional
 	/// nillable == true.
 {
 public:
-	Optional(): 
+	Optional()
 		/// Creates an empty Optional.
-		_value(),
-		_isSpecified(false)
 	{
 	}
 
-	Optional(const C& value): 
+	Optional(const C& value):
 		/// Creates a Optional with the given value.
-		_value(value), 
-		_isSpecified(true)
+		_optional(value)
 	{
 	}
-	
+
+	Optional(C&& value):
+		/// Creates a Optional by moving the given value.
+		_optional(std::forward<C>(value))
+	{
+	}
+
 	Optional(const Optional& other):
 		/// Creates a Optional by copying another one.
-		_value(other._value),
-		_isSpecified(other._isSpecified)
+		_optional(other._optional)
+	{
+	}
+
+	Optional(Optional&& other) noexcept:
+		/// Creates a Optional by moving another one.
+		_optional(std::move(other._optional))
 	{
 	}
 
@@ -82,11 +90,17 @@ public:
 	Optional& assign(const C& value)
 		/// Assigns a value to the Optional.
 	{
-		_value  = value;
-		_isSpecified = true;
+		_optional.emplace(value);
 		return *this;
 	}
-	
+
+	Optional& assign(C&& value)
+		/// Moves a value into the Optional.
+	{
+		_optional.emplace(std::move(value));
+		return *this;
+	}
+
 	Optional& assign(const Optional& other)
 		/// Assigns another Optional.
 	{
@@ -94,10 +108,15 @@ public:
 		swap(tmp);
 		return *this;
 	}
-	
+
 	Optional& operator = (const C& value)
 	{
 		return assign(value);
+	}
+
+	Optional& operator = (C&& value)
+	{
+		return assign(std::move(value));
 	}
 
 	Optional& operator = (const Optional& other)
@@ -105,10 +124,16 @@ public:
 		return assign(other);
 	}
 
-	void swap(Optional& other)
+	Optional& operator = (Optional&& other) noexcept
 	{
-		std::swap(_value, other._value);
-		std::swap(_isSpecified, other._isSpecified);
+		_optional = std::move(other._optional);
+		return *this;
+	}
+
+	void swap(Optional& other) noexcept
+	{
+		using std::swap;
+		swap(_optional, other._optional);
 	}
 
 	const C& value() const
@@ -116,40 +141,43 @@ public:
 		///
 		/// Throws a Poco::NullValueException if the value has not been specified.
 	{
-		if (_isSpecified)
-			return _value;
-		else
-			throw Poco::NullValueException();
+		if (_optional.has_value())
+			return _optional.value();
+
+		throw Poco::NullValueException();
 	}
 
 	const C& value(const C& deflt) const
 		/// Returns the Optional's value, or the
-		/// given default value if the Optional's 
+		/// given default value if the Optional's
 		/// value has not been specified.
 	{
-		return _isSpecified ? _value : deflt;
+		if (_optional.has_value())
+			return _optional.value();
+
+		return deflt;
 	}
 
 	bool isSpecified() const
 		/// Returns true iff the Optional's value has been specified.
 	{
-		return _isSpecified;
+		return _optional.has_value();
 	}
-	
+
 	void clear()
 		/// Clears the Optional.
 	{
-		_isSpecified = false;
+		_optional.reset();
 	}
 
 private:
-	C _value;
-	bool _isSpecified;
+
+	std::optional<C> _optional;
 };
 
 
 template <typename C>
-inline void swap(Optional<C>& n1, Optional<C>& n2)
+inline void swap(Optional<C>& n1, Optional<C>& n2) noexcept
 {
 	n1.swap(n2);
 }

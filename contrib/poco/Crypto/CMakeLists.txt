@@ -1,36 +1,16 @@
-if (ENABLE_SSL)
-    file (GLOB SRCS src/*.cpp)
+# Sources
+file(GLOB SRCS_G "src/*.cpp")
+POCO_SOURCES_AUTO(SRCS ${SRCS_G})
 
-    add_library (_poco_crypto ${SRCS})
-    add_library (Poco::Crypto ALIAS _poco_crypto)
-    if (NOT MSVC)
-        # TODO: remove these warning exclusions
-        target_compile_options (_poco_crypto
-            PRIVATE
-                -Wno-covered-switch-default
-                -Wno-deprecated-dynamic-exception-spec
-                -Wno-extra-semi-stmt
-                -Wno-missing-noreturn
-                -Wno-newline-eof
-                -Wno-old-style-cast
-                -Wno-shadow
-                -Wno-shorten-64-to-32
-                -Wno-sign-compare
-                -Wno-suggest-destructor-override
-                -Wno-suggest-override
-                -Wno-unreachable-code-return
-                -Wno-unused-parameter
-                -Wno-zero-as-null-pointer-constant
-                -Wno-used-but-marked-unused
-        )
-    endif()
-    target_include_directories (_poco_crypto SYSTEM PUBLIC "include")
-    target_link_libraries (_poco_crypto PUBLIC Poco::Foundation OpenSSL::SSL OpenSSL::Crypto)
+# Headers
+file(GLOB_RECURSE HDRS_G "include/*.h")
+POCO_HEADERS_AUTO(SRCS ${HDRS_G})
 
-    message (STATUS "Using Poco::Crypto")
-else ()
-    add_library (_poco_crypto INTERFACE)
-    add_library (Poco::Crypto ALIAS _poco_crypto)
+add_library(Crypto ${SRCS})
+add_library(Poco::Crypto ALIAS Crypto)
 
-    message (STATUS "Not using Poco::Crypto")
-endif ()
+target_link_libraries(Crypto PUBLIC Poco::Foundation OpenSSL::SSL OpenSSL::Crypto)
+target_include_directories(Crypto
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
