@@ -31,7 +31,7 @@ void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::str
         ptrHandler = new Poco::Net::RejectCertificateHandler(false);
     else
         ptrHandler = new Poco::Net::AcceptCertificateHandler(false);
-    Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE,
+    Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(Poco::Net::Context::TLS_CLIENT_USE,
         privateKeyFile
 #    if !defined(SECURITY_WIN32)
         // Do not work with poco/NetSSL_Win:
@@ -190,13 +190,11 @@ void Connection::connect(const std::string & connection_string) {
 
     session = (
 #if !defined(WORKAROUND_DISABLE_SSL)
-        is_ssl ? std::make_unique<Poco::Net::HTTPSClientSession>() :
+        is_ssl ? std::make_unique<Poco::Net::HTTPSClientSession>(server, port) :
 #endif
-        std::make_unique<Poco::Net::HTTPClientSession>()
+        std::make_unique<Poco::Net::HTTPClientSession>(server, port)
     );
 
-    session->setHost(server);
-    session->setPort(port);
     session->setKeepAlive(true);
     session->setTimeout(Poco::Timespan(connection_timeout, 0), Poco::Timespan(timeout, 0), Poco::Timespan(timeout, 0));
     session->setKeepAliveTimeout(Poco::Timespan(86400, 0));
