@@ -31,7 +31,6 @@
 #include <iostream>
 #endif
 
-
 namespace Poco {
 namespace Net {
 
@@ -142,7 +141,15 @@ void SecureSocketImpl::initCommon()
 
 void SecureSocketImpl::cleanup()
 {
-	_peerHostName.clear();
+    // ------------------------------ THIS A LOCAL CHANGE ------------------------------ //
+    // Most clients of SecureSocketImpl set the hostname only once during construction.
+    // When SecureSocketImpl is reused, the hostname is forgotten and never set again.
+    // This breaks the handshake with servers that require SNI after SecureSocketImpl
+    // is reused.
+    // --------------------------------------------------------------------------------- //
+    // deleted code:
+	// _peerHostName.clear();
+    // ------------------------------ THIS A LOCAL CHANGE ------------------------------ //
 
 	SecInvalidateHandle(&_hCreds);
 
@@ -835,7 +842,18 @@ void SecureSocketImpl::stateError()
 
 void SecureSocketImpl::stateClientConnected()
 {
-	_peerHostName = _pSocket->peerAddress().host().toString();
+    // ------------------------------ THIS A LOCAL CHANGE ------------------------------ //
+    // This code always sets `_peerHostName` to the peer's IP address, which breaks
+    // the handshake with servers that require SNI. In other parts of the code, however,
+    // this assignment is done conditionally - only when `_peerHostName` is not already set.
+    // This is likely an honest mistake here, so I’ve added the same conditional check.
+    // --------------------------------------------------------------------------------- //
+    // updated code:
+    if (_peerHostName.empty())
+        _peerHostName = _pSocket->peerAddress().host().toString();
+    // was:
+    // _peerHostName = _pSocket->peerAddress().host().toString();
+    // ------------------------------ THIS A LOCAL CHANGE ------------------------------ //
 	setState(ST_CLIENT_HSK_START);
 }
 
