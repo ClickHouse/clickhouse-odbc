@@ -30,7 +30,6 @@
 namespace Poco {
 
 
-EnvironmentImpl::StringMap EnvironmentImpl::_map;
 FastMutex EnvironmentImpl::_mutex;
 
 
@@ -56,6 +55,8 @@ bool EnvironmentImpl::hasImpl(const std::string& name)
 
 void EnvironmentImpl::setImpl(const std::string& name, const std::string& value)
 {
+    static StringMap _map;
+
 	FastMutex::ScopedLock lock(_mutex);
 
 	std::string var = name;
