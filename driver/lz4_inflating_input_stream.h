@@ -1,6 +1,7 @@
 #pragma once
 
 #include <istream>
+#include <vector>
 #include "Poco/BufferedStreamBuf.h"
 
 #include <lz4.h>
