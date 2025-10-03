@@ -275,6 +275,19 @@ void Context::acquireSchannelCredentials(CredHandle& credHandle) const
 
 	schannelCred.grbitEnabledProtocols = proto();
 
+    // ------------------------------ THIS A LOCAL CHANGE ------------------------------ //
+    // When a ClickHouse instance is configured with SSL, (as described here:
+    // https://clickhouse.com/docs/guides/sre/configuring-ssl), it sends a client certificate
+    // request, even if mutual authentication is not enabled. curl, Invoke-WebRequest,
+    // and other clients simply ignore this request and do not send a client certificate.
+    // However, before this change, unlike other clients, the library attempted to send
+    // a default certificate. That behavior is now disabled by adding the
+    // `SCH_CRED_NO_DEFAULT_CREDS` flag to the credential parameters.
+    // --------------------------------------------------------------------------------- //
+    // new code:
+    schannelCred.dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
+    // --------------------------------------------------------------------------------- //
+
 	// Windows NT and Windows Me/98/95: revocation checking not supported via flags
 	if (_options & Context::OPT_PERFORM_REVOCATION_CHECK)
 		schannelCred.dwFlags |= SCH_CRED_REVOCATION_CHECK_CHAIN;
@@ -291,10 +304,21 @@ void Context::acquireSchannelCredentials(CredHandle& credHandle) const
 	}
 	else
 	{
-		if (_mode >= Context::VERIFY_STRICT)
-			schannelCred.dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
-		else
-			schannelCred.dwFlags |= SCH_CRED_USE_DEFAULT_CREDS;
+
+        // ------------------------------ THIS A LOCAL CHANGE ------------------------------ //
+        // This is a continuation of the change above. Since we enabled
+        // SCH_CRED_NO_DEFAULT_CREDS, this parameter should not be modified elsewhere. The
+        // Windows version of the driver does not support verification modes (SSLMode parameter
+        // https://github.com/ClickHouse/clickhouse-odbc/blob/master/packaging/odbc.ini.sample#L34)
+        // at the moment, so this change should not break anything. However, it
+        // should be revisited once verification modes are implemented on Windows.
+        // --------------------------------------------------------------------------------- //
+        // deleted code:
+	    // if (_mode >= Context::VERIFY_STRICT)
+		// 	schannelCred.dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
+		// else
+		// 	schannelCred.dwFlags |= SCH_CRED_USE_DEFAULT_CREDS;
+        // --------------------------------------------------------------------------------- //
 
 		if (_mode == Context::VERIFY_NONE)
 			schannelCred.dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION | SCH_CRED_NO_SERVERNAME_CHECK;
