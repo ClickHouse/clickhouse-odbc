@@ -1,4 +1,6 @@
 #include "lz4_inflating_input_stream.h"
+#include <lz4.h>
+#include <lz4frame.h>
 #include <assert.h>
 #include "Poco/Exception.h"
 
@@ -29,7 +31,7 @@ int LZ4InflatingStreamBuf::readFromDevice(char * dst_buffer, std::streamsize len
 
     const size_t MAX_ATTEMPTS = 5;
 
-    // Poco::BufferedStreamBuf consideres 0 as eof, so we need this internal loop
+    // Poco::BufferedStreamBuf considers 0 as eof, so we need this internal loop
     //   to handle "decompression consumed no input but needs more" case
     for (size_t attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
         if (!bytes_left || need_more_input) {
