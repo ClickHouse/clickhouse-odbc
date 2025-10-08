@@ -1,4 +1,5 @@
 #include "driver/result_set.h"
+#include "driver/driver.h"
 #include "driver/format/ODBCDriver2.h"
 #include "driver/format/RowBinaryWithNamesAndTypes.h"
 
@@ -305,18 +306,17 @@ void ResultSet::retireRow(Row && row) {
     row_pool.put(std::move(row));
 }
 
-ResultReader::ResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator)
+ResultReader::ResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
     : timezone(timezone_)
     , stream(raw_stream)
     , result_mutator(std::move(mutator))
 {
 }
 
-ResultReader::ResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream_)
+ResultReader::ResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream_)
     : timezone(timezone_)
-    , stream(raw_stream)
+    , stream(raw_stream, std::move(inflating_input_stream_))
     , result_mutator(std::move(mutator))
-    , inflating_input_stream(std::move(inflating_input_stream_))
 {
 }
 
@@ -350,18 +350,20 @@ std::unique_ptr<ResultReader> make_result_reader(const std::string & format,
         inflating_input_stream = make_unique<LZ4InflatingInputStream>(raw_stream);
         stream_ptr = inflating_input_stream.get();
     } else {
+        if (!compression.empty())
+            LOG("Unknown compression method, assuming uncompressed");
         stream_ptr = &raw_stream;
     }
 
     if (format == "ODBCDriver2") {
-        return std::make_unique<ODBCDriver2ResultReader>(timezone, stream_ptr, std::move(mutator), std::move(inflating_input_stream));
+        return std::make_unique<ODBCDriver2ResultReader>(timezone, *stream_ptr, std::move(mutator), std::move(inflating_input_stream));
 
     } else if (format == "RowBinaryWithNamesAndTypes") {
         if (!isLittleEndian())
             throw std::runtime_error("'" + format + "' format is supported only on little-endian platforms");
 
         return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(
-            timezone, stream_ptr, std::move(mutator), std::move(inflating_input_stream));
+            timezone, *stream_ptr, std::move(mutator), std::move(inflating_input_stream));
     }
 
     throw std::runtime_error("'" + format + "' format is not supported");
