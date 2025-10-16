@@ -137,6 +137,66 @@ function (declare_odbc_test_targets libname UNICODE)
             math (EXPR test_dsn_counter "${test_dsn_counter}+1")
         endif ()
     endforeach ()
+    ############################## Networking Tests ################################
+
+    set(networking-it-target ${libname}-networking-it)
+    add_executable(${networking-it-target}
+        networking_it.cpp
+        http_server/TestHTTPServer.cpp
+        http_server/TestHTTPServer.h
+
+        ${PROJECT_SOURCE_DIR}/driver/utils/conversion.h
+        ${PROJECT_SOURCE_DIR}/driver/utils/conversion_std.h
+        ${PROJECT_SOURCE_DIR}/driver/utils/conversion_icu.h
+        ${PROJECT_SOURCE_DIR}/driver/utils/conversion_context.h
+        ${PROJECT_SOURCE_DIR}/driver/utils/conversion_context.cpp
+        ${PROJECT_SOURCE_DIR}/driver/utils/unicode_converter.h
+        ${PROJECT_SOURCE_DIR}/driver/utils/unicode_converter.cpp
+    )
+
+    target_include_directories(
+        ${networking-it-target}
+        SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/contrib/asio/asio/include
+        PRIVATE ${PROJECT_SOURCE_DIR}
+        PRIVATE ${PROJECT_BINARY_DIR}
+
+        # TODO(slabko): These things simply should not be here
+        PRIVATE ${FOLLY_INLUDE_DIR}
+    )
+
+    target_link_libraries (${networking-it-target}
+        PRIVATE GTest::gtest_main Threads::Threads
+
+        # TODO(slabko): These things simply should not be here
+        Poco::Foundation
+    )
+
+    if (OS_LINUX OR OS_DARWIN)
+        target_link_libraries (${networking-it-target} PUBLIC ch_contrib::unixodbc ch_contrib::nanodbc)
+    else()
+        target_link_libraries (${networking-it-target} PUBLIC ODBC::App)
+    endif()
+
+    if (UNICODE)
+        target_compile_definitions (${networking-it-target}
+            PUBLIC UNICODE
+            PUBLIC _UNICODE
+        )
+    endif ()
+
+    if (CH_ODBC_USE_ICU)
+        target_include_directories (${networking-it-target}
+            PUBLIC ch_contrib::icu
+        )
+
+        target_link_libraries (${networking-it-target}
+            PUBLIC ch_contrib::icu
+        )
+    endif ()
+
+    add_test (NAME ${networking-it-target} COMMAND ${networking-it-target})
+
+    ################################################################################
 
     if (TARGET nanodbc
 #        AND (
@@ -189,3 +249,6 @@ endfunction ()
 
 declare_odbc_test_targets (clickhouse-odbc 0)
 declare_odbc_test_targets (clickhouse-odbcw 1)
+
+
+
