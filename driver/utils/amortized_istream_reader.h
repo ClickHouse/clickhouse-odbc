@@ -7,8 +7,9 @@
 #include <istream>
 #include <stdexcept>
 #include <string>
-
 #include <cstring>
+
+#include <Poco/Net/HTTPClientSession.h>
 
 // A restricted wrapper around std::istream, that tries to reduce the number of std::istream::read() calls at the cost of extra std::memcpy().
 // Maintains internal buffer of pre-read characters making AmortizedIStreamReader::read() calls for small counts more efficient.
@@ -16,8 +17,8 @@
 class AmortizedIStreamReader
 {
 public:
-    explicit AmortizedIStreamReader(std::istream & raw_stream)
-        : raw_stream_(raw_stream)
+    explicit AmortizedIStreamReader(std::istream & raw_stream, Poco::Net::HTTPClientSession & session)
+        : raw_stream_(raw_stream), session_(session)
     {
     }
 
@@ -119,11 +120,18 @@ private:
 
             if (raw_stream_.gcount() < to_read)
                 buffer_.resize(buffer_.size() - (to_read - raw_stream_.gcount()));
+
+            auto * exception = session_.networkException();
+            if (exception)
+                throw std::runtime_error(exception->what());
+            if (raw_stream_.bad())
+                throw std::runtime_error("Unknown network error");
         }
     }
 
 private:
     std::istream & raw_stream_;
+    Poco::Net::HTTPClientSession & session_;
     std::size_t offset_ = 0;
     std::string buffer_;
 };
