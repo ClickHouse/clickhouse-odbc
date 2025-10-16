@@ -35,3 +35,6 @@
 [submodule "contrib/libunwind"]
 	path = contrib/libunwind
 	url = https://github.com/ClickHouse/libunwind
+[submodule "contrib/asio"]
+	path = contrib/asio
+	url = https://github.com/chriskohlhoff/asio
