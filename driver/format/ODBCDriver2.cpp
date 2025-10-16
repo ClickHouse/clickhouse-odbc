@@ -1,7 +1,11 @@
 #include "driver/format/ODBCDriver2.h"
 #include "driver/utils/resize_without_initialization.h"
 
-ODBCDriver2ResultSet::ODBCDriver2ResultSet(const std::string & timezone, AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator)
+ODBCDriver2ResultSet::ODBCDriver2ResultSet(
+    const std::string & timezone,
+    AmortizedIStreamReader & stream,
+    std::unique_ptr<ResultMutator> && mutator
+)
     : ResultSet(stream, std::move(mutator))
 {
     std::int32_t num_header_rows = 0;
@@ -245,8 +249,13 @@ void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourc
     return value_manip::from_value<std::string>::template to_value<DataSourceType<DataSourceTypeId::UUID>>::convert(src, dest);
 }
 
-ODBCDriver2ResultReader::ODBCDriver2ResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
-    : ResultReader(timezone_, raw_stream, std::move(mutator))
+ODBCDriver2ResultReader::ODBCDriver2ResultReader(
+    const std::string & timezone_,
+    std::istream & raw_stream,
+    Poco::Net::HTTPClientSession & session,
+    std::unique_ptr<ResultMutator> && mutator
+)
+    : ResultReader(timezone_, raw_stream, session, std::move(mutator))
 {
     if (stream.eof())
         return;

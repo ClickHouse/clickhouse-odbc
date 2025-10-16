@@ -177,7 +177,7 @@ TEST_F(NetworkingTest, PositiveCaseKeepClose)
  * DISABLED: On Windows Poco returns no data at all in this case, in linux it works
  * as expected.
  */
-TEST_F(NetworkingTest, DISABLED_PositiveCaseDrop)
+TEST_F(NetworkingTest, PositiveCaseDrop)
 {
     // This produces an error on Windows, however this does not seem to be critical.
     // Either way, getting a correct sum or having an exception seem fine in this case
@@ -197,7 +197,7 @@ TEST_F(NetworkingTest, DISABLED_PositiveCaseDrop)
  * bytes sent).
  * DISABLED: Poco exception is not handled, the driver returns nothing.
  */
-TEST_F(NetworkingTest, DISABLED_ConnectionDropMidStream)
+TEST_F(NetworkingTest, ConnectionDropMidStream)
 {
     setResponse(KeepAlive::Drop, HTTP_HEADER ODBC_HEADER KB KB KB KB KB "400\r\n" B128 B128 B128);
     EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]Connection reset by peer");
@@ -208,7 +208,7 @@ TEST_F(NetworkingTest, DISABLED_ConnectionDropMidStream)
  * terminating chunk.
  * DISABLED: Poco exception is not handled, the driver returns nothing.
  */
-TEST_F(NetworkingTest, DISABLED_ConnectionDropMissingZeroChunk)
+TEST_F(NetworkingTest, ConnectionDropMissingZeroChunk)
 {
     setResponse(KeepAlive::Drop, HTTP_HEADER ODBC_HEADER KB KB KB KB KB);
     EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]Connection reset by peer");
