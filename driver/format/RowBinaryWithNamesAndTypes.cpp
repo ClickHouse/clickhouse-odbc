@@ -305,8 +305,13 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
     std::copy(ptr, ptr + lengthof(dest.value.Data4), std::make_reverse_iterator(dest.value.Data4 + lengthof(dest.value.Data4)));
 }
 
-RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
-    : ResultReader(timezone_, raw_stream, std::move(mutator))
+RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(
+    const std::string & timezone_,
+    std::istream & raw_stream,
+    Poco::Net::HTTPClientSession & session,
+    std::unique_ptr<ResultMutator> && mutator
+)
+    : ResultReader(timezone_, raw_stream, session, std::move(mutator))
 {
     if (stream.eof())
         return;

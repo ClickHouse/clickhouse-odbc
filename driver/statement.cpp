@@ -190,7 +190,9 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     result_reader = make_result_reader(
         response->get("X-ClickHouse-Format", connection.default_format),
         response->get("X-ClickHouse-Timezone", Poco::Timezone::name()),
-        *in, std::move(mutator)
+        *in,
+        *connection.session,
+        std::move(mutator)
     );
 
     ++next_param_set_idx;
