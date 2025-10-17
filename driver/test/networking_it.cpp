@@ -19,11 +19,14 @@
 
 namespace {
 
-#define ODBC_HEADER "30\r\n"                                           \
+#define CRLF "\r\n"
+
+#define ODBC_HEADER                                                    \
+    "30" CRLF                                                          \
     "\x02\x00\x00\x00\x02\x00\x00\x00\x04\x00\x00\x00\x6E\x61\x6D\x65" \
     "\x06\x00\x00\x00\x6E\x75\x6D\x62\x65\x72\x02\x00\x00\x00\x04\x00" \
     "\x00\x00\x74\x79\x70\x65\x06\x00\x00\x00\x55\x49\x6E\x74\x36\x34" \
-    "\r\n"
+    CRLF
 
 #define B128 \
     "\x02\x00\x00\x00\x38\x31\x02\x00\x00\x00\x38\x32\x02\x00\x00\x00" \
@@ -37,23 +40,24 @@ namespace {
 
 #define SINGLE_VALUE "\x02\x00\x00\x00\x38"
 
-#define CH_EXCEPTION \
-    "__exception__\r\n" \
-    "Code: 395. DB::Exception: ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)"
-
-#define CRLF "\r\n"
+#define CH_EXCEPTION                                                   \
+    "68" CRLF                                                          \
+    "__exception__\r\n"                                                \
+    "Code: 395. DB::Exception: ClickHouse Exception. "                 \
+    "(CLICKHOUSE_EXCEPTION) (version 25.5.8.1)"                        \
+    CRLF
 
 // 1 Kbyte of chunked encoded data the size (0x400 = 1024)
-#define KB_SIZE "400\r\n"
+#define KB_SIZE "400" CRLF
 
 // chunk of just one Kbyte of data
 #define KB KB_SIZE B128 B128 B128 B128 B128 B128 B128 B128 CRLF
 
 #define KB_DATA_SUM 15288
 
-#define HTTP_HEADER "HTTP/1.1 200 OK\r\n"                          \
-                    "Connection: Keep-Alive\r\n"                   \
-                    "Content-Type: application/octet-stream\r\n"   \
+#define HTTP_HEADER "HTTP/1.1 200 OK\r\n"                            \
+                    "Connection: Keep-Alive\r\n"                     \
+                    "Content-Type: application/octet-stream\r\n"     \
                     "Transfer-Encoding: chunked\r\n\r\n"
 
 #define ZERO_CHUNK "0" CRLF CRLF
@@ -174,8 +178,6 @@ TEST_F(NetworkingTest, PositiveCaseKeepClose)
  * Verifies that the library handles either successful processing of 5KB of chunked data
  * or gracefully catches a connection reset exception when the server abruptly drops
  * the connection without proper closure (RST instead of FIN is sent by the server).
- * DISABLED: On Windows Poco returns no data at all in this case, in linux it works
- * as expected.
  */
 TEST_F(NetworkingTest, PositiveCaseDrop)
 {
@@ -195,7 +197,6 @@ TEST_F(NetworkingTest, PositiveCaseDrop)
  * Verifies that the library throws a "Connection reset by peer" exception when the server
  * drops the connection in the middle of an incomplete chunk (1024 bytes declared, only 384
  * bytes sent).
- * DISABLED: Poco exception is not handled, the driver returns nothing.
  */
 TEST_F(NetworkingTest, ConnectionDropMidStream)
 {
@@ -206,7 +207,6 @@ TEST_F(NetworkingTest, ConnectionDropMidStream)
  * Verifies that the library throws a "Connection reset by peer" exception when the server
  * drops the connection after sending complete chunks but without the required zero-length
  * terminating chunk.
- * DISABLED: Poco exception is not handled, the driver returns nothing.
  */
 TEST_F(NetworkingTest, ConnectionDropMissingZeroChunk)
 {
@@ -217,10 +217,8 @@ TEST_F(NetworkingTest, ConnectionDropMissingZeroChunk)
 /**
  * Verifies that the library throws an "Unexpected EOF in chunked encoding" exception when
  * the server properly closes the connection mid-stream during an incomplete chunk.
- * DISABLED: Poco does not report any exceptions in this case and closes the stream as nothing
- * bad has happened.
  */
-TEST_F(NetworkingTest, DISABLED_ConnectionCloseMidStream)
+TEST_F(NetworkingTest, ConnectionCloseMidStream)
 {
     setResponse(KeepAlive::Close, HTTP_HEADER ODBC_HEADER KB KB KB KB KB "400\r\n" B128 B128 B128);
     EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]Unexpected EOF in chunked encoding");
@@ -230,10 +228,8 @@ TEST_F(NetworkingTest, DISABLED_ConnectionCloseMidStream)
  * Verifies that the library throws an "Unexpected EOF in chunked encoding" exception when
  * the server properly closes the connection after complete chunks but without sending
  * the required zero-length terminating chunk.
- * DISABLED: Poco does not report any exceptions in this case and closes the stream as nothing
- * bad has happened.
  */
-TEST_F(NetworkingTest, DISABLED_ConnectionCloseMissingZeroChunk)
+TEST_F(NetworkingTest, ConnectionCloseMissingZeroChunk)
 {
     setResponse(KeepAlive::Close, HTTP_HEADER ODBC_HEADER KB KB KB KB KB);
     EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]Unexpected EOF in chunked encoding");
@@ -242,13 +238,14 @@ TEST_F(NetworkingTest, DISABLED_ConnectionCloseMissingZeroChunk)
 /**
  * Verifies that the library throws an exception when it receives data that violates chunked
  * transfer encoding format (raw data without proper chunk size headers).
- * DISABLED: Poco does not report any exceptions in this case and closes the stream as nothing
- * bad has happened.
  */
-TEST_F(NetworkingTest, DISABLED_IncorrectEncoding)
+TEST_F(NetworkingTest, IncorrectEncoding)
 {
     setResponse(KeepAlive::KeepAlive, HTTP_HEADER ODBC_HEADER KB KB KB KB KB B128 B128 B128);
-    EXPECT_THROW(fetch_sum(stmt), std::runtime_error);
+    EXPECT_THROW_MESSAGE(
+        fetch_sum(stmt),
+        std::runtime_error,
+        "1:[HY000][1]Unable to parse the chunk size from the stream");
 }
 
 /**
