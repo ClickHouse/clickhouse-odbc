@@ -40,11 +40,14 @@ namespace {
 
 #define SINGLE_VALUE "\x02\x00\x00\x00\x38"
 
-#define CH_EXCEPTION                                                   \
-    "68" CRLF                                                          \
+#define CH_EXCEPTION_TEXT                                              \
     "__exception__\r\n"                                                \
     "Code: 395. DB::Exception: ClickHouse Exception. "                 \
-    "(CLICKHOUSE_EXCEPTION) (version 25.5.8.1)"                        \
+    "(CLICKHOUSE_EXCEPTION) (version 25.5.8.1)"
+
+#define CH_EXCEPTION                                                   \
+    "68" CRLF                                                          \
+    CH_EXCEPTION_TEXT                                                  \
     CRLF
 
 // 1 Kbyte of chunked encoded data the size (0x400 = 1024)
@@ -99,7 +102,7 @@ protected:
         ODBC_CALL_ON_STMT_THROW(stmt, SQLFreeHandle(SQL_HANDLE_STMT, stmt));
         ODBC_CALL_ON_DBC_THROW(dbc, SQLDisconnect(dbc));
         ODBC_CALL_ON_DBC_THROW(dbc, SQLFreeHandle(SQL_HANDLE_DBC, dbc));
-        ODBC_CALL_ON_DBC_THROW(dbc, SQLFreeHandle(SQL_HANDLE_ENV, env));
+        ODBC_CALL_ON_ENV_THROW(env, SQLFreeHandle(SQL_HANDLE_ENV, env));
     }
 
     template <size_t Size>
@@ -251,29 +254,37 @@ TEST_F(NetworkingTest, IncorrectEncoding)
 /**
  * Verifies the library's handling of a ClickHouse server exception that arrives aligned
  * with data boundaries, i.e. all data before the exception message can be parsed correctly.
- * DISABLED: The driver does not process such exceptions at the moment
  */
-TEST_F(NetworkingTest, DISABLED_ClickHouseExceptionAligned)
+TEST_F(NetworkingTest, ClickHouseExceptionAligned)
 {
-    setResponse(KeepAlive::Drop, HTTP_HEADER ODBC_HEADER KB KB KB KB KB CH_EXCEPTION);
+    setResponse(KeepAlive::Close, HTTP_HEADER ODBC_HEADER KB KB KB KB KB CH_EXCEPTION);
     EXPECT_THROW_MESSAGE(
         fetch_sum(stmt),
         std::runtime_error,
-        "1:[HY000][1]Code: 395. DB::Exception: ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
+        "1:[HY000][1]ClickHouse exception: Code: 395. DB::Exception: ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
 }
 
 /**
  * Verifies the library's handling of a ClickHouse server exception that arrives unaligned
  * with data boundaries, i.e. all there is only a part of the record in the payload -
  * the last record cannot be parsed.
- * DISABLED: The driver does not process such exceptions at the moment
  */
-TEST_F(NetworkingTest, DISABLED_ClickHouseExceptionUnaligned)
+TEST_F(NetworkingTest, ClickHouseExceptionUnaligned)
 {
-    const char response[] = HTTP_HEADER ODBC_HEADER KB KB KB KB KB "10" CRLF SINGLE_VALUE SINGLE_VALUE CH_EXCEPTION;
-    setResponse(KeepAlive::Drop, response);
+    const char response[] = HTTP_HEADER ODBC_HEADER KB KB KB KB KB "A" CRLF SINGLE_VALUE SINGLE_VALUE CRLF CH_EXCEPTION;
+    setResponse(KeepAlive::Close, response);
     EXPECT_THROW_MESSAGE(
         fetch_sum(stmt),
         std::runtime_error,
-        "1:[HY000][1]Code: 395. DB::Exception: ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
+        "1:[HY000][1]ClickHouse exception: Code: 395. DB::Exception: ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
+}
+
+TEST_F(NetworkingTest, ClickHouseExceptionInMiddleOfChunk)
+{
+    const char response[] = HTTP_HEADER ODBC_HEADER KB KB KB KB KB "72" CRLF SINGLE_VALUE SINGLE_VALUE CH_EXCEPTION_TEXT CRLF;
+    setResponse(KeepAlive::Close, response);
+    EXPECT_THROW_MESSAGE(
+        fetch_sum(stmt),
+        std::runtime_error,
+        "1:[HY000][1]ClickHouse exception: Code: 395. DB::Exception: ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
 }

@@ -29,6 +29,67 @@ namespace Net {
 
 POCO_IMPLEMENT_EXCEPTION(IncompleteChunkedTransfer, NetException, "Unexpected EOF in chunked encoding")
 POCO_IMPLEMENT_EXCEPTION(IncorrectChunkSize, NetException, "Unable to parse the chunk size from the stream")
+POCO_IMPLEMENT_EXCEPTION(ClickHouseException, NetException, "ClickHouse exception")
+
+//
+// LookbackBuffer
+//
+
+
+LookbackBuffer::LookbackBuffer(size_t buffer_size)
+	: buffer{std::vector(buffer_size, '\0')} { };
+
+void LookbackBuffer::commit(const char * data, size_t data_size)
+{
+	if (data_size >= buffer.size()) {
+		// easy, just copy last buffer.size() from data to fill the
+		// buffer completely.
+		// NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
+		memcpy(buffer.data(), data + data_size - buffer.size(), buffer.size());
+		count = buffer.size();
+		head = 0;
+	} else {
+		size_t continues_chunk_size = buffer.size() - head;
+		if (data_size >= continues_chunk_size) {
+			// write in two steps.
+			size_t first_chunk_size = continues_chunk_size;
+			size_t second_chunk_size = data_size - first_chunk_size;
+
+			// NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
+			memcpy(buffer.data() + head, data, first_chunk_size);
+
+			// NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
+			memcpy(buffer.data(), data + first_chunk_size, second_chunk_size);
+
+			count = buffer.size();
+			head = second_chunk_size;
+		} else {
+			// write in one step
+			// NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
+			memcpy(buffer.data() + head, data, data_size);
+
+			count = std::min(count + data_size, buffer.size());
+			head += data_size;
+		}
+	}
+}
+
+const char * LookbackBuffer::data()
+{
+	if (count == buffer.size() && head != 0) {
+		using offset_type = std::vector<char>::iterator::difference_type;
+		auto offset = static_cast<offset_type>(head);
+		std::rotate(buffer.begin(), buffer.begin() + offset, buffer.end());
+		head = 0;
+	}
+
+	return buffer.data();
+}
+
+size_t LookbackBuffer::size() const
+{
+	return count;
+}
 
 //
 // HTTPChunkedStreamBuf
@@ -40,7 +101,8 @@ HTTPChunkedStreamBuf::HTTPChunkedStreamBuf(HTTPSession& session, openmode mode, 
 	_session(session),
 	_mode(mode),
 	_chunk(0),
-	_pTrailer(pTrailer)
+	_pTrailer(pTrailer),
+	_lookback_buffer(32768)
 {
 }
 
@@ -88,6 +150,23 @@ int HTTPChunkedStreamBuf::readFromDevice(char* buffer, std::streamsize length)
 	try
 	{
 		return readChunkEncodedStream(buffer, length);
+	}
+	catch (const IncompleteChunkedTransfer & ex)
+	{
+		const std::string_view exception_marker{"__exception__\r\n"};
+		const char * data = _lookback_buffer.data();
+		size_t size = _lookback_buffer.size();
+
+		auto pos = std::find_end(data, data + size, exception_marker.begin(), exception_marker.end());
+		if (pos != data + size) {
+			std::string message(pos + exception_marker.size(), data + size);
+			auto exception = ClickHouseException(message);
+			_session.setException(exception);
+			throw exception;
+		}
+
+		_session.setException(ex);
+		throw;
 	}
 	catch (const Exception & ex)
 	{
@@ -139,6 +218,8 @@ int HTTPChunkedStreamBuf::readChunkEncodedStream(char* buffer, std::streamsize l
 	{
 		if (length > _chunk) length = _chunk;
 		int n = _session.read(buffer, length);
+		_lookback_buffer.commit(buffer, n);
+
 		if (n > 0) _chunk -= n;
 
 		if (n == 0 && _session.peek() == eof) {

@@ -123,7 +123,7 @@ private:
 
             auto * exception = session_.networkException();
             if (exception)
-                throw std::runtime_error(exception->what());
+                throw std::runtime_error(exception->displayText());
             if (raw_stream_.bad())
                 throw std::runtime_error("Unknown network error");
         }
