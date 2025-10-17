@@ -27,6 +27,8 @@ using Poco::NumberParser;
 namespace Poco {
 namespace Net {
 
+POCO_IMPLEMENT_EXCEPTION(IncompleteChunkedTransfer, NetException, "Unexpected EOF in chunked encoding")
+POCO_IMPLEMENT_EXCEPTION(IncorrectChunkSize, NetException, "Unable to parse the chunk size from the stream")
 
 //
 // HTTPChunkedStreamBuf
@@ -67,37 +69,86 @@ void HTTPChunkedStreamBuf::close()
 	}
 }
 
-
-int HTTPChunkedStreamBuf::readFromDevice(char* buffer, std::streamsize length)
+int HTTPChunkedStreamBuf::readChar()
 {
 	static const int eof = std::char_traits<char>::eof();
 
+	char buffer = 0;
+	int n = _session.read(&buffer, 1);
+
+	if (n == 0 && _session.peek() == eof) {
+		throw IncompleteChunkedTransfer();
+	}
+
+	return buffer;
+}
+
+int HTTPChunkedStreamBuf::readFromDevice(char* buffer, std::streamsize length)
+{
+	try
+	{
+		return readChunkEncodedStream(buffer, length);
+	}
+	catch (const Exception & ex)
+	{
+		_session.setException(ex);
+		throw;
+	}
+}
+
+int HTTPChunkedStreamBuf::readChunkEncodedStream(char* buffer, std::streamsize length)
+{
+	static const int eof = std::char_traits<char>::eof();
+
+	// read next chunk
 	if (_chunk == 0)
 	{
-		int ch = _session.get();
-		while (Poco::Ascii::isSpace(ch)) ch = _session.get();
+		int ch = readChar();
+
+		// \r\n can be missing if this is the first chunk,
+		// in this case \r\n\ is consumed by the header parser.
+		// In this case we expect a hex digit right away. If
+		// ch is not a hex digit, then we only can see \r\n
+		// and nothing else.
+		if (!Poco::Ascii::isHexDigit(ch)) {
+			if (ch != '\r' || readChar() != '\n') {
+				throw IncorrectChunkSize();
+			}
+			ch = readChar();
+		}
+
 		std::string chunkLen;
-		while (Poco::Ascii::isHexDigit(ch) && chunkLen.size() < 8) { chunkLen += (char) ch; ch = _session.get(); }
-		if (ch != eof && !(Poco::Ascii::isSpace(ch) || ch == ';')) return eof;
-		while (ch != eof && ch != '\n') ch = _session.get();
-		unsigned chunk;
-		if (NumberParser::tryParseHex(chunkLen, chunk))
+		while (Poco::Ascii::isHexDigit(ch) && chunkLen.size() < 8)
 		{
-			_chunk = static_cast<std::streamsize>(chunk);
+			chunkLen += (char) ch;
+			ch = readChar();
 		}
-		else
-		{
-			_chunk = -1;
-			return eof;
+
+		unsigned chunk = 0;
+
+		// After we read a sequence of hex digits, we expect '\r\n'
+		if (chunkLen.empty() || ch != '\r' || readChar() != '\n' || !NumberParser::tryParseHex(chunkLen, chunk)) {
+			throw IncorrectChunkSize();
 		}
+
+		_chunk = static_cast<std::streamsize>(chunk);
 	}
+
+	// chunk has data - read it to the buffer
 	if (_chunk > 0)
 	{
 		if (length > _chunk) length = _chunk;
 		int n = _session.read(buffer, length);
 		if (n > 0) _chunk -= n;
+
+		if (n == 0 && _session.peek() == eof) {
+			throw IncompleteChunkedTransfer();
+		}
+
 		return n;
 	}
+
+	// last chunk
 	else if (_chunk == 0)
 	{
 		int ch = _session.peek();
