@@ -20,15 +20,26 @@
 
 #include "Poco/Net/Net.h"
 #include "Poco/Net/HTTPBasicStreamBuf.h"
+#include "Poco/Net/NetException.h"
 #include "Poco/MemoryPool.h"
 #include <cstddef>
 #include <istream>
 #include <ostream>
 
+// --------------------------- WARNING LOCAL CHANGES ------------------------------- //
+// This class has been heavily modified in order to solve issues related to incomplete
+// steam of data, i.e. when server closes the connection before sending all the data.
+// See https://github.com/pocoproject/poco/issues/5032
+// Additionally it includes extra checks that the chunk size can be correctly parsed.
+// This is part of larger PR:
+// https://github.com/ClickHouse/clickhouse-odbc/pull/530
+// --------------------------------------------------------------------------------- //
 
 namespace Poco {
 namespace Net {
 
+POCO_DECLARE_EXCEPTION(Net_API, IncompleteChunkedTransfer, NetException)
+POCO_DECLARE_EXCEPTION(Net_API, IncorrectChunkSize, NetException)
 
 class HTTPSession;
 class MessageHeader;
@@ -50,6 +61,9 @@ protected:
 	int writeToDevice(const char* buffer, std::streamsize length);
 
 private:
+	int readChar();
+	int readChunkEncodedStream(char* buffer, std::streamsize length);
+
 	HTTPSession&    _session;
 	openmode        _mode;
 	std::streamsize _chunk;
