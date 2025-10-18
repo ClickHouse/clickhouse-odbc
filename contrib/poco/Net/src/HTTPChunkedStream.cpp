@@ -138,7 +138,7 @@ int HTTPChunkedStreamBuf::readChar()
 	char buffer = 0;
 	int n = _session.read(&buffer, 1);
 
-	if (n == 0 && _session.peek() == eof) {
+	if (n == 0) {
 		throw IncompleteChunkedTransfer();
 	}
 
@@ -222,7 +222,7 @@ int HTTPChunkedStreamBuf::readChunkEncodedStream(char* buffer, std::streamsize l
 
 		if (n > 0) _chunk -= n;
 
-		if (n == 0 && _session.peek() == eof) {
+		if (n == 0 && length > 0) {
 			throw IncompleteChunkedTransfer();
 		}
 
