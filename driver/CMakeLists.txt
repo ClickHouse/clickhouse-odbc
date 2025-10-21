@@ -175,7 +175,7 @@ target_link_libraries (${libname}-impl
     PUBLIC Poco::Util
     PUBLIC Poco::Foundation
     PUBLIC Threads::Threads
-    PUBLIC ch_contrib::lz4
+		PUBLIC ch_contrib::lz4
 )
 if (OS_LINUX OR OS_DARWIN)
     target_link_libraries (${libname}-impl
