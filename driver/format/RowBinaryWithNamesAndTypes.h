@@ -76,7 +76,6 @@ class RowBinaryWithNamesAndTypesResultReader
 {
 public:
     explicit RowBinaryWithNamesAndTypesResultReader(const std::string & timezone, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator);
-    explicit RowBinaryWithNamesAndTypesResultReader(const std::string & timezone, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream);
     virtual ~RowBinaryWithNamesAndTypesResultReader() override = default;
 
     virtual bool advanceToNextResultSet() override;

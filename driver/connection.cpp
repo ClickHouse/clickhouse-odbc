@@ -430,7 +430,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
                  ) ||
                 isYesOrNo(value));
             if (valid_value) {
-                enable_http_compression = (typed_value == 1 || isYes(value));
+                enable_http_compression = (typed_value == 1 || isYesOrNo(value));
             }
         }
 
@@ -450,7 +450,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
             const auto & recognized_key = std::get<0>(res);
             const auto & valid_value = std::get<1>(res);
 
-            // LOG("DSN: known attribute '" << key << "', valid value, '" << valid_value << "'");
+            LOG("DSN: known attribute '" << key << "', valid value, '" << valid_value << "'");
 
             if (recognized_key) {
                 if (!valid_value)
