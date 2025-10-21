@@ -25,7 +25,7 @@ private:
     std::istream * pIstr;
 
     /// place to keep incoming data
-    std::vector<char> compressed_buffer;
+    std::vector<char> compressedBuffer;
     char * src_buffer;
     enum {
         /// proper buffer sizes are not required from functional standpoint, but should speed up processing
