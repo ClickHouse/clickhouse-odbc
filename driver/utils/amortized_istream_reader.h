@@ -128,7 +128,7 @@ private:
     }
 
 private:
-    std::istream * raw_stream_ = 0;
+    std::istream * raw_stream_;
     std::size_t offset_ = 0;
     std::string buffer_;
 };
