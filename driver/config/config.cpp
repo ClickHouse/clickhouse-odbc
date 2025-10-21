@@ -253,9 +253,7 @@ key_value_map_t readDSNInfo(const std::string & dsn_utf8) {
             INI_DRIVERLOG,
             INI_DRIVERLOGFILE,
             INI_AUTO_SESSION_ID,
-            INI_CLIENT_NAME,
-            INI_COMPRESS,
-            INI_USE_COMPRESSION
+            INI_CLIENT_NAME
         }
     ) {
         if (
