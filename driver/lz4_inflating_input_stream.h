@@ -34,7 +34,6 @@ private:
     };
     LZ4F_dctx * dctx;
     size_t bytes_left = 0;
-    bool need_more_input = false;
 };
 
 
