@@ -16,22 +16,19 @@
 class AmortizedIStreamReader
 {
 public:
-    explicit AmortizedIStreamReader(std::istream & raw_stream)
+    explicit AmortizedIStreamReader(std::istream * raw_stream)
         : raw_stream_(raw_stream)
     {
-    }
-
-    explicit AmortizedIStreamReader(std::istream & raw_stream, std::unique_ptr<std::istream> stream_holder)
-        : raw_stream_(raw_stream), stream_holder_(std::move(stream_holder))
-    {
+        if (!raw_stream)
+            throw std::invalid_argument("raw_stream is required, internal error");
     }
 
     ~AmortizedIStreamReader() {
         // Put back any pre-read characters, just in case...
         // (it should be done in reverse order)
-        if (available() > 0) {
+        if (raw_stream_ && available() > 0) {
             for (auto it = buffer_.rbegin(); it < buffer_.rend() - offset_; ++it) {
-                raw_stream_.putback(*it);
+                raw_stream_->putback(*it);
             }
         }
     }
@@ -45,7 +42,7 @@ public:
         if (available() > 0)
             return false;
 
-        if (raw_stream_.eof() || raw_stream_.fail())
+        if (raw_stream_->eof() || raw_stream_->fail())
             return true;
 
         tryPrepare(1);
@@ -53,7 +50,7 @@ public:
         if (available() > 0)
             return false;
 
-        return (raw_stream_.eof() || raw_stream_.fail());
+        return (raw_stream_->eof() || raw_stream_->fail());
     }
 
     char get() {
@@ -88,6 +85,9 @@ private:
     }
 
     void tryPrepare(std::size_t count) {
+        if (!raw_stream_)
+            return;
+
         const auto avail = available();
 
         if (avail < count) {
@@ -120,16 +120,15 @@ private:
                 resize_without_initialization(buffer_, buffer_.size() + to_read);
             }
 
-            raw_stream_.read(&buffer_[offset_ + avail], to_read);
+            raw_stream_->read(&buffer_[offset_ + avail], to_read);
 
-            if (raw_stream_.gcount() < to_read)
-                buffer_.resize(buffer_.size() - (to_read - raw_stream_.gcount()));
+            if (raw_stream_->gcount() < to_read)
+                buffer_.resize(buffer_.size() - (to_read - raw_stream_->gcount()));
         }
     }
 
 private:
-    std::istream & raw_stream_;
+    std::istream * raw_stream_ = 0;
     std::size_t offset_ = 0;
     std::string buffer_;
-    std::unique_ptr<std::istream> stream_holder_;  // can be empty if ownership is managed externally
 };

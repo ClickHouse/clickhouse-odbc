@@ -305,7 +305,7 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
     std::copy(ptr, ptr + lengthof(dest.value.Data4), std::make_reverse_iterator(dest.value.Data4 + lengthof(dest.value.Data4)));
 }
 
-RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
+RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator)
     : ResultReader(timezone_, raw_stream, std::move(mutator))
 {
     if (stream.eof())
@@ -314,7 +314,7 @@ RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(c
     result_set = std::make_unique<RowBinaryWithNamesAndTypesResultSet>(timezone, stream, releaseMutator());
 }
 
-RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream)
+RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream)
   : ResultReader(timezone_, raw_stream, std::move(mutator), std::move(inflating_input_stream))
 {
     if (stream.eof())

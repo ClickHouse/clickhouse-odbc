@@ -245,7 +245,7 @@ void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourc
     return value_manip::from_value<std::string>::template to_value<DataSourceType<DataSourceTypeId::UUID>>::convert(src, dest);
 }
 
-ODBCDriver2ResultReader::ODBCDriver2ResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator)
+ODBCDriver2ResultReader::ODBCDriver2ResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator)
     : ResultReader(timezone_, raw_stream, std::move(mutator))
 {
     if (stream.eof())
@@ -254,7 +254,7 @@ ODBCDriver2ResultReader::ODBCDriver2ResultReader(const std::string & timezone_, 
     result_set = std::make_unique<ODBCDriver2ResultSet>(timezone, stream, releaseMutator());
 }
 
-ODBCDriver2ResultReader::ODBCDriver2ResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream)
+ODBCDriver2ResultReader::ODBCDriver2ResultReader(const std::string & timezone_, std::istream * raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream)
   : ResultReader(timezone_, raw_stream, std::move(mutator), std::move(inflating_input_stream))
 {
     if (stream.eof())
