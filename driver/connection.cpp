@@ -409,7 +409,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
             recognized_key = true;
             valid_value = (value.empty() || isYesOrNo(value));
             if (valid_value) {
-                auto_session_id = isYes(value);
+                auto_session_id = (value.empty() || isYes(value));
             }
         }
         else if (Poco::UTF8::icompare(key, INI_CLIENT_NAME) == 0) {
