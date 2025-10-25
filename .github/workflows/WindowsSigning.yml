@@ -7,6 +7,9 @@ on:
       - published
       - prereleased
 
+permissions:
+  contents: write      
+
 concurrency:
   group: windows-sign-${{ github.head_ref }}
   cancel-in-progress: true
