@@ -149,7 +149,7 @@ jobs:
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ github.workspace }}/build/clickhouse-odbc-*
+        file: ${{ github.workspace }}/build/clickhouse-odbc-*.msi
         overwrite: true
         tag: ${{ github.ref }}
         file_glob: true
