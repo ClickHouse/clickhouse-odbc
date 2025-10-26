@@ -263,6 +263,15 @@ ODBCDriver2ResultReader::ODBCDriver2ResultReader(
     result_set = std::make_unique<ODBCDriver2ResultSet>(timezone, stream, releaseMutator());
 }
 
+ODBCDriver2ResultReader::ODBCDriver2ResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream)
+  : ResultReader(timezone_, raw_stream, std::move(mutator), std::move(inflating_input_stream))
+{
+    if (stream.eof())
+        return;
+
+    result_set = std::make_unique<ODBCDriver2ResultSet>(timezone, stream, releaseMutator());
+}
+
 bool ODBCDriver2ResultReader::advanceToNextResultSet() {
     // ODBCDriver2 format doesn't support multiple result sets in the response,
     // so only a basic cleanup is done here.

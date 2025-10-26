@@ -1,6 +1,5 @@
 #pragma once
 
-#include "driver/platform/platform.h"
 #include "driver/result_set.h"
 
 #include <Poco/Net/HTTPClientSession.h>
