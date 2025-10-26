@@ -319,6 +319,16 @@ RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(
     result_set = std::make_unique<RowBinaryWithNamesAndTypesResultSet>(timezone, stream, releaseMutator());
 }
 
+RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream)
+  : ResultReader(timezone_, raw_stream, std::move(mutator), std::move(inflating_input_stream))
+{
+    if (stream.eof())
+        return;
+
+    result_set = std::make_unique<RowBinaryWithNamesAndTypesResultSet>(timezone, stream, releaseMutator());
+
+}
+
 bool RowBinaryWithNamesAndTypesResultReader::advanceToNextResultSet() {
     // RowBinaryWithNamesAndTypes format doesn't support multiple result sets in the response,
     // so only a basic cleanup is done here.

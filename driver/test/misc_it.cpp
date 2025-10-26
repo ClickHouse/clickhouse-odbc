@@ -264,7 +264,14 @@ INSTANTIATE_TEST_SUITE_P(
 
         std::make_tuple("AllGood_ClientName_Empty", "ClientName=",   FailOn::Never),
         std::make_tuple("AllGood_ClientName_Plain",  "ClientName=TestApp/0.1 (TestOS)",   FailOn::Never),
-        std::make_tuple("AllGood_ClientName_Wrapped", "ClientName={TestApp/0.1; (TestOS)}",  FailOn::Never)
+        std::make_tuple("AllGood_ClientName_Wrapped", "ClientName={TestApp/0.1; (TestOS)}",  FailOn::Never),
+
+        std::make_tuple("AllGood_Compress_Empty", "Compress=",   FailOn::Never),
+        std::make_tuple("AllGood_Compress_On",  "Compress=on",   FailOn::Never),
+        std::make_tuple("AllGood_Compress_Off", "Compress=off",  FailOn::Never),
+        std::make_tuple("AllGood_UseCompression_Empty", "UseCompression=",   FailOn::Never),
+        std::make_tuple("AllGood_UseCompression_On",  "UseCompression=on",   FailOn::Never),
+        std::make_tuple("AllGood_UseCompression_Off", "UseCompression=off",  FailOn::Never)
     ),
     [] (const auto & param_info) {
         return std::get<0>(param_info.param);
