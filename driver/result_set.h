@@ -14,6 +14,8 @@
 #include <variant>
 #include <vector>
 
+#include "Poco/InflatingStream.h"
+
 extern const std::string::size_type initial_string_capacity_g;
 
 class ColumnInfo {
@@ -135,6 +137,7 @@ protected:
 class ResultReader {
 protected:
     explicit ResultReader(const std::string & timezone_, std::istream & stream, std::unique_ptr<ResultMutator> && mutator);
+    explicit ResultReader(const std::string & timezone_, std::istream & stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream);
 
 public:
     virtual ~ResultReader() = default;
@@ -153,10 +156,16 @@ protected:
     std::unique_ptr<ResultSet> result_set;
 };
 
-std::unique_ptr<ResultReader> make_result_reader(const std::string & format, const std::string & timezone, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator);
+std::unique_ptr<ResultReader> make_result_reader(
+    const std::string & format,
+    const std::string & timezone,
+    const std::string & compression,
+    std::istream & raw_stream,
+    std::unique_ptr<ResultMutator> && mutator);
 
 template <typename ConversionContext>
-SQLRETURN Field::extract(BindingInfo & binding_info, ConversionContext && context) const {
+SQLRETURN Field::extract(BindingInfo & binding_info, ConversionContext && context) const
+{
     return std::visit([&binding_info, &context] (auto & value) {
         if constexpr (std::is_same_v<DataSourceType<DataSourceTypeId::Nothing>, std::decay_t<decltype(value)>>) {
             return fillOutputNULL(binding_info.value, binding_info.value_max_size, binding_info.indicator);

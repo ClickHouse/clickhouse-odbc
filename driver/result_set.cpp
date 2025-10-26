@@ -1,4 +1,5 @@
 #include "driver/result_set.h"
+#include "driver/driver.h"
 #include "driver/format/ODBCDriver2.h"
 #include "driver/format/RowBinaryWithNamesAndTypes.h"
 
@@ -308,6 +309,13 @@ ResultReader::ResultReader(const std::string & timezone_, std::istream & raw_str
 {
 }
 
+ResultReader::ResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream_)
+    : timezone(timezone_)
+    , stream(raw_stream, std::move(inflating_input_stream_))
+    , result_mutator(std::move(mutator))
+{
+}
+
 bool ResultReader::hasResultSet() const {
     return static_cast<bool>(result_set);
 }
@@ -323,15 +331,33 @@ std::unique_ptr<ResultMutator> ResultReader::releaseMutator() {
     return std::move(result_mutator);
 }
 
-std::unique_ptr<ResultReader> make_result_reader(const std::string & format, const std::string & timezone, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator) {
-    if (format == "ODBCDriver2") {
-        return std::make_unique<ODBCDriver2ResultReader>(timezone, raw_stream, std::move(mutator));
-    }
-    else if (format == "RowBinaryWithNamesAndTypes") {
-        if (!isLittleEndian())
-            throw std::runtime_error("'" + format + "' format is supported only on little-endian platforms");
+std::unique_ptr<ResultReader>
+make_result_reader(const std::string &format, const std::string &timezone,
+                   const std::string &compression, std::istream &raw_stream,
+                   std::unique_ptr<ResultMutator> &&mutator) {
+    std::istream * stream_ptr = nullptr;
+    std::unique_ptr<std::istream> inflating_input_stream;
 
-        return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(timezone, raw_stream, std::move(mutator));
+    if (compression == "gzip" || compression == "deflate") {
+        inflating_input_stream = make_unique<Poco::InflatingInputStream>(raw_stream, Poco::InflatingStreamBuf::STREAM_GZIP);
+        stream_ptr = inflating_input_stream.get();
+    } else {
+        if (!compression.empty())
+            LOG("Unknown compression method, assuming uncompressed");
+        stream_ptr = &raw_stream;
+    }
+
+    if (format == "ODBCDriver2") {
+        return std::make_unique<ODBCDriver2ResultReader>(
+            timezone, *stream_ptr, std::move(mutator), std::move(inflating_input_stream));
+    } else if (format == "RowBinaryWithNamesAndTypes") {
+        if (!isLittleEndian())
+            throw std::runtime_error(
+                "'" + format +
+                "' format is supported only on little-endian platforms");
+
+        return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(
+            timezone, *stream_ptr, std::move(mutator), std::move(inflating_input_stream));
     }
 
     throw std::runtime_error("'" + format + "' format is not supported");
