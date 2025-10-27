@@ -87,7 +87,7 @@ private:
         const auto avail = available();
 
         if (avail < count) {
-            static constexpr std::size_t min_read_size = 32768;
+            static constexpr std::size_t min_read_size = 1 << 13; // 8 KB
 
             const auto to_read = std::max<std::size_t>(min_read_size, count - avail);
             const auto tail_capacity = buffer_.capacity() - buffer_.size();
