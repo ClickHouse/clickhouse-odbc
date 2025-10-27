@@ -27,73 +27,21 @@ using Poco::NumberParser;
 namespace Poco {
 namespace Net {
 
+POCO_IMPLEMENT_EXCEPTION(IncorrectSize, NetException, "Requested data of unexpected size")
 POCO_IMPLEMENT_EXCEPTION(IncompleteChunkedTransfer, NetException, "Unexpected EOF in chunked encoding")
 POCO_IMPLEMENT_EXCEPTION(IncorrectChunkSize, NetException, "Unable to parse the chunk size from the stream")
 POCO_IMPLEMENT_EXCEPTION(ClickHouseException, NetException, "ClickHouse exception")
 
 //
-// LookbackBuffer
-//
-
-
-LookbackBuffer::LookbackBuffer(size_t buffer_size)
-	: buffer{std::vector(buffer_size, '\0')} { };
-
-void LookbackBuffer::commit(const char * data, size_t data_size)
-{
-	if (data_size >= buffer.size()) {
-		// easy, just copy last buffer.size() from data to fill the
-		// buffer completely.
-		// NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
-		memcpy(buffer.data(), data + data_size - buffer.size(), buffer.size());
-		count = buffer.size();
-		head = 0;
-	} else {
-		size_t continues_chunk_size = buffer.size() - head;
-		if (data_size >= continues_chunk_size) {
-			// write in two steps.
-			size_t first_chunk_size = continues_chunk_size;
-			size_t second_chunk_size = data_size - first_chunk_size;
-
-			// NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
-			memcpy(buffer.data() + head, data, first_chunk_size);
-
-			// NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
-			memcpy(buffer.data(), data + first_chunk_size, second_chunk_size);
-
-			count = buffer.size();
-			head = second_chunk_size;
-		} else {
-			// write in one step
-			// NOLINTNEXTLINE (cppcoreguidelines-pro-bounds-pointer-arithmetic)
-			memcpy(buffer.data() + head, data, data_size);
-
-			count = std::min(count + data_size, buffer.size());
-			head += data_size;
-		}
-	}
-}
-
-const char * LookbackBuffer::data()
-{
-	if (count == buffer.size() && head != 0) {
-		using offset_type = std::vector<char>::iterator::difference_type;
-		auto offset = static_cast<offset_type>(head);
-		std::rotate(buffer.begin(), buffer.begin() + offset, buffer.end());
-		head = 0;
-	}
-
-	return buffer.data();
-}
-
-size_t LookbackBuffer::size() const
-{
-	return count;
-}
-
-//
 // HTTPChunkedStreamBuf
 //
+
+constexpr int eof = std::char_traits<char>::eof();
+
+constexpr size_t min_look_ahead_size = 1024UL * 32;
+constexpr size_t min_prefetch_size = 1024UL * 32;
+constexpr size_t read_buffer_capacity = min_prefetch_size + min_look_ahead_size;
+constexpr size_t maximum_request_size = 1024 * 1024 * 2;
 
 
 HTTPChunkedStreamBuf::HTTPChunkedStreamBuf(HTTPSession& session, openmode mode, MessageHeader* pTrailer):
@@ -102,7 +50,10 @@ HTTPChunkedStreamBuf::HTTPChunkedStreamBuf(HTTPSession& session, openmode mode, 
 	_mode(mode),
 	_chunk(0),
 	_pTrailer(pTrailer),
-	_lookback_buffer(32768)
+	_prefetchBuffer(read_buffer_capacity, '\0'),
+	_prefetchBufferSize(0),
+	_prefetchBufferHead(0),
+	_eof(false)
 {
 }
 
@@ -131,82 +82,157 @@ void HTTPChunkedStreamBuf::close()
 	}
 }
 
-int HTTPChunkedStreamBuf::readChar()
-{
-	static const int eof = std::char_traits<char>::eof();
-
-	char buffer = 0;
-	int n = _session.read(&buffer, 1);
-
-	if (n == 0) {
-		throw IncompleteChunkedTransfer();
-	}
-
-	return buffer;
-}
-
+/**
+ * This virtual function is used by Poco's BasicBufferedStreamBuf to read data.
+ * It only wraps exception handling, the actual work is performed by `readFromDeviceImpl()`.
+ * All exceptions are caught and then silenced by std::istream implementation. The only thing
+ * that is left to the user is the bad bid. Poco provides an extra mechanism to
+ * pass exceptions to the caller: HTTPSession::setException() and HTTPSession::getException().
+ * We use it here to pass exceptions to the caller.
+ */
 int HTTPChunkedStreamBuf::readFromDevice(char* buffer, std::streamsize length)
 {
 	try
 	{
-		return readChunkEncodedStream(buffer, length);
+		return readFromDeviceImpl(buffer, length);
 	}
-	catch (const IncompleteChunkedTransfer & ex)
+	catch (const Poco::Exception & ex)
 	{
-		const std::string_view exception_marker{"__exception__\r\n"};
-		const char * data = _lookback_buffer.data();
-		size_t size = _lookback_buffer.size();
-
-		auto pos = std::find_end(data, data + size, exception_marker.begin(), exception_marker.end());
-		if (pos != data + size) {
-			std::string message(pos + exception_marker.size(), data + size);
-			auto exception = ClickHouseException(message);
-			_session.setException(exception);
-			throw exception;
-		}
-
+		reset();
 		_session.setException(ex);
 		throw;
 	}
-	catch (const Exception & ex)
+	catch (const std::exception & ex)
 	{
-		_session.setException(ex);
+		auto poco_exception = Poco::Exception(ex.what());
+		reset();
+		_session.setException(poco_exception);
+		throw poco_exception;
+	}
+}
+
+/**
+ * This virtual function is used by Poco's BasicBufferedStreamBuf to read data.
+ * It returns the number of bytes read. On EOF, the function returns `eof` instead of 0.
+ *
+ * The function does not read data directly; instead, it serves data from the
+ * prefetch buffer. To ensure that sufficient data is available, it first calls `prefetch()`.
+ */
+int HTTPChunkedStreamBuf::readFromDeviceImpl(char* buffer, std::streamsize length)
+{
+	if (length == 0)
+		return 0;
+
+	if (length < 0)
+		throw IncorrectSize(std::string("requested negative size of: ") + std::to_string(length));
+
+	if (length > maximum_request_size)
+		throw IncorrectSize(std::string("requested size is too large: ") + std::to_string(length));
+
+	if (!_eof)
+		prefetch(length);
+
+	if (_prefetchBufferSize < length)
+		length = _prefetchBufferSize;
+
+	if (!length) {
+		reset();
+		return eof;
+	}
+
+	memcpy(buffer, &_prefetchBuffer[_prefetchBufferHead], length);
+	_prefetchBufferHead += length;
+	_prefetchBufferSize -= length;
+
+	return length;
+}
+
+
+/**
+ * Writes data to the socket.
+ * This function has not been modified.
+ */
+int HTTPChunkedStreamBuf::writeToDevice(const char* buffer, std::streamsize length)
+{
+	_chunkBuffer.clear();
+	NumberFormatter::appendHex(_chunkBuffer, length);
+	_chunkBuffer.append("\r\n", 2);
+	_chunkBuffer.append(buffer, static_cast<std::string::size_type>(length));
+	_chunkBuffer.append("\r\n", 2);
+	_session.write(_chunkBuffer.data(), static_cast<std::streamsize>(_chunkBuffer.size()));
+	return static_cast<int>(length);
+}
+
+/**
+ * Fetches enough data to handle potential ClickHouse exceptions. For efficiency,
+ * if `size` is small, the function fetches extra data to avoid additional socket
+ * reads in subsequent operations.
+ */
+void HTTPChunkedStreamBuf::prefetch(std::streamsize length)
+{
+	if (length + min_look_ahead_size <= _prefetchBufferSize)
+		return;  // we already have data, no prefetch is needed
+
+	// move unread data to the beginning
+	memmove(&_prefetchBuffer[0], &_prefetchBuffer[_prefetchBufferHead], _prefetchBufferSize);
+	_prefetchBufferHead = 0;
+
+	// amount of data still to be read from the socket
+	size_t read_size = read_buffer_capacity - _prefetchBufferSize;
+
+	try
+	{
+		size_t total_read = 0;
+		while (total_read < read_size) {
+			int res = readDataFromSocket(&_prefetchBuffer[_prefetchBufferSize], read_size - total_read);
+			if (res == eof) {
+				_eof = true;
+				return;
+			}
+			total_read += res;
+			_prefetchBufferSize += res;
+		}
+	}
+	catch (const IncompleteChunkedTransfer & ex)
+	{
+		auto ch_ex = checkForClickHouseException();
+
+		if (ch_ex)
+			throw *ch_ex;
 		throw;
 	}
 }
 
-int HTTPChunkedStreamBuf::readChunkEncodedStream(char* buffer, std::streamsize length)
+int HTTPChunkedStreamBuf::readDataFromSocket(char* buffer, std::streamsize length)
 {
-	static const int eof = std::char_traits<char>::eof();
-
 	// read next chunk
 	if (_chunk == 0)
 	{
-		int ch = readChar();
+		int ch = readCharFromSocket();
 
-		// \r\n can be missing if this is the first chunk,
-		// in this case \r\n\ is consumed by the header parser.
-		// In this case we expect a hex digit right away. If
-		// ch is not a hex digit, then we only can see \r\n
-		// and nothing else.
+		// the "\r\n" sequence may be missing if this is the first chunk.
+		// In that case, "\r\n" is consumed by the header parser,
+		// and we expect a hexadecimal digit immediately afterward.
+		// If `ch` is not a hex digit, then the only valid sequence we can see
+		// is "\r\n" — nothing else.
 		if (!Poco::Ascii::isHexDigit(ch)) {
-			if (ch != '\r' || readChar() != '\n') {
+			if (ch != '\r' || readCharFromSocket() != '\n') {
 				throw IncorrectChunkSize();
 			}
-			ch = readChar();
+			ch = readCharFromSocket();
 		}
 
 		std::string chunkLen;
 		while (Poco::Ascii::isHexDigit(ch) && chunkLen.size() < 8)
 		{
 			chunkLen += (char) ch;
-			ch = readChar();
+			ch = readCharFromSocket();
 		}
 
 		unsigned chunk = 0;
 
-		// After we read a sequence of hex digits, we expect '\r\n'
-		if (chunkLen.empty() || ch != '\r' || readChar() != '\n' || !NumberParser::tryParseHex(chunkLen, chunk)) {
+		// after we read a sequence of hex digits, we expect '\r\n'
+		if (chunkLen.empty() || ch != '\r' || readCharFromSocket() != '\n' || !NumberParser::tryParseHex(chunkLen, chunk)) {
 			throw IncorrectChunkSize();
 		}
 
@@ -218,7 +244,6 @@ int HTTPChunkedStreamBuf::readChunkEncodedStream(char* buffer, std::streamsize l
 	{
 		if (length > _chunk) length = _chunk;
 		int n = _session.read(buffer, length);
-		_lookback_buffer.commit(buffer, n);
 
 		if (n > 0) _chunk -= n;
 
@@ -257,16 +282,42 @@ int HTTPChunkedStreamBuf::readChunkEncodedStream(char* buffer, std::streamsize l
 	else return eof;
 }
 
-
-int HTTPChunkedStreamBuf::writeToDevice(const char* buffer, std::streamsize length)
+int HTTPChunkedStreamBuf::readCharFromSocket()
 {
-	_chunkBuffer.clear();
-	NumberFormatter::appendHex(_chunkBuffer, length);
-	_chunkBuffer.append("\r\n", 2);
-	_chunkBuffer.append(buffer, static_cast<std::string::size_type>(length));
-	_chunkBuffer.append("\r\n", 2);
-	_session.write(_chunkBuffer.data(), static_cast<std::streamsize>(_chunkBuffer.size()));
-	return static_cast<int>(length);
+	char buffer = 0;
+	int n = _session.read(&buffer, 1);
+
+	if (n == 0) {
+		throw IncompleteChunkedTransfer();
+	}
+
+	return buffer;
+}
+
+/**
+ * Scans the prefetch buffer for a ClickHouse exception marker.
+ * Returns the corresponding exception if found.
+ */
+std::optional<ClickHouseException> HTTPChunkedStreamBuf::checkForClickHouseException()
+{
+	const std::string_view exception_marker{"__exception__\r\n"};
+	const char * begin = &_prefetchBuffer[_prefetchBufferHead];
+	const char * end = &_prefetchBuffer[_prefetchBufferHead + _prefetchBufferSize];
+
+	auto pos = std::find_end(begin, end, exception_marker.begin(), exception_marker.end());
+	if (pos != end) {
+		std::string message(pos + exception_marker.size(), end);
+		return ClickHouseException(message);
+	}
+
+	return std::nullopt;
+}
+
+void HTTPChunkedStreamBuf::reset()
+{
+	_prefetchBufferSize = 0;
+	_prefetchBufferHead = 0;
+	_prefetchBuffer.resize(read_buffer_capacity);
 }
 
 
