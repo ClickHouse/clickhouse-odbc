@@ -27,9 +27,9 @@ using Poco::NumberParser;
 namespace Poco {
 namespace Net {
 
-POCO_IMPLEMENT_EXCEPTION(IncorrectSize, NetException, "Requested data of unexpected size")
-POCO_IMPLEMENT_EXCEPTION(IncompleteChunkedTransfer, NetException, "Unexpected EOF in chunked encoding")
-POCO_IMPLEMENT_EXCEPTION(IncorrectChunkSize, NetException, "Unable to parse the chunk size from the stream")
+POCO_IMPLEMENT_EXCEPTION(IncorrectSizeException, NetException, "Requested data of unexpected size")
+POCO_IMPLEMENT_EXCEPTION(IncompleteChunkedTransferException, NetException, "Unexpected EOF in chunked encoding")
+POCO_IMPLEMENT_EXCEPTION(IncorrectChunkSizeException, NetException, "Unable to parse the chunk size from the stream")
 POCO_IMPLEMENT_EXCEPTION(ClickHouseException, NetException, "ClickHouse exception")
 
 //
@@ -124,10 +124,10 @@ int HTTPChunkedStreamBuf::readFromDeviceImpl(char* buffer, std::streamsize lengt
 		return 0;
 
 	if (length < 0)
-		throw IncorrectSize(std::string("requested negative size of: ") + std::to_string(length));
+		throw IncorrectSizeException(std::string("requested negative size of: ") + std::to_string(length));
 
 	if (length > maximum_request_size)
-		throw IncorrectSize(std::string("requested size is too large: ") + std::to_string(length));
+		throw IncorrectSizeException(std::string("requested size is too large: ") + std::to_string(length));
 
 	if (!_eof)
 		prefetch(length);
@@ -193,7 +193,7 @@ void HTTPChunkedStreamBuf::prefetch(std::streamsize length)
 			_prefetchBufferSize += res;
 		}
 	}
-	catch (const IncompleteChunkedTransfer & ex)
+	catch (const IncompleteChunkedTransferException & ex)
 	{
 		auto ch_ex = checkForClickHouseException();
 
@@ -217,7 +217,7 @@ int HTTPChunkedStreamBuf::readDataFromSocket(char* buffer, std::streamsize lengt
 		// is "\r\n" — nothing else.
 		if (!Poco::Ascii::isHexDigit(ch)) {
 			if (ch != '\r' || readCharFromSocket() != '\n') {
-				throw IncorrectChunkSize();
+				throw IncorrectChunkSizeException();
 			}
 			ch = readCharFromSocket();
 		}
@@ -233,7 +233,7 @@ int HTTPChunkedStreamBuf::readDataFromSocket(char* buffer, std::streamsize lengt
 
 		// after we read a sequence of hex digits, we expect '\r\n'
 		if (chunkLen.empty() || ch != '\r' || readCharFromSocket() != '\n' || !NumberParser::tryParseHex(chunkLen, chunk)) {
-			throw IncorrectChunkSize();
+			throw IncorrectChunkSizeException();
 		}
 
 		_chunk = static_cast<std::streamsize>(chunk);
@@ -248,7 +248,7 @@ int HTTPChunkedStreamBuf::readDataFromSocket(char* buffer, std::streamsize lengt
 		if (n > 0) _chunk -= n;
 
 		if (n == 0 && length > 0) {
-			throw IncompleteChunkedTransfer();
+			throw IncompleteChunkedTransferException();
 		}
 
 		return n;
@@ -288,7 +288,7 @@ int HTTPChunkedStreamBuf::readCharFromSocket()
 	int n = _session.read(&buffer, 1);
 
 	if (n == 0) {
-		throw IncompleteChunkedTransfer();
+		throw IncompleteChunkedTransferException();
 	}
 
 	return buffer;
