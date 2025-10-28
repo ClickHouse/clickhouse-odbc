@@ -57,9 +57,9 @@
 namespace Poco {
 namespace Net {
 
-POCO_DECLARE_EXCEPTION(Net_API, IncorrectSize, NetException)
-POCO_DECLARE_EXCEPTION(Net_API, IncompleteChunkedTransfer, NetException)
-POCO_DECLARE_EXCEPTION(Net_API, IncorrectChunkSize, NetException)
+POCO_DECLARE_EXCEPTION(Net_API, IncorrectSizeException, NetException)
+POCO_DECLARE_EXCEPTION(Net_API, IncompleteChunkedTransferException, NetException)
+POCO_DECLARE_EXCEPTION(Net_API, IncorrectChunkSizeException, NetException)
 POCO_DECLARE_EXCEPTION(Net_API, ClickHouseException, NetException)
 
 class HTTPSession;
