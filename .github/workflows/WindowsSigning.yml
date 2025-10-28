@@ -65,7 +65,7 @@ jobs:
         -DCH_ODBC_RUNTIME_LINK_STATIC=OFF
         -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=ON
         -DTEST_DSN_LIST="ClickHouse DSN ANSI;ClickHouse DSN Unicode"
-        -DBUILD_TESTING=YES
+        -DBUILD_TESTING=NO
 
     - name: Build
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }}
