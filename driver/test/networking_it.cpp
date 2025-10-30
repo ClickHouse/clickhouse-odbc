@@ -1,6 +1,7 @@
 #include <charconv>
 #include <cstdlib>
 #include <span>
+#include <random>
 #include <asio.hpp>
 #include <gtest/gtest.h>
 #include "driver/utils/conversion.h"
@@ -45,7 +46,9 @@ namespace {
 #define HTTP_HEADER "HTTP/1.1 200 OK\r\n"                            \
                     "Connection: Keep-Alive\r\n"                     \
                     "Content-Type: application/octet-stream\r\n"     \
-                    "Transfer-Encoding: chunked\r\n\r\n"
+                    "Transfer-Encoding: chunked\r\n"
+
+#define ZSTD_HEADER "Content-Encoding: zstd\r\n"
 
 #define ZERO_CHUNK "0" CRLF CRLF
 
@@ -129,15 +132,18 @@ public:
 
     ClickHouseResponseGenerator & generate(size_t min_size)
     {
-        constexpr char field_size[] = "\x04\x00\x00\x00";
+        std::uniform_int_distribution dist{0, INT32_MAX};
         size_t size = 0;
-        for (size_t i = 0; size < min_size; ++i) {
-            stream.write(field_size, sizeof(field_size) - 1);
-            const size_t value = 1000 + i % 9000;
+        while (size < min_size) {
+            const size_t value = dist(rnd_gen);
             const auto value_str = std::to_string(value);
+            const uint32_t value_len = value_str.size();
+            char value_len_bytes[4] = {};
+            memcpy(value_len_bytes, &value_len, sizeof(value_len_bytes));
+            stream.write(value_len_bytes, sizeof(value_len_bytes));
             stream << std::to_string(value);
             sum += value;
-            size += value_str.size() + sizeof(field_size) - 1;
+            size += value_len + sizeof(value_len_bytes);
         }
         return *this;
     }
@@ -187,9 +193,9 @@ public:
         return *this;
     }
 
-    std::vector<char> make_response(std::string_view headers = HTTP_HEADER)
+    std::vector<char> make_response(std::string_view headers = "")
     {
-        std::string res = std::string(headers) + stream.str();
+        std::string res = HTTP_HEADER + std::string(headers) + "\r\n" + stream.str();
         return std::vector<char>(res.begin(), res.end());
     }
 
@@ -209,8 +215,8 @@ private:
 
 private:
     std::stringstream stream{};
-
     size_t sum{0};
+    std::mt19937 rnd_gen{42};
 };
 
 } // anonymous namespace
