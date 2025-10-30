@@ -1,3 +1,4 @@
+#include <charconv>
 #include <cstdlib>
 #include <span>
 #include <asio.hpp>
@@ -21,42 +22,25 @@ namespace {
 
 #define CRLF "\r\n"
 
-#define ODBC_HEADER                                                    \
-    "30" CRLF                                                          \
+#define ODBC_HEADER_DATA                                               \
     "\x02\x00\x00\x00\x02\x00\x00\x00\x04\x00\x00\x00\x6E\x61\x6D\x65" \
     "\x06\x00\x00\x00\x6E\x75\x6D\x62\x65\x72\x02\x00\x00\x00\x04\x00" \
-    "\x00\x00\x74\x79\x70\x65\x06\x00\x00\x00\x55\x49\x6E\x74\x36\x34" \
+    "\x00\x00\x74\x79\x70\x65\x06\x00\x00\x00\x55\x49\x6E\x74\x36\x34"
+
+#define ODBC_HEADER                                                    \
+    "30" CRLF                                                          \
+    ODBC_HEADER_DATA                                                   \
     CRLF
-
-#define B128 \
-    "\x02\x00\x00\x00\x38\x31\x02\x00\x00\x00\x38\x32\x02\x00\x00\x00" \
-    "\x38\x33\x02\x00\x00\x00\x38\x34\x02\x00\x00\x00\x38\x35\x02\x00" \
-    "\x00\x00\x38\x36\x02\x00\x00\x00\x38\x37\x02\x00\x00\x00\x38\x38" \
-    "\x02\x00\x00\x00\x38\x39\x02\x00\x00\x00\x39\x30\x02\x00\x00\x00" \
-    "\x39\x31\x02\x00\x00\x00\x39\x32\x02\x00\x00\x00\x39\x33\x02\x00" \
-    "\x00\x00\x39\x34\x02\x00\x00\x00\x39\x35\x02\x00\x00\x00\x39\x36" \
-    "\x02\x00\x00\x00\x39\x37\x02\x00\x00\x00\x39\x38\x02\x00\x00\x00" \
-    "\x39\x39\x03\x00\x00\x00\x31\x30\x30\x03\x00\x00\x00\x31\x30\x31"
-
-#define SINGLE_VALUE "\x02\x00\x00\x00\x38"
 
 #define CH_EXCEPTION_TEXT                                              \
     "__exception__\r\n"                                                \
     "Code: 395. DB::Exception: ClickHouse Exception. "                 \
     "(CLICKHOUSE_EXCEPTION) (version 25.5.8.1)"
 
-#define CH_EXCEPTION                                                   \
+#define CH_EXCEPTION_CHUNK                                             \
     "68" CRLF                                                          \
     CH_EXCEPTION_TEXT                                                  \
     CRLF
-
-// 1 Kbyte of chunked encoded data the size (0x400 = 1024)
-#define KB_SIZE "400" CRLF
-
-// chunk of just one Kbyte of data
-#define KB KB_SIZE B128 B128 B128 B128 B128 B128 B128 B128 CRLF
-
-#define KB_DATA_SUM 15288
 
 #define HTTP_HEADER "HTTP/1.1 200 OK\r\n"                            \
                     "Connection: Keep-Alive\r\n"                     \
@@ -76,7 +60,8 @@ protected:
         ODBC_CALL_ON_ENV_THROW(env, SQLAllocHandle(SQL_HANDLE_ENV, nullptr, &env));
         ASSERT_TRUE(env);
 
-        ODBC_CALL_ON_ENV_THROW(env, SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, reinterpret_cast<SQLPOINTER>(SQL_OV_ODBC3), 0));
+        ODBC_CALL_ON_ENV_THROW(
+            env, SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, reinterpret_cast<SQLPOINTER>(SQL_OV_ODBC3), 0));
         ODBC_CALL_ON_ENV_THROW(env, SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc));
         ASSERT_TRUE(dbc);
 
@@ -105,9 +90,8 @@ protected:
         ODBC_CALL_ON_ENV_THROW(env, SQLFreeHandle(SQL_HANDLE_ENV, env));
     }
 
-    template <size_t Size>
-    void setResponse(TcpServer::KeepAlive keep_alive, const char (&response)[Size]) {
-        server.setResponse(std::vector<char>(std::begin(response), std::end(response) - 1));
+    void setResponse(TcpServer::KeepAlive keep_alive, std::vector<char> response) {
+        server.setResponse(std::vector<char>(std::begin(response), std::end(response)));
         server.setKeepAlive(keep_alive);
     }
 
@@ -128,6 +112,106 @@ protected:
             throw; \
         } \
     }, type);
+
+/**
+ * Small helper that allows generating real testable ODBCDriver2 data,
+ * format it in chunks and perform other manipulations to generate different
+ * test server responses.
+ */
+class ClickHouseResponseGenerator
+{
+public:
+
+    ClickHouseResponseGenerator()
+    {
+        stream.write(ODBC_HEADER_DATA, sizeof(ODBC_HEADER_DATA) - 1);
+    }
+
+    ClickHouseResponseGenerator & generate(size_t min_size)
+    {
+        constexpr char field_size[] = "\x04\x00\x00\x00";
+        size_t size = 0;
+        for (size_t i = 0; size < min_size; ++i) {
+            stream.write(field_size, sizeof(field_size) - 1);
+            const size_t value = 1000 + i % 9000;
+            const auto value_str = std::to_string(value);
+            stream << std::to_string(value);
+            sum += value;
+            size += value_str.size() + sizeof(field_size) - 1;
+        }
+        return *this;
+    }
+
+    ClickHouseResponseGenerator & append(std::string str)
+    {
+        stream << str;
+        return *this;
+    }
+
+
+    ClickHouseResponseGenerator & append_last_chunk()
+    {
+        stream.write("0\r\n\r\n", 5);
+        return *this;
+    }
+
+    ClickHouseResponseGenerator & cut(size_t pos)
+    {
+        auto str = stream.str();
+        if (pos < str.size()) {
+            str.resize(pos);
+            stream = std::stringstream{};
+            stream << str;
+        }
+        return *this;
+    }
+
+    ClickHouseResponseGenerator & chunk(size_t max_chunk_size)
+    {
+        std::string data = stream.str();
+        stream = std::stringstream{};
+
+        size_t pos = 0;
+        while (data.size() - pos >= max_chunk_size) {
+            stream << chunk_separator_for_size(max_chunk_size);
+            stream << std::string_view(&data[pos], max_chunk_size) << "\r\n";
+            pos += max_chunk_size;
+        }
+
+        if (data.size() - pos > 0) {
+            const size_t chunk_size = data.size() - pos;
+            stream << chunk_separator_for_size(chunk_size);
+            stream << std::string_view(&data[pos], chunk_size) << "\r\n";
+        }
+
+        return *this;
+    }
+
+    std::vector<char> make_response(std::string_view headers = HTTP_HEADER)
+    {
+        std::string res = std::string(headers) + stream.str();
+        return std::vector<char>(res.begin(), res.end());
+    }
+
+    size_t expected_sum()
+    {
+        return sum;
+    }
+
+private:
+    std::string chunk_separator_for_size(size_t size)
+    {
+        char hex_buffer[20];
+        auto res = std::to_chars(hex_buffer, hex_buffer + sizeof(hex_buffer), size, 16);
+        assert(res.ec == std::errc());
+        return std::string(hex_buffer, res.ptr) + "\r\n";
+    }
+
+private:
+    std::stringstream stream{};
+
+    size_t sum{0};
+};
 
 } // anonymous namespace
 
@@ -162,8 +246,10 @@ int64_t fetch_sum(SQLHSTMT stmt)
  */
 TEST_F(NetworkingTest, PositiveCaseKeepAlive)
 {
-    setResponse(KeepAlive::KeepAlive, HTTP_HEADER ODBC_HEADER KB KB KB KB KB ZERO_CHUNK);
-    ASSERT_EQ(fetch_sum(stmt), KB_DATA_SUM * 5);
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 5).chunk(1024).append_last_chunk();
+    setResponse(KeepAlive::KeepAlive, gen.make_response());
+    ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
 }
 
 /**
@@ -171,10 +257,12 @@ TEST_F(NetworkingTest, PositiveCaseKeepAlive)
  * the server closes the connection after the response. Less common but again normal
  * case that must always work.
  */
-TEST_F(NetworkingTest, PositiveCaseKeepClose)
+TEST_F(NetworkingTest, PositiveCaseClose)
 {
-    setResponse(KeepAlive::Close, HTTP_HEADER ODBC_HEADER KB KB KB KB KB ZERO_CHUNK);
-    ASSERT_EQ(fetch_sum(stmt), KB_DATA_SUM * 5);
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 5).chunk(1024).append_last_chunk();
+    setResponse(KeepAlive::Close, gen.make_response());
+    ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
 }
 
 /**
@@ -186,11 +274,13 @@ TEST_F(NetworkingTest, PositiveCaseDrop)
 {
     // This produces an error on Windows, however this does not seem to be critical.
     // Either way, getting a correct sum or having an exception seem fine in this case
-    setResponse(KeepAlive::Drop, HTTP_HEADER ODBC_HEADER KB KB KB KB KB ZERO_CHUNK);
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 5).chunk(1024).append_last_chunk();
+    setResponse(KeepAlive::Drop, gen.make_response());
     int64_t sum = 0;
     try {
         sum = fetch_sum(stmt);
-        ASSERT_EQ(sum, KB_DATA_SUM * 5);
+        ASSERT_EQ(sum, gen.expected_sum());
     } catch (const std::runtime_error & ex) {
        ASSERT_STREQ(ex.what(), "1:[HY000][1]Connection reset by peer");
     }
@@ -203,7 +293,10 @@ TEST_F(NetworkingTest, PositiveCaseDrop)
  */
 TEST_F(NetworkingTest, ConnectionDropMidStream)
 {
-    setResponse(KeepAlive::Drop, HTTP_HEADER ODBC_HEADER KB KB KB KB KB "400\r\n" B128 B128 B128);
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 5).chunk(1024).cut(1024 * 4 - 10);
+
+    setResponse(KeepAlive::Drop, gen.make_response());
     EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]Connection reset by peer");
 }
 /*
@@ -213,7 +306,9 @@ TEST_F(NetworkingTest, ConnectionDropMidStream)
  */
 TEST_F(NetworkingTest, ConnectionDropMissingZeroChunk)
 {
-    setResponse(KeepAlive::Drop, HTTP_HEADER ODBC_HEADER KB KB KB KB KB);
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 5).chunk(1024).cut(1024 * 4 - 10);
+    setResponse(KeepAlive::Drop, gen.make_response());
     EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]Connection reset by peer");
 }
 
@@ -223,7 +318,10 @@ TEST_F(NetworkingTest, ConnectionDropMissingZeroChunk)
  */
 TEST_F(NetworkingTest, ConnectionCloseMidStream)
 {
-    setResponse(KeepAlive::Close, HTTP_HEADER ODBC_HEADER KB KB KB KB KB "400\r\n" B128 B128 B128);
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 5).chunk(1024).cut(1024 * 4 - 10);
+
+    setResponse(KeepAlive::Close, gen.make_response());
     EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]Unexpected EOF in chunked encoding");
 }
 
@@ -234,7 +332,10 @@ TEST_F(NetworkingTest, ConnectionCloseMidStream)
  */
 TEST_F(NetworkingTest, ConnectionCloseMissingZeroChunk)
 {
-    setResponse(KeepAlive::Close, HTTP_HEADER ODBC_HEADER KB KB KB KB KB);
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 5).chunk(1024);
+
+    setResponse(KeepAlive::Close, gen.make_response());
     EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]Unexpected EOF in chunked encoding");
 }
 
@@ -244,7 +345,10 @@ TEST_F(NetworkingTest, ConnectionCloseMissingZeroChunk)
  */
 TEST_F(NetworkingTest, IncorrectEncoding)
 {
-    setResponse(KeepAlive::KeepAlive, HTTP_HEADER ODBC_HEADER KB KB KB KB KB B128 B128 B128);
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 5).chunk(1024).generate(256);
+
+    setResponse(KeepAlive::KeepAlive, gen.make_response());
     EXPECT_THROW_MESSAGE(
         fetch_sum(stmt),
         std::runtime_error,
@@ -252,39 +356,35 @@ TEST_F(NetworkingTest, IncorrectEncoding)
 }
 
 /**
- * Verifies the library's handling of a ClickHouse server exception that arrives aligned
- * with data boundaries, i.e. all data before the exception message can be parsed correctly.
+ * Verifies the library's handling of a ClickHouse server exception that arrives in a separate
+ * chunk.
  */
 TEST_F(NetworkingTest, ClickHouseExceptionAligned)
 {
-    setResponse(KeepAlive::Close, HTTP_HEADER ODBC_HEADER KB KB KB KB KB CH_EXCEPTION);
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 5).chunk(1024).append(CH_EXCEPTION_CHUNK);
+
+    setResponse(KeepAlive::Close, gen.make_response());
     EXPECT_THROW_MESSAGE(
         fetch_sum(stmt),
         std::runtime_error,
-        "1:[HY000][1]ClickHouse exception: Code: 395. DB::Exception: ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
+        "1:[HY000][1]ClickHouse exception: Code: 395. DB::Exception: "
+        "ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
 }
 
 /**
- * Verifies the library's handling of a ClickHouse server exception that arrives unaligned
- * with data boundaries, i.e. all there is only a part of the record in the payload -
- * the last record cannot be parsed.
+ * Verifies the library's handling of a ClickHouse server exception that arrives in a chunk
+ * that also contain some data.
  */
 TEST_F(NetworkingTest, ClickHouseExceptionUnaligned)
 {
-    const char response[] = HTTP_HEADER ODBC_HEADER KB KB KB KB KB "A" CRLF SINGLE_VALUE SINGLE_VALUE CRLF CH_EXCEPTION;
-    setResponse(KeepAlive::Close, response);
-    EXPECT_THROW_MESSAGE(
-        fetch_sum(stmt),
-        std::runtime_error,
-        "1:[HY000][1]ClickHouse exception: Code: 395. DB::Exception: ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
-}
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 5).append(CH_EXCEPTION_TEXT).chunk(1024);
 
-TEST_F(NetworkingTest, ClickHouseExceptionInMiddleOfChunk)
-{
-    const char response[] = HTTP_HEADER ODBC_HEADER KB KB KB KB KB "72" CRLF SINGLE_VALUE SINGLE_VALUE CH_EXCEPTION_TEXT CRLF;
-    setResponse(KeepAlive::Close, response);
+    setResponse(KeepAlive::Close, gen.make_response());
     EXPECT_THROW_MESSAGE(
         fetch_sum(stmt),
         std::runtime_error,
-        "1:[HY000][1]ClickHouse exception: Code: 395. DB::Exception: ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
+        "1:[HY000][1]ClickHouse exception: Code: 395. DB::Exception: "
+        "ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
 }
