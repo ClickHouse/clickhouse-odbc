@@ -38,3 +38,6 @@
 [submodule "contrib/asio"]
 	path = contrib/asio
 	url = https://github.com/chriskohlhoff/asio
+[submodule "contrib/zstd"]
+	path = contrib/zstd
+	url = https://github.com/facebook/zstd
