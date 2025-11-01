@@ -57,6 +57,7 @@
 namespace Poco {
 namespace Net {
 
+POCO_DECLARE_EXCEPTION(Net_API, DecompressionException, NetException)
 POCO_DECLARE_EXCEPTION(Net_API, IncorrectSizeException, NetException)
 POCO_DECLARE_EXCEPTION(Net_API, IncompleteChunkedTransferException, NetException)
 POCO_DECLARE_EXCEPTION(Net_API, IncorrectChunkSizeException, NetException)
@@ -65,6 +66,12 @@ POCO_DECLARE_EXCEPTION(Net_API, ClickHouseException, NetException)
 class HTTPSession;
 class MessageHeader;
 
+enum class HTTPCompressionType : uint8_t
+{
+	None,
+	ZSTD
+};
+
 class Net_API HTTPChunkedStreamBuf: public HTTPBasicStreamBuf
 	/// This is the streambuf class used for reading and writing
 	/// HTTP message bodies in chunked transfer coding.
@@ -72,7 +79,13 @@ class Net_API HTTPChunkedStreamBuf: public HTTPBasicStreamBuf
 public:
 	using openmode = HTTPBasicStreamBuf::openmode;
 
-	HTTPChunkedStreamBuf(HTTPSession& session, openmode mode, MessageHeader* pTrailer = nullptr);
+	HTTPChunkedStreamBuf(
+		HTTPSession& session,
+		openmode mode,
+		MessageHeader* pTrailer,
+		HTTPCompressionType compression
+	);
+
 	~HTTPChunkedStreamBuf();
 
 	// Sends the terminating bytes if this is a write buffer.
@@ -90,8 +103,12 @@ protected:
 private:
 	int readFromDeviceImpl(char* buffer, std::streamsize length);
 
-	// Ensures that the prefetch buffer contains enough bytes to check
-	// for possible ClickHouse exceptions.
+	// copies data from the prefetch buffer to the destination buffer,
+	// decompressing it along the way, if compression is enabled
+	int transferFromPrefetchBuffer(char * buffer, std::streamsize length);
+
+	// Fetches at least length + enough bytes to check for possible
+	// ClickHouse exceptions, or all the data in case of reaching EOF.
 	void prefetch(std::streamsize length);
 
 	// Reads `length` bytes of data from the socket.
@@ -105,9 +122,10 @@ private:
 	// Checks whether the prefetch buffer contains a ClickHouse exception.
 	std::optional<ClickHouseException> checkForClickHouseException();
 
-	// Resets the prefetch buffer.
-	void reset();
+private:
+	class ZstdContext;
 
+private:
 	HTTPSession&    _session;
 	openmode        _mode;
 	std::streamsize _chunk;
@@ -119,6 +137,14 @@ private:
 	size_t _prefetchBufferHead; // Current read position in the buffer.
 	bool _eof;                  // True if no more data is available in the socket.
 
+	HTTPCompressionType _compression;
+	std::unique_ptr<ZstdContext> _zstd_context; // Opaque wrapper around ZSTD_DStream to avoid `#import <zstd.h>` here
+
+	bool _zstd_completed; // Marks the stream as correctly finished, we need to carry this state to the next
+	                      // fetch operation, because the last operation that returns EOF would not let us any
+	                      // data to call zstd correctly.
+	bool _warning{false};
+	size_t _warning_count{0};
 };
 
 
@@ -126,7 +152,12 @@ class Net_API HTTPChunkedIOS: public virtual std::ios
 	/// The base class for HTTPInputStream.
 {
 public:
-	HTTPChunkedIOS(HTTPSession& session, HTTPChunkedStreamBuf::openmode mode, MessageHeader* pTrailer = nullptr);
+	HTTPChunkedIOS(
+		HTTPSession& session,
+		HTTPChunkedStreamBuf::openmode mode,
+		MessageHeader* pTrailer,
+		HTTPCompressionType compression
+	);
 	~HTTPChunkedIOS();
 	HTTPChunkedStreamBuf* rdbuf();
 
@@ -139,7 +170,11 @@ class Net_API HTTPChunkedInputStream: public HTTPChunkedIOS, public std::istream
 	/// This class is for internal use by HTTPSession only.
 {
 public:
-	HTTPChunkedInputStream(HTTPSession& session, MessageHeader* pTrailer = nullptr);
+	HTTPChunkedInputStream(
+		HTTPSession& session,
+		MessageHeader* pTrailer,
+		HTTPCompressionType compression = HTTPCompressionType::None
+	);
 	~HTTPChunkedInputStream();
 
 	void* operator new(std::size_t size);
@@ -154,7 +189,11 @@ class Net_API HTTPChunkedOutputStream: public HTTPChunkedIOS, public std::ostrea
 	/// This class is for internal use by HTTPSession only.
 {
 public:
-	HTTPChunkedOutputStream(HTTPSession& session, MessageHeader* pTrailer = nullptr);
+	HTTPChunkedOutputStream(
+		HTTPSession& session,
+		MessageHeader* pTrailer,
+		HTTPCompressionType compression = HTTPCompressionType::None
+	);
 	~HTTPChunkedOutputStream();
 
 	void* operator new(std::size_t size);

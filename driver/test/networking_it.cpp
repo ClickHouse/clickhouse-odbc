@@ -4,6 +4,7 @@
 #include <random>
 #include <asio.hpp>
 #include <gtest/gtest.h>
+#include <zstd.h>
 #include "driver/utils/conversion.h"
 #include "driver/test/client_utils.h"
 
@@ -132,7 +133,6 @@ public:
 
     ClickHouseResponseGenerator & generate(size_t min_size)
     {
-        constexpr char field_size[] = "\x04\x00\x00\x00";
         std::uniform_int_distribution dist{0, INT32_MAX};
         size_t size = 0;
         while (size < min_size) {
@@ -190,6 +190,28 @@ public:
             stream << chunk_separator_for_size(chunk_size);
             stream << std::string_view(&data[pos], chunk_size) << "\r\n";
         }
+
+        return *this;
+    }
+
+    ClickHouseResponseGenerator & compress(ZSTD_EndDirective end_op = ZSTD_e_end)
+    {
+        ZSTD_CStream * zstream = ZSTD_createCStream();
+        ZSTD_initCStream(zstream, 1);
+
+        auto input = stream.str();
+        std::vector<char> output(input.size(), '\0');
+        size_t input_pos = 0;
+
+        ZSTD_inBuffer in = {input.data(), input.size(), 0};
+        ZSTD_outBuffer out = {output.data(), output.size(), 0};
+
+        auto res = ZSTD_compressStream2(zstream, &out, &in, end_op);
+        if (res > 0 )
+            throw std::runtime_error("insufficient buffer size");
+
+        stream = std::stringstream{};
+        stream.write(output.data(), out.pos);
 
         return *this;
     }
@@ -394,4 +416,42 @@ TEST_F(NetworkingTest, ClickHouseExceptionUnaligned)
         std::runtime_error,
         "1:[HY000][1]ClickHouse exception: Code: 395. DB::Exception: "
         "ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
+}
+
+TEST_F(NetworkingTest, PositiveCaseKeepAliveCompressed)
+{
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 512).compress().chunk(128).append_last_chunk();
+    setResponse(KeepAlive::KeepAlive, gen.make_response(ZSTD_HEADER));
+    ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+}
+
+TEST_F(NetworkingTest, ClickHouseExceptionCompressed)
+{
+    ClickHouseResponseGenerator gen{};
+
+    // NOTE: it only works with ZSTD_e_flush
+    gen.generate(1024 * 512).append(CH_EXCEPTION_TEXT).compress(ZSTD_e_flush).chunk(128);
+
+    setResponse(KeepAlive::Close, gen.make_response(ZSTD_HEADER));
+    EXPECT_THROW_MESSAGE(
+        fetch_sum(stmt),
+        std::runtime_error,
+        "1:[HY000][1]ClickHouse exception: Code: 395. DB::Exception: "
+        "ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
+}
+
+TEST_F(NetworkingTest, InterruptedZstdStream)
+{
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 512).compress();
+    auto out_size = gen.make_response().size();
+    gen.cut(out_size - 512).chunk(256).append_last_chunk();
+
+    setResponse(KeepAlive::KeepAlive, gen.make_response(ZSTD_HEADER));
+    EXPECT_THROW_MESSAGE(
+        fetch_sum(stmt),
+        std::runtime_error,
+        "1:[HY000][1]Failed to decompress the data: "
+        "Incomplete data, frame was truncated or connection closed prematurely");
 }
