@@ -4,6 +4,7 @@
 #include <random>
 #include <asio.hpp>
 #include <gtest/gtest.h>
+#include <zstd.h>
 #include "driver/utils/conversion.h"
 #include "driver/test/client_utils.h"
 
@@ -132,10 +133,10 @@ public:
 
     ClickHouseResponseGenerator & generate(size_t min_size)
     {
-        std::uniform_int_distribution dist{0, INT32_MAX};
+        std::uniform_int_distribution<uint64_t> dist{0, INT32_MAX};
         size_t size = 0;
         while (size < min_size) {
-            const size_t value = dist(rnd_gen);
+            const auto value = dist(rnd_gen);
             const auto value_str = std::to_string(value);
             const uint32_t value_len = value_str.size();
             char value_len_bytes[4] = {};
@@ -193,13 +194,35 @@ public:
         return *this;
     }
 
+    ClickHouseResponseGenerator & compress(ZSTD_EndDirective end_op = ZSTD_e_end)
+    {
+        std::unique_ptr<ZSTD_CStream, decltype(&ZSTD_freeCStream)> zstream{ZSTD_createCStream(), ZSTD_freeCStream};
+        ZSTD_initCStream(zstream.get(), 1);
+
+        auto input = stream.str();
+        std::vector<char> output(input.size(), '\0');
+        size_t input_pos = 0;
+
+        ZSTD_inBuffer in = {input.data(), input.size(), 0};
+        ZSTD_outBuffer out = {output.data(), output.size(), 0};
+
+        auto res = ZSTD_compressStream2(zstream.get(), &out, &in, end_op);
+        if (res > 0 )
+            throw std::runtime_error("insufficient buffer size");
+
+        stream = std::stringstream{};
+        stream.write(output.data(), out.pos);
+
+        return *this;
+    }
+
     std::vector<char> make_response(std::string_view headers = "")
     {
         std::string res = HTTP_HEADER + std::string(headers) + "\r\n" + stream.str();
         return std::vector<char>(res.begin(), res.end());
     }
 
-    size_t expected_sum()
+    uint64_t expected_sum()
     {
         return sum;
     }
@@ -215,13 +238,13 @@ private:
 
 private:
     std::stringstream stream{};
-    size_t sum{0};
+    uint64_t sum{0};
     std::mt19937 rnd_gen{42};
 };
 
 } // anonymous namespace
 
-int64_t fetch_sum(SQLHSTMT stmt)
+uint64_t fetch_sum(SQLHSTMT stmt)
 {
     auto query = fromUTF8<PTChar>("SELECT 1");
     ODBC_CALL_ON_STMT_THROW(stmt, SQLExecDirect(stmt, ptcharCast(query.data()), SQL_NTS));
@@ -230,7 +253,7 @@ int64_t fetch_sum(SQLHSTMT stmt)
     SQLLEN number_indicator{};
     ODBC_CALL_ON_STMT_THROW(stmt, SQLBindCol(stmt, 1, SQL_C_LONG, &number, 0, &number_indicator));
 
-    int64_t total = 0;
+    uint64_t total = 0;
     while (true) {
         SQLRETURN res = SQLFetch(stmt);
         if (res == SQL_NO_DATA)
@@ -393,4 +416,42 @@ TEST_F(NetworkingTest, ClickHouseExceptionUnaligned)
         std::runtime_error,
         "1:[HY000][1]ClickHouse exception: Code: 395. DB::Exception: "
         "ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
+}
+
+TEST_F(NetworkingTest, PositiveCaseKeepAliveCompressed)
+{
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 512).compress().chunk(128).append_last_chunk();
+    setResponse(KeepAlive::KeepAlive, gen.make_response(ZSTD_HEADER));
+    ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+}
+
+TEST_F(NetworkingTest, ClickHouseExceptionCompressed)
+{
+    ClickHouseResponseGenerator gen{};
+
+    // NOTE: it only works with ZSTD_e_flush
+    gen.generate(1024 * 512).append(CH_EXCEPTION_TEXT).compress(ZSTD_e_flush).chunk(128);
+
+    setResponse(KeepAlive::Close, gen.make_response(ZSTD_HEADER));
+    EXPECT_THROW_MESSAGE(
+        fetch_sum(stmt),
+        std::runtime_error,
+        "1:[HY000][1]ClickHouse exception: Code: 395. DB::Exception: "
+        "ClickHouse Exception. (CLICKHOUSE_EXCEPTION) (version 25.5.8.1)");
+}
+
+TEST_F(NetworkingTest, InterruptedZstdStream)
+{
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 512).compress();
+    auto out_size = gen.make_response().size();
+    gen.cut(out_size - 512).chunk(256).append_last_chunk();
+
+    setResponse(KeepAlive::KeepAlive, gen.make_response(ZSTD_HEADER));
+    EXPECT_THROW_MESSAGE(
+        fetch_sum(stmt),
+        std::runtime_error,
+        "1:[HY000][1]Failed to decompress the data: "
+        "Incomplete data, frame was truncated or connection closed prematurely");
 }
