@@ -57,6 +57,7 @@
 namespace Poco {
 namespace Net {
 
+POCO_DECLARE_EXCEPTION(Net_API, DecompressionException, NetException)
 POCO_DECLARE_EXCEPTION(Net_API, IncorrectSizeException, NetException)
 POCO_DECLARE_EXCEPTION(Net_API, IncompleteChunkedTransferException, NetException)
 POCO_DECLARE_EXCEPTION(Net_API, IncorrectChunkSizeException, NetException)
@@ -65,6 +66,18 @@ POCO_DECLARE_EXCEPTION(Net_API, ClickHouseException, NetException)
 class HTTPSession;
 class MessageHeader;
 
+enum class HTTPCompressionType : uint8_t
+{
+	None,
+	ZSTD
+};
+
+struct MemSpan
+{
+	char * data;
+	size_t size;
+};
+
 class Net_API HTTPChunkedStreamBuf: public HTTPBasicStreamBuf
 	/// This is the streambuf class used for reading and writing
 	/// HTTP message bodies in chunked transfer coding.
@@ -72,53 +85,77 @@ class Net_API HTTPChunkedStreamBuf: public HTTPBasicStreamBuf
 public:
 	using openmode = HTTPBasicStreamBuf::openmode;
 
-	HTTPChunkedStreamBuf(HTTPSession& session, openmode mode, MessageHeader* pTrailer = nullptr);
+	HTTPChunkedStreamBuf(
+		HTTPSession& session,
+		openmode mode,
+		MessageHeader* pTrailer,
+		HTTPCompressionType compression
+	);
+
 	~HTTPChunkedStreamBuf();
 
-	// Sends the terminating bytes if this is a write buffer.
+	// Resets the prefetch buffer and sends the terminating bytes
+	// if this is a write buffer.
 	void close();
 
 protected:
 	// Returns data from the prefetch buffer.
-	// Public function only wraps exceptions. The real work is done
-	// in private `readFromDeviceImpl`
 	int readFromDevice(char* buffer, std::streamsize length) override;
 
 	// Writes data to the socket (this function has not been modified).
 	int writeToDevice(const char* buffer, std::streamsize length) override;
 
 private:
+	// Returns data from the prefetch buffer. Called by `readFromDevice`.
 	int readFromDeviceImpl(char* buffer, std::streamsize length);
 
-	// Ensures that the prefetch buffer contains enough bytes to check
-	// for possible ClickHouse exceptions.
+	// Copies data from the prefetch buffer to the destination buffer,
+	// decompressing it along the way, if compression is enabled
+	int transferFromPrefetchBuffer(char * buffer, std::streamsize length);
+
+	// Fetches enough data to handle potential ClickHouse exceptions and fills
+	// the prefetch buffer if it does not have `length` bytes available already.
 	void prefetch(std::streamsize length);
 
-	// Reads `length` bytes of data from the socket.
-	// Throws IncompleteChunkedTransfer if EOF is encountered.
+	// Reads at most `length` bytes of data from the socket.
 	int readDataFromSocket(char* buffer, std::streamsize length);
 
 	// Reads a single character from the socket.
-	// Throws IncompleteChunkedTransfer if EOF is encountered.
 	int readCharFromSocket();
 
 	// Checks whether the prefetch buffer contains a ClickHouse exception.
 	std::optional<ClickHouseException> checkForClickHouseException();
 
-	// Resets the prefetch buffer.
-	void reset();
+private:
+	// Since `_prefetchBuffer` is a ring buffer, data may wrap around the buffer
+	// boundaries. These functions calculate contiguous memory ranges within the
+	// buffer that can be read from or written to without wrapping.
+	MemSpan readSpan();
+	MemSpan writeSpan();
+	void commitRead(size_t size);
+	void commitWrite(size_t size);
 
+private:
+	class ZstdContext;
+
+private:
 	HTTPSession&    _session;
 	openmode        _mode;
 	std::streamsize _chunk;
 	std::string     _chunkBuffer;
 	MessageHeader*  _pTrailer;
 
-	std::vector<char> _prefetchBuffer;
-	size_t _prefetchBufferSize; // Amount of data available in the buffer.
-	size_t _prefetchBufferHead; // Current read position in the buffer.
-	bool _eof;                  // True if no more data is available in the socket.
+	std::vector<char> _prefetchBuffer; // Ring buffer for data fetched from the socket
+	size_t _prefetchBufferSize;        // Amount of data available in the buffer.
+	size_t _prefetchBufferHead;        // Current read position in the buffer.
+	bool _eof;                         // True if no more data is available in the socket.
 
+	HTTPCompressionType _compression;
+	std::unique_ptr<ZstdContext> _zstd_context; // Opaque wrapper around ZSTD_DStream to avoid `#import <zstd.h>` here
+
+	bool _zstd_completed; // Marks the stream as correctly finished, we need to carry this state to the next
+	                      // fetch operation, because the last operation that returns EOF would not give us any
+	                      // data to call zstd correctly.
 };
 
 
@@ -126,7 +163,12 @@ class Net_API HTTPChunkedIOS: public virtual std::ios
 	/// The base class for HTTPInputStream.
 {
 public:
-	HTTPChunkedIOS(HTTPSession& session, HTTPChunkedStreamBuf::openmode mode, MessageHeader* pTrailer = nullptr);
+	HTTPChunkedIOS(
+		HTTPSession& session,
+		HTTPChunkedStreamBuf::openmode mode,
+		MessageHeader* pTrailer,
+		HTTPCompressionType compression
+	);
 	~HTTPChunkedIOS();
 	HTTPChunkedStreamBuf* rdbuf();
 
@@ -139,7 +181,11 @@ class Net_API HTTPChunkedInputStream: public HTTPChunkedIOS, public std::istream
 	/// This class is for internal use by HTTPSession only.
 {
 public:
-	HTTPChunkedInputStream(HTTPSession& session, MessageHeader* pTrailer = nullptr);
+	HTTPChunkedInputStream(
+		HTTPSession& session,
+		MessageHeader* pTrailer,
+		HTTPCompressionType compression = HTTPCompressionType::None
+	);
 	~HTTPChunkedInputStream();
 
 	void* operator new(std::size_t size);
@@ -154,7 +200,11 @@ class Net_API HTTPChunkedOutputStream: public HTTPChunkedIOS, public std::ostrea
 	/// This class is for internal use by HTTPSession only.
 {
 public:
-	HTTPChunkedOutputStream(HTTPSession& session, MessageHeader* pTrailer = nullptr);
+	HTTPChunkedOutputStream(
+		HTTPSession& session,
+		MessageHeader* pTrailer,
+		HTTPCompressionType compression = HTTPCompressionType::None
+	);
 	~HTTPChunkedOutputStream();
 
 	void* operator new(std::size_t size);

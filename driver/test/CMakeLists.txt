@@ -165,7 +165,7 @@ function (declare_odbc_test_targets libname UNICODE)
     )
 
     target_link_libraries (${networking-it-target}
-        PRIVATE GTest::gtest_main Threads::Threads
+        PRIVATE GTest::gtest_main Threads::Threads ch_contrib::zstd
 
         # TODO(slabko): These things simply should not be here
         Poco::Foundation
