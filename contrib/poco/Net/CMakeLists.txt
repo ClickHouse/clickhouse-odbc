@@ -37,7 +37,7 @@ add_library(Net ${SRCS})
 set_target_properties(Net PROPERTIES CXX_STANDARD 17)
 add_library(Poco::Net ALIAS Net)
 
-target_link_libraries(Net PUBLIC Poco::Foundation)
+target_link_libraries(Net PUBLIC Poco::Foundation ch_contrib::zstd)
 # Windows need additional libraries
 if(WIN32)
 	target_link_libraries(Net PUBLIC "iphlpapi.lib")

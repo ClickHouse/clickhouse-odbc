@@ -369,10 +369,16 @@ std::istream& HTTPClientSession::receiveResponse(HTTPResponse& response)
 
 	_mustReconnect = getKeepAlive() && !response.getKeepAlive();
 
+	static const std::string default_content_encoding = "";
+	HTTPCompressionType compression = HTTPCompressionType::None;
+	auto content_encoding = response.get("Content-Encoding", default_content_encoding);
+	if (icompare(response.get("Content-Encoding", default_content_encoding), "zstd") == 0)
+		compression = HTTPCompressionType::ZSTD;
+
 	if (!_expectResponseBody || response.getStatus() < 200 || response.getStatus() == HTTPResponse::HTTP_NO_CONTENT || response.getStatus() == HTTPResponse::HTTP_NOT_MODIFIED)
 		_pResponseStream = new HTTPFixedLengthInputStream(*this, 0);
 	else if (response.getChunkedTransferEncoding())
-		_pResponseStream = new HTTPChunkedInputStream(*this, &responseTrailer());
+		_pResponseStream = new HTTPChunkedInputStream(*this, &responseTrailer(), compression);
 	else if (response.hasContentLength())
 #if defined(POCO_HAVE_INT64)
 		_pResponseStream = new HTTPFixedLengthInputStream(*this, response.getContentLength64());
