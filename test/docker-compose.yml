@@ -1,6 +1,6 @@
 services:
     clickhouse:
-        image: 'docker.io/clickhouse/clickhouse-server:${CLICKHOUSE_VERSION-24.3-alpine}'
+        image: 'docker.io/clickhouse/clickhouse-server:${CLICKHOUSE_VERSION-25.3-alpine}'
         container_name: 'clickhouse-odbc-clickhouse-server'
         environment:
             CLICKHOUSE_SKIP_USER_SETUP: 1
