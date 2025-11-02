@@ -134,6 +134,7 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     request.setHost(uri.getHost());
     request.setURI(uri.getPathEtc());
     request.set("User-Agent", connection.buildUserAgentString());
+    request.set("Accept-Encoding", connection.enable_http_compression ? "zstd" : "none");
 
     LOG(request.getMethod() << " " << request.getHost() << request.getURI() << " body=" << prepared_query
                             << " UA=" << request.get("User-Agent"));
