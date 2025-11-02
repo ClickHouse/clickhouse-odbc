@@ -34,9 +34,11 @@ TEST_F(ErrorHandlingTest, ServerExceptionInBeginning)
 TEST_F(ErrorHandlingTest, ServerExceptionInMiddleOfStream)
 {
     static const size_t stream_size = 100000;
+    // add some extra random data to prevent high-ratio compression with repetitive
+    // data that easily fits in a single chunk or the prefetch buffer
     auto query = fromUTF8<PTChar>(
         "SELECT throwIf(number >= "
-        + std::to_string(stream_size) + ") FROM numbers("
+        + std::to_string(stream_size) + ") + number, rand() FROM numbers("
         + std::to_string(stream_size) + " + 1)");
 
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
@@ -52,6 +54,10 @@ TEST_F(ErrorHandlingTest, ServerExceptionInMiddleOfStream)
     }
 
     auto query_id = getQueryId();
-    auto expect_error_message = "1:[HY000][1]Error while processing query " + query_id + ": ";
+    auto expect_error_message =
+        "1:[HY000][1]Error while processing query " + query_id + ": "
+        "ClickHouse exception: Code: 395. DB::Exception: Value passed to 'throwIf'";
     ASSERT_EQ(error_message.substr(0, expect_error_message.size()), expect_error_message);
+
+
 }
