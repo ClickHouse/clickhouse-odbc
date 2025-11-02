@@ -22,11 +22,6 @@ public:
     {
     }
 
-    explicit AmortizedIStreamReader(std::istream & raw_stream, std::unique_ptr<std::istream> stream_holder)
-        : raw_stream_(raw_stream), stream_holder_(std::move(stream_holder))
-    {
-    }
-
     ~AmortizedIStreamReader() {
         // Put back any pre-read characters, just in case...
         // (it should be done in reverse order)
@@ -139,5 +134,4 @@ private:
     Poco::Net::HTTPClientSession & session_;
     std::size_t offset_ = 0;
     std::string buffer_;
-    std::unique_ptr<std::istream> stream_holder_;  // can be empty if ownership is managed externally
 };
