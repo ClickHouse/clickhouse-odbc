@@ -1,5 +1,4 @@
 #include "driver/result_set.h"
-#include "driver/driver.h"
 #include "driver/format/ODBCDriver2.h"
 #include "driver/format/RowBinaryWithNamesAndTypes.h"
 
@@ -310,13 +309,6 @@ ResultReader::ResultReader(
 )
     : timezone(timezone_)
     , stream(raw_stream, session)
-    , result_mutator(std::move(mutator))
-{
-}
-
-ResultReader::ResultReader(const std::string & timezone_, std::istream & raw_stream, std::unique_ptr<ResultMutator> && mutator, std::unique_ptr<std::istream> && inflating_input_stream_)
-    : timezone(timezone_)
-    , stream(raw_stream, std::move(inflating_input_stream_))
     , result_mutator(std::move(mutator))
 {
 }
