@@ -105,6 +105,9 @@ Poco::URI Connection::getUri() const {
         else if (Poco::UTF8::icompare(parameter.first, "session_id") == 0 && !parameter.second.empty()) {
             session_id_set = true;
         }
+        else if (Poco::UTF8::icompare(parameter.first, "enable_http_compression") == 0 && !parameter.second.empty()) {
+            enable_http_compression_set = true;
+        }
     }
 
     if (!default_format_set)
@@ -119,6 +122,7 @@ Poco::URI Connection::getUri() const {
         uri.addQueryParameter("session_id", session_id);
     }
 
+    // Add http compression parameter, but only if the parameter is not already defined in the URI
     if (enable_http_compression && !enable_http_compression_set) {
         uri.addQueryParameter("enable_http_compression", enable_http_compression ? "1" : "0");
     }
@@ -414,7 +418,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
                 client_name = value;
             }
         }
-        else if (Poco::UTF8::icompare(key, INI_COMPRESS) == 0 || Poco::UTF8::icompare(key, INI_USE_COMPRESSION) == 0) {
+        else if (Poco::UTF8::icompare(key, INI_COMPRESSION) == 0) {
             recognized_key = true;
             unsigned int typed_value = 0;
             valid_value =
@@ -444,8 +448,6 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
             const auto res = set_config_value(key, value);
             const auto & recognized_key = std::get<0>(res);
             const auto & valid_value = std::get<1>(res);
-
-            // LOG("DSN: known attribute '" << key << "', valid value, '" << valid_value << "'");
 
             if (recognized_key) {
                 if (!valid_value)

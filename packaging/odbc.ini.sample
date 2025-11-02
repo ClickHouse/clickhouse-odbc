@@ -42,7 +42,7 @@ Description = DSN (localhost) for ClickHouse ODBC Driver (ANSI)
 #                               # Path to the extended driver log file
 # AutoSessionId = off           # Auto generate session_id required to use some features of CH (e.g. TEMPORARY TABLE)
 # ClientName =                  # Sets additional information about the calling application. This string will be used as a prefix for the User-Agent header.
-# Compress = off                # Pass enable_http_compression=1 parameter to server
+# Compression = off             # Enables compression for data sent from ClickHouse to the driver
 
 [ClickHouse DSN (Unicode)]
 Driver      = ClickHouse ODBC Driver (Unicode)

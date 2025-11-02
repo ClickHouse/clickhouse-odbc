@@ -33,8 +33,7 @@
 #define INI_DRIVERLOGFILE   "DriverLogFile"
 #define INI_AUTO_SESSION_ID "AutoSessionId"
 #define INI_CLIENT_NAME     "ClientName"
-#define INI_COMPRESS        "Compress"
-#define INI_USE_COMPRESSION "UseCompression"
+#define INI_COMPRESSION     "Compression"
 
 #if defined(UNICODE)
 #   define INI_DSN_DEFAULT          DSN_DEFAULT_UNICODE
@@ -56,8 +55,7 @@
 #define INI_STRINGMAXLENGTH_DEFAULT "1048575"
 #define INI_AUTO_SESSION_ID_DEFAULT "off"
 #define INI_CLIENT_NAME_DEFAULT     ""
-#define INI_COMPRESS_DEFAULT        "0"
-#define INI_USE_COMPRESSION_DEFAULT "0"
+#define INI_COMPRESSION_DEFAULT     "0"
 
 #ifdef NDEBUG
 #    define INI_DRIVERLOG_DEFAULT "off"
