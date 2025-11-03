@@ -81,15 +81,15 @@ disable this, I changed the Windows Secure Channel configuration flags.
 
 --------------------------------------------------------------------------------
 commit 1370b0a9f40801801d433aa4bab03f06e5b26710<br/>
-Author: Andrew Slabko <andrew@slabko.com><br/>
+Author: Andrew Slabko<br/>
 Date:   Fri Oct 17 18:05:58 2025 +0200<br/>
 
 commit 1ba8988bd54f30d31114e7959c4ac0350511d044<br/>
-Author: Andrew Slabko <andrew@slabko.com><br/>
+Author: Andrew Slabko<br/>
 Date:   Fri Oct 17 20:59:04 2025 +0200<br/>
 
 commit a0b391b829f670e06f9b67ce92bab45c75bfd983<br/>
-Author: Andrew Slabko <andrew@slabko.com><br/>
+Author: Andrew Slabko<br/>
 Date:   Fri Oct 18 19:58:04 2025 +0200<br/>
 
 Poco::Net::HTTPChunkedStreamBuf was largely rewritten due to incorrect handling
@@ -139,3 +139,15 @@ Due to these issues, HTTPChunkedStreamBuf was effectively rewritten but remains
 in the Poco::Net target. The class is a friend of several others in the library,
 and creating a new one would not be practical. The original class was already
 broken, so it was modified in place.
+
+--------------------------------------------------------------------------------
+commit ac982b98c52f7a65cb699d2017dadb16490df82d<br/>
+Author: Andrew Slabko<br/>
+Date:   Sat Nov 1 19:00:21 2025 +0100<br/>
+
+Implemented Zstd decompression for input data received from the ClickHouse
+server. Most of the work still resides in the already rewritten
+HTTPChunkedStreamBuf. However, since the parameter indicating whether
+compression should be enabled or not must be read from the response headers and
+passed to the HTTPChunkedStreamBuf instance, the HTTPClientSession class was
+also slightly modified.
