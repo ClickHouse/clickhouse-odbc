@@ -66,7 +66,7 @@ jobs:
         -DODBC_PROVIDER=${{ matrix.odbc_provider }}
         -DCH_ODBC_RUNTIME_LINK_STATIC=OFF
         -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=ON
-        -DTEST_DSN_LIST="ClickHouse DSN ANSI;ClickHouse DSN Unicode"
+        -DTEST_DSN_LIST="ClickHouse DSN ANSI;ClickHouse DSN Unicode;ClickHouse DSN ANSI ZSTD;ClickHouse DSN Unicode ZSTD"
         -DBUILD_TESTING=YES
 
     - name: Build
@@ -151,6 +151,20 @@ jobs:
           -DsnType "System" `
           -Platform "$platform" `
           -SetPropertyValue @("Url=http://127.0.0.1:8123/", "User=default")
+
+        Add-OdbcDsn `
+          -Name "ClickHouse DSN ANSI ZSTD" `
+          -DriverName "ClickHouse ODBC Driver (ANSI)" `
+          -DsnType "System" `
+          -Platform "$platform" `
+          -SetPropertyValue @("Url=http://127.0.0.1:8123/", "User=default", "Compression=1")
+
+        Add-OdbcDsn `
+          -Name "ClickHouse DSN Unicode ZSTD" `
+          -DriverName "ClickHouse ODBC Driver (Unicode)" `
+          -DsnType "System" `
+          -Platform "$platform" `
+          -SetPropertyValue @("Url=http://127.0.0.1:8123/", "User=default", "Compression=1")
 
         Write-Host "List of enabled DSNs:"
         Get-OdbcDsn -DsnType "System"
