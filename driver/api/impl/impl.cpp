@@ -506,11 +506,25 @@ SQLRETURN GetStmtAttr(
             CASE_NUM(SQL_ATTR_USE_BOOKMARKS, SQLULEN, SQL_UB_OFF);
 
             case SQL_CH_STMT_ATTR_LAST_QUERY_ID: {
-                auto & query_id = statement.getQueryId();
+                auto query_id = statement.getQueryId();
                 if (query_id.empty())
                     throw SqlException("Invalid cursor state", "24000");
+                return fillOutputString<char>(
+                    /* input = */ query_id,
+                    /* output_ptr = */ out_value,
+                    /* max_length = */ SQL_LEN_BINARY_ATTR(out_value_max_length),
+                    /* final_length = */ out_value_length,
+                    /* size_in_bytes = */ true);
+            }
 
-                return fillOutputString<PTChar>(query_id, out_value, out_value_max_length, out_value_length, true);
+            case SQL_CH_STMT_ATTR_LAST_RESPONSE_CONTENT_ENCODING: {
+                auto content_encoding = statement.getContentEncoding();
+                return fillOutputString<char>(
+                    /* input = */ content_encoding,
+                    /* output_ptr = */ out_value,
+                    /* max_length = */ SQL_LEN_BINARY_ATTR(out_value_max_length),
+                    /* final_length = */ out_value_length,
+                    /* size_in_bytes = */ true);
             }
 
             case SQL_ATTR_FETCH_BOOKMARK_PTR:

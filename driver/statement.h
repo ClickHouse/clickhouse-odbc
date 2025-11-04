@@ -50,6 +50,9 @@ public:
     /// Get the current query id, or an empty string if query id is not applicable or not available.
     const std::string & getQueryId() const;
 
+    /// Get the current content encoding, or an empty string if content encoding was not defined
+    const std::string & getContentEncoding() const;
+
     /// Make the next result set current, if any.
     bool advanceToNextResultSet();
 
@@ -117,5 +120,6 @@ private:
     std::istream* in = nullptr;
     std::unique_ptr<ResultReader> result_reader;
     std::string query_id;
+    std::string content_encoding;
     std::size_t next_param_set_idx = 0;
 };

@@ -100,6 +100,7 @@ Statement::HttpRequestData Statement::prepareHttpRequest()
 void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mutator) {
     result_reader.reset();
     query_id.clear();
+    content_encoding.clear();
 
     const auto param_set_array_size = getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
     if (next_param_set_idx >= param_set_array_size)
@@ -173,8 +174,9 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     // and so we cannot pass an rvalue to it (e.g.`std::string()`),
     // it will be deleted when the function returns.
     // We use a static variable that will never be deleted.
-    static const std::string empty_query_id{};
-    query_id = response->get("X-ClickHouse-Query-Id", empty_query_id);
+    static const std::string empty_string{};
+    query_id = response->get("X-ClickHouse-Query-Id", empty_string);
+    content_encoding = response->get("Content-Encoding", empty_string);
 
     Poco::Net::HTTPResponse::HTTPStatus status = response->getStatus();
     if (status != Poco::Net::HTTPResponse::HTTP_OK) {
@@ -370,6 +372,10 @@ const std::string & Statement::getQueryId() const {
     return query_id;
 }
 
+const std::string & Statement::getContentEncoding() const {
+    return content_encoding;
+}
+
 bool Statement::advanceToNextResultSet() {
     if (!is_executed)
         return false;
@@ -398,6 +404,7 @@ void Statement::closeCursor() {
 
     result_reader.reset();
     query_id.clear();
+    content_encoding.clear();
     in = nullptr;
     response.reset();
 

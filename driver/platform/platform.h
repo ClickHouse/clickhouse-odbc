@@ -121,3 +121,4 @@
 // https://learn.microsoft.com/en-us/sql/odbc/reference/develop-app/driver-specific-data-types-descriptor-information-diagnostic
 #define SQL_CH_STMT_ATTR_BASE (SQL_DRIVER_STMT_ATTR_BASE + 1)
 #define SQL_CH_STMT_ATTR_LAST_QUERY_ID (SQL_CH_STMT_ATTR_BASE + 1)
+#define SQL_CH_STMT_ATTR_LAST_RESPONSE_CONTENT_ENCODING (SQL_CH_STMT_ATTR_BASE + 2)
