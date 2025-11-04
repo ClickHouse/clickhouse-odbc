@@ -41,6 +41,7 @@ add_contrib (unixodbc-cmake unixodbc)
 add_contrib (nanodbc-cmake nanodbc)
 add_contrib (lz4-cmake lz4)
 add_contrib (double-conversion-cmake double-conversion)
+add_contrib (zstd-cmake zstd)
 
 if (OS_DARWIN OR OS_LINUX)
     add_contrib (openssl-cmake openssl)
@@ -82,18 +83,3 @@ endif ()
 
 # Some of the above may set a cache entry that will interfere with later reconfigurations.
 unset (ODBC_CONFIG CACHE)
-
-
-set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
-set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-set(ZLIB_BUILD_SHARED  OFF CACHE BOOL "" FORCE)
-set(ZLIB_BUILD_STATIC  ON  CACHE BOOL "" FORCE)
-set(ZLIB_BUILD_MINIZIP OFF CACHE BOOL "" FORCE)
-set(ZLIB_INSTALL       OFF CACHE BOOL "" FORCE)
-set(ZLIB_PREFIX        OFF CACHE BOOL "" FORCE)
-
-get_directory_property(SAVED_LINK_LIBS LINK_LIBRARIES)
-set_property(DIRECTORY PROPERTY LINK_LIBRARIES "")
-add_subdirectory(zstd/build/cmake)
-add_library (ch_contrib::zstd ALIAS libzstd_static)
-set_property(DIRECTORY PROPERTY LINK_LIBRARIES ${SAVED_LINK_LIBS})
