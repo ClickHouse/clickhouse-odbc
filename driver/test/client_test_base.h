@@ -49,31 +49,15 @@ public:
 
     std::string getQueryId()
     {
-        char query_id_data[74] = {};
+        char query_id_data[37] = {};
         SQLINTEGER query_id_len{};
-        SQLGetStmtAttr(hstmt, SQL_CH_STMT_ATTR_LAST_QUERY_ID, query_id_data, std::size(query_id_data), &query_id_len);
-
-#ifdef _win_
-        return toUTF8(reinterpret_cast<PTChar*>(query_id_data));
-#else
-        // unixODBC usually converts all strings from the driver encoding to the application encoding,
-        // similar to how Windows behaves. However, `SQLGetStmtAttr` appears to be an exception in unixODBC,
-        // as it passes the result in the driver encoding unchanged.
-        // See: https://github.com/lurcher/unixODBC/issues/22
-        //
-        // To solve this issue and ensure the result reaches the application in the correct encoding,
-        // we would need to implement both `SQLGetStmtAttr` and `SQLGetStmtAttrW` in the driver.
-        // This would introduce a number of workarounds and non-uniform solutions.
-        // Currently, there is only one string attribute, `SQL_CH_STMT_ATTR_LAST_QUERY_ID`, which is internal,
-        // so this added complexity in the driver is not currently justified.
-        //
-        // Since we know that the Query ID is 36 bytes long, we can infer the encoding of the result
-        // and re-encode it accordingly here in the test.
-        if (query_id_len == 36)
-            return toUTF8(query_id_data);
-        else
-            return toUTF8(reinterpret_cast<char16_t*>(query_id_data));
-#endif
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(
+            hstmt,
+            SQL_CH_STMT_ATTR_LAST_QUERY_ID,
+            query_id_data,
+            SQL_LEN_BINARY_ATTR(std::ssize(query_id_data)),
+            &query_id_len));
+        return toUTF8(query_id_data);
     }
 
 protected:

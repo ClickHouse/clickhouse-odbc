@@ -383,3 +383,40 @@ TEST_P(CustomClientName, UserAgentTest) {
         FAIL() << "Entry for query id " << query_id << " has not been found";
     }
 }
+
+class CustomCompressionSettings
+    : public ClientTestWithParamBase<bool>
+{
+public:
+    using Base = ClientTestWithParamBase<bool>;
+    explicit CustomCompressionSettings()
+        : Base(/*skip_connect = */true) {}
+};
+
+INSTANTIATE_TEST_SUITE_P(CustomCompressionSettings, CustomCompressionSettings, ::testing::Values(true, false));
+
+TEST_P(CustomCompressionSettings, ContentEncodingMatchesCompressionOption)
+{
+    bool compression = GetParam();
+    const auto & dsn = TestEnvironment::getInstance().getDSN();
+    auto cs = "DSN=" + dsn + ";Compression=" + (compression ? "1" : "0");
+    connect(cs);
+
+    auto query = fromUTF8<PTChar>("SELECT 1 as value");
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
+
+    SQLLEN sql_type = SQL_TYPE_NULL;
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLColAttribute(hstmt, 1, SQL_DESC_TYPE, NULL, 0, NULL, &sql_type));
+
+    std::string content_encoding(10, '\0');
+    SQLINTEGER content_encoding_len{};
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetStmtAttr(
+        hstmt,
+        SQL_CH_STMT_ATTR_LAST_RESPONSE_CONTENT_ENCODING,
+        content_encoding.data(),
+        SQL_LEN_BINARY_ATTR(std::ssize(content_encoding)),
+        &content_encoding_len));
+    content_encoding.resize(content_encoding_len);
+
+    ASSERT_EQ(content_encoding, compression ? "zstd" : "");
+}
