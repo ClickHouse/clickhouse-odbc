@@ -36,7 +36,7 @@ public:
 
 	enum
 	{
-		BUFFER_SIZE = 4096
+		BUFFER_SIZE = 1024UL * 128  // Increase buffer size to match zstd's recommended output buffer size
 	};
 
 private:

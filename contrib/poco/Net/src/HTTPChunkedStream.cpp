@@ -40,8 +40,8 @@ POCO_IMPLEMENT_EXCEPTION(ClickHouseException, NetException, "ClickHouse exceptio
 
 constexpr int eof = std::char_traits<char>::eof();
 
-constexpr size_t MIN_LOOK_AHEAD_SIZE = 1024UL * 32;
-constexpr size_t PREFETCH_SIZE = 1024 * 128;
+constexpr size_t MIN_LOOK_AHEAD_SIZE = 1024UL * 32;  // Assuming exception messages are never larger than 32Kb
+constexpr size_t PREFETCH_SIZE = 1024UL * 128 + 3;   // Recommended zstd's input buffer size
 constexpr size_t PREFETCH_BUFFER_CAPACITY = PREFETCH_SIZE + MIN_LOOK_AHEAD_SIZE;
 
 struct HTTPChunkedStreamBuf::ZstdContext
