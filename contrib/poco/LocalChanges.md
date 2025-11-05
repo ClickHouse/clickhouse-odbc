@@ -151,3 +151,13 @@ HTTPChunkedStreamBuf. However, since the parameter indicating whether
 compression should be enabled or not must be read from the response headers and
 passed to the HTTPChunkedStreamBuf instance, the HTTPClientSession class was
 also slightly modified.
+
+--------------------------------------------------------------------------------
+commit 46939e991ce128d8f7e4e9282b9d81ea1e810908<br/>
+Author: Andrew Slabko<br/>
+Date:   Wed Nov 5 10:11:44 2025 +0100<br/>
+
+The amount of data that HTTPChunkStream attempts to read from
+HTTPChunkedStreamBuf depends on the fixed size defined by the
+HTTPBufferAllocator::BUFFER_SIZE constant. This constant was increased to 128 KB
+to match the recommended output buffer size for ZSTD decompression.
