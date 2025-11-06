@@ -13,6 +13,7 @@
 
 
 #include <cassert>
+#include <charconv>
 #include <zstd.h>
 #include "Poco/Net/HTTPChunkedStream.h"
 #include "Poco/Net/HTTPHeaderStream.h"
@@ -45,6 +46,7 @@ constexpr size_t PREFETCH_SIZE = 1024UL * 128 + 3;   // Recommended zstd's input
 constexpr size_t PREFETCH_BUFFER_CAPACITY = PREFETCH_SIZE + MIN_LOOK_AHEAD_SIZE;
 
 static const char CONTENT_ENCODING_HEADER[] = "content-encoding";
+static const char CH_EXCEPTION_TAG_HEADER[] = "x-clickhouse-exception-tag";
 static const char ZSTD_CONTENT_ENCODING[] = "zstd";
 
 struct HTTPChunkedStreamBuf::ZstdContext
@@ -67,13 +69,13 @@ HTTPChunkedStreamBuf::HTTPChunkedStreamBuf(
 	_prefetchBufferSize(0),
 	_prefetchBufferHead(0),
 	_eof(false),
-	_headers(headers),
+	_headers(std::move(headers)),
 	_compression(HTTPCompressionType::None),
 	_zstd_context(new ZstdContext{}),
 	_zstd_completed(false)
 {
-	auto it = headers.find(CONTENT_ENCODING_HEADER);
-	if (it != headers.end() && icompare(it->second, ZSTD_CONTENT_ENCODING) == 0) {
+	auto it = _headers.find(CONTENT_ENCODING_HEADER);
+	if (it != _headers.end() && icompare(it->second, ZSTD_CONTENT_ENCODING) == 0) {
 		_compression = HTTPCompressionType::ZSTD;
 		_zstd_context->dstream.reset(ZSTD_createDStream());
 		ZSTD_initDStream(_zstd_context->dstream.get());
@@ -373,26 +375,66 @@ int HTTPChunkedStreamBuf::readCharFromSocket()
 	return buffer;
 }
 
-namespace {
-/**
- * Function searches for the ClickHouse exception marker in the iterator range
- * and returns the string that comes after that if the marker is found,
- * otherwise nothing.
- */
-template <typename It>
-std::optional<std::string> findClickHouseExceptionMessage(It begin, It end)
+std::optional<std::string> HTTPChunkedStreamBuf::findClickHouseExceptionMessage(const char * buffer, size_t length)
 {
-	const std::string_view exception_marker{"__exception__\r\n"};
 
-	auto it = std::find_end(begin, end, exception_marker.begin(), exception_marker.end());
-	if (it != end) {
-		std::string message(it + exception_marker.size(), end);
-		return message;
+	auto exception_tag_it = _headers.find(CH_EXCEPTION_TAG_HEADER);
+	if (exception_tag_it != _headers.end()) {
+		// We have exception marker then the format is:
+		// ....__exception__\r\n<exception_tag>\r\n<exception_message>123 <exception_tag>\r\n__exception__\r\n
+		// ....|~~~ opening exception marker ~~~~~|~exception message~...|~~~~~ closing exception marker ~~~~|
+		// where 123 is the size of <exception message>
+
+		const std::string & exception_tag = exception_tag_it->second;
+		const std::string closing_exception_marker = " " + exception_tag + "\r\n__exception__\r\n";
+		if (length < closing_exception_marker.size())
+			return std::nullopt;
+
+		// Roll back to the start of the closing exception marker
+		bool has_exception_marker = std::equal(
+			buffer + length - closing_exception_marker.size(),
+			buffer + length,
+			closing_exception_marker.begin());
+		if (!has_exception_marker)
+			return std::nullopt;
+
+		const char * begin = buffer;
+		const char * end = buffer + length - closing_exception_marker.size();
+
+		// Roll back the start of the exception message size
+		auto size_it = std::find_if_not(
+			std::make_reverse_iterator(end),
+			std::make_reverse_iterator(begin),
+			[](const char c){ return ::isdigit(c); });
+		if (size_it == std::make_reverse_iterator(end))
+			return std::nullopt;
+		const char * size_begin = size_it.base();
+
+		// Parse size
+		size_t exception_message_size = 0;
+		auto from_chars_res = std::from_chars(size_begin, end, exception_message_size);
+		if (from_chars_res.ec != std::errc())
+			return std::nullopt;
+
+		if (size_begin - begin < exception_message_size)
+			return std::nullopt;
+
+		end = size_begin;
+		return std::string(end - exception_message_size, end);
+	} else {
+		// older version of ClickHouse - everything that comes after __exception__\r\n
+		// is an exception message. However it might be a false positive, if the data
+		// itself contains this sequence.
+		const std::string_view exception_marker{"__exception__\r\n"};
+		const char * begin = buffer;
+		const char * end = buffer + length;
+		auto it = std::find_end(begin, end, exception_marker.begin(), exception_marker.end());
+		if (it != end)
+			return std::string(it + exception_marker.size(), end);
 	}
 
 	return std::nullopt;
 }
-} // anonymous namespace
 
 /**
  * Scans the prefetch buffer for a ClickHouse exception marker.
@@ -409,17 +451,14 @@ std::optional<ClickHouseException> HTTPChunkedStreamBuf::checkForClickHouseExcep
 
 	switch (_compression) {
 		case HTTPCompressionType::None: {
-			const char * begin = &_prefetchBuffer[_prefetchBufferHead];
-			const char * end = &_prefetchBuffer[_prefetchBufferHead + _prefetchBufferSize];
-
-			if (auto message = findClickHouseExceptionMessage(begin, end))
+			if (auto message = findClickHouseExceptionMessage(_prefetchBuffer.data(), _prefetchBufferSize))
 				return ClickHouseException(*message);
 
 			return std::nullopt;
 		}
 		case HTTPCompressionType::ZSTD: {
 
-			ZSTD_inBuffer in = {&_prefetchBuffer[_prefetchBufferHead], _prefetchBufferSize, 0};
+			ZSTD_inBuffer in = {_prefetchBuffer.data(), _prefetchBufferSize, 0};
 
 			// ring buffer for uncompressed data
 			std::vector<char> out_buffer(ZSTD_DStreamOutSize());
@@ -463,10 +502,7 @@ std::optional<ClickHouseException> HTTPChunkedStreamBuf::checkForClickHouseExcep
 			// beginning of the buffer, ahead of actual data. This is exactly what we need.
 			std::rotate(out_buffer.begin(), out_buffer.begin() + head, out_buffer.end());
 
-			const char * begin = out_buffer.data();
-			const char * end = out_buffer.data() + out_buffer.size();
-
-			if (auto message = findClickHouseExceptionMessage(begin, end)) {
+			if (auto message = findClickHouseExceptionMessage(out_buffer.data(), out_buffer.size())) {
 				return ClickHouseException(*message);
 			}
 

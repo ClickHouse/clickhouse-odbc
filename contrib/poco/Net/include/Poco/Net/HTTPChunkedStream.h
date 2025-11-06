@@ -126,6 +126,7 @@ private:
 
 	// Checks whether the prefetch buffer contains a ClickHouse exception.
 	std::optional<ClickHouseException> checkForClickHouseException();
+	std::optional<std::string> findClickHouseExceptionMessage(const char *, size_t length);
 
 private:
 	// Since `_prefetchBuffer` is a ring buffer, data may wrap around the buffer
