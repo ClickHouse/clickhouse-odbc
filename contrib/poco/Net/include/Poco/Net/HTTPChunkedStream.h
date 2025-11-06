@@ -26,6 +26,7 @@
 #include <istream>
 #include <ostream>
 #include <optional>
+#include <unordered_map>
 
 // --------------------------- WARNING LOCAL CHANGES ------------------------------- //
 // This class has been heavily modified to resolve issues related to incomplete
@@ -89,7 +90,7 @@ public:
 		HTTPSession& session,
 		openmode mode,
 		MessageHeader* pTrailer,
-		HTTPCompressionType compression
+		std::unordered_map<std::string, std::string> headers
 	);
 
 	~HTTPChunkedStreamBuf();
@@ -150,6 +151,7 @@ private:
 	size_t _prefetchBufferHead;        // Current read position in the buffer.
 	bool _eof;                         // True if no more data is available in the socket.
 
+	std::unordered_map<std::string, std::string> _headers;
 	HTTPCompressionType _compression;
 	std::unique_ptr<ZstdContext> _zstd_context; // Opaque wrapper around ZSTD_DStream to avoid `#import <zstd.h>` here
 
@@ -167,7 +169,7 @@ public:
 		HTTPSession& session,
 		HTTPChunkedStreamBuf::openmode mode,
 		MessageHeader* pTrailer,
-		HTTPCompressionType compression
+		std::unordered_map<std::string, std::string> headers
 	);
 	~HTTPChunkedIOS();
 	HTTPChunkedStreamBuf* rdbuf();
@@ -184,7 +186,7 @@ public:
 	HTTPChunkedInputStream(
 		HTTPSession& session,
 		MessageHeader* pTrailer,
-		HTTPCompressionType compression = HTTPCompressionType::None
+		std::unordered_map<std::string, std::string> headers = {}
 	);
 	~HTTPChunkedInputStream();
 
@@ -203,7 +205,7 @@ public:
 	HTTPChunkedOutputStream(
 		HTTPSession& session,
 		MessageHeader* pTrailer,
-		HTTPCompressionType compression = HTTPCompressionType::None
+		std::unordered_map<std::string, std::string> headers = {}
 	);
 	~HTTPChunkedOutputStream();
 

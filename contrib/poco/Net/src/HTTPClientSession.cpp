@@ -25,6 +25,8 @@
 #include "Poco/CountingStream.h"
 #include "Poco/RegularExpression.h"
 #include <sstream>
+#include <unordered_map>
+#include <cctype>
 
 
 using Poco::NumberFormatter;
@@ -369,16 +371,19 @@ std::istream& HTTPClientSession::receiveResponse(HTTPResponse& response)
 
 	_mustReconnect = getKeepAlive() && !response.getKeepAlive();
 
-	static const std::string default_content_encoding = "";
-	HTTPCompressionType compression = HTTPCompressionType::None;
-	auto content_encoding = response.get("Content-Encoding", default_content_encoding);
-	if (icompare(response.get("Content-Encoding", default_content_encoding), "zstd") == 0)
-		compression = HTTPCompressionType::ZSTD;
+
+	std::unordered_map<std::string, std::string> headers{};
+	headers.reserve(std::distance(response.begin(), response.end()));
+	for (auto & [key, value] : response) {
+		auto lowercase_key = key;
+		std::transform(lowercase_key.begin(), lowercase_key.end(), lowercase_key.begin(), ::tolower);
+		headers[std::move(lowercase_key)] = value;
+	}
 
 	if (!_expectResponseBody || response.getStatus() < 200 || response.getStatus() == HTTPResponse::HTTP_NO_CONTENT || response.getStatus() == HTTPResponse::HTTP_NOT_MODIFIED)
 		_pResponseStream = new HTTPFixedLengthInputStream(*this, 0);
 	else if (response.getChunkedTransferEncoding())
-		_pResponseStream = new HTTPChunkedInputStream(*this, &responseTrailer(), compression);
+		_pResponseStream = new HTTPChunkedInputStream(*this, &responseTrailer(), std::move(headers));
 	else if (response.hasContentLength())
 #if defined(POCO_HAVE_INT64)
 		_pResponseStream = new HTTPFixedLengthInputStream(*this, response.getContentLength64());
