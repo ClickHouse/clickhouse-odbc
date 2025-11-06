@@ -44,6 +44,9 @@ constexpr size_t MIN_LOOK_AHEAD_SIZE = 1024UL * 32;  // Assuming exception messa
 constexpr size_t PREFETCH_SIZE = 1024UL * 128 + 3;   // Recommended zstd's input buffer size
 constexpr size_t PREFETCH_BUFFER_CAPACITY = PREFETCH_SIZE + MIN_LOOK_AHEAD_SIZE;
 
+static const char CONTENT_ENCODING_HEADER[] = "content-encoding";
+static const char ZSTD_CONTENT_ENCODING[] = "zstd";
+
 struct HTTPChunkedStreamBuf::ZstdContext
 {
 	std::unique_ptr<ZSTD_DStream, decltype(&ZSTD_freeDStream)> dstream{nullptr, ZSTD_freeDStream};
@@ -53,7 +56,7 @@ HTTPChunkedStreamBuf::HTTPChunkedStreamBuf(
 	HTTPSession& session,
 	openmode mode,
 	MessageHeader* pTrailer,
-	HTTPCompressionType compression
+	std::unordered_map<std::string, std::string> headers
 ):
 	HTTPBasicStreamBuf(HTTPBufferAllocator::BUFFER_SIZE, mode),
 	_session(session),
@@ -64,11 +67,14 @@ HTTPChunkedStreamBuf::HTTPChunkedStreamBuf(
 	_prefetchBufferSize(0),
 	_prefetchBufferHead(0),
 	_eof(false),
-	_compression(compression),
+	_headers(headers),
+	_compression(HTTPCompressionType::None),
 	_zstd_context(new ZstdContext{}),
 	_zstd_completed(false)
 {
-	if (_compression == HTTPCompressionType::ZSTD) {
+	auto it = headers.find(CONTENT_ENCODING_HEADER);
+	if (it != headers.end() && icompare(it->second, ZSTD_CONTENT_ENCODING) == 0) {
+		_compression = HTTPCompressionType::ZSTD;
 		_zstd_context->dstream.reset(ZSTD_createDStream());
 		ZSTD_initDStream(_zstd_context->dstream.get());
 	}
@@ -519,9 +525,9 @@ HTTPChunkedIOS::HTTPChunkedIOS(
 	HTTPSession& session,
 	HTTPChunkedStreamBuf::openmode mode,
 	MessageHeader* pTrailer,
-	HTTPCompressionType compression
+	std::unordered_map<std::string, std::string> headers
 ):
-	_buf(session, mode, pTrailer, compression)
+	_buf(session, mode, pTrailer, std::move(headers))
 {
 	poco_ios_init(&_buf);
 }
@@ -556,9 +562,9 @@ Poco::MemoryPool HTTPChunkedInputStream::_pool(sizeof(HTTPChunkedInputStream));
 HTTPChunkedInputStream::HTTPChunkedInputStream(
 	HTTPSession& session,
 	MessageHeader* pTrailer,
-	HTTPCompressionType compression
+	std::unordered_map<std::string, std::string> headers
 ):
-	HTTPChunkedIOS(session, std::ios::in, pTrailer, compression),
+	HTTPChunkedIOS(session, std::ios::in, pTrailer, std::move(headers)),
 	std::istream(&_buf)
 {
 }
@@ -599,9 +605,9 @@ Poco::MemoryPool HTTPChunkedOutputStream::_pool(sizeof(HTTPChunkedOutputStream))
 HTTPChunkedOutputStream::HTTPChunkedOutputStream(
 	HTTPSession& session,
 	MessageHeader* pTrailer,
-	HTTPCompressionType compression
+	std::unordered_map<std::string, std::string> headers
 ):
-	HTTPChunkedIOS(session, std::ios::out, pTrailer, compression),
+	HTTPChunkedIOS(session, std::ios::out, pTrailer, std::move(headers)),
 	std::ostream(&_buf)
 {
 }
