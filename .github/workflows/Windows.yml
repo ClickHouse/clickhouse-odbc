@@ -166,6 +166,20 @@ jobs:
           -Platform "$platform" `
           -SetPropertyValue @("Url=http://127.0.0.1:8123/", "User=default", "Compression=1")
 
+        Add-OdbcDsn `
+          -Name "ClickHouse AWS ANSI ZSTD" `
+          -DriverName "ClickHouse ODBC Driver (ANSI)" `
+          -DsnType "System" `
+          -Platform "$platform" `
+          -SetPropertyValue @("Url=${{ secrets.CLOUD_AWS_URL }}", "Compression=1")
+
+        Add-OdbcDsn `
+          -Name "ClickHouse AWS Unicode ZSTD" `
+          -DriverName "ClickHouse ODBC Driver (Unicode)" `
+          -DsnType "System" `
+          -Platform "$platform" `
+          -SetPropertyValue @("Url=${{ secrets.CLOUD_AWS_URL }}", "Compression=1")
+
         Write-Host "List of enabled DSNs:"
         Get-OdbcDsn -DsnType "System"
 
@@ -199,6 +213,17 @@ jobs:
       working-directory: ${{ github.workspace }}/build
       run: |
         ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '.*-ut.*'
+
+    - name: Test - Run C++ integration test in the Cloud
+      if: ${{ matrix.build_type == 'Release' && matrix.architecture == 'x64' }}
+      working-directory: ${{ github.workspace }}/build
+      env:
+        GTEST_FILTER: -AuthenticationTest.PasswordEncoding:TypeInfoTest.ClickhouseToSQLTypeMapping:PerformanceTest*:*TZ_over_RowBinaryWithNamesAndTypes:*UserAgentTest*
+      run: |
+        driver/test/${{ matrix.build_type }}/clickhouse-odbcw-client-it "ClickHouse AWS Unicode ZSTD"
+        driver/test/${{ matrix.build_type }}/clickhouse-odbcw-client-it "ClickHouse AWS ANSI ZSTD"
+        driver/test/${{ matrix.build_type }}/clickhouse-odbc-client-it "ClickHouse AWS Unicode ZSTD"
+        driver/test/${{ matrix.build_type }}/clickhouse-odbc-client-it "ClickHouse AWS ANSI ZSTD"
 
     - name: Prepare Pythons dependencies
       if: ${{ matrix.architecture == 'x64' }}
