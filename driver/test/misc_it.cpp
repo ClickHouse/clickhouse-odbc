@@ -22,25 +22,9 @@ TEST_F(MiscellaneousTest, GetDatabaseVersion) {
         param_version.size(),
         &param_version_len));
     ASSERT_GE(param_version_len, 0);
-    param_version.resize(param_version_len);
+    param_version.resize(param_version_len / sizeof(PTChar));
 
-    // Get version directly by calling `select version()`
-    auto query = fromUTF8<PTChar>("select version()");
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLFetch(hstmt));
-    std::basic_string<PTChar> query_version(256, '\0');
-    SQLLEN query_version_len = 0;
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(
-        hstmt,
-        1,
-        getCTypeFor<SQLTCHAR*>(),
-        query_version.data(),
-        query_version.size(),
-        &query_version_len
-    ));
-    ASSERT_GE(query_version_len, 0);
-    query_version.resize(query_version_len);
-
+    auto query_version = fromUTF8<PTChar>(*singleStringQuery("SELECT version()"));
     ASSERT_EQ(param_version, query_version);
 }
 
@@ -351,6 +335,9 @@ INSTANTIATE_TEST_SUITE_P(CustomUserAgentParams, CustomClientName, ::testing::Val
 ));
 
 TEST_P(CustomClientName, UserAgentTest) {
+    using namespace std::chrono_literals;
+    using std::chrono::high_resolution_clock;
+
     const auto & [client_name, user_agent_prefix] = GetParam();
 
     // Example: TestApp/0.1 (TestOS) clickhouse-odbc/1.4.2.20250618 (Linux-6.14.6-200.fc41.x86_64) UNICODE
@@ -363,25 +350,50 @@ TEST_P(CustomClientName, UserAgentTest) {
         cs += ";ClientName=" + *client_name;
     connect(cs);
 
-    auto query = fromUTF8<PTChar>("SELECT query_id, http_user_agent FROM system.processes");
+    auto query = fromUTF8<PTChar>("SELECT 1");
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
-
-    SQLLEN sql_type = SQL_TYPE_NULL;
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLColAttribute(hstmt, 1, SQL_DESC_TYPE, NULL, 0, NULL, &sql_type));
-
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLFetch(hstmt));
+    SQLINTEGER value = 0;
+    SQLLEN indicator;
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(
+        hstmt,
+        1,
+        getCTypeFor<SQLINTEGER>(),
+        &value,
+        sizeof(value),
+        &indicator
+    ));
+    ASSERT_EQ(value, 1);
     const auto query_id = getQueryId();
+    SQLFreeStmt(hstmt, SQL_CLOSE);
 
-    ResultSetReader reader{hstmt};
-    while (reader.fetch())
-    {
-        if (reader.getData<std::string>("query_id").value() == query_id)
-        {
-            const auto entry_user_agent = reader.getData<std::string>("http_user_agent").value_or("");
-            ASSERT_TRUE(entry_user_agent.starts_with(expected_user_agent));
+    std::string flush_log_query = "SYSTEM FLUSH LOGS";
+    std::string syslog_query = "SELECT http_user_agent FROM system.query_log WHERE query_id = '" + query_id + "'";
+
+    // is it a cluster, and what it's name
+    std::string cluster_query = "SELECT count() FROM system.clusters WHERE cluster NOT LIKE 'all_groups.%'";
+    auto cluster_nodes = std::stoi(*singleStringQuery(cluster_query));
+    if (cluster_nodes > 1) {
+        // Assume cluster name is always `default`
+        flush_log_query = "SYSTEM FLUSH LOGS ON CLUSTER default";
+        syslog_query = "SELECT http_user_agent "
+                       "FROM clusterAllReplicas(default, system.query_log) "
+                       "WHERE query_id = '" + query_id + "'";
+    }
+
+    singleStringQuery(flush_log_query);
+
+    auto begin = high_resolution_clock::now();
+    high_resolution_clock::duration duration{};
+    while (duration < 10s) { // large to avoid flaky tests, usually 2s is enough
+        auto entry_user_agent = singleStringQuery(syslog_query);
+        if (entry_user_agent) {
+            ASSERT_TRUE(entry_user_agent->starts_with(expected_user_agent));
             return;
         }
-        FAIL() << "Entry for query id " << query_id << " has not been found";
+        duration = high_resolution_clock::now() - begin;
     }
+    FAIL() << "system.query_log entry for query id " << query_id << " is not found";
 }
 
 class CustomCompressionSettings
