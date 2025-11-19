@@ -218,7 +218,7 @@ jobs:
       if: ${{ matrix.build_type == 'Release' && matrix.architecture == 'x64' }}
       working-directory: ${{ github.workspace }}/build
       env:
-        GTEST_FILTER: -AuthenticationTest.PasswordEncoding:TypeInfoTest.ClickhouseToSQLTypeMapping:PerformanceTest*
+        GTEST_FILTER: -AuthenticationTest.PasswordEncoding:PerformanceTest*
       run: |
         driver/test/${{ matrix.build_type }}/clickhouse-odbcw-client-it "ClickHouse AWS Unicode ZSTD"
         driver/test/${{ matrix.build_type }}/clickhouse-odbcw-client-it "ClickHouse AWS ANSI ZSTD"
