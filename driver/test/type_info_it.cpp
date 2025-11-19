@@ -17,6 +17,12 @@ class TypeInfoTest
 // Checks that each ClickHouse type is correctly mapped to a corresponding ODBC type
 TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
 {
+    bool allow_suspicious_low_cardinality_types = false;
+    auto is_suspicious_lct_readonly_res = singleStringQuery(
+        "SELECT readonly FROM system.settings WHERE name = 'allow_suspicious_low_cardinality_types'");
+    if (is_suspicious_lct_readonly_res.has_value() && *is_suspicious_lct_readonly_res == "0") {
+        allow_suspicious_low_cardinality_types = true;
+    }
 
     struct TypeMappingTestEntry
     {
@@ -58,10 +64,13 @@ TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
         {"Array(Int32)", "[1,2,3]", SQL_VARCHAR},
         {"Tuple(Int32, Int32)", "(1,2)", SQL_VARCHAR},
         {"LowCardinality(String)", "'0'", SQL_VARCHAR},
-        {"LowCardinality(Int32)", "0", SQL_INTEGER},
-        {"LowCardinality(DateTime)", "0", SQL_TYPE_TIMESTAMP},
         {"Enum('hello' = 0, 'world' = 1)", "'hello'", SQL_VARCHAR},
     };
+
+    if (allow_suspicious_low_cardinality_types) {
+        types.push_back({"LowCardinality(Int32)", "0", SQL_INTEGER});
+        types.push_back({"LowCardinality(DateTime)", "0", SQL_TYPE_TIMESTAMP});
+    }
 
     std::unordered_map<std::string, SQLSMALLINT> sql_types{};
     std::stringstream query_stream;
@@ -72,7 +81,9 @@ TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
         query_stream << " CAST(" + input + ", '" + type_escaped + "') as `" + type + "`,";
     }
     query_stream.seekp(-1, std::stringstream::cur) << " ";
-    query_stream << "SETTINGS allow_suspicious_low_cardinality_types = 1";
+    if (allow_suspicious_low_cardinality_types) {
+        query_stream << "SETTINGS allow_suspicious_low_cardinality_types = 1";
+    }
 
     auto query = fromUTF8<PTChar>(query_stream.str());
 
