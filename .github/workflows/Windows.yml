@@ -46,6 +46,13 @@ jobs:
         new-item ${{ github.workspace }}/install -itemtype directory
         new-item ${{ github.workspace }}/package -itemtype directory
 
+    - name: Create Test Database
+      run: |
+        $timestamp = [math]::Round([double](Get-Date -UFormat %s) * 1000)
+        $creds = New-Object System.Management.Automation.PSCredential("default", (ConvertTo-SecureString "${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" -AsPlainText -Force))
+        Invoke-WebRequest -Uri "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" -Method POST -ContentType "text/plain" -Body "create database test${timestamp}_odbc" -Credential $creds
+
+
     - name: Clone the repo
       uses: actions/checkout@v4
       with:
@@ -166,6 +173,20 @@ jobs:
           -Platform "$platform" `
           -SetPropertyValue @("Url=http://127.0.0.1:8123/", "User=default", "Compression=1")
 
+        Add-OdbcDsn `
+          -Name "ClickHouse AWS ANSI ZSTD" `
+          -DriverName "ClickHouse ODBC Driver (ANSI)" `
+          -DsnType "System" `
+          -Platform "$platform" `
+          -SetPropertyValue @("Url=${{ secrets.CLOUD_AWS_URL }}", "Compression=1")
+
+        Add-OdbcDsn `
+          -Name "ClickHouse AWS Unicode ZSTD" `
+          -DriverName "ClickHouse ODBC Driver (Unicode)" `
+          -DsnType "System" `
+          -Platform "$platform" `
+          -SetPropertyValue @("Url=${{ secrets.CLOUD_AWS_URL }}", "Compression=1")
+
         Write-Host "List of enabled DSNs:"
         Get-OdbcDsn -DsnType "System"
 
@@ -199,6 +220,17 @@ jobs:
       working-directory: ${{ github.workspace }}/build
       run: |
         ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '.*-ut.*'
+
+    - name: Test - Run C++ integration test in the Cloud
+      if: ${{ matrix.build_type == 'Release' && matrix.architecture == 'x64' }}
+      working-directory: ${{ github.workspace }}/build
+      env:
+        GTEST_FILTER: -AuthenticationTest.PasswordEncoding:PerformanceTest*
+      run: |
+        driver/test/${{ matrix.build_type }}/clickhouse-odbcw-client-it "ClickHouse AWS Unicode ZSTD"
+        driver/test/${{ matrix.build_type }}/clickhouse-odbcw-client-it "ClickHouse AWS ANSI ZSTD"
+        driver/test/${{ matrix.build_type }}/clickhouse-odbc-client-it "ClickHouse AWS Unicode ZSTD"
+        driver/test/${{ matrix.build_type }}/clickhouse-odbc-client-it "ClickHouse AWS ANSI ZSTD"
 
     - name: Prepare Pythons dependencies
       if: ${{ matrix.architecture == 'x64' }}

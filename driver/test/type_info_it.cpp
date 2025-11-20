@@ -9,8 +9,6 @@
 
 #include <Poco/Foundation.h>
 
-static std::string database_name = "default";
-
 class TypeInfoTest
     : public ClientTestBase
 {
@@ -19,6 +17,12 @@ class TypeInfoTest
 // Checks that each ClickHouse type is correctly mapped to a corresponding ODBC type
 TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
 {
+    bool allow_suspicious_low_cardinality_types = false;
+    auto is_suspicious_lct_readonly_res = singleStringQuery(
+        "SELECT readonly FROM system.settings WHERE name = 'allow_suspicious_low_cardinality_types'");
+    if (is_suspicious_lct_readonly_res.has_value() && *is_suspicious_lct_readonly_res == "0") {
+        allow_suspicious_low_cardinality_types = true;
+    }
 
     struct TypeMappingTestEntry
     {
@@ -60,10 +64,13 @@ TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
         {"Array(Int32)", "[1,2,3]", SQL_VARCHAR},
         {"Tuple(Int32, Int32)", "(1,2)", SQL_VARCHAR},
         {"LowCardinality(String)", "'0'", SQL_VARCHAR},
-        {"LowCardinality(Int32)", "0", SQL_INTEGER},
-        {"LowCardinality(DateTime)", "0", SQL_TYPE_TIMESTAMP},
         {"Enum('hello' = 0, 'world' = 1)", "'hello'", SQL_VARCHAR},
     };
+
+    if (allow_suspicious_low_cardinality_types) {
+        types.push_back({"LowCardinality(Int32)", "0", SQL_INTEGER});
+        types.push_back({"LowCardinality(DateTime)", "0", SQL_TYPE_TIMESTAMP});
+    }
 
     std::unordered_map<std::string, SQLSMALLINT> sql_types{};
     std::stringstream query_stream;
@@ -74,7 +81,9 @@ TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
         query_stream << " CAST(" + input + ", '" + type_escaped + "') as `" + type + "`,";
     }
     query_stream.seekp(-1, std::stringstream::cur) << " ";
-    query_stream << "SETTINGS allow_suspicious_low_cardinality_types = 1";
+    if (allow_suspicious_low_cardinality_types) {
+        query_stream << "SETTINGS allow_suspicious_low_cardinality_types = 1";
+    }
 
     auto query = fromUTF8<PTChar>(query_stream.str());
 
@@ -416,6 +425,8 @@ TEST_F(TypeInfoTest, AllTypesColumns)
     });
     // clang-format on
 
+    auto database_name = *singleStringQuery("SELECT currentDatabase()");
+
     size_t pos = 1;
     std::stringstream query_stream;
     query_stream << "create or replace table " << database_name << "." << table_name << "(\n";
@@ -483,7 +494,7 @@ TEST_F(TypeInfoTest, TimestampTypes)
 
     std::stringstream create_table_query_stream;
     create_table_query_stream
-        << "CREATE OR REPLACE TABLE " << database_name << "." << table_name << " ("
+        << "CREATE OR REPLACE TABLE " << table_name << " ("
         << "    dt DateTime, "
         << "    dt64 DateTime64(9)) "
         << "ENGINE MergeTree "
@@ -491,7 +502,7 @@ TEST_F(TypeInfoTest, TimestampTypes)
     auto create_table_query = fromUTF8<PTChar>(create_table_query_stream.str());
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(create_table_query.data()), SQL_NTS));
 
-    auto insert_query = fromUTF8<PTChar>("INSERT INTO " + database_name + "." + table_name + " VALUES (?, ?)");
+    auto insert_query = fromUTF8<PTChar>("INSERT INTO " + table_name + " VALUES (?, ?)");
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(insert_query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
         hstmt, 1, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 19, 0, &datetime, sizeof(datetime), nullptr));
@@ -500,7 +511,7 @@ TEST_F(TypeInfoTest, TimestampTypes)
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
     auto select_query = fromUTF8<PTChar>(
-        "SELECT * FROM " + database_name + "." + table_name + " WHERE dt = ? AND dt64 = ?");
+        "SELECT * FROM " + table_name + " WHERE dt = ? AND dt64 = ?");
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(select_query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
         hstmt, 1, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 19, 0, &datetime, sizeof(datetime), nullptr));
