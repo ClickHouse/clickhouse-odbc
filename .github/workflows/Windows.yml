@@ -24,6 +24,9 @@ defaults:
 jobs:
   build_and_test:
 
+    env:
+      TEST_DATABASE: ''
+
     strategy:
       fail-fast: false
       matrix:
@@ -58,16 +61,25 @@ jobs:
         arch: ${{ matrix.architecture }}
 
     - name: Configure with CMake
-      run: >
-        cmake -S ${{ github.workspace }}/source -B ${{ github.workspace }}/build
-        -A ${{ fromJSON('{"x86": "Win32", "x64": "x64"}')[matrix.architecture] }}
-        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DODBC_PROVIDER=${{ matrix.odbc_provider }}
-        -DCH_ODBC_RUNTIME_LINK_STATIC=OFF
-        -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=ON
-        -DTEST_DSN_LIST="ClickHouse DSN ANSI;ClickHouse DSN Unicode;ClickHouse DSN ANSI ZSTD;ClickHouse DSN Unicode ZSTD"
-        -DBUILD_TESTING=YES
+      run: |
+        $dsnList = @(
+          "ClickHouse DSN ANSI",
+          "ClickHouse DSN Unicode",
+          "ClickHouse DSN ANSI ZSTD",
+          "ClickHouse DSN Unicode ZSTD",
+          "ClickHouse AWS ANSI ZSTD",
+          "ClickHouse AWS Unicode ZSTD"
+        ) -join ";"
+
+        cmake -S ${{ github.workspace }}/source -B ${{ github.workspace }}/build `
+          -A ${{ fromJSON('{"x86": "Win32", "x64": "x64"}')[matrix.architecture] }} `
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 `
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+          -DODBC_PROVIDER=${{ matrix.odbc_provider }} `
+          -DCH_ODBC_RUNTIME_LINK_STATIC=OFF `
+          -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=ON `
+          -DTEST_DSN_LIST="$dsnList" `
+          -DBUILD_TESTING=YES
 
     - name: Build
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }}
@@ -89,6 +101,25 @@ jobs:
     - name: Test - Run unit tests
       working-directory: ${{ github.workspace }}/build
       run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
+
+    - name: Create Test Database
+      if: ${{ matrix.build_type == 'Release' && matrix.architecture == 'x64' }}
+      run: |
+        $timestamp = [math]::Round([double](Get-Date -UFormat %s) * 1000)
+        $database = "test${timestamp}_odbc_win_${{ matrix.architecture }}_${{ matrix.build_type }}"
+        "TEST_DATABASE=$database" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+        $pair = "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}"
+        $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
+        $base64 = [System.Convert]::ToBase64String($bytes)
+        $headers = @{ Authorization = "Basic $base64" }
+
+        Invoke-WebRequest -Uri "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" `
+            -Method POST `
+            -ContentType "text/plain" -Body "create database $database" `
+            -Headers $headers
+
+        Write-Host "The test database name is: $env:TEST_DATABASE"
 
     - name: Register ODBC driver in Windows Registry
       run: |
@@ -143,14 +174,14 @@ jobs:
           -DriverName "ClickHouse ODBC Driver (ANSI)" `
           -DsnType "System" `
           -Platform "$platform" `
-          -SetPropertyValue @("Url=http://127.0.0.1:8123/", "User=default")
+          -SetPropertyValue @("Url=http://127.0.0.1:8123/", "User=default", "Compression=0")
 
         Add-OdbcDsn `
           -Name "ClickHouse DSN Unicode" `
           -DriverName "ClickHouse ODBC Driver (Unicode)" `
           -DsnType "System" `
           -Platform "$platform" `
-          -SetPropertyValue @("Url=http://127.0.0.1:8123/", "User=default")
+          -SetPropertyValue @("Url=http://127.0.0.1:8123/", "User=default", "Compression=0")
 
         Add-OdbcDsn `
           -Name "ClickHouse DSN ANSI ZSTD" `
@@ -171,14 +202,14 @@ jobs:
           -DriverName "ClickHouse ODBC Driver (ANSI)" `
           -DsnType "System" `
           -Platform "$platform" `
-          -SetPropertyValue @("Url=${{ secrets.CLOUD_AWS_URL }}", "Compression=1")
+          -SetPropertyValue @("Url=https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?database=$env:TEST_DATABASE", "Username=default", "Password=${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}", "Compression=1")
 
         Add-OdbcDsn `
           -Name "ClickHouse AWS Unicode ZSTD" `
           -DriverName "ClickHouse ODBC Driver (Unicode)" `
           -DsnType "System" `
           -Platform "$platform" `
-          -SetPropertyValue @("Url=${{ secrets.CLOUD_AWS_URL }}", "Compression=1")
+          -SetPropertyValue @("Url=https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?database=$env:TEST_DATABASE", "Username=default", "Password=${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}", "Compression=1")
 
         Write-Host "List of enabled DSNs:"
         Get-OdbcDsn -DsnType "System"
@@ -209,10 +240,10 @@ jobs:
       run: |
           Invoke-WebRequest -Uri http://localhost:8123/?query=SELECT%20VERSION%28%29
 
-    - name: Test - Run integration tests
+    - name: Test - Run C++ integration tests
       working-directory: ${{ github.workspace }}/build
       run: |
-        ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '.*-ut.*'
+        ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '(.*-ut.*|-dsn-[45]$)'
 
     - name: Test - Run C++ integration test in the Cloud
       if: ${{ matrix.build_type == 'Release' && matrix.architecture == 'x64' }}
@@ -220,10 +251,7 @@ jobs:
       env:
         GTEST_FILTER: -AuthenticationTest.PasswordEncoding:PerformanceTest*
       run: |
-        driver/test/${{ matrix.build_type }}/clickhouse-odbcw-client-it "ClickHouse AWS Unicode ZSTD"
-        driver/test/${{ matrix.build_type }}/clickhouse-odbcw-client-it "ClickHouse AWS ANSI ZSTD"
-        driver/test/${{ matrix.build_type }}/clickhouse-odbc-client-it "ClickHouse AWS Unicode ZSTD"
-        driver/test/${{ matrix.build_type }}/clickhouse-odbc-client-it "ClickHouse AWS ANSI ZSTD"
+        ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '-dsn-[45]'
 
     - name: Prepare Pythons dependencies
       if: ${{ matrix.architecture == 'x64' }}
@@ -262,3 +290,20 @@ jobs:
         tag: ${{ github.ref }}
         file_glob: true
 
+    - name: Drop Test Database
+      if: always() && env.TEST_DATABASE != ''
+      run: |
+        $pair = "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}"
+        $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
+        $base64 = [System.Convert]::ToBase64String($bytes)
+        $headers = @{ Authorization = "Basic $base64" }
+
+        $response = Invoke-WebRequest -Uri "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" `
+            -Method POST `
+            -ContentType "text/plain" -Body "select name from system.tables where database = '$env:TEST_DATABASE'" `
+            -Headers $headers
+        $response.Content
+        Invoke-WebRequest -Uri "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" `
+            -Method POST `
+            -ContentType "text/plain" -Body "drop database if exists $env:TEST_DATABASE" `
+            -Headers $headers
