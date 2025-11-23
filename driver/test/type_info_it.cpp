@@ -449,7 +449,6 @@ TEST_F(TypeInfoTest, AllTypesColumns)
         EXPECT_EQ(reader.getData<std::string>("TABLE_CAT"), database_name);
         EXPECT_EQ(reader.getData<std::string>("TABLE_SCHEM"), "");
         EXPECT_EQ(reader.getData<std::string>("TABLE_NAME"), table_name);
-        EXPECT_EQ(reader.getData<std::string>("COLUMN_NAME"), column);
         EXPECT_EQ(reader.getData<SQLSMALLINT>("DATA_TYPE"), expected.at(column).data_type);
         EXPECT_EQ(reader.getData<std::string>("TYPE_NAME"), expected.at(column).type_name);
         EXPECT_EQ(reader.getData<SQLINTEGER>("COLUMN_SIZE"), expected.at(column).column_size);

@@ -100,3 +100,5 @@ using ClientTestBase = ClientTestBaseMixin<::testing::Test>;
 
 template <typename Params>
 using ClientTestWithParamBase = ClientTestBaseMixin<::testing::TestWithParam<Params>>;
+
+#define STMT_OK(expr) ODBC_CALL_ON_STMT_THROW(hstmt, (expr));
