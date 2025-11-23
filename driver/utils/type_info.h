@@ -251,6 +251,7 @@ struct BindingInfo {
     SQLSMALLINT c_type = SQL_C_DEFAULT;
     SQLPOINTER value = nullptr;
     SQLLEN value_max_size = 0;
+    SQLLEN value_offset = 0;
     SQLLEN * value_size = nullptr;
     SQLLEN * indicator = nullptr;
 
@@ -353,8 +354,16 @@ inline SQLRETURN fillOutputString(
     bool in_length_in_bytes,
     bool out_length_in_bytes,
     bool ensure_nts,
-    ConversionContext && context
+    ConversionContext && context,
+    size_t offset = 0
 ) {
+    // SQLGetData can be called multiple times to receive data in parts using a small buffer.
+    // Offset indicates how much _bytes_ has already been read. When data is read completely
+    // offset must be grater than actual data. This is done so that we know that this is
+    // is a subsequent call even when the source string is empty. This allows returning
+    // SQL_NO_DATA after SQL_SUCCESS for empty strings, which is required by the specification.
+    bool partial = (offset > 0);
+
     if (out_value) {
         if (out_value_max_length < 0)
             throw SqlException("Invalid string or buffer length", "HY090");
@@ -370,30 +379,40 @@ inline SQLRETURN fillOutputString(
     const auto out_value_max_length_in_symbols = (out_length_in_bytes ? (out_value_max_length / sizeof(CharType)) : out_value_max_length);
     const auto out_value_max_length_in_bytes = (out_length_in_bytes ? out_value_max_length : (out_value_max_length * sizeof(CharType)));
 
+    if (offset > converted_length_in_bytes) {
+        offset = converted_length_in_bytes;
+    }
+    size_t offset_in_symbols = offset / sizeof(CharType);
+
     fillOutputBufferInternal(
-        converted.data(),
-        converted_length_in_bytes,
+        converted.data() + offset / sizeof(*converted.data()),
+        converted_length_in_bytes - offset,
         out_value,
         out_value_max_length_in_bytes
     );
 
-    context.string_pool.retireString(std::move(converted));
-
     if (out_value_length) {
         if (out_length_in_bytes)
-            *out_value_length = converted_length_in_bytes;
+            *out_value_length = converted_length_in_bytes - offset;
         else
-            *out_value_length = converted_length_in_symbols;
+            *out_value_length = converted_length_in_symbols - offset_in_symbols;
     }
 
     if (ensure_nts && out_value) {
-        if (converted_length_in_symbols < out_value_max_length_in_symbols)
-            reinterpret_cast<CharType *>(out_value)[converted_length_in_symbols] = CharType{};
+        size_t symbols_written = converted_length_in_symbols - offset_in_symbols;
+        if (symbols_written < out_value_max_length_in_symbols)
+            reinterpret_cast<CharType *>(out_value)[symbols_written] = CharType{};
         else if (out_value_max_length_in_symbols > 0)
             reinterpret_cast<CharType *>(out_value)[out_value_max_length_in_symbols - 1] = CharType{};
     }
 
-    if ((converted_length_in_symbols + 1) > out_value_max_length_in_symbols) // +1 for null terminating character
+    context.string_pool.retireString(std::move(converted));
+
+    if (partial && offset >= converted_length_in_bytes) {
+        return SQL_NO_DATA;
+    }
+
+    if ((converted_length_in_symbols - offset_in_symbols) >= out_value_max_length_in_symbols)
         throw SqlException("String data, right truncated", "01004", SQL_SUCCESS_WITH_INFO);
 
     return SQL_SUCCESS;
@@ -406,7 +425,8 @@ inline SQLRETURN fillOutputString(
     LengthType1 out_value_max_length,
     LengthType2 * out_value_length,
     bool length_in_bytes,
-    ConversionContext && context = ConversionContext{}
+    ConversionContext && context = ConversionContext{},
+    size_t offset = 0
 ) {
     return fillOutputString<CharType>(
         in_value,
@@ -416,7 +436,8 @@ inline SQLRETURN fillOutputString(
         length_in_bytes,
         length_in_bytes,
         true,
-        std::forward<ConversionContext>(context)
+        std::forward<ConversionContext>(context),
+        offset
     );
 }
 
@@ -2081,10 +2102,24 @@ namespace value_manip {
                     *dest.indicator = 0; // (Null) indicator pointer of the binding. Value is not null here so we store 0 in it.
 
                 if constexpr (std::is_same_v<SourceType, std::string>) {
-                    return fillOutputString<char>(src, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
+                    return fillOutputString<char>(
+                        src,
+                        dest.value,
+                        dest.value_max_size,
+                        dest.value_size,
+                        true,
+                        std::forward<ConversionContext>(context),
+                        dest.value_offset);
                 }
                 else if constexpr (is_string_data_source_type_v<SourceType>) {
-                    return fillOutputString<char>(src.value, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
+                    return fillOutputString<char>(
+                        src.value,
+                        dest.value,
+                        dest.value_max_size,
+                        dest.value_size,
+                        true,
+                        std::forward<ConversionContext>(context),
+                        dest.value_offset);
                 }
                 else {
                     std::string dest_obj;
@@ -2108,10 +2143,24 @@ namespace value_manip {
                     *dest.indicator = 0; // (Null) indicator pointer of the binding. Value is not null here so we store 0 in it.
 
                 if constexpr (std::is_same_v<SourceType, std::string>) {
-                    return fillOutputString<char16_t>(src, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
+                    return fillOutputString<char16_t>(
+                        src,
+                        dest.value,
+                        dest.value_max_size,
+                        dest.value_size,
+                        true,
+                        std::forward<ConversionContext>(context),
+                        dest.value_offset);
                 }
                 else if constexpr (is_string_data_source_type_v<SourceType>) {
-                    return fillOutputString<char16_t>(src.value, dest.value, dest.value_max_size, dest.value_size, true, std::forward<ConversionContext>(context));
+                    return fillOutputString<char16_t>(
+                        src.value,
+                        dest.value,
+                        dest.value_max_size,
+                        dest.value_size,
+                        true,
+                        std::forward<ConversionContext>(context),
+                        dest.value_offset);
                 }
                 else {
                     std::string dest_obj;

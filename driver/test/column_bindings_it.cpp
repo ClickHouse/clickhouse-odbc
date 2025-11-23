@@ -5,10 +5,109 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#define LONG_TEXT                                                                            \
+    "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 "
+
+#define SHORT_TEXT "0 1 2 3 4 "
+
 class ColumnBindingsTest
     : public ClientTestBase
 {
 };
+
+/***********************************************************************************************************************
+ * SQLGetData specs
+ ***********************************************************************************************************************
+ * 1. SQLGetData can be called multiple times to retrieve variable-length data in parts.
+ * 2. If it is called more than once in succession for the same column, each call returns a successive part of the
+ *    data.
+ * 3. Each call except the last call returns SQL_SUCCESS_WITH_INFO and SQLSTATE 01004 (String data, right truncated);
+ *    the last call returns SQL_SUCCESS.
+ * 4. When there is no more data to return, SQLGetData returns SQL_NO_DATA.
+ * 5. Each part is null-terminated; the application must remove the null-termination character if concatenating the
+ *    parts (the application must remove the null-termination character if concatenating the parts.)
+ * 6. The value returned in the length/indicator buffer decreases in each call by the number of bytes returned in
+ *    the previous call
+ **********************************************************************************************************************/
+TEST_F(ColumnBindingsTest, SimpleGetData)
+{
+    auto query = fromUTF8<PTChar>("SELECT '" LONG_TEXT "'");
+    SQLTCHAR out_buf[sizeof(LONG_TEXT) + 16];
+    SQLLEN out_byte_len = 0;
+
+    STMT_OK(SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
+    STMT_OK(SQLExecute(hstmt));
+    STMT_OK(SQLFetch(hstmt));
+    STMT_OK(SQLGetData(hstmt, 1, getCTypeFor<SQLTCHAR *>(), out_buf, sizeof(out_buf), &out_byte_len));
+
+    size_t out_char_len = out_byte_len / sizeof(SQLTCHAR);
+    EXPECT_EQ(out_char_len, std::size(LONG_TEXT) - 1);
+    EXPECT_EQ(toUTF8(out_buf, out_char_len), std::string(LONG_TEXT));
+    EXPECT_EQ(out_buf[out_char_len], 0);
+}
+
+TEST_F(ColumnBindingsTest, PartialGetData)
+{
+    auto query = fromUTF8<PTChar>("SELECT '" LONG_TEXT "'");
+    SQLTCHAR out_buf[sizeof(LONG_TEXT) / 2 + 1];
+    SQLLEN out_byte_len = 0;
+    SQLLEN byte_offset = 0;
+
+    STMT_OK(SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
+    STMT_OK(SQLExecute(hstmt));
+    STMT_OK(SQLFetch(hstmt));
+
+    SQLRETURN res = SQL_SUCCESS_WITH_INFO;
+    while (res == SQL_SUCCESS_WITH_INFO) {
+        memset(out_buf, '=', sizeof(out_buf));
+        res = SQLGetData(hstmt, 1, getCTypeFor<SQLTCHAR *>(), out_buf, sizeof(out_buf), &out_byte_len);
+        size_t out_char_len = out_byte_len / sizeof(SQLTCHAR);
+        size_t real_char_len = std::min(out_char_len, std::size(out_buf) - 1);
+        EXPECT_EQ(toUTF8(out_buf, real_char_len), std::string(LONG_TEXT).substr(byte_offset, std::size(out_buf) - 1));
+        EXPECT_EQ(out_buf[real_char_len], 0);
+        byte_offset = real_char_len;
+    }
+    EXPECT_EQ(res, SQL_SUCCESS);
+
+    res = SQLGetData(hstmt, 1, getCTypeFor<SQLTCHAR *>(), out_buf, sizeof(out_buf), &out_byte_len);
+    EXPECT_EQ(res, SQL_NO_DATA);
+}
+
+TEST_F(ColumnBindingsTest, ExactBufferGetData)
+{
+    auto query = fromUTF8<PTChar>("SELECT '" LONG_TEXT "'");
+    SQLTCHAR out_buf[sizeof(LONG_TEXT) - 1];
+    SQLLEN out_buf_byte_len = 0;
+    SQLLEN byte_offset = 0;
+
+    STMT_OK(SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
+    STMT_OK(SQLExecute(hstmt));
+    STMT_OK(SQLFetch(hstmt));
+    STMT_OK(SQLGetData(hstmt, 1, getCTypeFor<SQLTCHAR *>(), out_buf, sizeof(out_buf), &out_buf_byte_len));
+
+    auto out_buf_char_len = (SQLLEN)std::size(out_buf) - 1;
+    EXPECT_EQ(out_buf_char_len, std::size(LONG_TEXT) - 2);
+    EXPECT_EQ(toUTF8(out_buf, out_buf_char_len), std::string(LONG_TEXT, std::size(LONG_TEXT) - 2));
+    EXPECT_EQ(out_buf[out_buf_char_len], 0);
+
+    STMT_OK(SQLGetData(hstmt, 1, getCTypeFor<SQLTCHAR *>(), out_buf, sizeof(out_buf), &out_buf_byte_len));
+    out_buf_char_len = out_buf_byte_len / sizeof(SQLTCHAR);
+    EXPECT_EQ(out_buf_char_len, 1);
+    EXPECT_EQ(toUTF8(out_buf, out_buf_char_len), std::string(&LONG_TEXT[std::size(LONG_TEXT) - 2]));
+    EXPECT_EQ(out_buf[1], 0);
+}
+
+TEST_F(ColumnBindingsTest, NullOutSize)
+{
+    auto query = fromUTF8<PTChar>("SELECT '" SHORT_TEXT "'");
+    SQLTCHAR out_buf[sizeof(SHORT_TEXT)];
+
+    STMT_OK(SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
+    STMT_OK(SQLExecute(hstmt));
+    STMT_OK(SQLFetch(hstmt));
+    STMT_OK(SQLGetData(hstmt, 1, getCTypeFor<SQLTCHAR *>(), out_buf, sizeof(out_buf), NULL));
+    EXPECT_EQ(toUTF8(out_buf), std::string(SHORT_TEXT));
+}
 
 class ColumnArrayBindingsTest
     : public ColumnBindingsTest

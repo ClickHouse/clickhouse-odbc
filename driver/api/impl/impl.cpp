@@ -668,6 +668,8 @@ SQLRETURN BindCol(
         if (ColumnNumber < 1)
             throw SqlException("Invalid descriptor index", "07009");
 
+        statement.resetColumnOffsets();
+
         auto & ard_desc = statement.getEffectiveDescriptor(SQL_ATTR_APP_ROW_DESC);
         const auto ard_record_count = ard_desc.getRecordCount();
 
@@ -1473,6 +1475,10 @@ SQLRETURN GetData(
         if (!statement.hasResultSet())
             throw SqlException("Column info is not available", "07005");
 
+        SQLLEN dummy = 0;
+        if (!StrLen_or_IndPtr)
+            StrLen_or_IndPtr = &dummy;
+
         auto & result_set = statement.getResultSet();
 
         if (result_set.getCurrentRowPosition() < 1)
@@ -1484,14 +1490,40 @@ SQLRETURN GetData(
         const auto row_idx = result_set.getCurrentRowPosition() - result_set.getCurrentRowSetPosition();
         const auto column_idx = Col_or_Param_Num - 1;
 
+        size_t offset = statement.getColumnOffset(column_idx);
+
         BindingInfo binding_info;
         binding_info.c_type = TargetType;
         binding_info.value = TargetValuePtr;
         binding_info.value_max_size = BufferLength;
+        binding_info.value_offset = offset;
         binding_info.value_size = StrLen_or_IndPtr;
         binding_info.indicator = StrLen_or_IndPtr;
 
-        return fillBinding(statement, result_set, row_idx, column_idx, binding_info);
+        size_t null_size = (TargetType == SQL_C_WCHAR ? sizeof(SQLWCHAR) : sizeof(SQLCHAR));
+        SQLRETURN ret = 0;
+        try {
+            ret = fillBinding(statement, result_set, row_idx, column_idx, binding_info);
+        } catch (const SqlException & ex) {
+            bool is_char_type = TargetType == SQL_C_CHAR || TargetType == SQL_C_WCHAR;
+            if (ex.getReturnCode() != SQL_SUCCESS_WITH_INFO || *binding_info.indicator < 0 || !is_char_type) {
+                throw;
+            }
+            statement.setColumnOffset(column_idx, offset + BufferLength - null_size);
+            throw;
+        }
+
+        if (ret == SQL_SUCCESS) {
+            SQLLEN out_len = *binding_info.indicator;
+            // Make sure to add one character to indicate partial load even when string is empty.
+            statement.setColumnOffset(column_idx, offset + static_cast<size_t>(out_len) + null_size);
+        }
+
+        if (ret == SQL_NO_DATA) {
+            statement.setColumnOffset(column_idx, 0);
+        }
+
+        return ret;
     };
 
     return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, StatementHandle, func);
@@ -1501,6 +1533,7 @@ SQLRETURN Fetch(
     SQLHSTMT       StatementHandle
 ) noexcept {
     auto func = [&] (Statement & statement) {
+        statement.resetColumnOffsets();
         return fetchBindings(statement, SQL_FETCH_NEXT, 0);
     };
 
@@ -1513,6 +1546,7 @@ SQLRETURN FetchScroll(
     SQLLEN        FetchOffset
 ) noexcept {
     auto func = [&] (Statement & statement) {
+        statement.resetColumnOffsets();
         return fetchBindings(statement, FetchOrientation, FetchOffset);
     };
 

@@ -74,6 +74,21 @@ public:
     /// Make an implicit descriptor active again.
     void setImplicitDescriptor(SQLINTEGER type);
 
+    void resetColumnOffsets()
+    {
+        column_offsets = {};
+    }
+
+    size_t getColumnOffset(SQLUSMALLINT column)
+    {
+        return column_offsets[column];
+    }
+
+    void setColumnOffset(SQLUSMALLINT column, size_t offset)
+    {
+        column_offsets[column] = offset;
+    }
+
 public:
     // public only for the unit tests
     struct HttpRequestData {
@@ -115,6 +130,11 @@ private:
     bool is_executed = false;
     std::string query;
     std::vector<ParamInfo> parameters;
+
+    // SQLGetData allows reading data in parts, i.e. any subsequent call
+    // to it will send the rest of the data, if it did not initially fit
+    // into the buffer. This map holds the offsets.
+    std::unordered_map<SQLUSMALLINT, size_t> column_offsets;
 
     std::unique_ptr<Poco::Net::HTTPResponse> response;
     std::istream* in = nullptr;
