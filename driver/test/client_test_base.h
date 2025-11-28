@@ -60,6 +60,38 @@ public:
         return toUTF8(query_id_data);
     }
 
+    std::optional<std::string> singleStringQuery(const std::string & query)
+    {
+        static constexpr size_t max_result_length = 1024;
+        auto query_encoded = fromUTF8<PTChar>(query);
+
+        HSTMT query_stmt = nullptr;
+        ODBC_CALL_ON_DBC_THROW(hdbc, SQLAllocHandle(SQL_HANDLE_STMT, hdbc, &query_stmt));
+        auto free_stmt = [](SQLHSTMT stmt) { SQLFreeHandle(SQL_HANDLE_STMT, stmt); };
+        auto query_stmt_cleanup = std::unique_ptr<void, decltype(free_stmt)>(query_stmt, free_stmt);
+
+        std::basic_string<PTChar> out(max_result_length, '\0');
+        SQLLEN out_len = 0;
+        ODBC_CALL_ON_STMT_THROW(query_stmt, SQLExecDirect(query_stmt, ptcharCast(query_encoded.data()), SQL_NTS));
+
+        auto fetch_res = SQLFetch(query_stmt);
+        if (fetch_res == SQL_NO_DATA) {
+            return std::nullopt;
+        }
+        ODBC_CALL_ON_DBC_THROW(query_stmt, fetch_res);
+
+        ODBC_CALL_ON_STMT_THROW(query_stmt, SQLGetData(
+            query_stmt,
+            1,
+            getCTypeFor<SQLTCHAR*>(),
+            out.data(),
+            out.size(),
+            &out_len
+        ));
+        out.resize(out_len / sizeof(PTChar));
+        return toUTF8(out);
+    }
+
 protected:
     virtual void SetUp() override {
         ODBC_CALL_ON_ENV_THROW(henv, SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &henv));
