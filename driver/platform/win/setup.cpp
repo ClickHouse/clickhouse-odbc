@@ -81,6 +81,7 @@ void readDSNinfo(ConnInfo * ci, bool overwrite) {
     GET_CONFIG(driverlogfile,   INI_DRIVERLOGFILE,   INI_DRIVERLOGFILE_DEFAULT);
     GET_CONFIG(autoSessionId,   INI_AUTO_SESSION_ID, INI_AUTO_SESSION_ID_DEFAULT);
     GET_CONFIG(clientName,      INI_CLIENT_NAME,     INI_CLIENT_NAME_DEFAULT);
+    GET_CONFIG(compression,     INI_COMPRESSION,     INI_COMPRESSION_DEFAULT);
 
 #undef GET_CONFIG
 }
@@ -124,6 +125,7 @@ void writeDSNinfo(const ConnInfo * ci) {
     WRITE_CONFIG(driverlogfile,   INI_DRIVERLOGFILE);
     WRITE_CONFIG(autoSessionId, INI_AUTO_SESSION_ID);
     WRITE_CONFIG(clientName,      INI_CLIENT_NAME);
+    WRITE_CONFIG(compression,     INI_COMPRESSION);
 
 #undef WRITE_CONFIG
 }
@@ -332,6 +334,9 @@ inline INT_PTR ConfigDlgProc_(
             SET_DLG_ITEM(timeout, IDC_TIMEOUT);
             SET_DLG_ITEM(sslmode, IDC_SSLMODE);
 
+            bool compression = (ci.compression == "1");
+            CheckDlgButton(hdlg, IDC_COMPRESSION, compression ? BST_CHECKED : BST_UNCHECKED);
+
 #undef SET_DLG_ITEM
 
             return TRUE; /* Focus was not set */
@@ -364,6 +369,7 @@ inline INT_PTR ConfigDlgProc_(
                     GET_DLG_ITEM(password, IDC_PASSWORD);
                     GET_DLG_ITEM(timeout, IDC_TIMEOUT);
                     GET_DLG_ITEM(sslmode, IDC_SSLMODE);
+                    ci.compression = IsDlgButtonChecked(hdlg, IDC_COMPRESSION) ? "1" : "0";
 
 #undef GET_DLG_ITEM
 
