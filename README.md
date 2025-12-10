@@ -475,7 +475,7 @@ Execute the following in the terminal:
 sudo yum install epel-release
 sudo yum groupinstall "Development Tools"
 sudo yum install centos-release-scl
-sudo yum install devtoolset-8
+sudo yum install devtoolset-11
 sudo yum install git cmake3 rpm-build openssl-devel libicu-devel unixODBC-devel
 ```
 
@@ -487,7 +487,7 @@ Execute the following in the terminal:
 sudo yum install epel-release
 sudo yum groupinstall "Development Tools"
 sudo yum install centos-release-scl
-sudo yum install devtoolset-8
+sudo yum install devtoolset-11
 sudo yum install git cmake3 rpm-build openssl-devel libicu-devel libiodbc-devel
 ```
 
@@ -496,7 +496,7 @@ sudo yum install git cmake3 rpm-build openssl-devel libicu-devel libiodbc-devel
 All of the following commands have to be issued right after this one command issued in the same terminal session:
 
 ```sh
-scl enable devtoolset-8 -- bash
+scl enable devtoolset-11 -- bash
 ```
 
 Clone the repo with submodules:
