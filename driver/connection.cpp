@@ -94,6 +94,7 @@ Poco::URI Connection::getUri() const {
     bool default_format_set = false;
     bool session_id_set = false;
     bool enable_http_compression_set = false;
+    bool cast_keep_nullable_set = false;
 
     for (const auto& parameter : uri.getQueryParameters()) {
         if (Poco::UTF8::icompare(parameter.first, "default_format") == 0) {
@@ -107,6 +108,9 @@ Poco::URI Connection::getUri() const {
         }
         else if (Poco::UTF8::icompare(parameter.first, "enable_http_compression") == 0 && !parameter.second.empty()) {
             enable_http_compression_set = true;
+        }
+        else if (Poco::UTF8::icompare(parameter.first, "cast_keep_nullable") == 0 && !parameter.second.empty()) {
+            cast_keep_nullable_set = true;
         }
     }
 
@@ -125,6 +129,10 @@ Poco::URI Connection::getUri() const {
     // Add http compression parameter, but only if the parameter is not already defined in the URI
     if (enable_http_compression && !enable_http_compression_set) {
         uri.addQueryParameter("enable_http_compression", enable_http_compression ? "1" : "0");
+    }
+
+    if (!cast_keep_nullable_set) {
+        uri.addQueryParameter("cast_keep_nullable", "1");
     }
 
     return uri;
