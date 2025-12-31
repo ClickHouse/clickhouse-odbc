@@ -109,17 +109,12 @@ jobs:
         $database = "test${timestamp}_odbc_win_${{ matrix.architecture }}_${{ matrix.build_type }}"
         "TEST_DATABASE=$database" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-        $pair = "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}"
-        $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
-        $base64 = [System.Convert]::ToBase64String($bytes)
-        $headers = @{ Authorization = "Basic $base64" }
+        curl.exe --fail-with-body -X POST `
+          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" `
+          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" `
+          -d "create database $database"
 
-        Invoke-WebRequest -Uri "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" `
-            -Method POST `
-            -ContentType "text/plain" -Body "create database $database" `
-            -Headers $headers
-
-        Write-Host "The test database name is: $env:TEST_DATABASE"
+        Write-Host "The test database name is: $database"
 
     - name: Register ODBC driver in Windows Registry
       run: |
@@ -238,7 +233,7 @@ jobs:
 
     - name: Ping ClickHouse Server from Windows
       run: |
-          Invoke-WebRequest -Uri http://localhost:8123/?query=SELECT%20VERSION%28%29
+          curl.exe http://localhost:8123/?query=SELECT%20VERSION%28%29
 
     - name: Test - Run C++ integration tests
       working-directory: ${{ github.workspace }}/build
@@ -293,17 +288,11 @@ jobs:
     - name: Drop Test Database
       if: always() && env.TEST_DATABASE != ''
       run: |
-        $pair = "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}"
-        $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
-        $base64 = [System.Convert]::ToBase64String($bytes)
-        $headers = @{ Authorization = "Basic $base64" }
-
-        $response = Invoke-WebRequest -Uri "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" `
-            -Method POST `
-            -ContentType "text/plain" -Body "select name from system.tables where database = '$env:TEST_DATABASE'" `
-            -Headers $headers
-        $response.Content
-        Invoke-WebRequest -Uri "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" `
-            -Method POST `
-            -ContentType "text/plain" -Body "drop database if exists $env:TEST_DATABASE" `
-            -Headers $headers
+        curl.exe --fail-with-body -X POST `
+          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" `
+          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" `
+          -d "select name from system.tables where database = '$env:TEST_DATABASE'"
+        curl.exe --fail-with-body -X POST `
+          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" `
+          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" `
+          -d "drop database if exists $env:TEST_DATABASE"
