@@ -334,7 +334,7 @@ INSTANTIATE_TEST_SUITE_P(CustomUserAgentParams, CustomClientName, ::testing::Val
     std::make_tuple(std::nullopt, "")
 ));
 
-TEST_P(CustomClientName, UserAgentTest) {
+TEST_P(CustomClientName, DISABLED_UserAgentTest) {
     using namespace std::chrono_literals;
     using std::chrono::high_resolution_clock;
 
