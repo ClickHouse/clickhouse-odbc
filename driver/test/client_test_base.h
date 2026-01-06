@@ -78,7 +78,7 @@ public:
         if (fetch_res == SQL_NO_DATA) {
             return std::nullopt;
         }
-        ODBC_CALL_ON_DBC_THROW(query_stmt, fetch_res);
+        ODBC_CALL_ON_STMT_THROW(query_stmt, fetch_res);
 
         ODBC_CALL_ON_STMT_THROW(query_stmt, SQLGetData(
             query_stmt,

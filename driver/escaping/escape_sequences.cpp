@@ -1,5 +1,5 @@
 /*
- 
+
  https://docs.faircom.com/doc/sqlref/#33384.htm
  https://docs.microsoft.com/ru-ru/sql/odbc/reference/appendixes/time-date-and-interval-functions
  https://my.vertica.com/docs/7.2.x/HTML/index.htm#Authoring/SQLReferenceManual/Functions/Date-Time/TIMESTAMPADD.htm%3FTocPath%3DSQL%2520Reference%2520Manual%7CSQL%2520Functions%7CDate%252FTime%2520Functions%7C_____43
@@ -8,6 +8,7 @@
 #include "driver/escaping/escape_sequences.h"
 #include "driver/escaping/lexer.h"
 
+#include <charconv>
 #include <iostream>
 #include <map>
 
@@ -182,8 +183,87 @@ string processFunction(const StringView seq, Lexer & lex) {
 
         return result;
 
+    } else if (fn.type == Token::BIT_LENGTH) {
+        if (!lex.Match(Token::LPARENT))
+            return seq.to_string();
+        auto expr = processIdentOrFunction(seq, lex);
+        if (expr.empty())
+            return seq.to_string();
+        std::string result = "(length(" + expr +") * 8)";
+        if (!lex.Match(Token::RPARENT))
+            return seq.to_string();
+        return result;
+    } else if (fn.type == Token::DIFFERENCE) {
+        if (!lex.Match(Token::LPARENT))
+            return seq.to_string();
+        std::string str1 = processIdentOrFunction(seq, lex);
+        if (str1.empty())
+            return seq.to_string();
+        if (!lex.Match(Token::COMMA))
+            return seq.to_string();
+        std::string str2 = processIdentOrFunction(seq, lex);
+        if (str2.empty())
+            return seq.to_string();
+        if (!lex.Match(Token::RPARENT))
+            return seq.to_string();
+        return
+            "(equals(substring(soundex(" + str1 + "),1,1), substring(soundex(" + str2 +"),1,1)) +"
+            " equals(substring(soundex(" + str1 + "),2,1), substring(soundex(" + str2 +"),2,1)) +"
+            " equals(substring(soundex(" + str1 + "),3,1), substring(soundex(" + str2 +"),3,1)) +"
+            " equals(substring(soundex(" + str1 + "),4,1), substring(soundex(" + str2 +"),4,1)))";
+    } else if (fn.type == Token::INSERT) {
+        if (!lex.Match(Token::LPARENT))
+            return seq.to_string();
+        std::string src = processIdentOrFunction(seq, lex);
+        if (src.empty())
+            return seq.to_string();
+        if (!lex.Match(Token::COMMA))
+            return seq.to_string();
+        std::string start_str = processIdentOrFunction(seq, lex);
+        if (start_str.empty())
+            return seq.to_string();
+        int64_t start = 0;
+        auto start_ec = std::from_chars(start_str.data(), start_str.data() + start_str.size(), start).ec;
+        if (start_ec != std::errc{})
+            return seq.to_string();
+        if (!lex.Match(Token::COMMA))
+            return seq.to_string();
+        std::string len_str = processIdentOrFunction(seq, lex);
+        if (len_str.empty())
+            return seq.to_string();
+        int64_t len = 0;
+        auto len_ec = std::from_chars(len_str.data(), len_str.data() + len_str.size(), len).ec;
+        if (len_ec != std::errc{})
+            return seq.to_string();
+        if (!lex.Match(Token::COMMA))
+            return seq.to_string();
+        std::string replace = processIdentOrFunction(seq, lex);
+        if (replace.empty())
+            return seq.to_string();
+        if (!lex.Match(Token::RPARENT))
+            return seq.to_string();
+        if (start <= 0 || len < 0)
+            return "cast (NULL, 'Nullable(String)')";
+        return "concat( "
+            "substringUTF8(" + src + ", 1, " + std::to_string(start - 1) + "), " +
+            replace + ", "
+            "substringUTF8(" + src + ", " + std::to_string(start + len) + ") )";
+    } else if (fn.type == Token::POSITION) {
+        if (!lex.Match(Token::LPARENT))
+            return seq.to_string();
+        std::string needle = processIdentOrFunction(seq, lex);
+        if (needle.empty())
+            return seq.to_string();
+        auto in = lex.Consume();
+        if (in.literal != "IN")
+            return seq.to_string();
+        std::string haystack = processIdentOrFunction(seq, lex);
+        if (haystack.empty())
+            return seq.to_string();
+        if (!lex.Match(Token::RPARENT))
+            return seq.to_string();
+        return "positionUTF8(" + haystack + ", " + needle + ")";
     } else if (fn.type == Token::TIMESTAMPADD) {
-        string result;
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
 
@@ -208,6 +288,7 @@ string processFunction(const StringView seq, Lexer & lex) {
         if (rdate.empty())
             return seq.to_string();
 
+        std::string result;
         if (!func.empty()) {
             while (lex.Match(Token::SPACE)) {
             }
@@ -219,7 +300,6 @@ string processFunction(const StringView seq, Lexer & lex) {
         return result;
 
     } else if (fn.type == Token::LOCATE) {
-        string result;
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
 
@@ -246,7 +326,7 @@ string processFunction(const StringView seq, Lexer & lex) {
         // match the type required by `locate`. To avoid the illegal type argument
         // error, we cast the offset parameter to UInt64. The `accurateCast` function
         // ensures that the parameter value is never negative.
-        result = "locate(" + needle + "," + haystack + ",accurateCast(" + offset + ",'UInt64'))";
+        std::string result = "locate(" + needle + "," + haystack + ",accurateCast(" + offset + ",'UInt64'))";
 
         return result;
 

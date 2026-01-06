@@ -323,3 +323,7 @@ TEST(EscapeSequencesCase, LTRIM) {
     ASSERT_EQ(replaceEscapeSequences("{fn LTRIM(`dm_ExperimentsData`.`Campaign`)}"),
         "replaceRegexpOne(`dm_ExperimentsData`.`Campaign`, '^\\\\s+', '')");
 }
+
+TEST(EscapeSequencesCase, BIT_LENGTH) {
+    ASSERT_EQ(replaceEscapeSequences("{fn BIT_LENGTH('Hello World!')}"), "(length('Hello World!') * 8)");
+}
