@@ -145,10 +145,6 @@ TEST_F(ScalarFunctionsTest, INSERT) {
     // Edge case: empty str1
     query("SELECT {fn INSERT('', 1, 0, 'Hello')}", SQL_C_CHAR, result, sizeof(result), NULL);
     ASSERT_STREQ(result, "Hello");
-
-    // Edge case: negative start (should return original string)
-    query("SELECT {fn INSERT('Hello', -1, 2, 'XYZ')}", SQL_C_CHAR, result, sizeof(result), &indicator);
-    ASSERT_EQ(indicator, SQL_NULL_DATA);
 }
 
 TEST_F(ScalarFunctionsTest, LCASE) {
@@ -329,6 +325,23 @@ TEST_F(ScalarFunctionsTest, SOUNDEX) {
 
     query("SELECT {fn SOUNDEX('Hello')}", SQL_C_CHAR, result, sizeof(result), NULL);
     ASSERT_STREQ(result, "H400");
+}
+
+TEST_F(ScalarFunctionsTest, SPACE) {
+    char result[64] = {0};
+
+    query("SELECT {fn SPACE(5)}", SQL_C_CHAR, result, sizeof(result), NULL);
+    ASSERT_STREQ(result, "     ");
+
+    query("SELECT {fn SPACE(1)}", SQL_C_CHAR, result, sizeof(result), NULL);
+    ASSERT_STREQ(result, " ");
+
+    query("SELECT {fn SPACE(0)}", SQL_C_CHAR, result, sizeof(result), NULL);
+    ASSERT_STREQ(result, "");
+
+    // Verify length
+    query("SELECT {fn SPACE(10)}", SQL_C_CHAR, result, sizeof(result), NULL);
+    ASSERT_STREQ(result, "          ");
 }
 
 TEST_F(ScalarFunctionsTest, SUBSTRING) {

@@ -25,7 +25,7 @@
     DECLARE2(RIGHT, "rightUTF8"),
     DECLARE2(RTRIM, "trimRight"),
     DECLARE2(SOUNDEX, "soundex"),
-    // DECLARE2(SPACE, ""), // special handling
+    DECLARE2(SPACE, ""), // special handling
     DECLARE2(SUBSTRING, "substringUTF8"),
     DECLARE2(UCASE, "upperUTF8"),
 

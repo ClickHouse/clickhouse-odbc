@@ -248,6 +248,15 @@ string processFunction(const StringView seq, Lexer & lex) {
             "substringUTF8(" + src + ", 1, " + std::to_string(start - 1) + "), " +
             replace + ", "
             "substringUTF8(" + src + ", " + std::to_string(start + len) + ") )";
+    } else if (fn.type == Token::FN_SPACE) {
+        if (!lex.Match(Token::LPARENT))
+            return seq.to_string();
+        std::string count = processIdentOrFunction(seq, lex);
+        if (count.empty())
+            return seq.to_string();
+        if (!lex.Match(Token::RPARENT))
+            return seq.to_string();
+        return "repeat(' ', " + count + ")";
     } else if (fn.type == Token::FN_POSITION) {
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
