@@ -10,7 +10,7 @@ namespace {
 #define DECLARE(NAME) \
     { #NAME, Token::NAME }
 #define DECLARE2(NAME, IGNORE) \
-    { #NAME, Token::NAME }
+    { #NAME, Token::FN_##NAME }
 #define DECLARE_SQL_TSI(NAME) \
     { #NAME, Token::SQL_TSI_##NAME }
 

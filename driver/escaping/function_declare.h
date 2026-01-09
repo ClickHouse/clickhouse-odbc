@@ -77,7 +77,7 @@
     DECLARE2(TIMESTAMPADD, ""), // special handling
     DECLARE2(TIMESTAMPDIFF, "dateDiff"),
     DECLARE2(WEEK, "toISOWeek"),
-    DECLARE2(SQL_TSI_QUARTER, "toQuarter"),
+    DECLARE2(QUARTER, "toQuarter"),
     DECLARE2(YEAR, "toYear"),
 
     // DECLARE2(DATABASE, ""),

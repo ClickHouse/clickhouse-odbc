@@ -7,7 +7,7 @@
 
 // Allow same declaration as in lexer.cpp
 #define DECLARE(NAME) NAME
-#define DECLARE2(NAME, IGNORE) NAME
+#define DECLARE2(NAME, IGNORE) FN_##NAME
 #define DECLARE_SQL_TSI(NAME) SQL_TSI_##NAME
 
 struct Token {

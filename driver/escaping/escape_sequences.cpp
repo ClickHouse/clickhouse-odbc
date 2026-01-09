@@ -31,7 +31,7 @@ const std::map<const std::string, const std::string> fn_convert_map {
 };
 
 #define DECLARE2(TOKEN, NAME) \
-    { Token::TOKEN, NAME }
+    { Token::FN_##TOKEN, NAME }
 
 const std::map<const Token::Type, const std::string> function_map {
 #include "function_declare.h"
@@ -40,7 +40,7 @@ const std::map<const Token::Type, const std::string> function_map {
 #undef DECLARE2
 
 const std::map<const Token::Type, const std::string> function_map_strip_params {
-    {Token::CURRENT_TIMESTAMP, "now()"},
+    {Token::FN_CURRENT_TIMESTAMP, "now()"},
 };
 
 const std::map<const Token::Type, const std::string> literal_map {
@@ -145,7 +145,7 @@ string processIdentOrFunction(const StringView seq, Lexer & lex) {
 string processFunction(const StringView seq, Lexer & lex) {
     const Token fn(lex.Consume());
 
-    if (fn.type == Token::CONVERT) {
+    if (fn.type == Token::FN_CONVERT) {
         string result;
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
@@ -183,7 +183,7 @@ string processFunction(const StringView seq, Lexer & lex) {
 
         return result;
 
-    } else if (fn.type == Token::BIT_LENGTH) {
+    } else if (fn.type == Token::FN_BIT_LENGTH) {
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
         auto expr = processIdentOrFunction(seq, lex);
@@ -193,7 +193,7 @@ string processFunction(const StringView seq, Lexer & lex) {
         if (!lex.Match(Token::RPARENT))
             return seq.to_string();
         return result;
-    } else if (fn.type == Token::DIFFERENCE) {
+    } else if (fn.type == Token::FN_DIFFERENCE) {
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
         std::string str1 = processIdentOrFunction(seq, lex);
@@ -211,7 +211,7 @@ string processFunction(const StringView seq, Lexer & lex) {
             " equals(substring(soundex(" + str1 + "),2,1), substring(soundex(" + str2 +"),2,1)) +"
             " equals(substring(soundex(" + str1 + "),3,1), substring(soundex(" + str2 +"),3,1)) +"
             " equals(substring(soundex(" + str1 + "),4,1), substring(soundex(" + str2 +"),4,1)))";
-    } else if (fn.type == Token::INSERT) {
+    } else if (fn.type == Token::FN_INSERT) {
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
         std::string src = processIdentOrFunction(seq, lex);
@@ -248,7 +248,7 @@ string processFunction(const StringView seq, Lexer & lex) {
             "substringUTF8(" + src + ", 1, " + std::to_string(start - 1) + "), " +
             replace + ", "
             "substringUTF8(" + src + ", " + std::to_string(start + len) + ") )";
-    } else if (fn.type == Token::POSITION) {
+    } else if (fn.type == Token::FN_POSITION) {
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
         std::string needle = processIdentOrFunction(seq, lex);
@@ -263,7 +263,7 @@ string processFunction(const StringView seq, Lexer & lex) {
         if (!lex.Match(Token::RPARENT))
             return seq.to_string();
         return "positionUTF8(" + haystack + ", " + needle + ")";
-    } else if (fn.type == Token::TIMESTAMPADD) {
+    } else if (fn.type == Token::FN_TIMESTAMPADD) {
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
 
@@ -299,7 +299,7 @@ string processFunction(const StringView seq, Lexer & lex) {
         }
         return result;
 
-    } else if (fn.type == Token::LOCATE) {
+    } else if (fn.type == Token::FN_LOCATE) {
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
 
@@ -330,7 +330,7 @@ string processFunction(const StringView seq, Lexer & lex) {
 
         return result;
 
-    } else if (fn.type == Token::LTRIM) {
+    } else if (fn.type == Token::FN_LTRIM) {
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
 
@@ -340,7 +340,7 @@ string processFunction(const StringView seq, Lexer & lex) {
         lex.Consume();
         return "replaceRegexpOne(" + param + ", '^\\\\s+', '')";
 
-    } else if (fn.type == Token::DAYOFWEEK) {
+    } else if (fn.type == Token::FN_DAYOFWEEK) {
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
 
@@ -383,7 +383,7 @@ string processFunction(const StringView seq, Lexer & lex) {
                 lex.SetEmitSpaces(true);
             } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
                 break;
-            } else if (tok.type == Token::EXTRACT) {
+            } else if (tok.type == Token::FN_EXTRACT) {
                 result += processFunction(seq, lex);
             } else {
                 if (func != "EXTRACT" && literal_map.find(tok.type) != literal_map.end()) {
