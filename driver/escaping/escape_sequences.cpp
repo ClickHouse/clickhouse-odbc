@@ -332,10 +332,10 @@ string processFunction(const StringView seq, Lexer & lex) {
         // ClickHouse requires `start_pos` to be an unsigned integer,
         // whereas ODBC clients map it as a signed integer. This results in
         // a named parameter such as `{odbc_positional_:Int32}`, which does not
-        // match the type required by `locate`. To avoid the illegal type argument
+        // match the type required by `position`. To avoid the illegal type argument
         // error, we cast the offset parameter to UInt64. The `accurateCast` function
         // ensures that the parameter value is never negative.
-        std::string result = "locate(" + needle + "," + haystack + ",accurateCast(" + offset + ",'UInt64'))";
+        std::string result = "position(" + haystack + "," + needle  + ",accurateCast(" + offset + ",'UInt64'))";
 
         return result;
 
