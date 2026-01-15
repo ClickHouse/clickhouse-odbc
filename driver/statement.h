@@ -100,7 +100,6 @@ public:
 private:
     void requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mutator);
 
-    void processEscapeSequences();
     void extractParametersinfo();
     std::string buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings);
     std::string getParamFinalName(std::size_t param_idx);

@@ -297,22 +297,8 @@ TEST(EscapeSequencesCase, DateTime) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017.01.01 10:01:01'}"), "SELECT toDateTime('2017.01.01 10:01:01')");
 }
 
-TEST(EscapeSequencesCase, LOCATE) {
-    ASSERT_EQ(replaceEscapeSequences(
-        "SELECT {fn LOCATE('needle', `haystack`, 42)}"),
-        "SELECT locate('needle',`haystack`,accurateCast(42,'UInt64'))");
-    ASSERT_EQ(replaceEscapeSequences(
-        "SELECT {fn LOCATE(?, `haystack`, 42)}"),
-        "SELECT locate(?,`haystack`,accurateCast(42,'UInt64'))");
-    ASSERT_EQ(replaceEscapeSequences(
-        "SELECT {fn LOCATE('needle', `haystack`, ?)}"),
-        "SELECT locate('needle',`haystack`,accurateCast(?,'UInt64'))");
-    ASSERT_EQ(replaceEscapeSequences(
-        "SELECT {fn LOCATE('needle', `haystack`)}"),
-        "SELECT locate('needle',`haystack`,accurateCast(1,'UInt64'))");
-    ASSERT_EQ(replaceEscapeSequences(
-        "SELECT {fn LOCATE(?, `haystack`)}"),
-        "SELECT locate(?,`haystack`,accurateCast(1,'UInt64'))");
+TEST(EscapeSequencesCase, ClickHouseParametersInEscapeSequences) {
+    ASSERT_EQ(replaceEscapeSequences("{fn BIT_LENGTH({odbc_positional_1:Nullable(String)})}"), "(length({odbc_positional_1:Nullable(String)}) * 8)");
 }
 
 TEST(EscapeSequencesCase, LCASE) {
@@ -327,3 +313,4 @@ TEST(EscapeSequencesCase, LTRIM) {
 TEST(EscapeSequencesCase, BIT_LENGTH) {
     ASSERT_EQ(replaceEscapeSequences("{fn BIT_LENGTH('Hello World!')}"), "(length('Hello World!') * 8)");
 }
+

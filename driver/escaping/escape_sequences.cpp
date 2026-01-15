@@ -460,6 +460,23 @@ string processDateTime(const StringView seq, Lexer & lex) {
     }
 }
 
+string processClickHouseQueryParameter(Token name, const StringView seq, Lexer & lex) {
+    bool emit_space = lex.GetEmitSpaces();
+    lex.SetEmitSpaces(true);
+
+    std::string result = "{" + name.literal.to_string();
+    while (lex.Peek().type != Token::RCURLY) {
+        const Token tok = lex.Consume();
+        if (tok.type == Token::EOS) {
+            return seq.to_string();
+        }
+        result += tok.literal.to_string();
+    }
+    result += '}';
+    lex.SetEmitSpaces(emit_space);
+    return result;
+}
+
 string processEscapeSequencesImpl(const StringView seq, Lexer & lex) {
     string result;
 
@@ -490,7 +507,17 @@ string processEscapeSequencesImpl(const StringView seq, Lexer & lex) {
 
             // Unimplemented
             case Token::T:
+                return seq.to_string();
+
             default:
+                // Positional query parameters, just like ODBC escape sequences, also wrapped in
+                // curly braces. However they always have a fixed `{name : type}` format, with colon
+                // after the parameter name, which does not happen with ODBC escape sequences.
+                if (lex.Peek().type == Token::COLON) {
+                    result += processClickHouseQueryParameter(tok, seq, lex);
+                    break;
+                }
+
                 return seq.to_string();
         }
     };

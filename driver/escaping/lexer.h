@@ -38,6 +38,7 @@ struct Token {
         RPARENT, //  )
         LCURLY,  //  {
         RCURLY,  //  }
+        COLON,   //  :
     };
 
 #undef DECLARE
@@ -78,6 +79,8 @@ public:
 
     /// Enable or disable emitting of space tokens.
     void SetEmitSpaces(bool value);
+
+    bool GetEmitSpaces() { return emit_space_; }
 
 private:
     /// Makes token of length len againts current position.
