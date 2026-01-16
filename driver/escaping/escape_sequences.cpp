@@ -219,21 +219,13 @@ string processFunction(const StringView seq, Lexer & lex) {
             return seq.to_string();
         if (!lex.Match(Token::COMMA))
             return seq.to_string();
-        std::string start_str = processIdentOrFunction(seq, lex);
-        if (start_str.empty())
-            return seq.to_string();
-        int64_t start = 0;
-        auto start_ec = std::from_chars(start_str.data(), start_str.data() + start_str.size(), start).ec;
-        if (start_ec != std::errc{})
+        std::string start = processIdentOrFunction(seq, lex);
+        if (start.empty())
             return seq.to_string();
         if (!lex.Match(Token::COMMA))
             return seq.to_string();
-        std::string len_str = processIdentOrFunction(seq, lex);
-        if (len_str.empty())
-            return seq.to_string();
-        int64_t len = 0;
-        auto len_ec = std::from_chars(len_str.data(), len_str.data() + len_str.size(), len).ec;
-        if (len_ec != std::errc{})
+        std::string len = processIdentOrFunction(seq, lex);
+        if (len.empty())
             return seq.to_string();
         if (!lex.Match(Token::COMMA))
             return seq.to_string();
@@ -242,12 +234,7 @@ string processFunction(const StringView seq, Lexer & lex) {
             return seq.to_string();
         if (!lex.Match(Token::RPARENT))
             return seq.to_string();
-        if (start <= 0 || len < 0)
-            return "cast (NULL, 'Nullable(String)')";
-        return "concat( "
-            "substringUTF8(" + src + ", 1, " + std::to_string(start - 1) + "), " +
-            replace + ", "
-            "substringUTF8(" + src + ", " + std::to_string(start + len) + ") )";
+        return "overlayUTF8(" + src + ", " + replace + ", " + start + ", " + len + ")";
     } else if (fn.type == Token::FN_SPACE) {
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
