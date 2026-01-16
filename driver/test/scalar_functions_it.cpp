@@ -5,38 +5,68 @@ class ScalarFunctionsTest
     : public ClientTestBase
 {
 protected:
+    // Unified query function:
+    //   query<SQLINTEGER>("SELECT ...") - returns single value
+    //   query<std::tuple<SQLINTEGER, std::string>>("SELECT ...") - returns tuple
     template <typename SqlType, typename... Params>
-    std::optional<SqlType> query(const std::string & query_str, Params... params)
+    SqlType query(const std::string & query_str, Params... params)
     {
         prepare(query_str);
 
         // Convert and store params in a tuple to ensure their lifetime spans SQLExecute
-        // Make sure that they are converted to one of supported types, and no temporaries
-        // are created when calling SQLBindParameter.
         auto storage = std::make_tuple(static_cast<typename SqlBindType<Params>::type>(params)...);
         bindFromTuple(storage, std::index_sequence_for<Params...>{});
 
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLFetch(hstmt));
-        auto res = getData<SqlType>();
+
+        SqlType res;
+        if constexpr (is_tuple<SqlType>::value) {
+            res = getDataTuple<SqlType>(std::make_index_sequence<std::tuple_size_v<SqlType>>{});
+        } else {
+            res = getData<SqlType>(1);
+        }
+
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLFreeStmt(hstmt, SQL_CLOSE));
         return res;
     }
 
 private:
+    // Type trait to detect std::tuple
+    template <typename T>
+    struct is_tuple : std::false_type {};
+
+    template <typename... Ts>
+    struct is_tuple<std::tuple<Ts...>> : std::true_type {};
+
+    // Type trait to detect std::optional
+    template <typename T>
+    struct is_optional : std::false_type {};
+
+    template <typename T>
+    struct is_optional<std::optional<T>> : std::true_type {};
+
+    // Helper to fetch multiple columns as a tuple
+    template <typename Tuple, size_t... Is>
+    Tuple getDataTuple(std::index_sequence<Is...>)
+    {
+        return Tuple{getData<std::tuple_element_t<Is, Tuple>>(Is + 1)...};
+    }
+
     void prepare(const std::string & query)
     {
         auto query_encoded = fromUTF8<PTChar>(query);
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query_encoded.data()), SQL_NTS));
     }
 
+    // Core getData implementation - returns std::optional, never throws on NULL
     template <typename SqlType>
-    std::optional<SqlType> getData()
+    std::optional<SqlType> getDataOptional(SQLUSMALLINT idx)
     {
         SqlType buffer{};
         SQLLEN indicator;
         ODBC_CALL_ON_STMT_THROW(
-            hstmt, SQLGetData( hstmt, 1, getCTypeFor<SqlType>(), &buffer, sizeof(SqlType), &indicator));
+            hstmt, SQLGetData(hstmt, idx, getCTypeFor<SqlType>(), &buffer, sizeof(SqlType), &indicator));
         if (indicator == SQL_NULL_DATA) {
             return std::nullopt;
         }
@@ -44,19 +74,78 @@ private:
     }
 
     template <>
-    std::optional<std::string> getData()
+    std::optional<std::string> getDataOptional(SQLUSMALLINT idx)
     {
         static const size_t max_string_size = 1024;
         std::string buffer(max_string_size, '\0');
         SQLLEN indicator;
         ODBC_CALL_ON_STMT_THROW(
-            hstmt, SQLGetData( hstmt, 1, SQL_C_CHAR, buffer.data(), buffer.size(), &indicator));
+            hstmt, SQLGetData(hstmt, idx, SQL_C_CHAR, buffer.data(), buffer.size(), &indicator));
         if (indicator == SQL_NULL_DATA) {
             return std::nullopt;
         }
         assert(indicator >= 0 && "cannot read size from a negative indicator");
         buffer.resize(indicator);
         return buffer;
+    }
+
+    template <>
+    std::optional<SQL_DATE_STRUCT> getDataOptional(SQLUSMALLINT idx)
+    {
+        SQL_DATE_STRUCT buffer{};
+        SQLLEN indicator;
+        ODBC_CALL_ON_STMT_THROW(
+            hstmt, SQLGetData(hstmt, idx, SQL_C_TYPE_DATE, &buffer, sizeof(buffer), &indicator));
+        if (indicator == SQL_NULL_DATA) {
+            return std::nullopt;
+        }
+        return buffer;
+    }
+
+    template <>
+    std::optional<SQL_TIME_STRUCT> getDataOptional(SQLUSMALLINT idx)
+    {
+        SQL_TIME_STRUCT buffer{};
+        SQLLEN indicator;
+        ODBC_CALL_ON_STMT_THROW(
+            hstmt, SQLGetData(hstmt, idx, SQL_C_TYPE_TIME, &buffer, sizeof(buffer), &indicator));
+        if (indicator == SQL_NULL_DATA) {
+            return std::nullopt;
+        }
+        return buffer;
+    }
+
+    template <>
+    std::optional<SQL_TIMESTAMP_STRUCT> getDataOptional(SQLUSMALLINT idx)
+    {
+        SQL_TIMESTAMP_STRUCT buffer{};
+        SQLLEN indicator;
+        ODBC_CALL_ON_STMT_THROW(
+            hstmt, SQLGetData(hstmt, idx, SQL_C_TYPE_TIMESTAMP, &buffer, sizeof(buffer), &indicator));
+        if (indicator == SQL_NULL_DATA) {
+            return std::nullopt;
+        }
+        return buffer;
+    }
+
+    // Main getData - handles both optional and non-optional types
+    //   getData<SQLINTEGER>(1) - throws if NULL
+    //   getData<std::optional<SQLINTEGER>>(1) - returns std::nullopt if NULL
+    template <typename SqlType>
+    SqlType getData(SQLUSMALLINT idx)
+    {
+        if constexpr (is_optional<SqlType>::value) {
+            // SqlType is std::optional<T> - return nullopt on NULL
+            using InnerType = typename SqlType::value_type;
+            return getDataOptional<InnerType>(idx);
+        } else {
+            // SqlType is not optional - throw on NULL
+            auto result = getDataOptional<SqlType>(idx);
+            if (!result) {
+                throw std::runtime_error("NULL value");
+            }
+            return *result;
+        }
     }
 
     void bind(SQLUSMALLINT idx, const char ** value)
@@ -235,7 +324,7 @@ TEST_F(ScalarFunctionsTest, LEFT) {
 TEST_F(ScalarFunctionsTest, LENGTH) {
     ASSERT_EQ(query<SQLINTEGER>("SELECT {fn LENGTH('Hello World!')}"), 12);
     ASSERT_EQ(query<SQLINTEGER>("SELECT {fn LENGTH('')}"), 0);
-    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn LENGTH(NULL)}"), std::nullopt);
+    ASSERT_EQ(query<std::optional<SQLINTEGER>>("SELECT {fn LENGTH(NULL)}"), std::nullopt);
 
     ASSERT_EQ(query<SQLINTEGER>("SELECT {fn LENGTH(?)}", "Hello World!"), 12);
 }
@@ -370,32 +459,32 @@ TEST_F(ScalarFunctionsTest, ABS) {
 
 TEST_F(ScalarFunctionsTest, ACOS) {
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn ACOS(1)}"), 0.0);
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn ACOS(0)}"), 1.5707963267948966, 1e-10);  // PI/2
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn ACOS(-1)}"), 3.141592653589793, 1e-10);  // PI
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn ACOS(0)}"), 1.5707963267948966, 1e-10);  // PI/2
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn ACOS(-1)}"), 3.141592653589793, 1e-10);  // PI
 
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn ACOS(?)}", 1.0), 0.0);
 }
 
 TEST_F(ScalarFunctionsTest, ASIN) {
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn ASIN(0)}"), 0.0);
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn ASIN(1)}"), 1.5707963267948966, 1e-10);  // PI/2
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn ASIN(-1)}"), -1.5707963267948966, 1e-10);  // -PI/2
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn ASIN(1)}"), 1.5707963267948966, 1e-10);  // PI/2
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn ASIN(-1)}"), -1.5707963267948966, 1e-10);  // -PI/2
 
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn ASIN(?)}", 0.0), 0.0);
 }
 
 TEST_F(ScalarFunctionsTest, ATAN) {
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn ATAN(0)}"), 0.0);
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn ATAN(1)}"), 0.7853981633974483, 1e-10);  // PI/4
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn ATAN(1)}"), 0.7853981633974483, 1e-10);  // PI/4
 
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn ATAN(?)}", 0.0), 0.0);
 }
 
 TEST_F(ScalarFunctionsTest, ATAN2) {
     // ATAN2(y, x) - angle from x-axis to point (x, y)
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn ATAN2(1, 1)}"), 0.7853981633974483, 1e-10);  // PI/4
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn ATAN2(1, 1)}"), 0.7853981633974483, 1e-10);  // PI/4
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn ATAN2(0, 1)}"), 0.0);
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn ATAN2(1, 0)}"), 1.5707963267948966, 1e-10);  // PI/2
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn ATAN2(1, 0)}"), 1.5707963267948966, 1e-10);  // PI/2
 
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn ATAN2(?, ?)}", 0.0, 1.0), 0.0);
 }
@@ -410,7 +499,7 @@ TEST_F(ScalarFunctionsTest, CEILING) {
 
 TEST_F(ScalarFunctionsTest, COS) {
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn COS(0)}"), 1.0);
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn COS({fn PI()})}"), -1.0, 1e-10);
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn COS({fn PI()})}"), -1.0, 1e-10);
 
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn COS(?)}", 0.0), 1.0);
 }
@@ -418,13 +507,13 @@ TEST_F(ScalarFunctionsTest, COS) {
 /*
 TEST_F(ScalarFunctionsTest, COT) {
     // COT(x) = 1/TAN(x) = COS(x)/SIN(x)
-    ASSERT_NEAR(*query2<SQLDOUBLE>("SELECT {fn COT({fn PI()} / 4)}"), 1.0, 1e-10);
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn COT({fn PI()} / 4)}"), 1.0, 1e-10);
 }
 */
 
 TEST_F(ScalarFunctionsTest, DEGREES) {
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn DEGREES({fn PI()})}"), 180.0, 1e-10);
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn DEGREES({fn PI()} / 2)}"), 90.0, 1e-10);
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn DEGREES({fn PI()})}"), 180.0, 1e-10);
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn DEGREES({fn PI()} / 2)}"), 90.0, 1e-10);
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn DEGREES(0)}"), 0.0);
 
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn DEGREES(?)}", 0.0), 0.0);
@@ -432,7 +521,7 @@ TEST_F(ScalarFunctionsTest, DEGREES) {
 
 TEST_F(ScalarFunctionsTest, EXP) {
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn EXP(0)}"), 1.0);
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn EXP(1)}"), 2.718281828459045, 1e-10);  // e
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn EXP(1)}"), 2.718281828459045, 1e-10);  // e
 
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn EXP(?)}", 0.0), 1.0);
 }
@@ -447,8 +536,8 @@ TEST_F(ScalarFunctionsTest, FLOOR) {
 
 TEST_F(ScalarFunctionsTest, LOG) {
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn LOG(1)}"), 0.0);
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn LOG({fn EXP(1)})}"), 1.0, 1e-8);
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn LOG(10)}"), 2.302585092994046, 1e-8);
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn LOG({fn EXP(1)})}"), 1.0, 1e-8);
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn LOG(10)}"), 2.302585092994046, 1e-8);
 
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn LOG(?)}", 1.0), 0.0);
 }
@@ -470,7 +559,7 @@ TEST_F(ScalarFunctionsTest, MOD) {
 }
 
 TEST_F(ScalarFunctionsTest, PI) {
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn PI()}"), 3.141592653589793, 1e-10);
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn PI()}"), 3.141592653589793, 1e-10);
 }
 
 TEST_F(ScalarFunctionsTest, POWER) {
@@ -483,8 +572,8 @@ TEST_F(ScalarFunctionsTest, POWER) {
 }
 
 TEST_F(ScalarFunctionsTest, RADIANS) {
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn RADIANS(180)}"), 3.141592653589793, 1e-10);  // PI
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn RADIANS(90)}"), 1.5707963267948966, 1e-10);  // PI/2
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn RADIANS(180)}"), 3.141592653589793, 1e-10);  // PI
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn RADIANS(90)}"), 1.5707963267948966, 1e-10);  // PI/2
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn RADIANS(0)}"), 0.0);
 
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn RADIANS(?)}", 0.0), 0.0);
@@ -493,20 +582,19 @@ TEST_F(ScalarFunctionsTest, RADIANS) {
 TEST_F(ScalarFunctionsTest, RAND) {
     // RAND returns value between 0 and 1
     auto result = query<SQLDOUBLE>("SELECT {fn RAND()}");
-    ASSERT_TRUE(result.has_value());
-    ASSERT_GE(*result, 0.0);
-    ASSERT_LE(*result, 1.0);
+    ASSERT_GE(result, 0.0);
+    ASSERT_LE(result, 1.0);
 
     // These cases are not implemented:
     // 1. Deterministic RAND with a seed
-    // auto result1 = query2<SQLDOUBLE>("SELECT {fn RAND(42)}");
-    // auto result2 = query2<SQLDOUBLE>("SELECT {fn RAND(42)}");
+    // auto result1 = query<SQLDOUBLE>("SELECT {fn RAND(42)}");
+    // auto result2 = query<SQLDOUBLE>("SELECT {fn RAND(42)}");
     // ASSERT_EQ(result1, result2);
 
     // 2. Rand must produce different values even when called in the same query
     // Currently it is not the case two calls to RAND() in the same query will produce the same
     // random value.
-    // ASSERT_EQ(query2<SQLINTEGER>("SELECT {fn RAND()} != {fn RAND()}"), 1);
+    // ASSERT_EQ(query<SQLINTEGER>("SELECT {fn RAND()} != {fn RAND()}"), 1);
 }
 
 TEST_F(ScalarFunctionsTest, ROUND) {
@@ -528,14 +616,14 @@ TEST_F(ScalarFunctionsTest, SIGN) {
 
 TEST_F(ScalarFunctionsTest, SIN) {
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn SIN(0)}"), 0.0);
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn SIN({fn PI()} / 2)}"), 1.0, 1e-10);
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn SIN({fn PI()} / 2)}"), 1.0, 1e-10);
 
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn SIN(?)}", 0.0), 0.0);
 }
 
 TEST_F(ScalarFunctionsTest, SQRT) {
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn SQRT(4)}"), 2.0);
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn SQRT(2)}"), 1.4142135623730951, 1e-10);
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn SQRT(2)}"), 1.4142135623730951, 1e-10);
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn SQRT(0)}"), 0.0);
 
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn SQRT(?)}", SQLDOUBLE{4.0}), 2.0);
@@ -543,7 +631,7 @@ TEST_F(ScalarFunctionsTest, SQRT) {
 
 TEST_F(ScalarFunctionsTest, TAN) {
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn TAN(0)}"), 0.0);
-    ASSERT_NEAR(*query<SQLDOUBLE>("SELECT {fn TAN({fn PI()} / 4)}"), 1.0, 1e-10);
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn TAN({fn PI()} / 4)}"), 1.0, 1e-10);
 
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn TAN(?)}", 0.0), 0.0);
 }
@@ -556,3 +644,4 @@ TEST_F(ScalarFunctionsTest, TRUNCATE) {
 
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn TRUNCATE(?, ?)}", 3.14159, 2), 3.14);
 }
+
