@@ -39,10 +39,6 @@ const std::map<const Token::Type, const std::string> function_map {
 
 #undef DECLARE2
 
-const std::map<const Token::Type, const std::string> function_map_strip_params {
-    {Token::FN_CURRENT_TIMESTAMP, "now()"},
-};
-
 const std::map<const Token::Type, const std::string> literal_map {
     // {Token::SQL_TSI_FRAC_SECOND, ""},
     {Token::SQL_TSI_SECOND, "'second'"},
@@ -121,8 +117,6 @@ string processIdentOrFunction(const StringView seq, Lexer & lex) {
         lex.SetEmitSpaces(true);
     } else if (token.type == Token::LPARENT) {
         result += processParentheses(seq, lex);
-    } else if (function_map_strip_params.find(token.type) != function_map_strip_params.end()) {
-        result += function_map_strip_params.at(token.type);
     } else if ( // any of the remaining recognized FUNCTION( ... ), or any IDENT( ... ), including CAST( ... )
         (token.type == Token::IDENT || function_map.find(token.type) != function_map.end()) &&
         lex.LookAhead(1).type == Token::LPARENT
@@ -259,6 +253,32 @@ string processFunction(const StringView seq, Lexer & lex) {
         if (!lex.Match(Token::RPARENT))
             return seq.to_string();
         return "positionUTF8(" + haystack + ", " + needle + ")";
+    } else if (fn.type == Token::FN_CURRENT_TIME || fn.type == Token::FN_CURRENT_TIMESTAMP) {
+        if (lex.Match(Token::LPARENT)) {
+            std::string precision = processIdentOrFunction(seq, lex);
+            if (!lex.Match(Token::RPARENT))
+                return seq.to_string();
+            return "now64(" + precision + ")";
+        }
+        return "now64()";
+    } else if (fn.type == Token::FN_DAYNAME) {
+        if (!lex.Match(Token::LPARENT))
+            return seq.to_string();
+        std::string date = processIdentOrFunction(seq, lex);
+        if (date.empty())
+            return seq.to_string();
+        if (!lex.Match(Token::RPARENT))
+            return seq.to_string();
+        return "dateName('weekday', " + date + ")";
+    } else if (fn.type == Token::FN_MONTHNAME) {
+        if (!lex.Match(Token::LPARENT))
+            return seq.to_string();
+        std::string date = processIdentOrFunction(seq, lex);
+        if (date.empty())
+            return seq.to_string();
+        if (!lex.Match(Token::RPARENT))
+            return seq.to_string();
+        return "dateName('month', " + date + ")";
     } else if (fn.type == Token::FN_TIMESTAMPADD) {
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
@@ -356,14 +376,6 @@ string processFunction(const StringView seq, Lexer & lex) {
         lex.Consume();
         return "( toRelativeDayNum(" + param + ") - toRelativeDayNum(toStartOfYear(" + param + ")) + 1 )";
 */
-    } else if (function_map_strip_params.find(fn.type) != function_map_strip_params.end()) {
-        string result = function_map_strip_params.at(fn.type);
-
-        if (lex.Peek().type == Token::LPARENT) {
-            processParentheses(seq, lex); // ignore anything inside ( )
-        }
-
-        return result;
     } else if (function_map.find(fn.type) != function_map.end()) {
         string result = function_map.at(fn.type);
         auto func = result;

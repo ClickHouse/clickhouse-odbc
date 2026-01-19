@@ -191,12 +191,12 @@ TEST(EscapeSequencesCase, ParseTimestampadd2) {
 
 TEST(EscapeSequencesCase, ParseTimestampadd3) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,1,CAST({fn CURRENT_TIMESTAMP(0)} AS DATE))}"),
-        "SELECT addDays(CAST(now() AS DATE), 1)");
+        "SELECT addDays(CAST(now64(0) AS DATE), 1)");
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd4) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD( SQL_TSI_DAY , 1 , CAST( {fn CURRENT_TIMESTAMP( 0 ) }  AS  DATE ) ) } "),
-        "SELECT addDays(CAST( now()  AS  DATE ), 1) ");
+        "SELECT addDays(CAST( now64(0)  AS  DATE ), 1) ");
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd5) {
@@ -218,10 +218,10 @@ TEST(EscapeSequencesCase, ParseTimestampadd7) {
 }
 
 TEST(EscapeSequencesCase, ParseCurrentTimestamp1) {
-    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CURRENT_TIMESTAMP}"), "SELECT now()");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CURRENT_TIMESTAMP}"), "SELECT now64()");
 }
 TEST(EscapeSequencesCase, ParseCurrentTimestamp2) {
-    ASSERT_EQ(replaceEscapeSequences("SELECT  {fn  CURRENT_TIMESTAMP } "), "SELECT  now() ");
+    ASSERT_EQ(replaceEscapeSequences("SELECT  {fn  CURRENT_TIMESTAMP } "), "SELECT  now64() ");
 }
 
 TEST(EscapeSequencesCase, ParseExtract1) {
@@ -255,7 +255,7 @@ TEST(EscapeSequencesCase, ParseDayOfWeek2) {
 
 
 TEST(EscapeSequencesCase, ParseCurrentTimestamp) {
-    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CURRENT_TIMESTAMP(0)} AS `timeStamp`"), "SELECT now() AS `timeStamp`");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CURRENT_TIMESTAMP(0)} AS `timeStamp`"), "SELECT now64(0) AS `timeStamp`");
 }
 
 

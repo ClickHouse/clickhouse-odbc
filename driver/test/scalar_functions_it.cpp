@@ -197,6 +197,54 @@ private:
         ));
     }
 
+    void bind(SQLUSMALLINT idx, SQL_DATE_STRUCT * value)
+    {
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
+            /* StatementHandle   */ hstmt,
+            /* ParameterNumber   */ idx,
+            /* InputOutputType   */ SQL_PARAM_INPUT,
+            /* ValueType         */ SQL_C_TYPE_DATE,
+            /* ParameterType     */ SQL_TYPE_DATE,
+            /* ColumnSize        */ 0,
+            /* DecimalDigits     */ 0,
+            /* ParameterValuePtr */ value,
+            /* BufferLength      */ sizeof(SQL_DATE_STRUCT),
+            /* StrLen_or_IndPtr  */ nullptr
+        ));
+    }
+
+    void bind(SQLUSMALLINT idx, SQL_TIME_STRUCT * value)
+    {
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
+            /* StatementHandle   */ hstmt,
+            /* ParameterNumber   */ idx,
+            /* InputOutputType   */ SQL_PARAM_INPUT,
+            /* ValueType         */ SQL_C_TYPE_TIME,
+            /* ParameterType     */ SQL_TYPE_TIME,
+            /* ColumnSize        */ 0,
+            /* DecimalDigits     */ 0,
+            /* ParameterValuePtr */ value,
+            /* BufferLength      */ sizeof(SQL_TIME_STRUCT),
+            /* StrLen_or_IndPtr  */ nullptr
+        ));
+    }
+
+    void bind(SQLUSMALLINT idx, SQL_TIMESTAMP_STRUCT * value)
+    {
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
+            /* StatementHandle   */ hstmt,
+            /* ParameterNumber   */ idx,
+            /* InputOutputType   */ SQL_PARAM_INPUT,
+            /* ValueType         */ SQL_C_TYPE_TIMESTAMP,
+            /* ParameterType     */ SQL_TYPE_TIMESTAMP,
+            /* ColumnSize        */ 0,
+            /* DecimalDigits     */ 0,
+            /* ParameterValuePtr */ value,
+            /* BufferLength      */ sizeof(SQL_TIMESTAMP_STRUCT),
+            /* StrLen_or_IndPtr  */ nullptr
+        ));
+    }
+
     // Map C++ types to SQL bind types (no default - unsupported types won't compile)
     template <typename T>
     struct SqlBindType;
@@ -216,13 +264,59 @@ private:
     template <>
     struct SqlBindType<double> { using type = SQLDOUBLE; };
 
+    template <>
+    struct SqlBindType<SQL_DATE_STRUCT> { using type = SQL_DATE_STRUCT; };
+
+    template <>
+    struct SqlBindType<SQL_TIME_STRUCT> { using type = SQL_TIME_STRUCT; };
+
+    template <>
+    struct SqlBindType<SQL_TIMESTAMP_STRUCT> { using type = SQL_TIMESTAMP_STRUCT; };
+
     template <typename Tuple, size_t... Is>
     void bindFromTuple(Tuple & t, std::index_sequence<Is...>)
     {
         (bind(static_cast<SQLUSMALLINT>(Is + 1), &std::get<Is>(t)), ...);
     }
-
 };
+
+inline bool operator==(const SQL_TIMESTAMP_STRUCT & lhs, const SQL_TIMESTAMP_STRUCT & rhs) {
+    return lhs.year == rhs.year && lhs.month == rhs.month && lhs.day == rhs.day
+        && lhs.hour == rhs.hour && lhs.minute == rhs.minute && lhs.second == rhs.second
+        && lhs.fraction == rhs.fraction;
+}
+
+inline void PrintTo(const SQL_TIMESTAMP_STRUCT & ts, std::ostream * os) {
+    *os << ts.year << "-"
+        << std::setfill('0') << std::setw(2) << ts.month << "-"
+        << std::setfill('0') << std::setw(2) << ts.day << " "
+        << std::setfill('0') << std::setw(2) << ts.hour << ":"
+        << std::setfill('0') << std::setw(2) << ts.minute << ":"
+        << std::setfill('0') << std::setw(2) << ts.second;
+    if (ts.fraction > 0) {
+        *os << "." << ts.fraction;
+    }
+}
+
+inline bool operator==(const SQL_DATE_STRUCT & lhs, const SQL_DATE_STRUCT & rhs) {
+    return lhs.year == rhs.year && lhs.month == rhs.month && lhs.day == rhs.day;
+}
+
+inline void PrintTo(const SQL_DATE_STRUCT & d, std::ostream * os) {
+    *os << d.year << "-"
+        << std::setfill('0') << std::setw(2) << d.month << "-"
+        << std::setfill('0') << std::setw(2) << d.day;
+}
+
+inline bool operator==(const SQL_TIME_STRUCT & lhs, const SQL_TIME_STRUCT & rhs) {
+    return lhs.hour == rhs.hour && lhs.minute == rhs.minute && lhs.second == rhs.second;
+}
+
+inline void PrintTo(const SQL_TIME_STRUCT & t, std::ostream * os) {
+    *os << std::setfill('0') << std::setw(2) << t.hour << ":"
+        << std::setfill('0') << std::setw(2) << t.minute << ":"
+        << std::setfill('0') << std::setw(2) << t.second;
+}
 
 TEST_F(ScalarFunctionsTest, ASCII) {
     ASSERT_EQ(query<SQLINTEGER>("SELECT {fn ASCII('A')}"), 'A');
@@ -645,3 +739,370 @@ TEST_F(ScalarFunctionsTest, TRUNCATE) {
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn TRUNCATE(?, ?)}", 3.14159, 2), 3.14);
 }
 
+// ============================================================================
+// Date/Time Functions
+// ============================================================================
+
+TEST_F(ScalarFunctionsTest, CURRENT_DATE) {
+    auto [res, year, month, day]
+        = query<std::tuple<SQL_DATE_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
+            "SELECT {fn CURRENT_DATE()}, year(today()), month(today()), day(today())"
+        );
+    ASSERT_EQ(res.year, year);
+    ASSERT_EQ(res.month, month);
+    ASSERT_EQ(res.day, day);
+}
+
+TEST_F(ScalarFunctionsTest, CURRENT_TIME) {
+
+    auto [res, hour, minute, second]
+        = query<std::tuple<SQL_TIME_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
+            "SELECT {fn CURRENT_TIME()}, hour(now64(0)), minute(now64(0)), second(now64(0))"
+        );
+    ASSERT_EQ(res.hour, hour);
+    ASSERT_EQ(res.minute, minute);
+    ASSERT_EQ(res.second, second);
+}
+
+TEST_F(ScalarFunctionsTest, CURRENT_TIME_withoutParentheses) {
+
+    auto [res, hour, minute, second]
+        = query<std::tuple<SQL_TIME_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
+            "SELECT {fn CURRENT_TIME}, hour(now64(0)), minute(now64(0)), second(now64(0))"
+        );
+    ASSERT_EQ(res.hour, hour);
+    ASSERT_EQ(res.minute, minute);
+    ASSERT_EQ(res.second, second);
+}
+
+TEST_F(ScalarFunctionsTest, CURRENT_TIMESTAMP) {
+        auto [res, year, month, day, hour, minute, second, millisecond]
+            = query<std::tuple<
+                SQL_TIMESTAMP_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER,
+                SQLINTEGER, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
+                "SELECT {fn CURRENT_TIMESTAMP(3)}, year(now64(3)), month(now64(3)), day(now64(3)), "
+                "hour(now64(3)), minute(now64(3)), second(now64(3)), millisecond(now64(3))");
+        ASSERT_EQ(res.year, year);
+        ASSERT_EQ(res.month, month);
+        ASSERT_EQ(res.day, day);
+        ASSERT_EQ(res.hour, hour);
+        ASSERT_EQ(res.minute, minute);
+        ASSERT_EQ(res.second, second);
+        ASSERT_EQ(res.fraction, millisecond * 1'000'000);
+}
+
+TEST_F(ScalarFunctionsTest, CURRENT_TIMESTAMP_withoutParentheses) {
+        auto [res, year, month, day, hour, minute, second]
+            = query<std::tuple<
+                SQL_TIMESTAMP_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER,
+                SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
+                "SELECT {fn CURRENT_TIMESTAMP}, year(now64(3)), month(now64(3)), day(now64(3)), "
+                "hour(now64(3)), minute(now64(3)), second(now64(3))");
+        ASSERT_EQ(res.year, year);
+        ASSERT_EQ(res.month, month);
+        ASSERT_EQ(res.day, day);
+        ASSERT_EQ(res.hour, hour);
+        ASSERT_EQ(res.minute, minute);
+        ASSERT_EQ(res.second, second);
+}
+
+TEST_F(ScalarFunctionsTest, NOW) {
+    auto [res, year, month, day, hour, minute, second]
+        = query<std::tuple<
+            SQL_TIMESTAMP_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER,
+            SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
+            "SELECT {fn NOW()}, year(now()), month(now()), day(now64()), "
+            "hour(now64()), minute(now64()), second(now64())");
+    ASSERT_EQ(res.year, year);
+    ASSERT_EQ(res.month, month);
+    ASSERT_EQ(res.day, day);
+    ASSERT_EQ(res.hour, hour);
+    ASSERT_EQ(res.minute, minute);
+    ASSERT_EQ(res.second, second);
+}
+
+TEST_F(ScalarFunctionsTest, CURDATE) {
+    auto [res, year, month, day]
+        = query<std::tuple<SQL_DATE_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
+            "SELECT {fn CURDATE()}, year(today()), month(today()), day(today())"
+        );
+    ASSERT_EQ(res.year, year);
+    ASSERT_EQ(res.month, month);
+    ASSERT_EQ(res.day, day);
+}
+
+
+TEST_F(ScalarFunctionsTest, CURTIME) {
+    auto [res, hour, minute, second]
+        = query<std::tuple<SQL_TIME_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
+            "SELECT {fn CURTIME()}, hour(now64(0)), minute(now64(0)), second(now64(0))"
+        );
+    ASSERT_EQ(res.hour, hour);
+    ASSERT_EQ(res.minute, minute);
+    ASSERT_EQ(res.second, second);
+}
+
+TEST_F(ScalarFunctionsTest, DAYNAME) {
+    // 2024-01-15 is a Monday
+    ASSERT_EQ(query<std::string>("SELECT {fn DAYNAME({d '2024-01-15'})}"), "Monday");
+    ASSERT_EQ(query<std::string>("SELECT {fn DAYNAME({d '2024-01-20'})}"), "Saturday");
+    ASSERT_EQ(query<std::string>("SELECT {fn DAYNAME({d '2024-01-21'})}"), "Sunday");
+
+    SQL_DATE_STRUCT date = {.year = 2024, .month = 1, .day = 21};
+    ASSERT_EQ(query<std::string>("SELECT {fn DAYNAME(?)}", date), "Sunday");
+}
+
+TEST_F(ScalarFunctionsTest, DAYOFMONTH) {
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn DAYOFMONTH({d '2024-01-15'})}"), 15);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn DAYOFMONTH({d '2024-12-31'})}"), 31);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn DAYOFMONTH({d '2024-02-29'})}"), 29);  // Leap year
+
+    SQL_DATE_STRUCT date = {.year = 2024, .month = 1, .day = 15};
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn DAYOFMONTH(?)}", date), 15);
+}
+
+TEST_F(ScalarFunctionsTest, DAYOFWEEK) {
+    // ODBC: 1=Sunday, 2=Monday, ..., 7=Saturday
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn DAYOFWEEK({d '2024-01-14'})}"), 1);  // Sunday
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn DAYOFWEEK({d '2024-01-15'})}"), 2);  // Monday
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn DAYOFWEEK({d '2024-01-20'})}"), 7);  // Saturday
+
+    SQL_DATE_STRUCT date = {.year = 2024, .month = 1, .day = 14};
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn DAYOFWEEK(?)}", date), 1);  // Sunday
+}
+
+TEST_F(ScalarFunctionsTest, DAYOFYEAR) {
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn DAYOFYEAR({d '2024-01-01'})}"), 1);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn DAYOFYEAR({d '2024-12-31'})}"), 366);  // Leap year
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn DAYOFYEAR({d '2023-12-31'})}"), 365);  // Non-leap year
+
+    SQL_DATE_STRUCT date = {.year = 2024, .month = 1, .day = 1};
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn DAYOFYEAR(?)}", date), 1);
+}
+
+TEST_F(ScalarFunctionsTest, HOUR) {
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn HOUR({ts '2024-01-15 14:30:45'})}"), 14);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn HOUR({ts '2024-01-15 00:00:00'})}"), 0);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn HOUR({ts '2024-01-15 23:59:59'})}"), 23);
+
+    SQL_TIMESTAMP_STRUCT ts = {.year = 2024, .month = 1, .day = 15, .hour = 14, .minute = 30, .second = 45};
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn HOUR(?)}", ts), 14);
+}
+
+TEST_F(ScalarFunctionsTest, MINUTE) {
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn MINUTE({ts '2024-01-15 14:30:45'})}"), 30);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn MINUTE({ts '2024-01-15 00:00:00'})}"), 0);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn MINUTE({ts '2024-01-15 23:59:59'})}"), 59);
+
+    SQL_TIMESTAMP_STRUCT ts = {.year = 2024, .month = 1, .day = 15, .hour = 14, .minute = 30, .second = 45};
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn MINUTE(?)}", ts), 30);
+}
+
+TEST_F(ScalarFunctionsTest, MONTH) {
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn MONTH({d '2024-01-15'})}"), 1);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn MONTH({d '2024-06-15'})}"), 6);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn MONTH({d '2024-12-31'})}"), 12);
+
+    SQL_DATE_STRUCT date = {.year = 2024, .month = 6, .day = 15};
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn MONTH(?)}", date), 6);
+}
+
+TEST_F(ScalarFunctionsTest, MONTHNAME) {
+    ASSERT_EQ(query<std::string>("SELECT {fn MONTHNAME({d '2024-01-15'})}"), "January");
+    ASSERT_EQ(query<std::string>("SELECT {fn MONTHNAME({d '2024-06-15'})}"), "June");
+    ASSERT_EQ(query<std::string>("SELECT {fn MONTHNAME({d '2024-12-31'})}"), "December");
+
+    SQL_DATE_STRUCT date = {.year = 2024, .month = 6, .day = 15};
+    ASSERT_EQ(query<std::string>("SELECT {fn MONTHNAME(?)}", date), "June");
+}
+
+TEST_F(ScalarFunctionsTest, QUARTER) {
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn QUARTER({d '2024-01-15'})}"), 1);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn QUARTER({d '2024-04-15'})}"), 2);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn QUARTER({d '2024-07-15'})}"), 3);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn QUARTER({d '2024-10-15'})}"), 4);
+
+    SQL_DATE_STRUCT date = {.year = 2024, .month = 7, .day = 15};
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn QUARTER(?)}", date), 3);
+}
+
+TEST_F(ScalarFunctionsTest, SECOND) {
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn SECOND({ts '2024-01-15 14:30:45'})}"), 45);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn SECOND({ts '2024-01-15 00:00:00'})}"), 0);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn SECOND({ts '2024-01-15 23:59:59'})}"), 59);
+
+    SQL_TIMESTAMP_STRUCT ts = {.year = 2024, .month = 1, .day = 15, .hour = 14, .minute = 30, .second = 45};
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn SECOND(?)}", ts), 45);
+}
+
+TEST_F(ScalarFunctionsTest, YEAR) {
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn YEAR({d '2024-01-15'})}"), 2024);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn YEAR({d '1999-12-31'})}"), 1999);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn YEAR({d '2000-01-01'})}"), 2000);
+
+    SQL_DATE_STRUCT date = {.year = 2024, .month = 1, .day = 15};
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn YEAR(?)}", date), 2024);
+}
+
+TEST_F(ScalarFunctionsTest, EXTRACT) {
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(YEAR FROM {d '2024-03-15'})}"), 2024);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(MONTH FROM {d '2024-03-15'})}"), 3);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(DAY FROM {d '2024-03-15'})}"), 15);
+
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(YEAR FROM {ts '2024-03-15 14:30:45'})}"), 2024);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(MONTH FROM {ts '2024-03-15 14:30:45'})}"), 3);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(DAY FROM {ts '2024-03-15 14:30:45'})}"), 15);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(HOUR FROM {ts '2024-03-15 14:30:45'})}"), 14);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(MINUTE FROM {ts '2024-03-15 14:30:45'})}"), 30);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(SECOND FROM {ts '2024-03-15 14:30:45'})}"), 45);
+
+    SQL_DATE_STRUCT date = {.year = 2024, .month = 3, .day = 15};
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(YEAR FROM ?)}", date), 2024);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(MONTH FROM ?)}", date), 3);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(DAY FROM ?)}", date), 15);
+
+    SQL_TIMESTAMP_STRUCT ts = {.year = 2024, .month = 3, .day = 15, .hour = 14, .minute = 30, .second = 45};
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(HOUR FROM ?)}", ts), 14);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(MINUTE FROM ?)}", ts), 30);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn EXTRACT(SECOND FROM ?)}", ts), 45);
+}
+
+TEST_F(ScalarFunctionsTest, TIMESTAMPADD) {
+    ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>(
+        "SELECT {fn TIMESTAMPADD(SQL_TSI_SECOND, 30, {ts '2024-01-15 10:00:00'})}"),
+        (SQL_TIMESTAMP_STRUCT{.year = 2024, .month = 1, .day = 15, .hour = 10, .minute = 0, .second = 30}));
+
+    ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>(
+        "SELECT {fn TIMESTAMPADD(SQL_TSI_MINUTE, 45, {ts '2024-01-15 10:00:00'})}"),
+        (SQL_TIMESTAMP_STRUCT{.year = 2024, .month = 1, .day = 15, .hour = 10, .minute = 45, .second = 0}));
+
+    ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>(
+        "SELECT {fn TIMESTAMPADD(SQL_TSI_HOUR, 5, {ts '2024-01-15 10:00:00'})}"),
+        (SQL_TIMESTAMP_STRUCT{.year = 2024, .month = 1, .day = 15, .hour = 15, .minute = 0, .second = 0}));
+
+    ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>(
+        "SELECT {fn TIMESTAMPADD(SQL_TSI_DAY, 10, {ts '2024-01-15 10:00:00'})}"),
+        (SQL_TIMESTAMP_STRUCT{.year = 2024, .month = 1, .day = 25, .hour = 10, .minute = 0, .second = 0}));
+
+    ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>(
+        "SELECT {fn TIMESTAMPADD(SQL_TSI_WEEK, 2, {ts '2024-01-15 10:00:00'})}"),
+        (SQL_TIMESTAMP_STRUCT{.year = 2024, .month = 1, .day = 29, .hour = 10, .minute = 0, .second = 0}));
+
+    ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>(
+        "SELECT {fn TIMESTAMPADD(SQL_TSI_MONTH, 3, {ts '2024-01-15 10:00:00'})}"),
+        (SQL_TIMESTAMP_STRUCT{.year = 2024, .month = 4, .day = 15, .hour = 10, .minute = 0, .second = 0}));
+
+    ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>(
+        "SELECT {fn TIMESTAMPADD(SQL_TSI_QUARTER, 1, {ts '2024-01-15 10:00:00'})}"),
+        (SQL_TIMESTAMP_STRUCT{.year = 2024, .month = 4, .day = 15, .hour = 10, .minute = 0, .second = 0}));
+
+    ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>(
+        "SELECT {fn TIMESTAMPADD(SQL_TSI_YEAR, 2, {ts '2024-01-15 10:00:00'})}"),
+        (SQL_TIMESTAMP_STRUCT{.year = 2026, .month = 1, .day = 15, .hour = 10, .minute = 0, .second = 0}));
+
+    ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>(
+        "SELECT {fn TIMESTAMPADD(SQL_TSI_DAY, -5, {ts '2024-01-15 10:00:00'})}"),
+        (SQL_TIMESTAMP_STRUCT{.year = 2024, .month = 1, .day = 10, .hour = 10, .minute = 0, .second = 0}));
+
+    SQL_TIMESTAMP_STRUCT ts = {.year = 2024, .month = 1, .day = 15, .hour = 10, .minute = 0, .second = 0};
+    ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>(
+        "SELECT {fn TIMESTAMPADD(SQL_TSI_DAY, 10, ?)}", ts),
+        (SQL_TIMESTAMP_STRUCT{.year = 2024, .month = 1, .day = 25, .hour = 10, .minute = 0, .second = 0}));
+}
+
+TEST_F(ScalarFunctionsTest, TIMESTAMPDIFF) {
+    ASSERT_EQ(query<SQLINTEGER>(
+        "SELECT {fn TIMESTAMPDIFF(SQL_TSI_SECOND, {ts '2024-01-15 10:00:00'}, {ts '2024-01-15 10:00:30'})}"), 30);
+
+    ASSERT_EQ(query<SQLINTEGER>(
+        "SELECT {fn TIMESTAMPDIFF(SQL_TSI_MINUTE, {ts '2024-01-15 10:00:00'}, {ts '2024-01-15 10:45:00'})}"), 45);
+
+    ASSERT_EQ(query<SQLINTEGER>(
+        "SELECT {fn TIMESTAMPDIFF(SQL_TSI_HOUR, {ts '2024-01-15 10:00:00'}, {ts '2024-01-15 15:00:00'})}"), 5);
+
+    ASSERT_EQ(query<SQLINTEGER>(
+        "SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY, {ts '2024-01-15 10:00:00'}, {ts '2024-01-25 10:00:00'})}"), 10);
+
+    ASSERT_EQ(query<SQLINTEGER>(
+        "SELECT {fn TIMESTAMPDIFF(SQL_TSI_WEEK, {ts '2024-01-15 10:00:00'}, {ts '2024-01-29 10:00:00'})}"), 2);
+
+    ASSERT_EQ(query<SQLINTEGER>(
+        "SELECT {fn TIMESTAMPDIFF(SQL_TSI_MONTH, {ts '2024-01-15 10:00:00'}, {ts '2024-04-15 10:00:00'})}"), 3);
+
+    ASSERT_EQ(query<SQLINTEGER>(
+        "SELECT {fn TIMESTAMPDIFF(SQL_TSI_QUARTER, {ts '2024-01-15 10:00:00'}, {ts '2024-04-15 10:00:00'})}"), 1);
+
+    ASSERT_EQ(query<SQLINTEGER>(
+        "SELECT {fn TIMESTAMPDIFF(SQL_TSI_YEAR, {ts '2024-01-15 10:00:00'}, {ts '2026-01-15 10:00:00'})}"), 2);
+
+    ASSERT_EQ(query<SQLINTEGER>(
+        "SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY, {ts '2024-01-25 10:00:00'}, {ts '2024-01-15 10:00:00'})}"), -10);
+
+    SQL_TIMESTAMP_STRUCT ts1 = {.year = 2024, .month = 1, .day = 15, .hour = 10, .minute = 0, .second = 0};
+    SQL_TIMESTAMP_STRUCT ts2 = {.year = 2024, .month = 1, .day = 25, .hour = 10, .minute = 0, .second = 0};
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY, ?, ?)}", ts1, ts2), 10);
+}
+
+// ============================================================================
+// System Functions
+// ============================================================================
+
+TEST_F(ScalarFunctionsTest, DATABASE) {
+    auto [res, database] = query<std::tuple<std::string, std::string>>("SELECT {fn DATABASE()}, database()");
+    ASSERT_EQ(res, database);
+}
+
+TEST_F(ScalarFunctionsTest, IFNULL) {
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn IFNULL(42, 0)}"), 42);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn IFNULL(NULL, 99)}"), 99);
+
+    ASSERT_EQ(query<std::string>("SELECT {fn IFNULL('hello', 'default')}"), "hello");
+    ASSERT_EQ(query<std::string>("SELECT {fn IFNULL(NULL, 'default')}"), "default");
+
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn IFNULL(?, ?)}", 42, 0), 42);
+    ASSERT_EQ(query<std::string>("SELECT {fn IFNULL(?, ?)}", "hello", "default"), "hello");
+}
+
+TEST_F(ScalarFunctionsTest, USER) {
+    auto [res, user] = query<std::tuple<std::string, std::string>>("SELECT {fn USER()}, user()");
+    ASSERT_EQ(res, user);
+}
+
+TEST_F(ScalarFunctionsTest, CONVERT) {
+    // String to numeric conversions
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn CONVERT('123', SQL_INTEGER)}"), 123);
+    ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn CONVERT('3.14', SQL_DOUBLE)}"), 3.14);
+
+    // Numeric to string conversions
+    ASSERT_EQ(query<std::string>("SELECT {fn CONVERT(123, SQL_VARCHAR)}"), "123");
+
+    // TODO(slabko): SQL_CHAR does not work
+    // ASSERT_EQ(query<std::string>("SELECT {fn CONVERT(123, SQL_CHAR)}"), "123");
+
+    // Numeric type conversions
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn CONVERT(3.14, SQL_INTEGER)}"), 3);
+    ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn CONVERT(42, SQL_DOUBLE)}"), 42.0);
+
+    // Date/time conversions
+    ASSERT_EQ(query<SQL_DATE_STRUCT>("SELECT {fn CONVERT('2024-03-15', SQL_DATE)}"),
+        (SQL_DATE_STRUCT{.year = 2024, .month = 3, .day = 15}));
+
+    // TODO(slabko): SQL_TIME does not work
+    // ASSERT_EQ(query<SQL_TIME_STRUCT>("SELECT {fn CONVERT('14:30:45', SQL_TIME)}"),
+    //    (SQL_TIME_STRUCT{.hour = 14, .minute = 30, .second = 45}));
+
+    ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>("SELECT {fn CONVERT('2024-03-15 14:30:45', SQL_TIMESTAMP)}"),
+        (SQL_TIMESTAMP_STRUCT{.year = 2024, .month = 3, .day = 15, .hour = 14, .minute = 30, .second = 45}));
+
+    // Timestamp to date
+    ASSERT_EQ(query<SQL_DATE_STRUCT>("SELECT {fn CONVERT({ts '2024-03-15 14:30:45'}, SQL_DATE)}"),
+        (SQL_DATE_STRUCT{.year = 2024, .month = 3, .day = 15}));
+
+    // TODO(slabko): SQL_TIME does not work
+    // Timestamp to time
+    // ASSERT_EQ(query<SQL_TIME_STRUCT>("SELECT {fn CONVERT({ts '2024-03-15 14:30:45'}, SQL_TIME)}"),
+    //    (SQL_TIME_STRUCT{.hour = 14, .minute = 30, .second = 45}));
+
+    ASSERT_EQ(query<SQLINTEGER>("SELECT {fn CONVERT(?, SQL_INTEGER)}", "456"), 456);
+    ASSERT_EQ(query<std::string>("SELECT {fn CONVERT(?, SQL_VARCHAR)}", 789), "789");
+}

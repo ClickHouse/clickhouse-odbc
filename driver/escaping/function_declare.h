@@ -53,7 +53,7 @@
     DECLARE2(RADIANS, "radians"),
     DECLARE2(RAND, "randCanonical"),
     DECLARE2(ROUND, "round"),
-    DECLARE2(SIGN, "sign"),            //  SIGN( numeric_exp ) 
+    DECLARE2(SIGN, "sign"),
     DECLARE2(SIN, "sin"),
     DECLARE2(SQRT, "sqrt"),
     DECLARE2(TAN, "tan"),
@@ -62,16 +62,21 @@
 
 
     // Date
-    DECLARE2(CURRENT_TIMESTAMP, ""), // special handling
-    DECLARE2(CURDATE, "today"),
     DECLARE2(CURRENT_DATE, "today"),
+    DECLARE2(CURRENT_TIME, ""),      // now64, but allows calling without parentheses
+    DECLARE2(CURRENT_TIMESTAMP, ""), // now64, but allows calling without parentheses
+    DECLARE2(CURDATE, "today"),
+    DECLARE2(CURTIME, "now64"),
+    DECLARE2(DAYNAME, ""), // dateName('weekday', <value>)
+
     DECLARE2(DAYOFMONTH, "toDayOfMonth"),
     DECLARE2(DAYOFWEEK, "" /* "toDayOfWeek" */), // special handling
     DECLARE2(DAYOFYEAR, " toDayOfYear"), // Supported by ClickHouse since 18.13.0
-    DECLARE2(EXTRACT, "EXTRACT"), // Do not touch extract inside {fn ... }
+    DECLARE2(EXTRACT, "EXTRACT"),
     DECLARE2(HOUR, "toHour"),
     DECLARE2(MINUTE, "toMinute"),
     DECLARE2(MONTH, "toMonth"),
+    DECLARE2(MONTHNAME, ""), // dateName('weekday', <value>)
     DECLARE2(NOW, "now"),
     DECLARE2(SECOND, "toSecond"),
     DECLARE2(TIMESTAMPADD, ""), // special handling
@@ -80,9 +85,9 @@
     DECLARE2(QUARTER, "toQuarter"),
     DECLARE2(YEAR, "toYear"),
 
-    // DECLARE2(DATABASE, ""),
+    DECLARE2(DATABASE, "database"),
     DECLARE2(IFNULL, "ifNull"),
-    // DECLARE2(USER, ""),
+    DECLARE2(USER, "user"),
 
     // Conversion
     DECLARE2(CONVERT, ""), // special handling
