@@ -41,7 +41,7 @@
     DECLARE2(ATAN2, "atan2"),          //  ATAN2( float_exp1, float_exp2) 
     DECLARE2(CEILING, "ceil"),
     DECLARE2(COS, "cos"),
-    // DECLARE2(COT, ""),              //  COT( float_exp )  // (1.0 / tan(float_expr))
+    DECLARE2(COT, ""), // special handling
     DECLARE2(DEGREES, "degrees"),
     DECLARE2(EXP, "exp"),
     DECLARE2(FLOOR, "floor"),

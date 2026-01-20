@@ -16,6 +16,9 @@ using namespace std;
 
 namespace {
 
+// forward declarations
+string processFunction(const StringView seq, Lexer & lex);
+
 const std::map<const std::string, const std::string> fn_convert_map {
     {"SQL_TINYINT", "toUInt8"},
     {"SQL_SMALLINT", "toUInt16"},
@@ -136,6 +139,37 @@ string processIdentOrFunction(const StringView seq, Lexer & lex) {
     return result;
 }
 
+string processFunctionArgument(const StringView seq, Lexer & lex)
+{
+    std::string result = "";
+    lex.SetEmitSpaces(true);
+    while (true) {
+        const Token tok(lex.Peek());
+        switch (tok.type) {
+            case (Token::RPARENT):
+            case (Token::COMMA):
+            case (Token::EOS):
+            case (Token::INVALID):
+                lex.SetEmitSpaces(false);
+                return result;
+            case (Token::LPARENT):
+                result += processParentheses(seq, lex);
+                break;
+            case (Token::LCURLY):
+                lex.SetEmitSpaces(false);
+                result += processEscapeSequencesImpl(seq, lex);
+                lex.SetEmitSpaces(true);
+                break;
+            case (Token::FN_EXTRACT):
+                result += processFunction(seq, lex);
+                break;
+            default:
+                result += tok.literal.to_string();
+                lex.Consume();
+        }
+    }
+}
+
 string processFunction(const StringView seq, Lexer & lex) {
     const Token fn(lex.Consume());
 
@@ -253,6 +287,13 @@ string processFunction(const StringView seq, Lexer & lex) {
         if (!lex.Match(Token::RPARENT))
             return seq.to_string();
         return "positionUTF8(" + haystack + ", " + needle + ")";
+    } else if (fn.type == Token::FN_COT) {
+        if (!lex.Match(Token::LPARENT))
+            return seq.to_string();
+        std::string expr = processFunctionArgument(seq, lex);
+        if (!lex.Match(Token::RPARENT))
+            return seq.to_string();
+        return "(cos(" + expr +") / sin (" + expr + "))";
     } else if (fn.type == Token::FN_CURRENT_TIME || fn.type == Token::FN_CURRENT_TIMESTAMP) {
         if (lex.Match(Token::LPARENT)) {
             std::string precision = processIdentOrFunction(seq, lex);

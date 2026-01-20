@@ -561,12 +561,15 @@ TEST_F(ScalarFunctionsTest, COS) {
     ASSERT_EQ(query<SQLDOUBLE>("SELECT {fn COS(?)}", 0.0), 1.0);
 }
 
-/*
 TEST_F(ScalarFunctionsTest, COT) {
-    // COT(x) = 1/TAN(x) = COS(x)/SIN(x)
-    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn COT({fn PI()} / 4)}"), 1.0, 1e-10);
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn COT(({fn PI()} / 4))}"), 1.0, 1e-10);  // COT(45°) = 1
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn COT({fn PI()} / 4)}"), 1.0, 1e-10);  // COT(45°) = 1
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn COT({fn PI()} / 6)}"), 1.7320508075688772, 1e-10);  // COT(30°) = sqrt(3)
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn COT({fn PI()} / 3)}"), 0.5773502691896257, 1e-10);  // COT(60°) = 1/sqrt(3)
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn COT(1)}"), 0.6420926159343306, 1e-10);  // COT(1 radian)
+
+    ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn COT(?)}", 1.0), 0.6420926159343306, 1e-10);
 }
-*/
 
 TEST_F(ScalarFunctionsTest, DEGREES) {
     ASSERT_NEAR(query<SQLDOUBLE>("SELECT {fn DEGREES({fn PI()})}"), 180.0, 1e-10);
