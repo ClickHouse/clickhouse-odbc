@@ -1,6 +1,7 @@
 #include "driver/platform/platform.h"
 #include "driver/test/client_utils.h"
 #include "driver/test/client_test_base.h"
+#include "driver/test/date_utils.h"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -25,34 +26,6 @@ class DateTime
     : public ClientTestWithParamBase<DateTimeParams>
 {
 };
-
-bool operator== (const SQL_DATE_STRUCT & lhs, const SQL_DATE_STRUCT & rhs) {
-    return (
-        lhs.year == rhs.year &&
-        lhs.month == rhs.month &&
-        lhs.day == rhs.day
-    );
-}
-
-bool operator== (const SQL_TIME_STRUCT & lhs, const SQL_TIME_STRUCT & rhs) {
-    return (
-        lhs.hour == rhs.hour &&
-        lhs.minute == rhs.minute &&
-        lhs.second == rhs.second
-    );
-}
-
-bool operator== (const SQL_TIMESTAMP_STRUCT & lhs, const SQL_TIMESTAMP_STRUCT & rhs) {
-    return (
-        lhs.year == rhs.year &&
-        lhs.month == rhs.month &&
-        lhs.day == rhs.day &&
-        lhs.hour == rhs.hour &&
-        lhs.minute == rhs.minute &&
-        lhs.second == rhs.second &&
-        lhs.fraction == rhs.fraction
-    );
-}
 
 TEST_P(DateTime, GetData) {
     const auto & params = GetParam();
