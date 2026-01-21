@@ -712,7 +712,7 @@ TEST_F(ScalarFunctionsTest, TRUNCATE) {
 TEST_F(ScalarFunctionsTest, CURRENT_DATE) {
     auto [res, year, month, day]
         = query<std::tuple<SQL_DATE_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
-            "SELECT {fn CURRENT_DATE()}, year(today()), month(today()), day(today())"
+            "SELECT {fn CURRENT_DATE()} as date, year(date), month(date), day(date)"
         );
     ASSERT_EQ(res.year, year);
     ASSERT_EQ(res.month, month);
@@ -723,7 +723,7 @@ TEST_F(ScalarFunctionsTest, CURRENT_TIME) {
 
     auto [res, hour, minute, second]
         = query<std::tuple<SQL_TIME_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
-            "SELECT {fn CURRENT_TIME()}, hour(now64(0)), minute(now64(0)), second(now64(0))"
+            "SELECT {fn CURRENT_TIME()} as time, hour(time), minute(time), second(time)"
         );
     ASSERT_EQ(res.hour, hour);
     ASSERT_EQ(res.minute, minute);
@@ -734,7 +734,7 @@ TEST_F(ScalarFunctionsTest, CURRENT_TIME_withoutParentheses) {
 
     auto [res, hour, minute, second]
         = query<std::tuple<SQL_TIME_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
-            "SELECT {fn CURRENT_TIME}, hour(now64(0)), minute(now64(0)), second(now64(0))"
+            "SELECT {fn CURRENT_TIME} as time, hour(time), minute(time), second(time)"
         );
     ASSERT_EQ(res.hour, hour);
     ASSERT_EQ(res.minute, minute);
@@ -746,8 +746,8 @@ TEST_F(ScalarFunctionsTest, CURRENT_TIMESTAMP) {
             = query<std::tuple<
                 SQL_TIMESTAMP_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER,
                 SQLINTEGER, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
-                "SELECT {fn CURRENT_TIMESTAMP(3)}, year(now64(3)), month(now64(3)), day(now64(3)), "
-                "hour(now64(3)), minute(now64(3)), second(now64(3)), millisecond(now64(3))");
+                "SELECT {fn CURRENT_TIMESTAMP(3)} as ts, year(ts), month(ts), day(ts), "
+                "hour(ts), minute(ts), second(ts), millisecond(ts)");
         ASSERT_EQ(res.year, year);
         ASSERT_EQ(res.month, month);
         ASSERT_EQ(res.day, day);
@@ -762,8 +762,8 @@ TEST_F(ScalarFunctionsTest, CURRENT_TIMESTAMP_withoutParentheses) {
             = query<std::tuple<
                 SQL_TIMESTAMP_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER,
                 SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
-                "SELECT {fn CURRENT_TIMESTAMP}, year(now64(3)), month(now64(3)), day(now64(3)), "
-                "hour(now64(3)), minute(now64(3)), second(now64(3))");
+                "SELECT {fn CURRENT_TIMESTAMP} as ts, year(ts), month(ts), day(ts), "
+                "hour(ts), minute(ts), second(ts)");
         ASSERT_EQ(res.year, year);
         ASSERT_EQ(res.month, month);
         ASSERT_EQ(res.day, day);
@@ -777,8 +777,8 @@ TEST_F(ScalarFunctionsTest, NOW) {
         = query<std::tuple<
             SQL_TIMESTAMP_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER,
             SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
-            "SELECT {fn NOW()}, year(now()), month(now()), day(now64()), "
-            "hour(now64()), minute(now64()), second(now64())");
+            "SELECT {fn NOW()} as ts, year(ts), month(ts), day(ts), "
+            "hour(ts), minute(ts), second(ts)");
     ASSERT_EQ(res.year, year);
     ASSERT_EQ(res.month, month);
     ASSERT_EQ(res.day, day);
@@ -790,7 +790,7 @@ TEST_F(ScalarFunctionsTest, NOW) {
 TEST_F(ScalarFunctionsTest, CURDATE) {
     auto [res, year, month, day]
         = query<std::tuple<SQL_DATE_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
-            "SELECT {fn CURDATE()}, year(today()), month(today()), day(today())"
+            "SELECT {fn CURDATE()} as date, year(date), month(date), day(date)"
         );
     ASSERT_EQ(res.year, year);
     ASSERT_EQ(res.month, month);
@@ -801,7 +801,7 @@ TEST_F(ScalarFunctionsTest, CURDATE) {
 TEST_F(ScalarFunctionsTest, CURTIME) {
     auto [res, hour, minute, second]
         = query<std::tuple<SQL_TIME_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
-            "SELECT {fn CURTIME()}, hour(now64(0)), minute(now64(0)), second(now64(0))"
+            "SELECT {fn CURTIME()} as time, hour(time), minute(time), second(time)"
         );
     ASSERT_EQ(res.hour, hour);
     ASSERT_EQ(res.minute, minute);
