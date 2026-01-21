@@ -12,12 +12,10 @@
 #include <iostream>
 #include <map>
 
-using namespace std;
-
 namespace {
 
 // forward declarations
-string processFunction(const StringView seq, Lexer & lex);
+std::string processFunction(const StringView seq, Lexer & lex);
 
 const std::map<const std::string, const std::string> fn_convert_map {
     {"SQL_TINYINT", "toUInt8"},
@@ -67,18 +65,18 @@ const std::map<const Token::Type, const std::string> timeadd_func_map {
 };
 
 
-string processEscapeSequencesImpl(const StringView seq, Lexer & lex);
+std::string processEscapeSequencesImpl(const StringView seq, Lexer & lex);
 
-string convertFunctionByType(const StringView & typeName) {
+std::string convertFunctionByType(const StringView & typeName) {
     const auto type_name_string = typeName.to_string();
     if (fn_convert_map.find(type_name_string) != fn_convert_map.end())
         return fn_convert_map.at(type_name_string);
 
-    return string();
+    return std::string();
 }
 
-string processParentheses(const StringView seq, Lexer & lex) {
-    string result;
+std::string processParentheses(const StringView seq, Lexer & lex) {
+    std::string result;
     lex.SetEmitSpaces(true);
     result += lex.Consume().literal.to_string(); // (
 
@@ -108,11 +106,11 @@ string processParentheses(const StringView seq, Lexer & lex) {
     return result;
 }
 
-string processIdentOrFunction(const StringView seq, Lexer & lex) {
+std::string processIdentOrFunction(const StringView seq, Lexer & lex) {
     while (lex.Match(Token::SPACE)) {
     }
     const auto token = lex.Peek();
-    string result;
+    std::string result;
 
     if (token.type == Token::LCURLY) {
         lex.SetEmitSpaces(false);
@@ -139,7 +137,7 @@ string processIdentOrFunction(const StringView seq, Lexer & lex) {
     return result;
 }
 
-string processFunctionArgument(const StringView seq, Lexer & lex)
+std::string processFunctionArgument(const StringView seq, Lexer & lex)
 {
     std::string result = "";
     lex.SetEmitSpaces(true);
@@ -170,11 +168,11 @@ string processFunctionArgument(const StringView seq, Lexer & lex)
     }
 }
 
-string processFunction(const StringView seq, Lexer & lex) {
+std::string processFunction(const StringView seq, Lexer & lex) {
     const Token fn(lex.Consume());
 
     if (fn.type == Token::FN_CONVERT) {
-        string result;
+        std::string result;
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
 
@@ -198,7 +196,7 @@ string processFunction(const StringView seq, Lexer & lex) {
             return seq.to_string();
         }
 
-        string func = convertFunctionByType(type.literal.to_string());
+        std::string func = convertFunctionByType(type.literal.to_string());
 
         if (!func.empty()) {
             while (lex.Match(Token::SPACE)) {
@@ -327,7 +325,7 @@ string processFunction(const StringView seq, Lexer & lex) {
         Token type = lex.Consume();
         if (timeadd_func_map.find(type.type) == timeadd_func_map.end())
             return seq.to_string();
-        string func = timeadd_func_map.at(type.type);
+        std::string func = timeadd_func_map.at(type.type);
         if (!lex.Match(Token::COMMA))
             return seq.to_string();
         auto ramount = processIdentOrFunction(seq, lex);
@@ -377,12 +375,6 @@ string processFunction(const StringView seq, Lexer & lex) {
             lex.Consume();
         }
 
-        // ClickHouse requires `start_pos` to be an unsigned integer,
-        // whereas ODBC clients map it as a signed integer. This results in
-        // a named parameter such as `{odbc_positional_:Int32}`, which does not
-        // match the type required by `position`. To avoid the illegal type argument
-        // error, we cast the offset parameter to UInt64. The `accurateCast` function
-        // ensures that the parameter value is never negative.
         std::string result = "position(" + haystack + "," + needle  + ",accurateCast(" + offset + ",'UInt64'))";
 
         return result;
@@ -418,7 +410,7 @@ string processFunction(const StringView seq, Lexer & lex) {
         return "( toRelativeDayNum(" + param + ") - toRelativeDayNum(toStartOfYear(" + param + ")) + 1 )";
 */
     } else if (function_map.find(fn.type) != function_map.end()) {
-        string result = function_map.at(fn.type);
+        std::string result = function_map.at(fn.type);
         auto func = result;
         lex.SetEmitSpaces(true);
         while (true) {
@@ -450,18 +442,18 @@ string processFunction(const StringView seq, Lexer & lex) {
     return seq.to_string();
 }
 
-string processDate(const StringView seq, Lexer & lex) {
+std::string processDate(const StringView seq, Lexer & lex) {
     Token data = lex.Consume(Token::STRING);
     if (data.isInvalid()) {
         return seq.to_string();
     } else {
-        return string("toDate(") + data.literal.to_string() + ")";
+        return std::string("toDate(") + data.literal.to_string() + ")";
     }
 }
 
-string removeMilliseconds(const StringView token) {
+std::string removeMilliseconds(const StringView token) {
     if (token.empty()) {
-        return string();
+        return std::string();
     }
 
     const char * begin = token.data();
@@ -482,7 +474,7 @@ string removeMilliseconds(const StringView token) {
             dot = p;
         } else {
             if (dot) {
-                return string(begin, dot) + (quoted ? "'" : "");
+                return std::string(begin, dot) + (quoted ? "'" : "");
             }
             return token.to_string();
         }
@@ -491,16 +483,16 @@ string removeMilliseconds(const StringView token) {
     return token.to_string();
 }
 
-string processDateTime(const StringView seq, Lexer & lex) {
+std::string processDateTime(const StringView seq, Lexer & lex) {
     Token data = lex.Consume(Token::STRING);
     if (data.isInvalid()) {
         return seq.to_string();
     } else {
-        return string("toDateTime(") + removeMilliseconds(data.literal) + ")";
+        return std::string("toDateTime(") + removeMilliseconds(data.literal) + ")";
     }
 }
 
-string processClickHouseQueryParameter(Token name, const StringView seq, Lexer & lex) {
+std::string processClickHouseQueryParameter(Token name, const StringView seq, Lexer & lex) {
     bool emit_space = lex.GetEmitSpaces();
     lex.SetEmitSpaces(true);
 
@@ -517,8 +509,8 @@ string processClickHouseQueryParameter(Token name, const StringView seq, Lexer &
     return result;
 }
 
-string processEscapeSequencesImpl(const StringView seq, Lexer & lex) {
-    string result;
+std::string processEscapeSequencesImpl(const StringView seq, Lexer & lex) {
+    std::string result;
 
     if (!lex.Match(Token::LCURLY)) {
         return seq.to_string();
@@ -563,7 +555,7 @@ string processEscapeSequencesImpl(const StringView seq, Lexer & lex) {
     };
 }
 
-string processEscapeSequences(const StringView seq) {
+std::string processEscapeSequences(const StringView seq) {
     Lexer lex(seq);
     return processEscapeSequencesImpl(seq, lex);
 }
