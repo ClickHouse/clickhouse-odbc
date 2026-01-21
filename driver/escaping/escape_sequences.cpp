@@ -41,7 +41,7 @@ const std::map<const Token::Type, const std::string> function_map {
 #undef DECLARE2
 
 const std::map<const Token::Type, const std::string> literal_map {
-    // {Token::SQL_TSI_FRAC_SECOND, ""},
+    {Token::SQL_TSI_FRAC_SECOND, "'nanosecond'"},
     {Token::SQL_TSI_SECOND, "'second'"},
     {Token::SQL_TSI_MINUTE, "'minute'"},
     {Token::SQL_TSI_HOUR, "'hour'"},
@@ -53,7 +53,7 @@ const std::map<const Token::Type, const std::string> literal_map {
 };
 
 const std::map<const Token::Type, const std::string> timeadd_func_map {
-    // {Token::SQL_TSI_FRAC_SECOND, ""},
+    {Token::SQL_TSI_FRAC_SECOND, "addNanoseconds"},
     {Token::SQL_TSI_SECOND, "addSeconds"},
     {Token::SQL_TSI_MINUTE, "addMinutes"},
     {Token::SQL_TSI_HOUR, "addHours"},

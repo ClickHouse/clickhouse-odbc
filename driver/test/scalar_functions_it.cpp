@@ -935,6 +935,10 @@ TEST_F(ScalarFunctionsTest, EXTRACT) {
 
 TEST_F(ScalarFunctionsTest, TIMESTAMPADD) {
     ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>(
+        "SELECT {fn TIMESTAMPADD(SQL_TSI_FRAC_SECOND, 500000000, {ts '2024-01-15 10:00:00.000'})}"),
+        (SQL_TIMESTAMP_STRUCT{.year = 2024, .month = 1, .day = 15, .hour = 10, .minute = 0, .second = 0, .fraction = 500'000'000}));
+
+    ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>(
         "SELECT {fn TIMESTAMPADD(SQL_TSI_SECOND, 30, {ts '2024-01-15 10:00:00'})}"),
         (SQL_TIMESTAMP_STRUCT{.year = 2024, .month = 1, .day = 15, .hour = 10, .minute = 0, .second = 30}));
 
@@ -977,6 +981,9 @@ TEST_F(ScalarFunctionsTest, TIMESTAMPADD) {
 }
 
 TEST_F(ScalarFunctionsTest, TIMESTAMPDIFF) {
+    ASSERT_EQ(query<SQLINTEGER>(
+        "SELECT {fn TIMESTAMPDIFF(SQL_TSI_FRAC_SECOND, {ts '2024-01-15 10:00:00.000'}, {ts '2024-01-15 10:00:01.000'})}"), 1'000'000'000);
+
     ASSERT_EQ(query<SQLINTEGER>(
         "SELECT {fn TIMESTAMPDIFF(SQL_TSI_SECOND, {ts '2024-01-15 10:00:00'}, {ts '2024-01-15 10:00:30'})}"), 30);
 
