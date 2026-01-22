@@ -288,13 +288,11 @@ TEST(EscapeSequencesCase, ParameterizedFunctionCalls) {
 TEST(EscapeSequencesCase, DateTime) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {d '2017-01-01'}"), "SELECT toDate('2017-01-01')");
 
-    ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017-01-01 10:01:01'}"), "SELECT toDateTime('2017-01-01 10:01:01')");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017-01-01 10:01:01'}"), "SELECT toDateTime64('2017-01-01 10:01:01', 9)");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017-01-01 10:01:01.555'}"), "SELECT toDateTime64('2017-01-01 10:01:01.555', 9)");
 
-    // We cutting off milliseconds from timestamp because CH server
-    // doesn't support them.
-    ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017-01-01 10:01:01.555'}"), "SELECT toDateTime('2017-01-01 10:01:01')");
     // Strange date format. Symbols after last dot shouldn't be cutted off.
-    ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017.01.01 10:01:01'}"), "SELECT toDateTime('2017.01.01 10:01:01')");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017.01.01 10:01:01'}"), "SELECT toDateTime64('2017.01.01 10:01:01', 9)");
 }
 
 TEST(EscapeSequencesCase, ClickHouseParametersInEscapeSequences) {
