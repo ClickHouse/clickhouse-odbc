@@ -24,6 +24,7 @@ const std::map<const std::string, const std::string> fn_convert_map {
     {"SQL_BIGINT", "toInt64"},
     {"SQL_REAL", "toFloat32"},
     {"SQL_DOUBLE", "toFloat64"},
+    {"SQL_CHAR", "toString"},
     {"SQL_VARCHAR", "toString"},
     {"SQL_DATE", "toDate"},
     {"SQL_TYPE_DATE", "toDate"},

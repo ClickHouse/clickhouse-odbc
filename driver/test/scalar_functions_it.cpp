@@ -1048,9 +1048,7 @@ TEST_F(ScalarFunctionsTest, CONVERT) {
 
     // Numeric to string conversions
     ASSERT_EQ(query<std::string>("SELECT {fn CONVERT(123, SQL_VARCHAR)}"), "123");
-
-    // TODO(slabko): SQL_CHAR does not work
-    // ASSERT_EQ(query<std::string>("SELECT {fn CONVERT(123, SQL_CHAR)}"), "123");
+    ASSERT_EQ(query<std::string>("SELECT {fn CONVERT(123, SQL_CHAR)}"), "123");
 
     // Numeric type conversions
     ASSERT_EQ(query<SQLINTEGER>("SELECT {fn CONVERT(3.14, SQL_INTEGER)}"), 3);
