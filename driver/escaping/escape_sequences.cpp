@@ -165,7 +165,6 @@ std::optional<std::string> processFunctionArgument(const StringView seq, Lexer &
             case (Token::COMMA):
             case (Token::EOS):
             case (Token::INVALID):
-            case (Token::IN_PREP):
                 lex.SetEmitSpaces(false);
                 return result;
             case (Token::LPARENT): {
@@ -286,20 +285,6 @@ std::optional<std::string> processFunction(const StringView seq, Lexer & lex) {
         if (!lex.Match(Token::RPARENT))
             return std::nullopt;
         return "repeat(' ', " + *count + ")";
-    } else if (fn.type == Token::FN_POSITION) {
-        if (!lex.Match(Token::LPARENT))
-            return std::nullopt;
-        auto needle = processFunctionArgument(seq, lex);
-        if (!needle)
-            return std::nullopt;
-        if (!lex.Match(Token::IN_PREP))
-            return std::nullopt;
-        auto haystack = processFunctionArgument(seq, lex);
-        if (!haystack)
-            return std::nullopt;
-        if (!lex.Match(Token::RPARENT))
-            return std::nullopt;
-        return "positionUTF8(" + *haystack + ", " + *needle + ")";
     } else if (fn.type == Token::FN_COT) {
         if (!lex.Match(Token::LPARENT))
             return std::nullopt;

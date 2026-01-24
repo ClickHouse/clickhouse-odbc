@@ -19,7 +19,7 @@
     DECLARE2(LOCATE, "" /* "position" */), // special handling
     DECLARE2(LTRIM, ""), // special handling
     DECLARE2(OCTET_LENGTH, "length"),
-    DECLARE2(POSITION, ""), // special handling
+    DECLARE2(POSITION, "POSITION"),
     DECLARE2(REPEAT, "repeat"),
     DECLARE2(REPLACE, "replaceAll"),
     DECLARE2(RIGHT, "rightUTF8"),
