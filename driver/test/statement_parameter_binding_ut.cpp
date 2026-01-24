@@ -279,9 +279,9 @@ TEST_F(StatementBindingTest, FunctionLocate) {
 
     auto [query, params] = execute();
     ASSERT_EQ(query,
-        "select position({odbc_positional_2:LowCardinality(String)},"
+        "select position( {odbc_positional_2:LowCardinality(String)},"
         "{odbc_positional_1:LowCardinality(String)},"
-        "accurateCast({odbc_positional_3:Nullable(Int32)},'UInt64'))");
+        "accurateCast( {odbc_positional_3:Nullable(Int32)},'UInt64'))");
     ASSERT_EQ(params.size(), 3);
     ASSERT_EQ(params["param_odbc_positional_1"], "needle");
     ASSERT_EQ(params["param_odbc_positional_2"], "haystack");

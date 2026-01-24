@@ -15,10 +15,11 @@ namespace {
     { #NAME, Token::SQL_TSI_##NAME }
 
 static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
-    DECLARE(FN),
-    DECLARE(D),
-    DECLARE(T),
-    DECLARE(TS),
+    {"FN", Token ::FN},
+    {"D", Token ::D},
+    {"T", Token ::T},
+    {"TS", Token ::TS},
+    {"IN", Token::IN_PREP},
 
 #include "function_declare.h"
 #include "lexer_declare.h"
@@ -28,7 +29,7 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
     DECLARE_SQL_TSI(MINUTE),
     DECLARE_SQL_TSI(HOUR),
     DECLARE_SQL_TSI(DAY),
-    //DECLARE_SQL_TSI(DAYOFYEAR),
+    // DECLARE_SQL_TSI(DAYOFYEAR),
     DECLARE_SQL_TSI(WEEK),
     DECLARE_SQL_TSI(MONTH),
     DECLARE_SQL_TSI(QUARTER),

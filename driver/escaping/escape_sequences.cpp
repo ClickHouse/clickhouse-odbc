@@ -10,12 +10,14 @@
 
 #include <charconv>
 #include <iostream>
+#include <optional>
 #include <map>
 
 namespace {
 
 // forward declarations
-std::string processFunction(const StringView seq, Lexer & lex);
+std::optional<std::string> processFunction(const StringView seq, Lexer & lex);
+std::optional<std::string> processEscapeSequencesImpl(const StringView seq, Lexer & lex);
 
 const std::map<const std::string, const std::string> fn_convert_map {
     {"SQL_TINYINT", "toUInt8"},
@@ -65,9 +67,6 @@ const std::map<const Token::Type, const std::string> timeadd_func_map {
     {Token::SQL_TSI_YEAR, "addYears"},
 };
 
-
-std::string processEscapeSequencesImpl(const StringView seq, Lexer & lex);
-
 std::string convertFunctionByType(const StringView & typeName) {
     const auto type_name_string = typeName.to_string();
     if (fn_convert_map.find(type_name_string) != fn_convert_map.end())
@@ -76,26 +75,31 @@ std::string convertFunctionByType(const StringView & typeName) {
     return std::string();
 }
 
-std::string processParentheses(const StringView seq, Lexer & lex) {
+std::optional<std::string> processParentheses(const StringView seq, Lexer & lex) {
     std::string result;
     lex.SetEmitSpaces(true);
     result += lex.Consume().literal.to_string(); // (
 
     while (true) {
         const Token token(lex.Peek());
-
-        // std::cerr << __FILE__ << ":" << __LINE__ << " : "<< token.literal.to_string() << " type=" << token.type << " go\n";
-
         if (token.type == Token::RPARENT) {
             result += token.literal.to_string();
             lex.Consume();
             break;
         } else if (token.type == Token::LPARENT) {
-            result += processParentheses(seq, lex);
+            auto processed = processParentheses(seq, lex);
+            if (!processed) {
+                return std::nullopt;
+            }
+            result += *processed;
         } else if (token.type == Token::LCURLY) {
             lex.SetEmitSpaces(false);
-            result += processEscapeSequencesImpl(seq, lex);
+            auto processed = processEscapeSequencesImpl(seq, lex);
             lex.SetEmitSpaces(true);
+            if (!processed) {
+                return std::nullopt;
+            }
+            result += *processed;
         } else if (token.type == Token::EOS || token.type == Token::INVALID) {
             break;
         } else {
@@ -107,7 +111,7 @@ std::string processParentheses(const StringView seq, Lexer & lex) {
     return result;
 }
 
-std::string processIdentOrFunction(const StringView seq, Lexer & lex) {
+std::optional<std::string> processIdentifierOrFunction(const StringView seq, Lexer & lex) {
     while (lex.Match(Token::SPACE)) {
     }
     const auto token = lex.Peek();
@@ -115,17 +119,29 @@ std::string processIdentOrFunction(const StringView seq, Lexer & lex) {
 
     if (token.type == Token::LCURLY) {
         lex.SetEmitSpaces(false);
-        result += processEscapeSequencesImpl(seq, lex);
+        auto processed = processEscapeSequencesImpl(seq, lex);
         lex.SetEmitSpaces(true);
+        if (!processed) {
+            return std::nullopt;
+        }
+        result += *processed;
     } else if (token.type == Token::LPARENT) {
-        result += processParentheses(seq, lex);
+        auto processed = processParentheses(seq, lex);
+        if (!processed) {
+            return std::nullopt;
+        }
+        result += *processed;
     } else if ( // any of the remaining recognized FUNCTION( ... ), or any IDENT( ... ), including CAST( ... )
         (token.type == Token::IDENT || function_map.find(token.type) != function_map.end()) &&
         lex.LookAhead(1).type == Token::LPARENT
     ) {
         result += token.literal.to_string();                                            // func name
         lex.Consume();
-        result += processParentheses(seq, lex);
+        auto processed = processParentheses(seq, lex);
+        if (!processed) {
+            return std::nullopt;
+        }
+        result += *processed;
     } else if (token.type == Token::NUMBER || token.type == Token::IDENT || token.type == Token::STRING || token.type == Token::PARAM) {
         result += token.literal.to_string();
         lex.Consume();
@@ -138,7 +154,7 @@ std::string processIdentOrFunction(const StringView seq, Lexer & lex) {
     return result;
 }
 
-std::string processFunctionArgument(const StringView seq, Lexer & lex)
+std::optional<std::string> processFunctionArgument(const StringView seq, Lexer & lex)
 {
     std::string result = "";
     lex.SetEmitSpaces(true);
@@ -149,19 +165,27 @@ std::string processFunctionArgument(const StringView seq, Lexer & lex)
             case (Token::COMMA):
             case (Token::EOS):
             case (Token::INVALID):
+            case (Token::IN_PREP):
                 lex.SetEmitSpaces(false);
                 return result;
-            case (Token::LPARENT):
-                result += processParentheses(seq, lex);
+            case (Token::LPARENT): {
+                auto processed = processParentheses(seq, lex);
+                if (!processed) {
+                    return std::nullopt;
+                }
+                result += *processed;
                 break;
-            case (Token::LCURLY):
+            }
+            case (Token::LCURLY): {
                 lex.SetEmitSpaces(false);
-                result += processEscapeSequencesImpl(seq, lex);
+                auto processed = processEscapeSequencesImpl(seq, lex);
                 lex.SetEmitSpaces(true);
+                if (!processed) {
+                    return std::nullopt;
+                }
+                result += *processed;
                 break;
-            case (Token::FN_EXTRACT):
-                result += processFunction(seq, lex);
-                break;
+            }
             default:
                 result += tok.literal.to_string();
                 lex.Consume();
@@ -169,247 +193,223 @@ std::string processFunctionArgument(const StringView seq, Lexer & lex)
     }
 }
 
-std::string processFunction(const StringView seq, Lexer & lex) {
+std::optional<std::string> processFunction(const StringView seq, Lexer & lex) {
     const Token fn(lex.Consume());
 
     if (fn.type == Token::FN_CONVERT) {
         std::string result;
         if (!lex.Match(Token::LPARENT))
-            return seq.to_string();
-
-        auto num = processIdentOrFunction(seq, lex);
-        if (num.empty())
-            return seq.to_string();
-        result += num;
-
+            return std::nullopt;
+        auto num = processFunctionArgument(seq, lex);
+        if (!num)
+            return std::nullopt;
+        result += *num;
         while (lex.Match(Token::SPACE)) {
         }
-
         if (!lex.Match(Token::COMMA)) {
-            return seq.to_string();
+            return std::nullopt;
         }
-
         while (lex.Match(Token::SPACE)) {
         }
-
         Token type = lex.Consume();
         if (type.type != Token::IDENT) {
-            return seq.to_string();
+            return std::nullopt;
         }
-
         std::string func = convertFunctionByType(type.literal.to_string());
-
         if (!func.empty()) {
             while (lex.Match(Token::SPACE)) {
             }
             if (!lex.Match(Token::RPARENT)) {
-                return seq.to_string();
+                return std::nullopt;
             }
             result = func + "(" + result + ")";
         }
-
         return result;
-
     } else if (fn.type == Token::FN_BIT_LENGTH) {
         if (!lex.Match(Token::LPARENT))
-            return seq.to_string();
-        auto expr = processIdentOrFunction(seq, lex);
-        if (expr.empty())
-            return seq.to_string();
-        std::string result = "(length(" + expr +") * 8)";
+            return std::nullopt;
+        auto expr = processFunctionArgument(seq, lex);
+        if (!expr)
+            return std::nullopt;
         if (!lex.Match(Token::RPARENT))
-            return seq.to_string();
+            return std::nullopt;
+        std::string result = "(length(" + *expr +") * 8)";
         return result;
     } else if (fn.type == Token::FN_DIFFERENCE) {
         if (!lex.Match(Token::LPARENT))
-            return seq.to_string();
-        std::string str1 = processIdentOrFunction(seq, lex);
-        if (str1.empty())
-            return seq.to_string();
+            return std::nullopt;
+        auto str1 = processFunctionArgument(seq, lex);
+        if (!str1)
+            return std::nullopt;
         if (!lex.Match(Token::COMMA))
-            return seq.to_string();
-        std::string str2 = processIdentOrFunction(seq, lex);
-        if (str2.empty())
-            return seq.to_string();
+            return std::nullopt;
+        auto str2 = processFunctionArgument(seq, lex);
+        if (!str2)
+            return std::nullopt;
         if (!lex.Match(Token::RPARENT))
-            return seq.to_string();
+            return std::nullopt;
         return
-            "(equals(substring(soundex(" + str1 + "),1,1), substring(soundex(" + str2 +"),1,1)) +"
-            " equals(substring(soundex(" + str1 + "),2,1), substring(soundex(" + str2 +"),2,1)) +"
-            " equals(substring(soundex(" + str1 + "),3,1), substring(soundex(" + str2 +"),3,1)) +"
-            " equals(substring(soundex(" + str1 + "),4,1), substring(soundex(" + str2 +"),4,1)))";
+            "(equals(substring(soundex(" + *str1 + "),1,1), substring(soundex(" + *str2 +"),1,1)) +"
+            " equals(substring(soundex(" + *str1 + "),2,1), substring(soundex(" + *str2 +"),2,1)) +"
+            " equals(substring(soundex(" + *str1 + "),3,1), substring(soundex(" + *str2 +"),3,1)) +"
+            " equals(substring(soundex(" + *str1 + "),4,1), substring(soundex(" + *str2 +"),4,1)))";
     } else if (fn.type == Token::FN_INSERT) {
         if (!lex.Match(Token::LPARENT))
             return seq.to_string();
-        std::string src = processIdentOrFunction(seq, lex);
-        if (src.empty())
-            return seq.to_string();
+        auto src = processFunctionArgument(seq, lex);
+        if (!src)
+            return std::nullopt;
         if (!lex.Match(Token::COMMA))
-            return seq.to_string();
-        std::string start = processIdentOrFunction(seq, lex);
-        if (start.empty())
-            return seq.to_string();
+            return std::nullopt;
+        auto start = processFunctionArgument(seq, lex);
+        if (!start)
+            return std::nullopt;
         if (!lex.Match(Token::COMMA))
-            return seq.to_string();
-        std::string len = processIdentOrFunction(seq, lex);
-        if (len.empty())
-            return seq.to_string();
+            return std::nullopt;
+        auto len = processFunctionArgument(seq, lex);
+        if (!len)
+            return std::nullopt;
         if (!lex.Match(Token::COMMA))
-            return seq.to_string();
-        std::string replace = processIdentOrFunction(seq, lex);
-        if (replace.empty())
-            return seq.to_string();
+            return std::nullopt;
+        auto replace = processFunctionArgument(seq, lex);
+        if (!replace)
+            return std::nullopt;
         if (!lex.Match(Token::RPARENT))
-            return seq.to_string();
-        return "overlayUTF8(" + src + ", " + replace + ", " + start + ", " + len + ")";
+            return std::nullopt;
+        return "overlayUTF8(" + *src + ", " + *replace + ", " + *start + ", " + *len + ")";
     } else if (fn.type == Token::FN_SPACE) {
         if (!lex.Match(Token::LPARENT))
-            return seq.to_string();
-        std::string count = processIdentOrFunction(seq, lex);
-        if (count.empty())
-            return seq.to_string();
+            return std::nullopt;
+        auto count = processFunctionArgument(seq, lex);
+        if (!count)
+            return std::nullopt;
         if (!lex.Match(Token::RPARENT))
-            return seq.to_string();
-        return "repeat(' ', " + count + ")";
+            return std::nullopt;
+        return "repeat(' ', " + *count + ")";
     } else if (fn.type == Token::FN_POSITION) {
         if (!lex.Match(Token::LPARENT))
-            return seq.to_string();
-        std::string needle = processIdentOrFunction(seq, lex);
-        if (needle.empty())
-            return seq.to_string();
-        auto in = lex.Consume();
-        if (in.literal != "IN")
-            return seq.to_string();
-        std::string haystack = processIdentOrFunction(seq, lex);
-        if (haystack.empty())
-            return seq.to_string();
+            return std::nullopt;
+        auto needle = processFunctionArgument(seq, lex);
+        if (!needle)
+            return std::nullopt;
+        if (!lex.Match(Token::IN_PREP))
+            return std::nullopt;
+        auto haystack = processFunctionArgument(seq, lex);
+        if (!haystack)
+            return std::nullopt;
         if (!lex.Match(Token::RPARENT))
-            return seq.to_string();
-        return "positionUTF8(" + haystack + ", " + needle + ")";
+            return std::nullopt;
+        return "positionUTF8(" + *haystack + ", " + *needle + ")";
     } else if (fn.type == Token::FN_COT) {
         if (!lex.Match(Token::LPARENT))
-            return seq.to_string();
-        std::string expr = processFunctionArgument(seq, lex);
+            return std::nullopt;
+        auto expr = processFunctionArgument(seq, lex);
+        if (!expr)
+            return std::nullopt;
         if (!lex.Match(Token::RPARENT))
-            return seq.to_string();
-        return "(cos(" + expr +") / sin (" + expr + "))";
+            return std::nullopt;
+        return "(cos(" + *expr +") / sin (" + *expr + "))";
     } else if (fn.type == Token::FN_CURRENT_TIME || fn.type == Token::FN_CURRENT_TIMESTAMP) {
         if (lex.Match(Token::LPARENT)) {
-            std::string precision = processIdentOrFunction(seq, lex);
+            auto precision = processFunctionArgument(seq, lex);
+            if (!precision)
+                return std::nullopt;
             if (!lex.Match(Token::RPARENT))
-                return seq.to_string();
-            return "now64(" + precision + ")";
+                return std::nullopt;
+            return "now64(" + *precision + ")";
         }
         return "now64()";
     } else if (fn.type == Token::FN_DAYNAME) {
         if (!lex.Match(Token::LPARENT))
-            return seq.to_string();
-        std::string date = processIdentOrFunction(seq, lex);
-        if (date.empty())
-            return seq.to_string();
+            return std::nullopt;
+        auto date = processFunctionArgument(seq, lex);
+        if (!date)
+            return std::nullopt;
         if (!lex.Match(Token::RPARENT))
-            return seq.to_string();
-        return "dateName('weekday', " + date + ")";
+            return std::nullopt;
+        return "dateName('weekday', " + *date + ")";
     } else if (fn.type == Token::FN_MONTHNAME) {
         if (!lex.Match(Token::LPARENT))
-            return seq.to_string();
-        std::string date = processIdentOrFunction(seq, lex);
-        if (date.empty())
-            return seq.to_string();
+            return std::nullopt;
+        auto date = processFunctionArgument(seq, lex);
+        if (!date)
+            return std::nullopt;
         if (!lex.Match(Token::RPARENT))
-            return seq.to_string();
-        return "dateName('month', " + date + ")";
+            return std::nullopt;
+        return "dateName('month', " + *date + ")";
     } else if (fn.type == Token::FN_TIMESTAMPADD) {
         if (!lex.Match(Token::LPARENT))
-            return seq.to_string();
-
+            return std::nullopt;
         Token type = lex.Consume();
         if (timeadd_func_map.find(type.type) == timeadd_func_map.end())
-            return seq.to_string();
-        std::string func = timeadd_func_map.at(type.type);
+            return std::nullopt;
+
+        auto func_it = timeadd_func_map.find(type.type);
+        if (func_it == timeadd_func_map.end())
+            return std::nullopt;
+        std::string func = func_it->second;
         if (!lex.Match(Token::COMMA))
-            return seq.to_string();
-        auto ramount = processIdentOrFunction(seq, lex);
-        if (ramount.empty())
-            return seq.to_string();
+            return std::nullopt;
+        auto ramount = processFunctionArgument(seq, lex);
+        if (!ramount)
+            return std::nullopt;
+        while (lex.Match(Token::SPACE)) {
+        }
+        if (!lex.Match(Token::COMMA))
+            return std::nullopt;
+        auto rdate = processFunctionArgument(seq, lex);
+        if (!rdate)
+            return std::nullopt;
 
         while (lex.Match(Token::SPACE)) {
         }
-
-        if (!lex.Match(Token::COMMA))
-            return seq.to_string();
-
-
-        auto rdate = processIdentOrFunction(seq, lex);
-        if (rdate.empty())
-            return seq.to_string();
-
-        std::string result;
-        if (!func.empty()) {
-            while (lex.Match(Token::SPACE)) {
-            }
-            if (!lex.Match(Token::RPARENT)) {
-                return seq.to_string();
-            }
-            result = func + "(" + rdate + ", " + ramount + ")";
+        if (!lex.Match(Token::RPARENT)) {
+            return std::nullopt;
         }
-        return result;
+        return func + "(" + *rdate + ", " + *ramount + ")";
 
     } else if (fn.type == Token::FN_LOCATE) {
         if (!lex.Match(Token::LPARENT))
-            return seq.to_string();
+            return std::nullopt;
+        auto needle = processFunctionArgument(seq, lex);
+        if (!needle)
+            return std::nullopt;
+        if (!lex.Match(Token::COMMA))
+            return std::nullopt;
+        auto haystack = processFunctionArgument(seq, lex);
+        if (!haystack)
+            return std::nullopt;
 
-        auto needle = processIdentOrFunction(seq, lex /*, false */);
-        if (needle.empty())
-            return seq.to_string();
-        lex.Consume();
-
-        auto haystack = processIdentOrFunction(seq, lex /*, false*/);
-        if (haystack.empty())
-            return seq.to_string();
-        lex.Consume();
-
-        auto offset = processIdentOrFunction(seq, lex /*, false */);
-        if (offset.empty()) {
-            offset = "1";
-        } else {
-            lex.Consume();
+        // Last parameter, `offset`, is optional
+        std::optional<std::string> offset = "1";
+        if (lex.Match(Token::COMMA)) {
+            offset = processFunctionArgument(seq, lex);
+            if (!offset) {
+                return std::nullopt;
+            }
         }
-
-        std::string result = "position(" + haystack + "," + needle  + ",accurateCast(" + offset + ",'UInt64'))";
-
-        return result;
-
+        if (!lex.Match(Token::RPARENT)) {
+            return std::nullopt;
+        }
+        return "position(" + *haystack + "," + *needle  + ",accurateCast(" + *offset + ",'UInt64'))";
     } else if (fn.type == Token::FN_LTRIM) {
         if (!lex.Match(Token::LPARENT))
-            return seq.to_string();
+            return std::nullopt;
 
-        auto param = processIdentOrFunction(seq, lex /*, false*/);
-        if (param.empty())
-            return seq.to_string();
+        auto param = processFunctionArgument(seq, lex /*, false*/);
+        if (!param)
+            return std::nullopt;
         lex.Consume();
-        return "replaceRegexpOne(" + param + ", '^\\\\s+', '')";
+        return "replaceRegexpOne(" + *param + ", '^\\\\s+', '')";
 
     } else if (fn.type == Token::FN_DAYOFWEEK) {
         if (!lex.Match(Token::LPARENT))
-            return seq.to_string();
-
-        auto param = processIdentOrFunction(seq, lex /*, false*/);
-        if (param.empty())
-            return seq.to_string();
+            return std::nullopt;
+        auto param = processFunctionArgument(seq, lex /*, false*/);
+        if (!param)
+            return std::nullopt;
         lex.Consume();
-        return "if(toDayOfWeek(" + param + ") = 7, 1, toDayOfWeek(" + param + ") + 1)";
-/*
-    } else if (fn.type == Token::DAYOFYEAR) { // Supported by ClickHouse since 18.13.0
-        if (!lex.Match(Token::LPARENT))
-            return seq.to_string();
-
-        auto param = processIdentOrFunction(seq, lex);
-        if (param.empty())
-            return seq.to_string();
-        lex.Consume();
-        return "( toRelativeDayNum(" + param + ") - toRelativeDayNum(toStartOfYear(" + param + ")) + 1 )";
-*/
+        return "if(toDayOfWeek(" + *param + ") = 7, 1, toDayOfWeek(" + *param + ") + 1)";
     } else if (function_map.find(fn.type) != function_map.end()) {
         std::string result = function_map.at(fn.type);
         auto func = result;
@@ -421,12 +421,18 @@ std::string processFunction(const StringView seq, Lexer & lex) {
                 break;
             } else if (tok.type == Token::LCURLY) {
                 lex.SetEmitSpaces(false);
-                result += processEscapeSequencesImpl(seq, lex);
+                auto processed = processEscapeSequencesImpl(seq, lex);
                 lex.SetEmitSpaces(true);
+                if (!processed)
+                    return std::nullopt;
+                result += *processed;
             } else if (tok.type == Token::EOS || tok.type == Token::INVALID) {
                 break;
             } else if (tok.type == Token::FN_EXTRACT) {
-                result += processFunction(seq, lex);
+                auto processed = processFunction(seq, lex);
+                if (!processed)
+                    return std::nullopt;
+                result += *processed;
             } else {
                 if (func != "EXTRACT" && literal_map.find(tok.type) != literal_map.end()) {
                     result += literal_map.at(tok.type);
@@ -443,25 +449,25 @@ std::string processFunction(const StringView seq, Lexer & lex) {
     return seq.to_string();
 }
 
-std::string processDate(const StringView seq, Lexer & lex) {
+std::optional<std::string> processDate(const StringView seq, Lexer & lex) {
     Token data = lex.Consume(Token::STRING);
     if (data.isInvalid()) {
-        return seq.to_string();
+        return std::nullopt;
     } else {
         return std::string("toDate(") + data.literal.to_string() + ")";
     }
 }
 
-std::string processDateTime(const StringView seq, Lexer & lex) {
+std::optional<std::string> processDateTime(const StringView seq, Lexer & lex) {
     Token data = lex.Consume(Token::STRING);
     if (data.isInvalid()) {
-        return seq.to_string();
+        return std::nullopt;
     } else {
         return std::string("toDateTime64(") + data.literal.to_string() + ", 9)";
     }
 }
 
-std::string processClickHouseQueryParameter(Token name, const StringView seq, Lexer & lex) {
+std::optional<std::string> processClickHouseQueryParameter(Token name, const StringView seq, Lexer & lex) {
     bool emit_space = lex.GetEmitSpaces();
     lex.SetEmitSpaces(true);
 
@@ -469,7 +475,7 @@ std::string processClickHouseQueryParameter(Token name, const StringView seq, Le
     while (lex.Peek().type != Token::RCURLY) {
         const Token tok = lex.Consume();
         if (tok.type == Token::EOS) {
-            return seq.to_string();
+            return std::nullopt;
         }
         result += tok.literal.to_string();
     }
@@ -478,7 +484,7 @@ std::string processClickHouseQueryParameter(Token name, const StringView seq, Le
     return result;
 }
 
-std::string processEscapeSequencesImpl(const StringView seq, Lexer & lex) {
+std::optional<std::string> processEscapeSequencesImpl(const StringView seq, Lexer & lex) {
     std::string result;
 
     if (!lex.Match(Token::LCURLY)) {
@@ -491,40 +497,56 @@ std::string processEscapeSequencesImpl(const StringView seq, Lexer & lex) {
         const Token tok(lex.Consume());
 
         switch (tok.type) {
-            case Token::FN:
-                result += processFunction(seq, lex);
+            case Token::FN: {
+                auto processed = processFunction(seq, lex);
+                if (!processed)
+                    return std::nullopt;
+                result += *processed;
                 break;
+            }
 
-            case Token::D:
-                result += processDate(seq, lex);
+            case Token::D: {
+                auto processed = processDate(seq, lex);
+                if (!processed)
+                    return std::nullopt;
+                result += *processed;
                 break;
-            case Token::TS:
-                result += processDateTime(seq, lex);
-                break;
+            }
 
-            // End of escape sequence
+            case Token::TS: {
+                auto processed = processDateTime(seq, lex);
+                if (!processed)
+                    return std::nullopt;
+                result += *processed;
+                break;
+            }
+
             case Token::RCURLY:
+                // End of escape sequence
                 return result;
 
-            // Unimplemented
             case Token::T:
-                return seq.to_string();
+                // Unimplemented
+                return std::nullopt;
 
             default:
                 // Positional query parameters, just like ODBC escape sequences, also wrapped in
                 // curly braces. However they always have a fixed `{name : type}` format, with colon
                 // after the parameter name, which does not happen with ODBC escape sequences.
                 if (lex.Peek().type == Token::COLON) {
-                    result += processClickHouseQueryParameter(tok, seq, lex);
+                    auto processed = processClickHouseQueryParameter(tok, seq, lex);
+                    if (!processed)
+                        return std::nullopt;
+                    result += *processed;
                     break;
                 }
 
-                return seq.to_string();
+                return std::nullopt;
         }
     };
 }
 
-std::string processEscapeSequences(const StringView seq) {
+std::optional<std::string> processEscapeSequences(const StringView seq) {
     Lexer lex(seq);
     return processEscapeSequencesImpl(seq, lex);
 }
@@ -552,11 +574,16 @@ std::string replaceEscapeSequences(const std::string & query) {
 
             case '}':
                 if (level == 0) {
-                    // TODO unexpected '}'
+                    // ERROR: unexpected '}' - return the query as it is
                     return query;
                 }
                 if (--level == 0) {
-                    ret += processEscapeSequences(StringView(st, p + 1));
+                    auto processed = processEscapeSequences(StringView(st, p + 1));
+                    if (!processed) {
+                        // ERROR: could not process the sequence - return the query as it is
+                        return query;
+                    }
+                    ret += *processed;
                     st = p + 1;
                 }
                 break;

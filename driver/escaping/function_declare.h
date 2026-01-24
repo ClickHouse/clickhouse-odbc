@@ -38,7 +38,7 @@
     DECLARE2(ACOS, "acos"),
     DECLARE2(ASIN, "asin"),
     DECLARE2(ATAN, "atan"),
-    DECLARE2(ATAN2, "atan2"),          //  ATAN2( float_exp1, float_exp2) 
+    DECLARE2(ATAN2, "atan2"),
     DECLARE2(CEILING, "ceil"),
     DECLARE2(COS, "cos"),
     DECLARE2(COT, ""), // special handling

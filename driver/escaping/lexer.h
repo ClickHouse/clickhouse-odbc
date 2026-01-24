@@ -29,6 +29,8 @@ struct Token {
         T,
         TS,
 
+        IN_PREP, // = IN. The `_PREP` prefix is needed because `IN` is kindly taken by MSVC.
+
 #include "function_declare.h"
 #include "lexer_declare.h"
 

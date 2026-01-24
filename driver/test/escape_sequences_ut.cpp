@@ -38,18 +38,23 @@ TEST(EscapeSequencesCase, ParseIdent7) {
 }
 
 TEST(EscapeSequencesCase, ParseIdent_Negative1) {
+    // Although this is not correct SQL, this is allowed for flexibility - `0 a b $ c` can be an
+    // expression, for example a + b / c. This flexibility is to avoid strictness where it can, due
+    // to developer's, mistake throw out a correct expression.
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(0 a b $ c, SQL_BIGINT)})"),
-        "SELECT SUM({fn CONVERT(0 a b $ c, SQL_BIGINT)})");
+        "SELECT SUM(toInt64(0 a b $ c))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent_Negative2) {
+    // Similarly to Negative1
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(.abc, SQL_BIGINT)})"),
-        "SELECT SUM({fn CONVERT(.abc, SQL_BIGINT)})");
+        "SELECT SUM(toInt64(.abc))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent_Negative3) {
+    // Similarly to Negative1
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(.`abc`, SQL_BIGINT)})"),
-        "SELECT SUM({fn CONVERT(.`abc`, SQL_BIGINT)})");
+        "SELECT SUM(toInt64(.`abc`))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent_Negative4) {
@@ -99,7 +104,7 @@ TEST(EscapeSequencesCase, ParseConvert6) {
 
 TEST(EscapeSequencesCase, ParseConvert6_1) {
     ASSERT_EQ(replaceEscapeSequences("SELECT  {fn   CONVERT(  {fn   ROUND(  1.1  +  2.4  ,  1  )  }  ,  SQL_BIGINT  )  }"),
-        "SELECT  toInt64(round(  1.1  +  2.4  ,  1  )  )");
+        "SELECT  toInt64(  round(  1.1  +  2.4  ,  1  )    )");
 }
 
 
@@ -181,12 +186,12 @@ TEST(EscapeSequencesCase, Parsetimestampdiff) {
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd1) {
-    ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD(SQL_TSI_YEAR, 1, {fn CURDATE()})}"), "SELECT addYears(today(), 1)");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD(SQL_TSI_YEAR, 1, {fn CURDATE()})}"), "SELECT addYears( today(),  1)");
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd2) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn  TIMESTAMPADD(  SQL_TSI_YEAR  ,  1  ,  {fn  CURDATE()  }  )  }"),
-        "SELECT addYears(today()  , 1)");
+        "SELECT addYears(  today()    ,   1  )");
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd3) {
@@ -196,12 +201,12 @@ TEST(EscapeSequencesCase, ParseTimestampadd3) {
 
 TEST(EscapeSequencesCase, ParseTimestampadd4) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD( SQL_TSI_DAY , 1 , CAST( {fn CURRENT_TIMESTAMP( 0 ) }  AS  DATE ) ) } "),
-        "SELECT addDays(CAST( now64(0)  AS  DATE ), 1) ");
+        "SELECT addDays( CAST( now64( 0 )  AS  DATE ) ,  1 ) ");
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd5) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD(SQL_TSI_DAY, CAST(CAST(1 AS DATE) AS DATE), 1)}"),
-        "SELECT addDays(1, CAST(CAST(1 AS DATE) AS DATE))");
+        "SELECT addDays( 1,  CAST(CAST(1 AS DATE) AS DATE))");
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd6) {
