@@ -1230,8 +1230,6 @@ TEST_F(ScalarFunctionsTest, FunctionsWithDateEscapeSequences) {
         -1);
 }
 
-// --- Functions with CURRENT_DATE/TIME/TIMESTAMP ---
-
 TEST_F(ScalarFunctionsTest, FunctionsWithCurrentDateTime) {
     // DAYNAME of CURRENT_DATE
     auto dayName = query<std::string>("SELECT {fn DAYNAME({fn CURRENT_DATE()})}");
@@ -1256,8 +1254,6 @@ TEST_F(ScalarFunctionsTest, FunctionsWithCurrentDateTime) {
         "{fn CONVERT({fn TIMESTAMPADD(SQL_TSI_DAY, 1, {fn CURRENT_TIMESTAMP()})}, SQL_DATE)})}"), 1);
 }
 
-// --- CONVERT with Nested Functions ---
-
 TEST_F(ScalarFunctionsTest, ConvertWithNestedFunctions) {
     // CONVERT numeric result to string
     ASSERT_EQ(query<std::string>("SELECT {fn CONVERT({fn ABS(-42)}, SQL_VARCHAR)}"), "42");
@@ -1278,8 +1274,6 @@ TEST_F(ScalarFunctionsTest, ConvertWithNestedFunctions) {
     ASSERT_EQ(query<SQLINTEGER>("SELECT {fn CONVERT({fn CEILING(4.1)}, SQL_INTEGER)}"), 5);
 }
 
-// --- IFNULL with Nested Functions ---
-
 TEST_F(ScalarFunctionsTest, IfNullWithNestedFunctions) {
     // IFNULL with function result
     ASSERT_EQ(query<SQLINTEGER>("SELECT {fn IFNULL({fn LENGTH('test')}, 0)}"), 4);
@@ -1294,8 +1288,6 @@ TEST_F(ScalarFunctionsTest, IfNullWithNestedFunctions) {
     // IFNULL with computed default
     ASSERT_EQ(query<SQLINTEGER>("SELECT {fn IFNULL(NULL, {fn ABS(-42)})}"), 42);
 }
-
-// --- Complex Multi-Level Nesting ---
 
 TEST_F(ScalarFunctionsTest, ComplexMultiLevelNesting) {
     // 4 levels deep: UCASE(LTRIM(SUBSTRING(CONCAT(...))))
@@ -1321,8 +1313,6 @@ TEST_F(ScalarFunctionsTest, ComplexMultiLevelNesting) {
         "{fn POWER({fn COS({fn RADIANS(45)})}, 2)}, 10)}"), 1.0, 1e-10);
 }
 
-// --- INSERT function with nested parameters ---
-
 TEST_F(ScalarFunctionsTest, InsertWithNestedFunctions) {
     // INSERT with UCASE replacement string
     ASSERT_EQ(query<std::string>(
@@ -1340,8 +1330,6 @@ TEST_F(ScalarFunctionsTest, InsertWithNestedFunctions) {
         "aXXdef");
 }
 
-// --- REPEAT and SPACE with computed counts ---
-
 TEST_F(ScalarFunctionsTest, RepeatAndSpaceWithComputedCounts) {
     // REPEAT with computed count
     ASSERT_EQ(query<std::string>("SELECT {fn REPEAT('ab', {fn MOD(10, 3)})}"), "ab");  // MOD(10,3)=1
@@ -1353,8 +1341,6 @@ TEST_F(ScalarFunctionsTest, RepeatAndSpaceWithComputedCounts) {
     ASSERT_EQ(query<std::string>(
         "SELECT {fn CONCAT({fn REPEAT('a', 3)}, {fn REPEAT('b', 2)})}"), "aaabb");
 }
-
-// --- EXTRACT with various date/time sources ---
 
 TEST_F(ScalarFunctionsTest, ExtractWithNestedDateFunctions) {
     // EXTRACT from TIMESTAMPADD result
@@ -1376,8 +1362,6 @@ TEST_F(ScalarFunctionsTest, ExtractWithNestedDateFunctions) {
     ASSERT_EQ(day, 15);
 }
 
-// --- POSITION/LOCATE with computed strings ---
-
 TEST_F(ScalarFunctionsTest, PositionWithComputedStrings) {
     // POSITION in concatenated string
     ASSERT_EQ(query<SQLINTEGER>(
@@ -1390,4 +1374,128 @@ TEST_F(ScalarFunctionsTest, PositionWithComputedStrings) {
     // POSITION of LCASE search term
     ASSERT_EQ(query<SQLINTEGER>(
         "SELECT {fn POSITION({fn LCASE('WORLD')} IN 'hello world')}"), 7);
+}
+
+// ============================================================================
+// SQL-92 Scalar Functions
+// These functions do not use {fn ...} escape syntax and must be implemented by
+// ClickHouse.
+// ============================================================================
+
+TEST_F(ScalarFunctionsTest, SQL92_LOWER) {
+    ASSERT_EQ(query<std::string>("SELECT LOWER('Hello World')"), "hello world");
+    ASSERT_EQ(query<std::string>("SELECT LOWER('UPPERCASE')"), "uppercase");
+    ASSERT_EQ(query<std::string>("SELECT LOWER('MiXeD CaSe')"), "mixed case");
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_UPPER) {
+    ASSERT_EQ(query<std::string>("SELECT UPPER('Hello World')"), "HELLO WORLD");
+    ASSERT_EQ(query<std::string>("SELECT UPPER('lowercase')"), "LOWERCASE");
+    ASSERT_EQ(query<std::string>("SELECT UPPER('MiXeD CaSe')"), "MIXED CASE");
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_SUBSTRING) {
+    ASSERT_EQ(query<std::string>("SELECT SUBSTRING('Hello World' FROM 1 FOR 5)"), "Hello");
+    ASSERT_EQ(query<std::string>("SELECT SUBSTRING('Hello World' FROM 7 FOR 5)"), "World");
+    ASSERT_EQ(query<std::string>("SELECT SUBSTRING('Hello World' FROM 7)"), "World");
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_TRIM_BOTH) {
+    ASSERT_EQ(query<std::string>("SELECT TRIM(BOTH ' ' FROM '  Hello  ')"), "Hello");
+    ASSERT_EQ(query<std::string>("SELECT TRIM(BOTH 'x' FROM 'xxxHelloxxx')"), "Hello");
+    // Not supported by ClickHouse
+    // ASSERT_EQ(query<std::string>("SELECT TRIM(BOTH FROM '  Hello  ')"), "Hello");
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_TRIM_LEADING) {
+    ASSERT_EQ(query<std::string>("SELECT TRIM(LEADING ' ' FROM '  Hello  ')"), "Hello  ");
+    ASSERT_EQ(query<std::string>("SELECT TRIM(LEADING 'x' FROM 'xxxHello')"), "Hello");
+    // Not supported by ClickHouse
+    // ASSERT_EQ(query<std::string>("SELECT TRIM(LEADING FROM '  Hello')"), "Hello");
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_TRIM_TRAILING) {
+    ASSERT_EQ(query<std::string>("SELECT TRIM(TRAILING ' ' FROM '  Hello  ')"), "  Hello");
+    ASSERT_EQ(query<std::string>("SELECT TRIM(TRAILING 'x' FROM 'Helloxxx')"), "Hello");
+    // Not supported by ClickHouse
+    // ASSERT_EQ(query<std::string>("SELECT TRIM(TRAILING FROM 'Hello  ')"), "Hello");
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_CONVERT) {
+    // Not supported by ClickHouse
+    // ASSERT_EQ(query<std::string>("SELECT CONVERT('Hello' USING ASCII)"), "Hello");
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_TRANSLATE) {
+    // Not supported by ClickHouse
+    // ASSERT_EQ(query<std::string>("SELECT TRANSLATE('Hello' USING ASCII)"), "Hello");
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_BIT_LENGTH) {
+    // Not supported by ClickHouse
+    // ASSERT_EQ(query<SQLINTEGER>("SELECT BIT_LENGTH('Hello')"), 40);  // 5 chars * 8 bits
+    // ASSERT_EQ(query<SQLINTEGER>("SELECT BIT_LENGTH('Hello World!')"), 96);  // 12 chars * 8 bits
+    // ASSERT_EQ(query<SQLINTEGER>("SELECT BIT_LENGTH('')"), 0);
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_CHAR_LENGTH) {
+    ASSERT_EQ(query<SQLINTEGER>("SELECT CHAR_LENGTH('Hello World!')"), 12);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT CHAR_LENGTH('')"), 0);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT CHARACTER_LENGTH('Hello World!')"), 12);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT CHARACTER_LENGTH('')"), 0);
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_OCTET_LENGTH) {
+    ASSERT_EQ(query<SQLINTEGER>("SELECT OCTET_LENGTH('Hello')"), 5);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT OCTET_LENGTH('')"), 0);
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_POSITION) {
+    // SQL-92 syntax: POSITION(substring IN string)
+    ASSERT_EQ(query<SQLINTEGER>("SELECT POSITION('World' IN 'Hello World')"), 7);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT POSITION('o' IN 'Hello')"), 5);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT POSITION('xyz' IN 'Hello')"), 0);  // Not found
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_EXTRACT) {
+    // SQL-92 syntax: EXTRACT(field FROM source)
+    ASSERT_EQ(query<SQLINTEGER>("SELECT EXTRACT(YEAR FROM DATE '2024-03-15')"), 2024);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT EXTRACT(MONTH FROM DATE '2024-03-15')"), 3);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT EXTRACT(DAY FROM DATE '2024-03-15')"), 15);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT EXTRACT(HOUR FROM TIMESTAMP '2024-03-15 14:30:45')"), 14);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT EXTRACT(MINUTE FROM TIMESTAMP '2024-03-15 14:30:45')"), 30);
+    ASSERT_EQ(query<SQLINTEGER>("SELECT EXTRACT(SECOND FROM TIMESTAMP '2024-03-15 14:30:45')"), 45);
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_CURRENT_DATE) {
+    // Not supported by ClickHouse
+    // auto [res, year, month, day] = query<std::tuple<SQL_DATE_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
+    //     "SELECT CURRENT_DATE as d, year(d), month(d), day(d)");
+    // ASSERT_EQ(res.year, year);
+    // ASSERT_EQ(res.month, month);
+    // ASSERT_EQ(res.day, day);
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_CURRENT_TIME) {
+    // Not supported by ClickHouse
+    // auto [res, hour, minute, second] = query<std::tuple<SQL_TIME_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
+    //     "SELECT CURRENT_TIME as t, hour(t), minute(t), second(t)");
+    // ASSERT_EQ(res.hour, hour);
+    // ASSERT_EQ(res.minute, minute);
+    // ASSERT_EQ(res.second, second);
+}
+
+TEST_F(ScalarFunctionsTest, SQL92_CURRENT_TIMESTAMP) {
+    // Not supported by ClickHouse
+    // auto [res, year, month, day, hour, minute, second] = query<std::tuple<
+    //     SQL_TIMESTAMP_STRUCT, SQLINTEGER, SQLINTEGER, SQLINTEGER,
+    //     SQLINTEGER, SQLINTEGER, SQLINTEGER>>(
+    //     "SELECT CURRENT_TIMESTAMP as ts, year(ts), month(ts), day(ts), "
+    //     "hour(ts), minute(ts), second(ts)");
+    // ASSERT_EQ(res.year, year);
+    // ASSERT_EQ(res.month, month);
+    // ASSERT_EQ(res.day, day);
+    // ASSERT_EQ(res.hour, hour);
+    // ASSERT_EQ(res.minute, minute);
+    // ASSERT_EQ(res.second, second);
 }
