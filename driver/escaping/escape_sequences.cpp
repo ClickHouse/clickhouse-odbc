@@ -67,14 +67,6 @@ const std::map<const Token::Type, const std::string> timeadd_func_map {
     {Token::SQL_TSI_YEAR, "addYears"},
 };
 
-std::string convertFunctionByType(const StringView & typeName) {
-    const auto type_name_string = typeName.to_string();
-    if (fn_convert_map.find(type_name_string) != fn_convert_map.end())
-        return fn_convert_map.at(type_name_string);
-
-    return std::string();
-}
-
 std::optional<std::string> processParentheses(const StringView seq, Lexer & lex) {
     std::string result;
     lex.SetEmitSpaces(true);
@@ -88,17 +80,15 @@ std::optional<std::string> processParentheses(const StringView seq, Lexer & lex)
             break;
         } else if (token.type == Token::LPARENT) {
             auto processed = processParentheses(seq, lex);
-            if (!processed) {
+            if (!processed)
                 return std::nullopt;
-            }
             result += *processed;
         } else if (token.type == Token::LCURLY) {
             lex.SetEmitSpaces(false);
             auto processed = processEscapeSequencesImpl(seq, lex);
             lex.SetEmitSpaces(true);
-            if (!processed) {
+            if (!processed)
                 return std::nullopt;
-            }
             result += *processed;
         } else if (token.type == Token::EOS || token.type == Token::INVALID) {
             break;
@@ -121,15 +111,13 @@ std::optional<std::string> processIdentifierOrFunction(const StringView seq, Lex
         lex.SetEmitSpaces(false);
         auto processed = processEscapeSequencesImpl(seq, lex);
         lex.SetEmitSpaces(true);
-        if (!processed) {
+        if (!processed)
             return std::nullopt;
-        }
         result += *processed;
     } else if (token.type == Token::LPARENT) {
         auto processed = processParentheses(seq, lex);
-        if (!processed) {
+        if (!processed)
             return std::nullopt;
-        }
         result += *processed;
     } else if ( // any of the remaining recognized FUNCTION( ... ), or any IDENT( ... ), including CAST( ... )
         (token.type == Token::IDENT || function_map.find(token.type) != function_map.end()) &&
@@ -138,9 +126,8 @@ std::optional<std::string> processIdentifierOrFunction(const StringView seq, Lex
         result += token.literal.to_string();                                            // func name
         lex.Consume();
         auto processed = processParentheses(seq, lex);
-        if (!processed) {
+        if (!processed)
             return std::nullopt;
-        }
         result += *processed;
     } else if (token.type == Token::NUMBER || token.type == Token::IDENT || token.type == Token::STRING || token.type == Token::PARAM) {
         result += token.literal.to_string();
@@ -169,9 +156,8 @@ std::optional<std::string> processFunctionArgument(const StringView seq, Lexer &
                 return result;
             case (Token::LPARENT): {
                 auto processed = processParentheses(seq, lex);
-                if (!processed) {
+                if (!processed)
                     return std::nullopt;
-                }
                 result += *processed;
                 break;
             }
@@ -179,9 +165,8 @@ std::optional<std::string> processFunctionArgument(const StringView seq, Lexer &
                 lex.SetEmitSpaces(false);
                 auto processed = processEscapeSequencesImpl(seq, lex);
                 lex.SetEmitSpaces(true);
-                if (!processed) {
+                if (!processed)
                     return std::nullopt;
-                }
                 result += *processed;
                 break;
             }
@@ -205,25 +190,21 @@ std::optional<std::string> processFunction(const StringView seq, Lexer & lex) {
         result += *num;
         while (lex.Match(Token::SPACE)) {
         }
-        if (!lex.Match(Token::COMMA)) {
+        if (!lex.Match(Token::COMMA))
             return std::nullopt;
-        }
         while (lex.Match(Token::SPACE)) {
         }
         Token type = lex.Consume();
-        if (type.type != Token::IDENT) {
+        if (type.type != Token::IDENT)
             return std::nullopt;
+        auto func_it = fn_convert_map.find(type.literal.to_string());
+        if (func_it == fn_convert_map.end())
+            return std::nullopt;
+        while (lex.Match(Token::SPACE)) {
         }
-        std::string func = convertFunctionByType(type.literal.to_string());
-        if (!func.empty()) {
-            while (lex.Match(Token::SPACE)) {
-            }
-            if (!lex.Match(Token::RPARENT)) {
-                return std::nullopt;
-            }
-            result = func + "(" + result + ")";
-        }
-        return result;
+        if (!lex.Match(Token::RPARENT))
+            return std::nullopt;
+        return func_it->second + "(" + result + ")";
     } else if (fn.type == Token::FN_BIT_LENGTH) {
         if (!lex.Match(Token::LPARENT))
             return std::nullopt;
@@ -303,7 +284,7 @@ std::optional<std::string> processFunction(const StringView seq, Lexer & lex) {
                 return std::nullopt;
             return "now64(" + *precision + ")";
         }
-        return "now64()";
+        return "now64()"; // CURRENT_TIME and CURRENT_TIMESTAMP can be called without parentheses
     } else if (fn.type == Token::FN_DAYNAME) {
         if (!lex.Match(Token::LPARENT))
             return std::nullopt;
@@ -326,9 +307,6 @@ std::optional<std::string> processFunction(const StringView seq, Lexer & lex) {
         if (!lex.Match(Token::LPARENT))
             return std::nullopt;
         Token type = lex.Consume();
-        if (timeadd_func_map.find(type.type) == timeadd_func_map.end())
-            return std::nullopt;
-
         auto func_it = timeadd_func_map.find(type.type);
         if (func_it == timeadd_func_map.end())
             return std::nullopt;
@@ -345,14 +323,11 @@ std::optional<std::string> processFunction(const StringView seq, Lexer & lex) {
         auto rdate = processFunctionArgument(seq, lex);
         if (!rdate)
             return std::nullopt;
-
         while (lex.Match(Token::SPACE)) {
         }
-        if (!lex.Match(Token::RPARENT)) {
+        if (!lex.Match(Token::RPARENT))
             return std::nullopt;
-        }
         return func + "(" + *rdate + ", " + *ramount + ")";
-
     } else if (fn.type == Token::FN_LOCATE) {
         if (!lex.Match(Token::LPARENT))
             return std::nullopt;
@@ -364,14 +339,12 @@ std::optional<std::string> processFunction(const StringView seq, Lexer & lex) {
         auto haystack = processFunctionArgument(seq, lex);
         if (!haystack)
             return std::nullopt;
-
         // Last parameter, `offset`, is optional
         std::optional<std::string> offset = "1";
         if (lex.Match(Token::COMMA)) {
             offset = processFunctionArgument(seq, lex);
-            if (!offset) {
+            if (!offset)
                 return std::nullopt;
-            }
         }
         if (!lex.Match(Token::RPARENT)) {
             return std::nullopt;
@@ -380,20 +353,20 @@ std::optional<std::string> processFunction(const StringView seq, Lexer & lex) {
     } else if (fn.type == Token::FN_LTRIM) {
         if (!lex.Match(Token::LPARENT))
             return std::nullopt;
-
-        auto param = processFunctionArgument(seq, lex /*, false*/);
+        auto param = processFunctionArgument(seq, lex);
         if (!param)
             return std::nullopt;
-        lex.Consume();
+        if (!lex.Match(Token::RPARENT))
+            return std::nullopt;
         return "replaceRegexpOne(" + *param + ", '^\\\\s+', '')";
-
     } else if (fn.type == Token::FN_DAYOFWEEK) {
         if (!lex.Match(Token::LPARENT))
             return std::nullopt;
-        auto param = processFunctionArgument(seq, lex /*, false*/);
+        auto param = processFunctionArgument(seq, lex);
         if (!param)
             return std::nullopt;
-        lex.Consume();
+        if (!lex.Match(Token::RPARENT))
+            return std::nullopt;
         return "if(toDayOfWeek(" + *param + ") = 7, 1, toDayOfWeek(" + *param + ") + 1)";
     } else if (function_map.find(fn.type) != function_map.end()) {
         std::string result = function_map.at(fn.type);
@@ -401,7 +374,6 @@ std::optional<std::string> processFunction(const StringView seq, Lexer & lex) {
         lex.SetEmitSpaces(true);
         while (true) {
             const Token tok(lex.Peek());
-
             if (tok.type == Token::RCURLY) {
                 break;
             } else if (tok.type == Token::LCURLY) {
