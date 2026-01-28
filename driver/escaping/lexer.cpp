@@ -10,7 +10,7 @@ namespace {
 #define DECLARE(NAME) \
     { #NAME, Token::NAME }
 #define DECLARE2(NAME, IGNORE) \
-    { #NAME, Token::NAME }
+    { #NAME, Token::FN_##NAME }
 #define DECLARE_SQL_TSI(NAME) \
     { #NAME, Token::SQL_TSI_##NAME }
 
@@ -23,12 +23,11 @@ static const std::unordered_map<std::string, Token::Type> KEYWORDS = {
 #include "function_declare.h"
 #include "lexer_declare.h"
 
-    // DECLARE_SQL_TSI(MILLISECOND),
+    DECLARE_SQL_TSI(FRAC_SECOND),
     DECLARE_SQL_TSI(SECOND),
     DECLARE_SQL_TSI(MINUTE),
     DECLARE_SQL_TSI(HOUR),
     DECLARE_SQL_TSI(DAY),
-    //DECLARE_SQL_TSI(DAYOFYEAR),
     DECLARE_SQL_TSI(WEEK),
     DECLARE_SQL_TSI(MONTH),
     DECLARE_SQL_TSI(QUARTER),
@@ -147,6 +146,8 @@ Token Lexer::NextToken() {
                 return MakeToken(Token::RCURLY, 1);
             case ',':
                 return MakeToken(Token::COMMA, 1);
+            case ':':
+                return MakeToken(Token::COLON, 1);
             case '?':
                 return MakeToken(Token::PARAM, 1);
 

@@ -7,7 +7,7 @@
 
 // Allow same declaration as in lexer.cpp
 #define DECLARE(NAME) NAME
-#define DECLARE2(NAME, IGNORE) NAME
+#define DECLARE2(NAME, IGNORE) FN_##NAME
 #define DECLARE_SQL_TSI(NAME) SQL_TSI_##NAME
 
 struct Token {
@@ -38,6 +38,7 @@ struct Token {
         RPARENT, //  )
         LCURLY,  //  {
         RCURLY,  //  }
+        COLON,   //  :
     };
 
 #undef DECLARE
@@ -78,6 +79,8 @@ public:
 
     /// Enable or disable emitting of space tokens.
     void SetEmitSpaces(bool value);
+
+    bool GetEmitSpaces() { return emit_space_; }
 
 private:
     /// Makes token of length len againts current position.

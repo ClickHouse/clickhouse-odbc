@@ -34,7 +34,6 @@ void Statement::prepareQuery(const std::string & q) {
 
     is_prepared = false;
     query = q;
-    processEscapeSequences();
     extractParametersinfo();
     is_prepared = true;
 }
@@ -94,6 +93,9 @@ Statement::HttpRequestData Statement::prepareHttpRequest()
     }
 
     ret.query = buildFinalQuery(param_bindings);
+    if (getAttrAs<SQLULEN>(SQL_ATTR_NOSCAN, SQL_NOSCAN_OFF) != SQL_NOSCAN_ON) {
+        ret.query = replaceEscapeSequences(ret.query);
+    }
     return ret;
 }
 
@@ -199,11 +201,6 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     );
 
     ++next_param_set_idx;
-}
-
-void Statement::processEscapeSequences() {
-    if (getAttrAs<SQLULEN>(SQL_ATTR_NOSCAN, SQL_NOSCAN_OFF) != SQL_NOSCAN_ON)
-        query = replaceEscapeSequences(query);
 }
 
 void Statement::extractParametersinfo() {

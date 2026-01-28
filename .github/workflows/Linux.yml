@@ -138,6 +138,14 @@ jobs:
       working-directory: ${{ github.workspace }}/build
       run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
 
+    - name: Get ClickHouse Cloud version
+      if: ${{ matrix.build_type == 'Release' }}
+      run: |
+        curl --fail-with-body -X POST \
+          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" \
+          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" \
+          -d "select version()"
+
     - name: Create Test Database
       if: ${{ matrix.build_type == 'Release' }}
       run: |

@@ -38,18 +38,23 @@ TEST(EscapeSequencesCase, ParseIdent7) {
 }
 
 TEST(EscapeSequencesCase, ParseIdent_Negative1) {
+    // Although this is not correct SQL, this is allowed for flexibility - `0 a b $ c` can be an
+    // expression, for example a + b / c. This flexibility is to avoid strictness where it can, due
+    // to developer's, mistake throw out a correct expression.
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(0 a b $ c, SQL_BIGINT)})"),
-        "SELECT SUM({fn CONVERT(0 a b $ c, SQL_BIGINT)})");
+        "SELECT SUM(toInt64(0 a b $ c))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent_Negative2) {
+    // Similarly to Negative1
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(.abc, SQL_BIGINT)})"),
-        "SELECT SUM({fn CONVERT(.abc, SQL_BIGINT)})");
+        "SELECT SUM(toInt64(.abc))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent_Negative3) {
+    // Similarly to Negative1
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(.`abc`, SQL_BIGINT)})"),
-        "SELECT SUM({fn CONVERT(.`abc`, SQL_BIGINT)})");
+        "SELECT SUM(toInt64(.`abc`))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent_Negative4) {
@@ -99,7 +104,7 @@ TEST(EscapeSequencesCase, ParseConvert6) {
 
 TEST(EscapeSequencesCase, ParseConvert6_1) {
     ASSERT_EQ(replaceEscapeSequences("SELECT  {fn   CONVERT(  {fn   ROUND(  1.1  +  2.4  ,  1  )  }  ,  SQL_BIGINT  )  }"),
-        "SELECT  toInt64(round(  1.1  +  2.4  ,  1  )  )");
+        "SELECT  toInt64(  round(  1.1  +  2.4  ,  1  )    )");
 }
 
 
@@ -181,27 +186,27 @@ TEST(EscapeSequencesCase, Parsetimestampdiff) {
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd1) {
-    ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD(SQL_TSI_YEAR, 1, {fn CURDATE()})}"), "SELECT addYears(today(), 1)");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD(SQL_TSI_YEAR, 1, {fn CURDATE()})}"), "SELECT addYears( today(),  1)");
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd2) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn  TIMESTAMPADD(  SQL_TSI_YEAR  ,  1  ,  {fn  CURDATE()  }  )  }"),
-        "SELECT addYears(today()  , 1)");
+        "SELECT addYears(  today()    ,   1  )");
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd3) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD(SQL_TSI_DAY,1,CAST({fn CURRENT_TIMESTAMP(0)} AS DATE))}"),
-        "SELECT addDays(CAST(now() AS DATE), 1)");
+        "SELECT addDays(CAST(now64(0) AS DATE), 1)");
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd4) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD( SQL_TSI_DAY , 1 , CAST( {fn CURRENT_TIMESTAMP( 0 ) }  AS  DATE ) ) } "),
-        "SELECT addDays(CAST( now()  AS  DATE ), 1) ");
+        "SELECT addDays( CAST( now64( 0 )  AS  DATE ) ,  1 ) ");
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd5) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn TIMESTAMPADD(SQL_TSI_DAY, CAST(CAST(1 AS DATE) AS DATE), 1)}"),
-        "SELECT addDays(1, CAST(CAST(1 AS DATE) AS DATE))");
+        "SELECT addDays( 1,  CAST(CAST(1 AS DATE) AS DATE))");
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd6) {
@@ -218,10 +223,10 @@ TEST(EscapeSequencesCase, ParseTimestampadd7) {
 }
 
 TEST(EscapeSequencesCase, ParseCurrentTimestamp1) {
-    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CURRENT_TIMESTAMP}"), "SELECT now()");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CURRENT_TIMESTAMP}"), "SELECT now64()");
 }
 TEST(EscapeSequencesCase, ParseCurrentTimestamp2) {
-    ASSERT_EQ(replaceEscapeSequences("SELECT  {fn  CURRENT_TIMESTAMP } "), "SELECT  now() ");
+    ASSERT_EQ(replaceEscapeSequences("SELECT  {fn  CURRENT_TIMESTAMP } "), "SELECT  now64() ");
 }
 
 TEST(EscapeSequencesCase, ParseExtract1) {
@@ -255,7 +260,7 @@ TEST(EscapeSequencesCase, ParseDayOfWeek2) {
 
 
 TEST(EscapeSequencesCase, ParseCurrentTimestamp) {
-    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CURRENT_TIMESTAMP(0)} AS `timeStamp`"), "SELECT now() AS `timeStamp`");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CURRENT_TIMESTAMP(0)} AS `timeStamp`"), "SELECT now64(0) AS `timeStamp`");
 }
 
 
@@ -288,31 +293,15 @@ TEST(EscapeSequencesCase, ParameterizedFunctionCalls) {
 TEST(EscapeSequencesCase, DateTime) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {d '2017-01-01'}"), "SELECT toDate('2017-01-01')");
 
-    ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017-01-01 10:01:01'}"), "SELECT toDateTime('2017-01-01 10:01:01')");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017-01-01 10:01:01'}"), "SELECT toDateTime64('2017-01-01 10:01:01', 9)");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017-01-01 10:01:01.555'}"), "SELECT toDateTime64('2017-01-01 10:01:01.555', 9)");
 
-    // We cutting off milliseconds from timestamp because CH server
-    // doesn't support them.
-    ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017-01-01 10:01:01.555'}"), "SELECT toDateTime('2017-01-01 10:01:01')");
     // Strange date format. Symbols after last dot shouldn't be cutted off.
-    ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017.01.01 10:01:01'}"), "SELECT toDateTime('2017.01.01 10:01:01')");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017.01.01 10:01:01'}"), "SELECT toDateTime64('2017.01.01 10:01:01', 9)");
 }
 
-TEST(EscapeSequencesCase, LOCATE) {
-    ASSERT_EQ(replaceEscapeSequences(
-        "SELECT {fn LOCATE('needle', `haystack`, 42)}"),
-        "SELECT locate('needle',`haystack`,accurateCast(42,'UInt64'))");
-    ASSERT_EQ(replaceEscapeSequences(
-        "SELECT {fn LOCATE(?, `haystack`, 42)}"),
-        "SELECT locate(?,`haystack`,accurateCast(42,'UInt64'))");
-    ASSERT_EQ(replaceEscapeSequences(
-        "SELECT {fn LOCATE('needle', `haystack`, ?)}"),
-        "SELECT locate('needle',`haystack`,accurateCast(?,'UInt64'))");
-    ASSERT_EQ(replaceEscapeSequences(
-        "SELECT {fn LOCATE('needle', `haystack`)}"),
-        "SELECT locate('needle',`haystack`,accurateCast(1,'UInt64'))");
-    ASSERT_EQ(replaceEscapeSequences(
-        "SELECT {fn LOCATE(?, `haystack`)}"),
-        "SELECT locate(?,`haystack`,accurateCast(1,'UInt64'))");
+TEST(EscapeSequencesCase, ClickHouseParametersInEscapeSequences) {
+    ASSERT_EQ(replaceEscapeSequences("{fn BIT_LENGTH({odbc_positional_1:Nullable(String)})}"), "(length({odbc_positional_1:Nullable(String)}) * 8)");
 }
 
 TEST(EscapeSequencesCase, LCASE) {
@@ -323,3 +312,8 @@ TEST(EscapeSequencesCase, LTRIM) {
     ASSERT_EQ(replaceEscapeSequences("{fn LTRIM(`dm_ExperimentsData`.`Campaign`)}"),
         "replaceRegexpOne(`dm_ExperimentsData`.`Campaign`, '^\\\\s+', '')");
 }
+
+TEST(EscapeSequencesCase, BIT_LENGTH) {
+    ASSERT_EQ(replaceEscapeSequences("{fn BIT_LENGTH('Hello World!')}"), "(length('Hello World!') * 8)");
+}
+
