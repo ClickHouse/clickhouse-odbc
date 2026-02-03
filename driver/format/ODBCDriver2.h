@@ -46,6 +46,7 @@ private:
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::FixedString > & dest, ColumnInfo & column_info);
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::Float32     > & dest, ColumnInfo & column_info);
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::Float64     > & dest, ColumnInfo & column_info);
+    void readValue(std::string & src, DataSourceType< DataSourceTypeId::Bool        > & dest, ColumnInfo & column_info);
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::Int8        > & dest, ColumnInfo & column_info);
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::Int16       > & dest, ColumnInfo & column_info);
     void readValue(std::string & src, DataSourceType< DataSourceTypeId::Int32       > & dest, ColumnInfo & column_info);

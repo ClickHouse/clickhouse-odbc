@@ -50,6 +50,7 @@ public:
         DataSourceType< DataSourceTypeId::FixedString >,
         DataSourceType< DataSourceTypeId::Float32     >,
         DataSourceType< DataSourceTypeId::Float64     >,
+        DataSourceType< DataSourceTypeId::Bool        >,
         DataSourceType< DataSourceTypeId::Int8        >,
         DataSourceType< DataSourceTypeId::Int16       >,
         DataSourceType< DataSourceTypeId::Int32       >,

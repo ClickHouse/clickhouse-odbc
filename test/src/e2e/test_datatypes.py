@@ -13,7 +13,6 @@ from util import pyodbc_connection, create_table, rows_as_values, to_base64
 #  Sample error: Attempt to read after eof: while converting '' to UInt8. (ATTEMPT_TO_READ_AFTER_EOF)
 #
 # TODO:
-#  Bool
 #  (U)Int128
 #  (U)Int256
 #  Decimal256
@@ -24,13 +23,10 @@ from util import pyodbc_connection, create_table, rows_as_values, to_base64
 #  LowCardinality
 class TestDataTypes:
     def test_bool(self):
-        """ Bool are currently converted to a string.
-        This should be fixed in the future. The test demonstrates the problem.
-        """
         table_name = "odbc_test_data_types_bool"
         with (pyodbc_connection() as conn,
               create_table(conn, table_name, "b Bool")):
-            values = ['true', 'false'] # strings, but should be `[True, False]`
+            values = [True, False]
             conn.insert(table_name, "(true), (false)")
 
             for value in values:
@@ -38,7 +34,7 @@ class TestDataTypes:
                 assert len(rows) == 1
                 assert rows_as_values(rows) == [value]
                 assert rows[0].cursor_description[0][0] == "b"
-                assert rows[0].cursor_description[0][1] == str # should be `bool`
+                assert rows[0].cursor_description[0][1] == bool
 
             rows = conn.query(f"SELECT * FROM {table_name}")
             assert len(rows) == 2

@@ -16,6 +16,7 @@
 
 enum class DataSourceTypeId {
     Nothing,
+    Bool,
     Int8,
     UInt8,
     Int16,
@@ -150,6 +151,8 @@ public:
     const auto string_max_size = TypeInfo::string_max_size;
     std::array<TypeInfo, total_visible_types> types = {{
         {.type_id=Nothing, .type_name="Nothing", .column_size=1, .octet_length=1},
+        {.type_id=Bool, .type_name="Bool", .data_type=SQL_BIT, .column_size=1,
+            .case_sensitive=false, .octet_length=1},
         {.type_id=Int8, .type_name="Int8", .data_type=SQL_TINYINT, .column_size=1 + 3,
             .unsigned_attribute=Signed, .num_prec_radix=10, .octet_length=1}, // one char for sign
         {.type_id=UInt8, .type_name="UInt8", .data_type=SQL_TINYINT, .column_size=3,
@@ -687,6 +690,13 @@ struct DataSourceType<DataSourceTypeId::Float64>
     : public SimpleTypeWrapper<double>
 {
     using SimpleTypeWrapper<double>::SimpleTypeWrapper;
+};
+
+template <>
+struct DataSourceType<DataSourceTypeId::Bool>
+    : public SimpleTypeWrapper<std::int8_t>
+{
+    using SimpleTypeWrapper<std::int8_t>::SimpleTypeWrapper;
 };
 
 template <>
