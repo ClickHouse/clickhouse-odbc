@@ -130,6 +130,7 @@ void ODBCDriver2ResultSet::readValue(Field & dest, ColumnInfo & column_info) {
     if (convert_on_fetch_conservatively) switch (column_info.type_without_parameters_id) {
         case DataSourceTypeId::FixedString: readValueAs<DataSourceType< DataSourceTypeId::FixedString >>(value, dest, column_info); break;
         case DataSourceTypeId::String:      readValueAs<DataSourceType< DataSourceTypeId::String      >>(value, dest, column_info); break;
+        case DataSourceTypeId::Bool:        readValueAs<DataSourceType< DataSourceTypeId::Bool        >>(value, dest, column_info); break;
         default:                            readValueAs<WireTypeAnyAsString                            >(value, dest, column_info); break;
     }
     else switch (column_info.type_without_parameters_id) {
@@ -203,6 +204,18 @@ void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourc
 
 void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourceTypeId::Float64> & dest, ColumnInfo & column_info) {
     return value_manip::from_value<std::string>::template to_value<DataSourceType<DataSourceTypeId::Float64>>::convert(src, dest);
+}
+
+void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourceTypeId::Bool> & dest, ColumnInfo & column_info) {
+    if (src == "true") {
+        dest.value = 1;
+        return;
+    }
+    else if (src == "false") {
+        dest.value = 0;
+        return;
+    }
+    value_manip::from_value<std::string>::template to_value<DataSourceType<DataSourceTypeId::Bool>>::convert(src, dest);
 }
 
 void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourceTypeId::Int8> & dest, ColumnInfo & column_info) {

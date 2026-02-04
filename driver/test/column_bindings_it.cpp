@@ -46,6 +46,44 @@ TEST_F(ColumnBindingsTest, SimpleGetData)
     EXPECT_EQ(out_buf[out_char_len], 0);
 }
 
+TEST_F(ColumnBindingsTest, BoolRowMajorBinding)
+{
+    auto create_table_query = fromUTF8<PTChar>(
+        "CREATE OR REPLACE TABLE column_bindings_test_bool ("
+        "  id Int32,"
+        "  value Nullable(Bool)) "
+        "ENGINE = MergeTree "
+        "ORDER BY id");
+
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(create_table_query.data()), SQL_NTS));
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+
+    auto insert_query = fromUTF8<PTChar>(
+        "INSERT INTO column_bindings_test_bool VALUES (1, true), (2, false), (3, Null)");
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(insert_query.data()), SQL_NTS));
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+
+    constexpr uintptr_t rowset_size = 10;
+    SQLLEN rows_fetched = 0;
+    SQLINTEGER ids[rowset_size];
+    SQLCHAR values[rowset_size];
+    SQLLEN value_indicators[rowset_size];
+
+    STMT_OK(SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_BIND_TYPE, (SQLPOINTER)SQL_BIND_BY_COLUMN, 0));
+    STMT_OK(SQLSetStmtAttr(hstmt, SQL_ATTR_ROW_ARRAY_SIZE, (SQLPOINTER)rowset_size, 0));
+    STMT_OK(SQLSetStmtAttr(hstmt, SQL_ATTR_ROWS_FETCHED_PTR, &rows_fetched, 0));
+
+    auto query = fromUTF8<PTChar>("SELECT value FROM column_bindings_test_bool ORDER BY id");
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
+    STMT_OK(SQLBindCol(hstmt, 1, SQL_C_BIT, values, sizeof(SQLCHAR), value_indicators));
+
+    ASSERT_EQ(SQLFetch(hstmt), SQL_SUCCESS);
+    ASSERT_EQ(rows_fetched, 3);
+    ASSERT_EQ(values[0], 1);
+    ASSERT_EQ(values[1], 0);
+    ASSERT_EQ(value_indicators[2], SQL_NULL_DATA);
+}
+
 TEST_F(ColumnBindingsTest, PartialGetData)
 {
     auto query = fromUTF8<PTChar>("SELECT '" LONG_TEXT "'");

@@ -32,7 +32,7 @@ TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
     };
 
     std::vector<TypeMappingTestEntry> types = {
-        {"Bool", "0", SQL_VARCHAR},
+        {"Bool", "0", SQL_BIT},
         {"Int8", "0", SQL_TINYINT},
         {"UInt8", "0", SQL_TINYINT},
         {"Int16", "0", SQL_SMALLINT},
@@ -221,6 +221,7 @@ TEST_F(TypeInfoTest, SQLGetTypeInfoResultSet)
     //                  ODBC                            pre/suffix create  unsi-  min/max                 date
     //   type name      data type             size      params     params  gned   scale    sql data type  sub  radix
         {{"Nothing",    SQL_TYPE_NULL     }, {1,        na,  na,   na,     na,    na, na,  SQL_TYPE_NULL, na,  na,  }},
+        {{"Bool",       SQL_BIT           }, {1,        na,  na,   na,     na,    na, na,  SQL_BIT,       na,  na,  }},
         {{"Int8",       SQL_TINYINT       }, {4,        na,  na,   na,     false, na, na,  SQL_TINYINT,   na,  10,  }},
         {{"UInt8",      SQL_TINYINT       }, {3,        na,  na,   na,     true,  na, na,  SQL_TINYINT,   na,  10,  }},
         {{"Int16",      SQL_SMALLINT      }, {6,        na,  na,   na,     false, na, na,  SQL_SMALLINT,  na,  10,  }},
@@ -397,8 +398,7 @@ TEST_F(TypeInfoTest, AllTypesColumns)
     {"DateTime64",     {SQL_TYPE_TIMESTAMP,"DateTime64",  29,  0,   3,    na,    false, SQL_DATE,     3,   16  }},
     {"DateTime64(9)",  {SQL_TYPE_TIMESTAMP,"DateTime64",  29,  0,   9,    na,    false, SQL_DATE,     3,   16  }},
     {"UUID",           {SQL_GUID,          "UUID",        35,  0,   na,   na,    false, SQL_GUID,     na,  16  }},
-    // Bool is currently converted to a string ("true" or "false")
-    {"Bool",           {SQL_VARCHAR,       "String",      msz, 0,   na,   na,    false, SQL_VARCHAR,  na,  msz }},
+    {"Bool",           {SQL_BIT,           "Bool",        1,   0,   na,   na,    false, SQL_BIT,      na,  1   }},
     };
     // clang-format on
 
