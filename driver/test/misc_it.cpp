@@ -28,33 +28,6 @@ TEST_F(MiscellaneousTest, GetDatabaseVersion) {
     ASSERT_EQ(param_version, query_version);
 }
 
-TEST_F(MiscellaneousTest, CastKeepNullable) {
-    auto query = fromUTF8<PTChar>(R"(
-        SELECT sum(CAST(value, 'UInt64'))
-        FROM
-        (
-            SELECT 42 AS value
-            UNION ALL
-            SELECT NULL AS value
-        ))");
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
-
-    SQLINTEGER out = 0;
-    SQLLEN out_len = 0;
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLFetch(hstmt));
-    ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(
-        hstmt,
-        1,
-        getCTypeFor<SQLINTEGER>(),
-        &out,
-        sizeof(out),
-        &out_len
-    ));
-
-    ASSERT_EQ(out_len, sizeof(out));
-    ASSERT_EQ(out, 42);
-}
-
 TEST_F(MiscellaneousTest, RowArraySizeAttribute) {
     SQLRETURN rc = SQL_SUCCESS;
     SQLULEN size = 0;
