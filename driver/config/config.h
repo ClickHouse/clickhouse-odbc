@@ -35,6 +35,7 @@ struct ConnInfo {
     std::string autoSessionId;
     std::string clientName;
     std::string compression;
+    std::string sql_compatibility_settings;
 };
 
 key_value_map_t readDSNInfo(const std::string & dsn);
