@@ -17,3 +17,18 @@ private:
     const std::string sql_state;
     const SQLRETURN return_code = SQL_ERROR;
 };
+
+class ClickHouseException
+    : public std::runtime_error
+{
+public:
+
+    ClickHouseException(std::string message, std::string exception_code_)
+        : std::runtime_error(std::move(message))
+        , exception_code(std::move(exception_code_)) {}
+
+    const std::string & getExceptionCode() const { return exception_code; }
+
+private:
+    std::string exception_code;
+};

@@ -15,6 +15,8 @@
 #include <cctype>
 #include <cstdio>
 
+static const char exception_code_header_name[] = "X-ClickHouse-Exception-Code";
+
 Statement::Statement(Connection & connection)
     : ChildType(connection)
 {
@@ -189,6 +191,11 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
             error_message << "HTTP status code: " << status << std::endl << "Received error:" << std::endl << in->rdbuf() << std::endl;
         }
         LOG(error_message.str());
+
+        if (response->has(exception_code_header_name)) {
+            std::string exception_code = response->get(exception_code_header_name);
+            throw ClickHouseException(error_message.str(), exception_code);
+        }
         throw std::runtime_error(error_message.str());
     }
 

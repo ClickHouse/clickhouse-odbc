@@ -93,7 +93,11 @@ protected:
     virtual void onAttrChange(int attr) final override;
 
 private:
-    std::string addContextInfoToExceptionMessage(const std::string & message, SQLHANDLE handle, SQLSMALLINT handle_type) const;
+    std::string addContextInfoToExceptionMessage(
+        const std::string & message,
+        const std::string & clickhouse_exception_code,
+        SQLHANDLE handle,
+        SQLSMALLINT handle_type) const;
 
     template <typename Callable>
     static inline SQLRETURN doCall(Callable & callable,
@@ -237,28 +241,35 @@ inline SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLIN
                     return doCall(callable, descendant, skip_diag);
                 }
                 catch (const SqlException & ex) {
-                    auto error_message = addContextInfoToExceptionMessage(ex.what(), handle, handle_type);
+                    auto error_message = addContextInfoToExceptionMessage(ex.what(), "", handle, handle_type);
                     LOG(ex.getSQLState() << " (" << error_message << ")" << "[rc: " << ex.getReturnCode() << "]");
                     if (!skip_diag)
                         descendant.fillDiag(ex.getReturnCode(), ex.getSQLState(), error_message, 1);
                     return ex.getReturnCode();
                 }
+                catch (const ClickHouseException & ex) {
+                    auto error_message = addContextInfoToExceptionMessage(ex.what(), ex.getExceptionCode(), handle, handle_type);
+                    LOG("HY000 (" << error_message << ")");
+                    if (!skip_diag)
+                        descendant.fillDiag(SQL_ERROR, "HY000", error_message, 1);
+                    return SQL_ERROR;
+                }
                 catch (const Poco::Exception & ex) {
-                    auto error_message = addContextInfoToExceptionMessage(ex.displayText(), handle, handle_type);
+                    auto error_message = addContextInfoToExceptionMessage(ex.displayText(), "", handle, handle_type);
                     LOG("HY000 (" << error_message << ")");
                     if (!skip_diag)
                         descendant.fillDiag(SQL_ERROR, "HY000", error_message, 1);
                     return SQL_ERROR;
                 }
                 catch (const std::exception & ex) {
-                    auto error_message = addContextInfoToExceptionMessage(ex.what(), handle, handle_type);
+                    auto error_message = addContextInfoToExceptionMessage(ex.what(), "", handle, handle_type);
                     LOG("HY000 (" << error_message << ")");
                     if (!skip_diag)
                         descendant.fillDiag(SQL_ERROR, "HY000", error_message, 1);
                     return SQL_ERROR;
                 }
                 catch (...) {
-                    auto error_message = addContextInfoToExceptionMessage("Unknown exception", handle, handle_type);
+                    auto error_message = addContextInfoToExceptionMessage("Unknown exception", "", handle, handle_type);
                     LOG("HY000 (Unknown exception)");
                     if (!skip_diag)
                         descendant.fillDiag(SQL_ERROR, "HY000", error_message, 2);
