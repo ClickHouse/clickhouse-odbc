@@ -208,7 +208,7 @@ void Driver::unregisterDescendant(T & descendant) noexcept {
 }
 
 template <typename Callable>
-inline SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLINT handle_type, bool skip_diag) const noexcept {
+inline SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLINT handle_type, bool skip_diagnostics) const noexcept {
     try {
         if (handle == nullptr) {
             if (handle_type == 0) {
@@ -237,44 +237,41 @@ inline SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLIN
             const auto func = [&] (auto & descendant_ref) noexcept -> SQLRETURN {
                 auto & descendant = descendant_ref.get();
 
+                SQLRETURN return_code = SQL_ERROR;
+                SQLINTEGER native_error_code = 1;
+                std::string sql_state = "HY000";
+                std::string error_message = "";
+                std::string clickhouse_exception_code = "";
+
                 try {
-                    return doCall(callable, descendant, skip_diag);
+                    return doCall(callable, descendant, skip_diagnostics);
                 }
                 catch (const SqlException & ex) {
-                    auto error_message = addContextInfoToExceptionMessage(ex.what(), "", handle, handle_type);
-                    LOG(ex.getSQLState() << " (" << error_message << ")" << "[rc: " << ex.getReturnCode() << "]");
-                    if (!skip_diag)
-                        descendant.fillDiag(ex.getReturnCode(), ex.getSQLState(), error_message, 1);
-                    return ex.getReturnCode();
+                    error_message = ex.what();
+                    sql_state = ex.getSQLState();
+                    return_code = ex.getReturnCode();
                 }
                 catch (const ClickHouseException & ex) {
-                    auto error_message = addContextInfoToExceptionMessage(ex.what(), ex.getExceptionCode(), handle, handle_type);
-                    LOG("HY000 (" << error_message << ")");
-                    if (!skip_diag)
-                        descendant.fillDiag(SQL_ERROR, "HY000", error_message, 1);
-                    return SQL_ERROR;
+                    error_message = ex.what();
+                    clickhouse_exception_code = ex.getExceptionCode();
                 }
                 catch (const Poco::Exception & ex) {
-                    auto error_message = addContextInfoToExceptionMessage(ex.displayText(), "", handle, handle_type);
-                    LOG("HY000 (" << error_message << ")");
-                    if (!skip_diag)
-                        descendant.fillDiag(SQL_ERROR, "HY000", error_message, 1);
-                    return SQL_ERROR;
+                    error_message = ex.displayText();
                 }
                 catch (const std::exception & ex) {
-                    auto error_message = addContextInfoToExceptionMessage(ex.what(), "", handle, handle_type);
-                    LOG("HY000 (" << error_message << ")");
-                    if (!skip_diag)
-                        descendant.fillDiag(SQL_ERROR, "HY000", error_message, 1);
-                    return SQL_ERROR;
+                    error_message = ex.what();
                 }
                 catch (...) {
-                    auto error_message = addContextInfoToExceptionMessage("Unknown exception", "", handle, handle_type);
-                    LOG("HY000 (Unknown exception)");
-                    if (!skip_diag)
-                        descendant.fillDiag(SQL_ERROR, "HY000", error_message, 2);
-                    return SQL_ERROR;
+                    error_message = "Unknown exception";
+                    native_error_code = 2;
                 }
+
+                error_message = addContextInfoToExceptionMessage(error_message, clickhouse_exception_code, handle, handle_type);
+                LOG(sql_state << " (" << error_message << ")" << "[rc: " << return_code << "]");
+                if (!skip_diagnostics) {
+                    descendant.fillDiag(return_code, sql_state, error_message, native_error_code);
+                }
+                return return_code;
             };
 
 #if defined(WORKAROUND_ALLOW_UNSAFE_DISPATCH)
