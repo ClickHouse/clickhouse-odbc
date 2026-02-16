@@ -94,6 +94,8 @@ Poco::URI Connection::getUri() const {
     bool default_format_set = false;
     bool session_id_set = false;
     bool enable_http_compression_set = false;
+    bool cast_keep_nullable_set = false;
+    bool prefer_column_name_to_alias_set = false;
 
     for (const auto& parameter : uri.getQueryParameters()) {
         if (Poco::UTF8::icompare(parameter.first, "default_format") == 0) {
@@ -107,6 +109,12 @@ Poco::URI Connection::getUri() const {
         }
         else if (Poco::UTF8::icompare(parameter.first, "enable_http_compression") == 0 && !parameter.second.empty()) {
             enable_http_compression_set = true;
+        }
+        else if (Poco::UTF8::icompare(parameter.first, "cast_keep_nullable") == 0 && !parameter.second.empty()) {
+            cast_keep_nullable_set = true;
+        }
+        else if (Poco::UTF8::icompare(parameter.first, "prefer_column_name_to_alias") == 0 && !parameter.second.empty()) {
+            prefer_column_name_to_alias_set = true;
         }
     }
 
@@ -125,6 +133,14 @@ Poco::URI Connection::getUri() const {
     // Add http compression parameter, but only if the parameter is not already defined in the URI
     if (enable_http_compression && !enable_http_compression_set) {
         uri.addQueryParameter("enable_http_compression", enable_http_compression ? "1" : "0");
+    }
+
+    if (sql_compatibility_settings && !cast_keep_nullable_set) {
+        uri.addQueryParameter("cast_keep_nullable", "1");
+    }
+
+    if (sql_compatibility_settings && !prefer_column_name_to_alias_set) {
+        uri.addQueryParameter("prefer_column_name_to_alias", "1");
     }
 
     return uri;
@@ -430,6 +446,20 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
                 isYesOrNo(value));
             if (valid_value) {
                 enable_http_compression = (typed_value == 1 || isYes(value));
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_SQL_COMPATIBILITY_SETTINGS) == 0) {
+            recognized_key = true;
+            unsigned int typed_value = 0;
+            valid_value =
+                (value.empty() ||
+                (
+                    Poco::NumberParser::tryParseUnsigned(value, typed_value) &&
+                    (typed_value == 1 || typed_value == 0)
+                 ) ||
+                isYesOrNo(value));
+            if (valid_value) {
+                sql_compatibility_settings = (typed_value == 1 || isYes(value));
             }
         }
 

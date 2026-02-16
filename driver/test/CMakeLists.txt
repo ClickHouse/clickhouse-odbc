@@ -18,7 +18,6 @@ function (declare_odbc_test_targets libname UNICODE)
         buffer_filling_ut.cpp
         connection_string_ut.cpp
         performance_ut.cpp
-        statement_parameter_binding_ut.cpp
     )
 
     if (CH_ODBC_ENABLE_CODE_COVERAGE)
@@ -87,6 +86,7 @@ function (declare_odbc_test_targets libname UNICODE)
         authentication_it.cpp
         error_handling_it.cpp
         scalar_functions_it.cpp
+        sql_compatibility_settings_it.cpp
     )
 
     if (CH_ODBC_ENABLE_CODE_COVERAGE)

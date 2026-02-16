@@ -7,6 +7,11 @@
 
 #include <chrono>
 
+static const char * READONLY_EXCEPTION_CODE = "164";
+static const char * READONLY_EXCEPTION_MESSAGE =
+    "If the readonly setting is enabled for the user, please see: "
+    "https://clickhouse.com/docs/interfaces/odbc#readonly-users \n";
+
 Driver::Driver() noexcept {
     setAttrSilent(CH_SQL_ATTR_DRIVERLOG, (isYes(INI_DRIVERLOG_DEFAULT) ? SQL_OPT_TRACE_ON : SQL_OPT_TRACE_OFF));
     setAttr<std::string>(CH_SQL_ATTR_DRIVERLOGFILE, INI_DRIVERLOGFILE_DEFAULT);
@@ -141,15 +146,23 @@ void Driver::writeLogSessionEnd(std::ostream & stream) {
     stream << " ====================" << std::endl;
 }
 
-std::string Driver::addContextInfoToExceptionMessage(const std::string & message, SQLHANDLE handle, SQLSMALLINT handle_type) const
+std::string Driver::addContextInfoToExceptionMessage(
+    const std::string & message,
+    const std::string & clickhouse_exception_code,
+    SQLHANDLE handle,
+    SQLSMALLINT handle_type) const
 {
-    // Add query_id to exceptions related to statements
+    std::string return_message = message;
     if (handle_type == SQL_HANDLE_STMT) {
         auto * statement  = static_cast<Statement *>(handle);
         const auto query_id = statement->getQueryId();
         if (!query_id.empty()) {
-            return "Error while processing query " + query_id + ": " + message;
+            return_message = "Error while processing query " + query_id + ": " + return_message;
+        }
+
+        if (clickhouse_exception_code == READONLY_EXCEPTION_CODE) {
+            return_message = READONLY_EXCEPTION_MESSAGE + return_message;
         }
     }
-    return message;
+    return return_message;
 }

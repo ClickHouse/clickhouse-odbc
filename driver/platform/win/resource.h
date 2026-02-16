@@ -15,6 +15,7 @@
 #define IDC_SSLMODE 1009
 #define IDC_URL 1010
 #define IDC_COMPRESSION 1012
+#define IDC_SQL_COMPATIBILITY_SETTINGS 1013
 
 // Next default values for new objects
 //

@@ -73,7 +73,6 @@ add_library (${libname}-impl STATIC
     diagnostics.cpp
     driver.cpp
     environment.cpp
-    exception.cpp
     object.cpp
     result_set.cpp
     statement.cpp
