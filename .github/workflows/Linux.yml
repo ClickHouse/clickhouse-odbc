@@ -142,8 +142,8 @@ jobs:
       if: ${{ matrix.build_type == 'Release' }}
       run: |
         curl --fail-with-body -X POST \
-          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" \
-          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" \
+          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT_PROD }}:8443/?query=" \
+          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT_PROD }}" \
           -d "select version()"
 
     - name: Create Test Database
@@ -155,8 +155,8 @@ jobs:
         echo "TEST_DATABASE=$database" >> $GITHUB_ENV
 
         curl --fail-with-body -X POST \
-          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" \
-          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" \
+          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT_PROD }}:8443/?query=" \
+          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT_PROD }}" \
           -d "create database $database"
 
     - name: Prepare ODBC ini configs
@@ -230,9 +230,9 @@ jobs:
         [ClickHouse AWS Unicode ZSTD]
         Driver        = ClickHouse ODBC Driver (Unicode)
         Description   = Test DSN for ClickHouse ODBC Driver (Unicode)
-        Url           = https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?database=$TEST_DATABASE
+        Url           = https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT_PROD }}:8443/?database=$TEST_DATABASE
         Username      = default
-        Password      = ${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}
+        Password      = ${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT_PROD }}
         DriverLog     = yes
         DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver.log
         Compression   = 1
@@ -240,9 +240,9 @@ jobs:
         [ClickHouse AWS ANSI ZSTD]
         Driver        = ClickHouse ODBC Driver (ANSI)
         Description   = Test DSN for ClickHouse ODBC Driver (ANSI)
-        Url           = https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?database=$TEST_DATABASE
+        Url           = https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT_PROD }}:8443/?database=$TEST_DATABASE
         Username      = default
-        Password      = ${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}
+        Password      = ${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT_PROD }}
         DriverLog     = yes
         DriverLogFile = ${{ github.workspace }}/run/clickhouse-odbc-driver-w.log
         Compression   = 1
@@ -302,10 +302,10 @@ jobs:
       if: always() && env.TEST_DATABASE != ''
       run: |
         curl -X POST \
-          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" \
-          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" \
+          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT_PROD }}:8443/?query=" \
+          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT_PROD }}" \
           -d "select name from system.tables where database = '$TEST_DATABASE'"
         curl -X POST \
-          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" \
-          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" \
+          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT_PROD }}:8443/?query=" \
+          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT_PROD }}" \
           -d "drop database if exists $TEST_DATABASE"
