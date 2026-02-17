@@ -69,6 +69,9 @@ option (CH_ODBC_THIRD_PARTY_LINK_STATIC "Link with third party libraries statica
 set (CH_ODBC_DEFAULT_DSN_ANSI "ClickHouse DSN (ANSI)" CACHE STRING "Default ANSI DSN name")
 set (CH_ODBC_DEFAULT_DSN_UNICODE "ClickHouse DSN (Unicode)" CACHE STRING "Default Unicode DSN name")
 
+set (CH_ODBC_VERSION_SUFFIX "" CACHE STRING "Project version (e.g. `-powerbi`)")
+option (CH_ODBC_DEFAULT_SQL_COMPATIBILITY_SETTINGS "Enable SqlCompatibilitySettings by default" OFF)
+
 if (MSVC)
     # This default encoding mode will be overriden by UNICODE, in the corresponding cases.
     #add_compile_definitions (SBCS _SBCS)
@@ -94,6 +97,9 @@ else()
     link_libraries(global-group)
 endif()
 
+if (CH_ODBC_DEFAULT_SQL_COMPATIBILITY_SETTINGS)
+  add_compile_definitions(SQL_COMPATIBILITY_SETTINGS_BY_DEFAULT)
+endif ()
 
 # Make sure that all optimized builds have NDEBUG macro set.
 foreach (config Release RelWithDebInfo MinSizeRel)
@@ -306,6 +312,8 @@ if (CH_ODBC_ENABLE_INSTALL)
     endif ()
 
     set (CPACK_PROJECT_CONFIG_FILE "${PROJECT_SOURCE_DIR}/CPackLists.txt")
+
+    set (CPACK_PACKAGE_VERSION "${PROJECT_VERSION}${CH_ODBC_VERSION_SUFFIX}")
 
     set (CPACK_PACKAGE_VENDOR "ClickHouse, Inc.")
     set (CPACK_PACKAGE_DESCRIPTION "The official ODBC driver implementation for accessing ClickHouse as a data source.")

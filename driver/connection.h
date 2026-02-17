@@ -10,6 +10,12 @@
 #include <memory>
 #include <mutex>
 
+#ifdef SQL_COMPATIBILITY_SETTINGS_BY_DEFAULT
+static constexpr bool sql_compatibility_settings_default = true;
+#else
+static constexpr bool sql_compatibility_settings_default = false;
+#endif
+
 class DescriptorRecord;
 class Descriptor;
 class Statement;
@@ -44,7 +50,7 @@ public: // Configuration fields.
     bool auto_session_id = false;
     std::string client_name;
     bool enable_http_compression = true;
-    bool sql_compatibility_settings = false;
+    bool sql_compatibility_settings = sql_compatibility_settings_default;
 
 public:
     std::unique_ptr<Poco::Net::HTTPClientSession> session;
