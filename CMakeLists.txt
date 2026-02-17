@@ -313,7 +313,17 @@ if (CH_ODBC_ENABLE_INSTALL)
 
     set (CPACK_PROJECT_CONFIG_FILE "${PROJECT_SOURCE_DIR}/CPackLists.txt")
 
-    set (CPACK_PACKAGE_VERSION "${PROJECT_VERSION}${CH_ODBC_VERSION_SUFFIX}")
+    # CPACK_SYSTEM_NAME does not work because cpack is not included yet, including it in advance
+    # brings another set of problems that are not worth fixing at the moment
+    set (CH_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}")
+    if (CH_SYSTEM_NAME MATCHES "Windows")
+        if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+            set (CH_SYSTEM_NAME "win64")
+        else ()
+            set (CH_SYSTEM_NAME "win32")
+        endif ()
+    endif ()
+    set (CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}${CH_ODBC_VERSION_SUFFIX}-${CH_SYSTEM_NAME}")
 
     set (CPACK_PACKAGE_VENDOR "ClickHouse, Inc.")
     set (CPACK_PACKAGE_DESCRIPTION "The official ODBC driver implementation for accessing ClickHouse as a data source.")

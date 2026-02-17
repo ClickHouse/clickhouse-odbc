@@ -73,7 +73,19 @@ jobs:
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }}
 
     - name: Package
+      id: package
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target package
+
+    - name: Print wix.log on Package failure
+      if: failure() && steps.package.outcome == 'failure'
+      run: |
+        $logPath = "${{ github.workspace }}/build/_CPack_Packages/win64/WIX/wix.log"
+        if (Test-Path $logPath) {
+          Write-Host "=== wix.log ==="
+          Get-Content $logPath
+        } else {
+          Write-Host "wix.log not found at $logPath"
+        }
 
     - name: Create pkcs11properties.cfg file
       run: |
