@@ -11,13 +11,7 @@ class UnicodeConversionContext {
 public:
     StringPool string_pool{10};
 
-//  std::locale source_locale;
-//  std::locale destination_locale;
-#if !defined(_MSC_VER) || _MSC_VER >= 1920
-    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> UCS2_converter_char16;
-    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> UCS2_converter_char32;
-#endif
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> UCS2_converter_wchar;
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> utf8_utf16_converter;
 };
 
 // In future, this will become an aggregate context that will do proper date/time, etc., conversions also.
@@ -59,15 +53,7 @@ inline std::string toUTF8(const char16_t * src, SQLLEN length = SQL_NTS) {
     if (!src || (length != SQL_NTS && length <= 0))
         return {};
 
-    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> convert;
-    return (length == SQL_NTS ? convert.to_bytes(src) : convert.to_bytes(src, src + length));
-}
-
-inline std::string toUTF8(const char32_t * src, SQLLEN length = SQL_NTS) {
-    if (!src || (length != SQL_NTS && length <= 0))
-        return {};
-
-    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> convert;
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
     return (length == SQL_NTS ? convert.to_bytes(src) : convert.to_bytes(src, src + length));
 }
 
@@ -75,7 +61,7 @@ inline std::string toUTF8(const wchar_t * src, SQLLEN length = SQL_NTS) {
     if (!src || (length != SQL_NTS && length <= 0))
         return {};
 
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> convert;
     return (length == SQL_NTS ? convert.to_bytes(src) : convert.to_bytes(src, src + length));
 }
 
@@ -138,19 +124,10 @@ inline decltype(auto) fromUTF8<unsigned char>(const std::string & src, UnicodeCo
 #if !defined(_MSC_VER) || _MSC_VER >= 1920
 template <>
 inline decltype(auto) fromUTF8<char16_t>(const std::string & src, UnicodeConversionContext & context) {
-    return context.UCS2_converter_char16.from_bytes(src);
+    return context.utf8_utf16_converter.from_bytes(src);
 }
 
-template <>
-inline decltype(auto) fromUTF8<char32_t>(const std::string & src, UnicodeConversionContext & context) {
-    return context.UCS2_converter_char32.from_bytes(src);
-}
 #endif
-
-template <>
-inline decltype(auto) fromUTF8<wchar_t>(const std::string & src, UnicodeConversionContext & context) {
-    return context.UCS2_converter_wchar.from_bytes(src);
-}
 
 #if !defined(_MSC_VER) || _MSC_VER >= 1920
 template <>
