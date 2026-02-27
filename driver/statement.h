@@ -113,6 +113,8 @@ private:
     std::shared_ptr<Descriptor> allocateDescriptor();
     void deallocateDescriptor(std::shared_ptr<Descriptor> & desc);
 
+    std::string escapeParameterString(std::string_view in);
+
 private:
     std::shared_ptr<Descriptor> implicit_ard;
     std::shared_ptr<Descriptor> implicit_apd;

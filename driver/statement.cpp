@@ -86,8 +86,10 @@ Statement::HttpRequestData Statement::prepareHttpRequest()
 
             if (binding_info.value == nullptr)
                 value = "\\N";
-            else
+            else {
                 readReadyDataTo(binding_info, value);
+                value = escapeParameterString(value);
+            }
         }
 
         const auto param_name = getParamFinalName(i);
@@ -566,4 +568,23 @@ void Statement::deallocateDescriptor(std::shared_ptr<Descriptor> & desc) {
         desc->deallocateSelf();
         desc.reset();
     }
+}
+
+std::string Statement::escapeParameterString(std::string_view in)
+{
+    std::string out{};
+    out.reserve(in.size());
+
+    for (auto it = in.begin(); it != in.end(); ++it) {
+        switch (*it) {
+            case '\\':
+            case '\n':
+            case '\t':
+                out.push_back('\\');
+                break;
+        }
+        out.push_back(*it);
+    }
+
+    return out;
 }
