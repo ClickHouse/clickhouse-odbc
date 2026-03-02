@@ -307,3 +307,131 @@ TEST_F(StatementParameterBindingsTest, StringArray) {
         ASSERT_EQ(SQLMoreResults(hstmt), (i + 1 == lengthof(param) ? SQL_NO_DATA : SQL_SUCCESS));
     }
 }
+
+TEST_F(StatementParameterBindingsTest, DISABLED_UTFCharacters)
+{
+    // This test is disabled.
+    // The driver manager has to translate from UTF-8 to UTF-16, which it does not do correctly, or
+    // the way it does it depends on the system configuration (as it is done on Windows). In
+    // general, it does not work and is not recommended. If users want to pass UTF-8 strings, they
+    // should use the ANSI version of the driver, and for UTF-16 they should use the Unicode version
+    // of the driver. It would make much more sense to run this test only when the driver and
+    // application encodings match. However, we do not have a tool to filter tests in that way, so
+    // the test is disabled for now.
+    auto create_query = fromUTF8<PTChar>(
+        "CREATE OR REPLACE TABLE strings (string String) engine MergeTree order by string");
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(create_query.data()), SQL_NTS));
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+
+    const char string[] = "Hello こんにちは Привет 🌍 😜";
+    auto insert_query = fromUTF8<PTChar>(
+        "INSERT INTO strings VALUES (?), ('" + std::string(string) + "')");
+    auto param = fromUTF8<PTChar>(string);
+    STMT_OK(SQLPrepare(hstmt, ptcharCast(insert_query.data()), SQL_NTS));
+    SQLLEN param_length = param.size() * sizeof(PTChar);
+    STMT_OK(SQLBindParameter(
+        hstmt, 1,
+        SQL_PARAM_INPUT,
+        getCTypeFor<decltype(param.data())>(),
+        SQL_VARCHAR,
+        1024,
+        0,
+        param.data(),
+        param_length,
+        &param_length));
+    STMT_OK(SQLExecute(hstmt));
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+
+    auto select_query = fromUTF8<PTChar>("SELECT string FROM strings");
+    char buffer[1024] = {0};
+    SQLLEN bytes_read = 0;
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(select_query.data()), SQL_NTS));
+
+    STMT_OK(SQLFetch(hstmt));
+    STMT_OK(SQLGetData(hstmt, 1, SQL_C_BINARY, buffer, sizeof(buffer), &bytes_read));
+    ASSERT_EQ(bytes_read, std::size(string) - 1);
+    ASSERT_TRUE(std::equal(std::begin(buffer), std::begin(buffer) + bytes_read, std::begin(string)));
+
+    STMT_OK(SQLFetch(hstmt));
+    STMT_OK(SQLGetData(hstmt, 1, SQL_C_BINARY, buffer, sizeof(buffer), &bytes_read));
+    ASSERT_EQ(bytes_read, std::size(string) - 1);
+    ASSERT_TRUE(std::equal(std::begin(buffer), std::begin(buffer) + bytes_read, std::begin(string)));
+
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+}
+
+class StringParameterBindingTest
+    : public ClientTestWithParamBase<std::string>
+{
+public:
+    using Base = ClientTestWithParamBase<std::string>;
+    explicit StringParameterBindingTest()
+        : Base() {}
+    virtual void SetUp() override {
+        Base::SetUp();
+        auto create_query = fromUTF8<PTChar>(
+            "CREATE OR REPLACE TABLE strings (string String) engine MergeTree order by string");
+        STMT_OK(SQLExecDirect(hstmt, ptcharCast(create_query.data()), SQL_NTS));
+        STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+    }
+};
+
+// The list of special characters is fetched from https://clickhouse.com/docs/sql-reference/syntax#string
+INSTANTIATE_TEST_SUITE_P(StringParameterBindingTest, StringParameterBindingTest, ::testing::Values(
+    "foo \\",
+    "foo \\\\",
+    "foo \\N bar",
+    "foo \a bar",
+    "foo \b bar",
+    "foo \e bar",
+    "foo \f bar",
+    "foo \n bar",
+    "foo \r bar",
+    "foo \t bar",
+    "foo \\t bar",   // `\` followed by t
+    "foo \\\t bar",  // `\\` followed by a tab
+    "foo \v bar",
+    std::string("foo \0 bar", 9),
+    "foo \\ bar",
+    "foo ' bar",
+    "foo \" bar",
+    "foo ` bar",
+    "foo / bar",
+    "foo = bar",
+    "foo \x01 bar",
+    "foo \x02 bar"
+));
+
+TEST_P(StringParameterBindingTest, SpecialCharactersRoundTrip)
+{
+    auto str  = GetParam();
+
+    auto insert_query = fromUTF8<PTChar>("INSERT INTO strings VALUES (?)");
+    auto param = fromUTF8<PTChar>(str);
+    STMT_OK(SQLPrepare(hstmt, ptcharCast(insert_query.data()), SQL_NTS));
+    SQLLEN param_length = param.size() * sizeof(PTChar);
+    STMT_OK(SQLBindParameter(
+        hstmt, 1,
+        SQL_PARAM_INPUT,
+        getCTypeFor<decltype(param.data())>(),
+        SQL_VARCHAR,
+        1024,
+        0,
+        param.data(),
+        param_length,
+        &param_length));
+    STMT_OK(SQLExecute(hstmt));
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+
+    auto select_query = fromUTF8<PTChar>("SELECT string FROM strings");
+    char buffer[1024] = {0};
+    SQLLEN bytes_read = 0;
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(select_query.data()), SQL_NTS));
+
+    STMT_OK(SQLFetch(hstmt));
+    STMT_OK(SQLGetData(hstmt, 1, SQL_C_BINARY, buffer, sizeof(buffer), &bytes_read));
+    ASSERT_EQ(bytes_read, str.size());
+    ASSERT_TRUE(std::equal(std::begin(buffer), std::begin(buffer) + bytes_read, str.begin()));
+
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+}
