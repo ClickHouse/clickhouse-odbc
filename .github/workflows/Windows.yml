@@ -110,8 +110,8 @@ jobs:
         "TEST_DATABASE=$database" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
         curl.exe --fail-with-body -X POST `
-          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" `
-          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" `
+          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT_PROD }}:8443/?query=" `
+          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT_PROD }}" `
           -d "create database $database"
 
         Write-Host "The test database name is: $database"
@@ -197,14 +197,14 @@ jobs:
           -DriverName "ClickHouse ODBC Driver (ANSI)" `
           -DsnType "System" `
           -Platform "$platform" `
-          -SetPropertyValue @("Url=https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?database=$env:TEST_DATABASE", "Username=default", "Password=${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}", "Compression=1")
+          -SetPropertyValue @("Url=https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT_PROD }}:8443/?database=$env:TEST_DATABASE", "Username=default", "Password=${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT_PROD }}", "Compression=1")
 
         Add-OdbcDsn `
           -Name "ClickHouse AWS Unicode ZSTD" `
           -DriverName "ClickHouse ODBC Driver (Unicode)" `
           -DsnType "System" `
           -Platform "$platform" `
-          -SetPropertyValue @("Url=https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?database=$env:TEST_DATABASE", "Username=default", "Password=${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}", "Compression=1")
+          -SetPropertyValue @("Url=https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT_PROD }}:8443/?database=$env:TEST_DATABASE", "Username=default", "Password=${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT_PROD }}", "Compression=1")
 
         Write-Host "List of enabled DSNs:"
         Get-OdbcDsn -DsnType "System"
@@ -289,10 +289,10 @@ jobs:
       if: always() && env.TEST_DATABASE != ''
       run: |
         curl.exe --fail-with-body -X POST `
-          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" `
-          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" `
+          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT_PROD }}:8443/?query=" `
+          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT_PROD }}" `
           -d "select name from system.tables where database = '$env:TEST_DATABASE'"
         curl.exe --fail-with-body -X POST `
-          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" `
-          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" `
+          "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT_PROD }}:8443/?query=" `
+          -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT_PROD }}" `
           -d "drop database if exists $env:TEST_DATABASE"
