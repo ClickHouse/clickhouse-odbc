@@ -91,3 +91,16 @@ inline bool compareOptionalSqlTimeStamps(std::optional<SQL_TIMESTAMP_STRUCT> a, 
         a->fraction == b->fraction;
 }
 
+inline bool compareOptionalSqlTimeStamps(std::optional<SQL_TIME_STRUCT> a, std::optional<SQL_TIME_STRUCT> b)
+{
+    if (!a && !b)
+        return true;
+    else if (!a || !b)
+        return false;
+
+    return
+        a->hour == b->hour &&
+        a->minute == b->minute &&
+        a->second == b->second;
+}
+

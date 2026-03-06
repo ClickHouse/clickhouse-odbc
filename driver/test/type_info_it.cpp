@@ -236,6 +236,7 @@ TEST_F(TypeInfoTest, SQLGetTypeInfoResultSet)
         {{"String",     SQL_VARCHAR       }, {max_size, "'", "'",  na,     na,    na, na,  SQL_VARCHAR,   na,  na,  }},
         {{"String",     SQL_WVARCHAR      }, {max_size, "'", "'",  na,     na,    na, na,  SQL_VARCHAR,   na,  na,  }},
         {{"FixedString",SQL_VARCHAR       }, {max_size, "'", "'",  length, na,    na, na,  SQL_VARCHAR,   na,  na,  }},
+        {{"Time",       SQL_TYPE_TIME     }, {18,       na,  na,   na,     na,    na, na,  SQL_DATE,      2,   na,  }},
         {{"Date",       SQL_TYPE_DATE     }, {10,       na,  na,   na,     na,    na, na,  SQL_DATE,      1,   na,  }},
         {{"DateTime64", SQL_TYPE_TIMESTAMP}, {29,       na,  na,   scale,  na,    0,  9,   SQL_DATE,      3,   na,  }},
         {{"DateTime",   SQL_TYPE_TIMESTAMP}, {19,       na,  na,   na,     na,    na, na,  SQL_DATE,      3,   na,  }},
@@ -490,36 +491,60 @@ TEST_F(TypeInfoTest, TimestampTypes)
     static std::string table_name = "datetime_test";
     SQL_TIMESTAMP_STRUCT datetime   {2025, 4, 15, 14, 45, 40, 0};
     SQL_TIMESTAMP_STRUCT datetime64 {2025, 4, 15, 14, 45, 40, 123456789};
+    SQL_TIME_STRUCT time       {14, 45, 40};
+    // SQL_TIMESTAMP_STRUCT time64     {1900, 1, 1,  14, 45, 40, 123456789};
 
     std::stringstream create_table_query_stream;
     create_table_query_stream
         << "CREATE OR REPLACE TABLE " << table_name << " ("
         << "    dt DateTime, "
-        << "    dt64 DateTime64(9)) "
+        << "    dt64 DateTime64(9), "
+        << "    t Time, "
+        << "    t64 Time64(9)) "
         << "ENGINE MergeTree "
         << "ORDER BY dt";
     auto create_table_query = fromUTF8<PTChar>(create_table_query_stream.str());
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(create_table_query.data()), SQL_NTS));
 
-    auto insert_query = fromUTF8<PTChar>("INSERT INTO " + table_name + " VALUES (?, ?)");
+    auto insert_query = fromUTF8<PTChar>("INSERT INTO " + table_name + " VALUES (?, ?, ?, ?)");
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(insert_query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
         hstmt, 1, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 19, 0, &datetime, sizeof(datetime), nullptr));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
         hstmt, 2, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 29, 9, &datetime64, sizeof(datetime64), nullptr));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
+        hstmt, 3, SQL_PARAM_INPUT, SQL_C_TYPE_TIME, SQL_TYPE_TIME, 19, 0, &time, sizeof(time), nullptr));
+    // ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
+    //    hstmt, 4, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 29, 9, &time64, sizeof(time64), nullptr));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
     auto select_query = fromUTF8<PTChar>(
-        "SELECT * FROM " + table_name + " WHERE dt = ? AND dt64 = ?");
+        "SELECT * FROM " + table_name + " WHERE dt = ? AND dt64 = ? AND t = ?");
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(select_query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
         hstmt, 1, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 19, 0, &datetime, sizeof(datetime), nullptr));
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
         hstmt, 2, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 29, 9, &datetime64, sizeof(datetime64), nullptr));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
+        hstmt, 3, SQL_PARAM_INPUT, SQL_C_TYPE_TIME, SQL_TYPE_TIME, 19, 0, &time, sizeof(time), nullptr));
+
+    // Insertion into Time columns using a timestamp works perfectly fine, but it does not seem to work for filtering
+    // in ClickHouse. Other databases (MySQL, PostgreSQL) seem to work just fine. For example, this query works in other
+    // databases, even when event_time is of type Time.
+    // select * from schedule where event_time = '1900-01-01 09:30:00'
+    // The following lines breaks this test because, compared to the previous example with column `t`, the `t64` column
+    // requires fractional seconds, which SQL_TYPE_TIME does not support. Additionally, due to the bug described above,
+    // binding SQL_TIMESTAMP_STRUCT is not possible.
+    //
+    // ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
+    //    hstmt, 4, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 29, 9, &time64, sizeof(time64), nullptr));
+
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
     ResultSetReader reader{hstmt};
-    reader.fetch();
+    ASSERT_TRUE(reader.fetch());
     EXPECT_TRUE(compareOptionalSqlTimeStamps(reader.getData<SQL_TIMESTAMP_STRUCT>("dt"), datetime));
     EXPECT_TRUE(compareOptionalSqlTimeStamps(reader.getData<SQL_TIMESTAMP_STRUCT>("dt64"), datetime64));
+    EXPECT_TRUE(compareOptionalSqlTimeStamps(reader.getData<SQL_TIME_STRUCT>("t"), time));
+    // EXPECT_TRUE(compareOptionalSqlTimeStamps(reader.getData<SQL_TIMESTAMP_STRUCT>("t64"), time64));
 }

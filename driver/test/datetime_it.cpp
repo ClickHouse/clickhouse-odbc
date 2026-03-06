@@ -10,11 +10,8 @@
 
 struct DateTimeParams {
     std::string name;                            // parameter set name
-
-    // TODO: remove this once the formats behave identically.
     std::string format;                          // format to use
     std::string local_tz;                        // local timezone to use
-
     std::string expr;                            // expression for SELECT
     SQLSMALLINT expected_sql_type;               // expected reported column type
     std::string expected_str_val;                // value, when retrieved as string
@@ -81,23 +78,11 @@ TEST_P(DateTime, GetData) {
         EXPECT_EQ(toUTF8(col), params.expected_str_val) << "expected: " << params.expected_str_val;;
     }
 
-    if (params.format != "RowBinaryWithNamesAndTypes" || params.expected_sql_type == SQL_TYPE_DATE) {
-        SQL_DATE_STRUCT col = {};
-        SQLLEN col_ind = 0;
-
-        ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(
-            hstmt,
-            1,
-            getCTypeFor<decltype(col)>(),
-            &col,
-            sizeof(col),
-            &col_ind
-        ));
-
-        EXPECT_EQ(col, expected_date_val) << "expected: " << params.expected_str_val;;
+    if (params.format == "RowBinaryWithNamesAndTypes") {
+        return;
     }
 
-    if (params.format != "RowBinaryWithNamesAndTypes") {
+    if (params.expected_sql_type == SQL_TYPE_TIME || params.expected_sql_type == SQL_TYPE_TIMESTAMP) {
         SQL_TIME_STRUCT col = {};
         SQLLEN col_ind = 0;
 
@@ -113,7 +98,23 @@ TEST_P(DateTime, GetData) {
         EXPECT_EQ(col, expected_time_val) << "expected: " << params.expected_str_val;;
     }
 
-    if (params.format != "RowBinaryWithNamesAndTypes" || params.expected_sql_type != SQL_TYPE_DATE) {
+    if (params.expected_sql_type == SQL_TYPE_DATE || params.expected_sql_type == SQL_TYPE_TIMESTAMP) {
+        SQL_DATE_STRUCT col = {};
+        SQLLEN col_ind = 0;
+
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(
+            hstmt,
+            1,
+            getCTypeFor<decltype(col)>(),
+            &col,
+            sizeof(col),
+            &col_ind
+        ));
+
+        EXPECT_EQ(col, expected_date_val) << "expected: " << params.expected_str_val;;
+    }
+
+    if (params.expected_sql_type == SQL_TYPE_TIMESTAMP) {
         SQL_TIMESTAMP_STRUCT col = {};
         SQLLEN col_ind = 0;
 
@@ -145,9 +146,17 @@ TEST_P(DateTime, GetData) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    MiscellaneousTest,
+    DateTime,
     DateTime,
     ::testing::Values(
+        DateTimeParams{"Time", "ODBCDriver2", "UTC",
+            "CAST('15:04:05' AS Time)", SQL_TYPE_TIME,
+            "15:04:05", SQL_TIMESTAMP_STRUCT{0, 0, 0, 15, 4, 5, 0}
+        },
+        DateTimeParams{"Time_TZ", "ODBCDriver2", "Asia/Kathmandu",
+            "CAST('15:04:05' AS Time)", SQL_TYPE_TIME,
+            "15:04:05", SQL_TIMESTAMP_STRUCT{0, 0, 0, 15, 4, 5, 0}
+        },
         DateTimeParams{"Date", "ODBCDriver2", "UTC",
             "toDate('2020-03-25')", SQL_TYPE_DATE,
             "2020-03-25", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 0, 0, 0, 0}
@@ -172,13 +181,14 @@ INSTANTIATE_TEST_SUITE_P(
             "toDateTime64('2020-03-25 12:11:22.123456789', 9)", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22.123456789", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 123456789}
         },
+        DateTimeParams{"DateTime64_9_LeadingZeros", "ODBCDriver2", "UTC",
+            "toDateTime64('2020-03-25 12:11:22.000456789', 9)", SQL_TYPE_TIMESTAMP,
+            "2020-03-25 12:11:22.000456789", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 456789}
+        },
         DateTimeParams{"DateTime64_9_TZ", "ODBCDriver2", "UTC",
             "toDateTime64('2020-03-25 12:11:22.123456789', 9, 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22.123456789", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 123456789}
         },
-
-        // TODO: remove this once the formats behave identically.
-
         DateTimeParams{"Date", "RowBinaryWithNamesAndTypes", "UTC",
             "toDate('2020-03-25')", SQL_TYPE_DATE,
             "2020-03-25", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 0, 0, 0, 0}
@@ -190,7 +200,8 @@ INSTANTIATE_TEST_SUITE_P(
         DateTimeParams{"DateTime64_9_TZ", "RowBinaryWithNamesAndTypes", "UTC",
             "toDateTime64('2020-03-25 12:11:22.123456789', 9, 'Asia/Kathmandu')", SQL_TYPE_TIMESTAMP,
             "2020-03-25 06:26:22.123456789", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 6, 26, 22, 123456789}
-        }/*,
+        }
+        /*,
 
         // TODO: uncomment once the target ClickHouse server is 21.4+
 
@@ -204,3 +215,110 @@ INSTANTIATE_TEST_SUITE_P(
         return param_info.param.name + "_over_" + param_info.param.format;
     }
 );
+
+TEST_F(DateTime, TimeAsTimestamp)
+{
+    auto query = fromUTF8<PTChar>("SELECT CAST('15:04:05' AS Time) AS col");
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
+    STMT_OK(SQLFetch(hstmt));
+
+    SQL_TIMESTAMP_STRUCT col = {};
+    SQLLEN indicator = 0;
+    STMT_OK(SQLGetData( hstmt, 1, SQL_C_TIMESTAMP, &col, sizeof(col), &indicator));
+    SQL_TIMESTAMP_STRUCT expect = {1900, 1, 1, 15, 04, 05};
+    EXPECT_EQ(col, expect);
+}
+
+TEST_F(DateTime, Time64AsTimestamp)
+{
+    auto query = fromUTF8<PTChar>("SELECT CAST('15:04:05.123456789' AS Time64(9)) AS col");
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
+    STMT_OK(SQLFetch(hstmt));
+
+    SQLLEN sql_type = SQL_TYPE_NULL;
+    STMT_OK(SQLColAttribute(hstmt, 1, SQL_DESC_TYPE, NULL, 0, NULL, &sql_type));
+    // Time64 does not have corresponding ODBC data type, SQL_TYPE_TIME does not have fractions
+    // and SQL_TYPE_TIMESTAMP can be miss-interpreted. Here I followed what MS SQL Server does
+    // and return `SQL_VARCHAR` for time with fractions of the second.
+    EXPECT_EQ(sql_type, SQL_VARCHAR);
+
+    SQL_TIMESTAMP_STRUCT col = {};
+    SQLLEN indicator = 0;
+    STMT_OK(SQLGetData( hstmt, 1, SQL_C_TIMESTAMP, &col, sizeof(col), &indicator));
+    SQL_TIMESTAMP_STRUCT expect = {1900, 1, 1, 15, 04, 05, 123456789};
+    EXPECT_EQ(col, expect);
+}
+
+TEST_F(DateTime, InsertTimeStructParam)
+{
+    SQL_TIME_STRUCT param = {15, 4, 5};
+    SQLLEN param_ind = sizeof(SQL_TIME_STRUCT);
+
+    auto query = fromUTF8<PTChar>("SELECT ? AS col");
+    STMT_OK(SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
+    STMT_OK(SQLBindParameter(
+        /* StatementHandle   */ hstmt,
+        /* ParameterNumber   */ 1,
+        /* InputOutputType   */ SQL_PARAM_INPUT,
+        /* ValueType         */ SQL_C_TYPE_TIME,
+        /* ParameterType     */ SQL_TYPE_TIME,
+        /* ColumnSize        */ 0,
+        /* DecimalDigits     */ 0,
+        /* ParameterValuePtr */ &param,
+        /* BufferLength      */ sizeof(param),
+        /* StrLen_or_IndPtr  */ &param_ind
+    ));
+    STMT_OK(SQLExecute(hstmt));
+    STMT_OK(SQLFetch(hstmt));
+
+    SQL_TIME_STRUCT col = {};
+    SQLLEN col_ind = 0;
+    STMT_OK(SQLGetData(hstmt, 1, SQL_C_TYPE_TIME, &col, sizeof(col), &col_ind));
+
+    const SQL_TIME_STRUCT expected = {15, 4, 5};
+    EXPECT_EQ(col, expected);
+}
+
+TEST_F(DateTime, InsertTimeWithFractionThroughTimestamp)
+{
+    SQL_TIMESTAMP_STRUCT param = {2006, 1, 2, 15, 4, 5, 123456789};
+    // NOTE: the date "2006-01-02" should be truncated
+    SQLLEN param_ind = sizeof(SQL_TIME_STRUCT);
+
+    auto create_table = fromUTF8<PTChar>(
+        "CREATE OR REPLACE TABLE time ("
+        "   time Time64(9)"
+        ") "
+        "ENGINE MergeTree "
+        "ORDER BY time");
+
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(create_table.data()), SQL_NTS));
+
+    auto insert = fromUTF8<PTChar>("INSERT INTO time VALUES (?)");
+    STMT_OK(SQLPrepare(hstmt, ptcharCast(insert.data()), SQL_NTS));
+    STMT_OK(SQLBindParameter(
+        /* StatementHandle   */ hstmt,
+        /* ParameterNumber   */ 1,
+        /* InputOutputType   */ SQL_PARAM_INPUT,
+        /* ValueType         */ SQL_C_TYPE_TIMESTAMP,
+        /* ParameterType     */ SQL_TYPE_TIMESTAMP,
+        /* ColumnSize        */ 0,
+        /* DecimalDigits     */ 0,
+        /* ParameterValuePtr */ &param,
+        /* BufferLength      */ sizeof(param),
+        /* StrLen_or_IndPtr  */ &param_ind
+    ));
+    STMT_OK(SQLExecute(hstmt));
+    ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
+
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+    auto select = fromUTF8<PTChar>("SELECT time FROM time");
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(select.data()), SQL_NTS));
+    STMT_OK(SQLFetch(hstmt));
+    SQL_TIMESTAMP_STRUCT col = {};
+    SQLLEN col_ind = 0;
+    STMT_OK(SQLGetData(hstmt, 1, SQL_C_TYPE_TIMESTAMP, &col, sizeof(col), &col_ind));
+
+    const SQL_TIMESTAMP_STRUCT expected = {1900, 1, 1, 15, 4, 5, 123456789};
+    EXPECT_EQ(col, expected);
+}

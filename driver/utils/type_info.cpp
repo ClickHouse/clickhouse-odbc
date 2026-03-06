@@ -1,8 +1,9 @@
 #include "driver/utils/type_info.h"
 
-#include <Poco/String.h>
+#include <charconv>
 #include <stdexcept>
 #include <unordered_map>
+#include <Poco/String.h>
 
 const TypeInfo* typeInfoIfExistsFor(const std::string & type) {
     static const auto types = [](){
@@ -273,6 +274,55 @@ bool isStreamParam(SQLSMALLINT param_io_type) noexcept {
 #endif
 
     return false;
+}
+
+std::optional<SQL_TIMESTAMP_STRUCT> parse_datetime(const std::string & src)
+{
+    std::tm tm {};
+    std::istringstream ss{src};
+    size_t fraction_pos = 0;
+    if (src.size() == 10 && src[4] == '-') {
+        ss >> std::get_time(&tm, "%Y-%m-%d");
+        fraction_pos = 10;
+    }
+    else if (8 <= src.size() && src.size() <= 18) {
+        ss >> std::get_time(&tm, "%H:%M:%S");
+        fraction_pos = 8;
+    }
+    else if (19 <= src.size() && src.size() <= 29) {
+        ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+        fraction_pos = 19;
+    } else {
+        return std::nullopt;
+    }
+    if (ss.fail()) {
+        return std::nullopt;
+    }
+
+    SQLUINTEGER fraction = 0;
+    if (src.size() > fraction_pos) {
+        if (src[fraction_pos] != '.' || src.size() == fraction_pos + 1 || src.size() > fraction_pos + 10) {
+            return std::nullopt;
+        }
+        auto [ptr, ec] = std::from_chars(src.data() + fraction_pos + 1, src.data() + src.size(), fraction);
+        if (ec != std::errc{} || ptr != src.data() + src.size()) {
+            return std::nullopt;
+        }
+        size_t exp = fraction_pos + 10 - src.size();
+        for (size_t i = 0; i < exp; ++i) {
+            fraction *= 10;
+        }
+    }
+
+    return SQL_TIMESTAMP_STRUCT{
+        .year = (SQLSMALLINT)(1900 + tm.tm_year),
+        .month = (SQLUSMALLINT)(1 + tm.tm_mon),
+        .day = (SQLUSMALLINT)tm.tm_mday,
+        .hour = (SQLUSMALLINT)tm.tm_hour,
+        .minute = (SQLUSMALLINT)tm.tm_min,
+        .second = (SQLUSMALLINT)tm.tm_sec,
+        .fraction = fraction,
+    };
 }
 
 std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info) {
