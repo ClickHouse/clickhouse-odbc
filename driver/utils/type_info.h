@@ -34,6 +34,7 @@ enum class DataSourceTypeId {
     String,
     FixedString,
     Date,
+    Time,
     DateTime64,
     DateTime,
     UUID,
@@ -188,11 +189,14 @@ public:
             .literal_wrapper="'", .create_params="length", .octet_length=string_max_size},
         {.type_id=Date, .type_name="Date", .data_type=SQL_TYPE_DATE, .column_size=10,
             .sql_data_type=SQL_DATE, .sql_datetime_sub=SQL_CODE_DATE, .octet_length=6},
+        {.type_id=Time, .type_name="Time", .data_type=SQL_TYPE_TIME, .column_size=8,
+            .sql_data_type=SQL_DATE, .sql_datetime_sub=SQL_CODE_TIME, .octet_length=6},
         {.type_id=DateTime64, .type_name="DateTime64", .data_type=SQL_TYPE_TIMESTAMP, .column_size=29,
              .create_params="scale", .minimum_scale=0, .maximum_scale=9,
              .sql_data_type=SQL_DATE, .sql_datetime_sub=SQL_CODE_TIMESTAMP, .octet_length=16},
         {.type_id=DateTime, .type_name="DateTime", .data_type=SQL_TYPE_TIMESTAMP, .column_size=19,
             .sql_data_type=SQL_DATE, .sql_datetime_sub=SQL_CODE_TIMESTAMP, .octet_length=16},
+
         {.type_id=UUID, .type_name="UUID", .data_type=SQL_GUID, .column_size=8 + 1 + 4 + 1 + 4 + 1 + 4 + 12,
             .octet_length=sizeof(SQLGUID)},
         {.type_id=Array, .type_name="Array", .data_type=SQL_VARCHAR, .column_size=string_max_size,
@@ -247,6 +251,8 @@ bool intervalCodeHasSecondComponent(SQLSMALLINT code) noexcept;
 bool isInputParam(SQLSMALLINT param_io_type) noexcept;
 bool isOutputParam(SQLSMALLINT param_io_type) noexcept;
 bool isStreamParam(SQLSMALLINT param_io_type) noexcept;
+
+std::optional<SQL_TIMESTAMP_STRUCT> parse_datetime(const std::string & src);
 
 /// Helper structure that represents information about where and
 /// how to get or put values when reading or writing bound buffers.
@@ -1117,14 +1123,14 @@ namespace value_manip {
         using DestinationType = SQL_DATE_STRUCT;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
-            if (src.size() != 10 && (src.size() < 19 || src.size() > 29))
-                throw std::runtime_error("Cannot interpret '" + src + "' as DATE");
-
-            dest.year = (src[0] - '0') * 1000 + (src[1] - '0') * 100 + (src[2] - '0') * 10 + (src[3] - '0');
-            dest.month = (src[5] - '0') * 10 + (src[6] - '0');
-            dest.day = (src[8] - '0') * 10 + (src[9] - '0');
-
-            normalize_date(dest);
+            if (auto res = parse_datetime(src)) {
+                dest.year = res->year;
+                dest.month = res->month;
+                dest.day = res->day;
+                normalize_date(dest);
+                return;
+            }
+            throw std::runtime_error("Cannot interpret '" + src + "' as DATE");
         }
     };
 
@@ -1133,19 +1139,13 @@ namespace value_manip {
         using DestinationType = SQL_TIME_STRUCT;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
-            if (src.size() != 10 && (src.size() < 19 || src.size() > 29))
-                throw std::runtime_error("Cannot interpret '" + src + "' as TIME");
-
-            if (src.size() > 10) {
-                dest.hour = (src[11] - '0') * 10 + (src[12] - '0');
-                dest.minute = (src[14] - '0') * 10 + (src[15] - '0');
-                dest.second = (src[17] - '0') * 10 + (src[18] - '0');
+            if (auto res = parse_datetime(src)) {
+                dest.hour = res->hour;
+                dest.minute = res->minute;
+                dest.second = res->second;
+                return;
             }
-            else {
-                dest.hour = 0;
-                dest.minute = 0;
-                dest.second = 0;
-            }
+            throw std::runtime_error("Cannot interpret '" + src + "' as TIME");
         }
     };
 
@@ -1154,30 +1154,12 @@ namespace value_manip {
         using DestinationType = SQL_TIMESTAMP_STRUCT;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
-            if (src.size() != 10 && (src.size() < 19 || src.size() > 29))
-                throw std::runtime_error("Cannot interpret '" + src + "' as TIMESTAMP");
-
-            dest.year = (src[0] - '0') * 1000 + (src[1] - '0') * 100 + (src[2] - '0') * 10 + (src[3] - '0');
-            dest.month = (src[5] - '0') * 10 + (src[6] - '0');
-            dest.day = (src[8] - '0') * 10 + (src[9] - '0');
-
-            if (src.size() >= 19) {
-                dest.hour = (src[11] - '0') * 10 + (src[12] - '0');
-                dest.minute = (src[14] - '0') * 10 + (src[15] - '0');
-                dest.second = (src[17] - '0') * 10 + (src[18] - '0');
-                dest.fraction = 0;
-
-                if (src.size() > 20) {
-                    for (std::size_t i = 20; i < 29; ++i) {
-                        dest.fraction *= 10;
-                        if (i < src.size()) {
-                            dest.fraction += (src[i] - '0');
-                        }
-                    }
-                }
+            if (auto res = parse_datetime(src)) {
+                dest = *res;
+                normalize_date(dest);
+                return;
             }
-
-            normalize_date(dest);
+            throw std::runtime_error("Cannot interpret '" + src + "' as TIMESTAMP");
         }
     };
 

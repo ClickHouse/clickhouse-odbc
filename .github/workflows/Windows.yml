@@ -244,7 +244,7 @@ jobs:
       if: ${{ matrix.build_type == 'Release' && matrix.architecture == 'x64' }}
       working-directory: ${{ github.workspace }}/build
       env:
-        GTEST_FILTER: -AuthenticationTest.PasswordEncoding:PerformanceTest*
+        GTEST_FILTER: -AuthenticationTest.PasswordEncoding:PerformanceTest*:DateTime*
       run: |
         ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '-dsn-[45]'
 

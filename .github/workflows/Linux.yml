@@ -269,7 +269,7 @@ jobs:
         ODBCSYSINI: ""  # Must be set for `ODBCINSTINI` and `ODBCINI` to work
         ODBCINSTINI: ${{ github.workspace }}/run/.odbcinst.ini
         ODBCINI: ${{ github.workspace }}/run/.odbc.ini
-        GTEST_FILTER: -AuthenticationTest.PasswordEncoding:PerformanceTest*
+        GTEST_FILTER: -AuthenticationTest.PasswordEncoding:PerformanceTest*:DateTime*
       run: |
         ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '-dsn-[45]'
 

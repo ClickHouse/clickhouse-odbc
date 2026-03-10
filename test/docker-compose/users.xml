@@ -4,6 +4,7 @@
   <profiles>
     <default>
       <load_balancing>random</load_balancing>
+      <enable_time_time64_type>1</enable_time_time64_type>
     </default>
   </profiles>
 
