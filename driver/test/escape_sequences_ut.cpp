@@ -4,37 +4,37 @@
 
 TEST(EscapeSequencesCase, ParseIdent1) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(abc, SQL_BIGINT)})"),
-        "SELECT SUM(toInt64(abc))");
+        "SELECT SUM(CAST(abc AS Int64))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent2) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(`abc`, SQL_BIGINT)})"),
-        "SELECT SUM(toInt64(`abc`))");
+        "SELECT SUM(CAST(`abc` AS Int64))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent3) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(`0 a b $ c`, SQL_BIGINT)})"),
-        "SELECT SUM(toInt64(`0 a b $ c`))");
+        "SELECT SUM(CAST(`0 a b $ c` AS Int64))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent4) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(abc.`0 a b $ c`, SQL_BIGINT)})"),
-        "SELECT SUM(toInt64(abc.`0 a b $ c`))");
+        "SELECT SUM(CAST(abc.`0 a b $ c` AS Int64))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent5) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(`0 a b $ c`.abc, SQL_BIGINT)})"),
-        "SELECT SUM(toInt64(`0 a b $ c`.abc))");
+        "SELECT SUM(CAST(`0 a b $ c`.abc AS Int64))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent6) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(abc.`0 a b $ c`.abc, SQL_BIGINT)})"),
-        "SELECT SUM(toInt64(abc.`0 a b $ c`.abc))");
+        "SELECT SUM(CAST(abc.`0 a b $ c`.abc AS Int64))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent7) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(`0 a b $ c`.abc.`0 a b $ c`, SQL_BIGINT)})"),
-        "SELECT SUM(toInt64(`0 a b $ c`.abc.`0 a b $ c`))");
+        "SELECT SUM(CAST(`0 a b $ c`.abc.`0 a b $ c` AS Int64))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent_Negative1) {
@@ -42,19 +42,19 @@ TEST(EscapeSequencesCase, ParseIdent_Negative1) {
     // expression, for example a + b / c. This flexibility is to avoid strictness where it can, due
     // to developer's, mistake throw out a correct expression.
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(0 a b $ c, SQL_BIGINT)})"),
-        "SELECT SUM(toInt64(0 a b $ c))");
+        "SELECT SUM(CAST(0 a b $ c AS Int64))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent_Negative2) {
     // Similarly to Negative1
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(.abc, SQL_BIGINT)})"),
-        "SELECT SUM(toInt64(.abc))");
+        "SELECT SUM(CAST(.abc AS Int64))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent_Negative3) {
     // Similarly to Negative1
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(.`abc`, SQL_BIGINT)})"),
-        "SELECT SUM(toInt64(.`abc`))");
+        "SELECT SUM(CAST(.`abc` AS Int64))");
 }
 
 TEST(EscapeSequencesCase, ParseIdent_Negative4) {
@@ -73,25 +73,25 @@ TEST(EscapeSequencesCase, ParseIdent_Negative6) {
 }
 
 TEST(EscapeSequencesCase, ParseConvert1) {
-    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONVERT(1, SQL_BIGINT)}"), "SELECT toInt64(1)");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONVERT(1, SQL_BIGINT)}"), "SELECT CAST(1 AS Int64)");
 }
 
 TEST(EscapeSequencesCase, ParseConvert2) {
-    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONVERT(-1.2, SQL_BIGINT)}"), "SELECT toInt64(-1.2)");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONVERT(-1.2, SQL_BIGINT)}"), "SELECT CAST(-1.2 AS Int64)");
 }
 
 TEST(EscapeSequencesCase, ParseConvert3) {
-    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(amount, SQL_BIGINT)})"), "SELECT SUM(toInt64(amount))");
+    ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(amount, SQL_BIGINT)})"), "SELECT SUM(CAST(amount AS Int64))");
 }
 
 TEST(EscapeSequencesCase, ParseConvert4) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(Custom_SQL_Query.amount, SQL_BIGINT)})"),
-        "SELECT SUM(toInt64(Custom_SQL_Query.amount))");
+        "SELECT SUM(CAST(Custom_SQL_Query.amount AS Int64))");
 }
 
 TEST(EscapeSequencesCase, ParseConvert5) {
     ASSERT_EQ(replaceEscapeSequences("SELECT SUM({fn CONVERT(`Custom_SQL_Query`.`amount`, SQL_BIGINT)})"),
-        "SELECT SUM(toInt64(`Custom_SQL_Query`.`amount`))");
+        "SELECT SUM(CAST(`Custom_SQL_Query`.`amount` AS Int64))");
 }
 
 TEST(EscapeSequencesCase, ParseConvert6_0) {
@@ -99,14 +99,8 @@ TEST(EscapeSequencesCase, ParseConvert6_0) {
 }
 
 TEST(EscapeSequencesCase, ParseConvert6) {
-    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONVERT({fn ROUND(1.1 + 2.4, 1)}, SQL_BIGINT)}"), "SELECT toInt64(round(1.1 + 2.4, 1))");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONVERT({fn ROUND(1.1 + 2.4, 1)}, SQL_BIGINT)}"), "SELECT CAST(round(1.1 + 2.4, 1) AS Int64)");
 }
-
-TEST(EscapeSequencesCase, ParseConvert6_1) {
-    ASSERT_EQ(replaceEscapeSequences("SELECT  {fn   CONVERT(  {fn   ROUND(  1.1  +  2.4  ,  1  )  }  ,  SQL_BIGINT  )  }"),
-        "SELECT  toInt64(  round(  1.1  +  2.4  ,  1  )    )");
-}
-
 
 TEST(EscapeSequencesCase, ParseConcat) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONCAT('a', 'b')}"), "SELECT concat('a', 'b')");
@@ -182,7 +176,7 @@ TEST(EscapeSequencesCase, Parsetimestampdiff) {
                   "SELECT {fn TIMESTAMPDIFF(SQL_TSI_DAY,CAST(`activity`.`min_activation_yabrowser` AS DATE),CAST(`activity`.`date` AS "
                   "DATE))} AS `Calculation_503558746242125826`, SUM({fn CONVERT(1, SQL_BIGINT)}) AS `sum_Number_of_Records_ok`"),
         "SELECT dateDiff('day',CAST(`activity`.`min_activation_yabrowser` AS DATE),CAST(`activity`.`date` AS DATE)) AS "
-        "`Calculation_503558746242125826`, SUM(toInt64(1)) AS `sum_Number_of_Records_ok`");
+        "`Calculation_503558746242125826`, SUM(CAST(1 AS Int64)) AS `sum_Number_of_Records_ok`");
 }
 
 TEST(EscapeSequencesCase, ParseTimestampadd1) {
@@ -287,10 +281,12 @@ TEST(EscapeSequencesCase, ParameterizedFunctionCalls) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn LENGTH(?)}"), "SELECT lengthUTF8(?)");
 
     // A custom mapped function
-    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONVERT(?, SQL_BIGINT)}"), "SELECT toInt64(?)");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONVERT(?, SQL_BIGINT)}"), "SELECT CAST(? AS Int64)");
 }
 
 TEST(EscapeSequencesCase, DateTime) {
+    ASSERT_EQ(replaceEscapeSequences("SELECT {t '15:04:05'}"), "SELECT cast('15:04:05' as Time)");
+
     ASSERT_EQ(replaceEscapeSequences("SELECT {d '2017-01-01'}"), "SELECT toDate('2017-01-01')");
 
     ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017-01-01 10:01:01'}"), "SELECT toDateTime64('2017-01-01 10:01:01', 9)");

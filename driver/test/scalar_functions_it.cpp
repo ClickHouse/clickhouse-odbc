@@ -1058,9 +1058,8 @@ TEST_F(ScalarFunctionsTest, CONVERT) {
     ASSERT_EQ(query<SQL_DATE_STRUCT>("SELECT {fn CONVERT('2024-03-15', SQL_DATE)}"),
         (SQL_DATE_STRUCT{.year = 2024, .month = 3, .day = 15}));
 
-    // TODO(slabko): SQL_TIME does not work
-    // ASSERT_EQ(query<SQL_TIME_STRUCT>("SELECT {fn CONVERT('14:30:45', SQL_TIME)}"),
-    //    (SQL_TIME_STRUCT{.hour = 14, .minute = 30, .second = 45}));
+    ASSERT_EQ(query<SQL_TIME_STRUCT>("SELECT {fn CONVERT('14:30:45', SQL_TIME)}"),
+       (SQL_TIME_STRUCT{.hour = 14, .minute = 30, .second = 45}));
 
     ASSERT_EQ(query<SQL_TIMESTAMP_STRUCT>("SELECT {fn CONVERT('2024-03-15 14:30:45', SQL_TIMESTAMP)}"),
         (SQL_TIMESTAMP_STRUCT{.year = 2024, .month = 3, .day = 15, .hour = 14, .minute = 30, .second = 45}));
@@ -1069,10 +1068,8 @@ TEST_F(ScalarFunctionsTest, CONVERT) {
     ASSERT_EQ(query<SQL_DATE_STRUCT>("SELECT {fn CONVERT({ts '2024-03-15 14:30:45'}, SQL_DATE)}"),
         (SQL_DATE_STRUCT{.year = 2024, .month = 3, .day = 15}));
 
-    // TODO(slabko): SQL_TIME does not work
-    // Timestamp to time
-    // ASSERT_EQ(query<SQL_TIME_STRUCT>("SELECT {fn CONVERT({ts '2024-03-15 14:30:45'}, SQL_TIME)}"),
-    //    (SQL_TIME_STRUCT{.hour = 14, .minute = 30, .second = 45}));
+    ASSERT_EQ(query<SQL_TIME_STRUCT>("SELECT {fn CONVERT({ts '2024-03-15 14:30:45'}, SQL_TIME)}"),
+       (SQL_TIME_STRUCT{.hour = 14, .minute = 30, .second = 45}));
 
     ASSERT_EQ(query<SQLINTEGER>("SELECT {fn CONVERT(?, SQL_INTEGER)}", "456"), 456);
     ASSERT_EQ(query<std::string>("SELECT {fn CONVERT(?, SQL_VARCHAR)}", 789), "789");
