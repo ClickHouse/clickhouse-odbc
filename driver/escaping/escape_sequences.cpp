@@ -20,18 +20,20 @@ std::optional<std::string> processFunction(const StringView seq, Lexer & lex);
 std::optional<std::string> processEscapeSequencesImpl(const StringView seq, Lexer & lex);
 
 const std::map<const std::string, const std::string> fn_convert_map {
-    {"SQL_TINYINT", "toUInt8"},
-    {"SQL_SMALLINT", "toUInt16"},
-    {"SQL_INTEGER", "toInt32"},
-    {"SQL_BIGINT", "toInt64"},
-    {"SQL_REAL", "toFloat32"},
-    {"SQL_DOUBLE", "toFloat64"},
-    {"SQL_CHAR", "toString"},
-    {"SQL_VARCHAR", "toString"},
-    {"SQL_DATE", "toDate"},
-    {"SQL_TYPE_DATE", "toDate"},
-    {"SQL_TIMESTAMP", "toDateTime"},
-    {"SQL_TYPE_TIMESTAMP", "toDateTime"},
+    {"SQL_TINYINT", "UInt8"},
+    {"SQL_SMALLINT", "UInt16"},
+    {"SQL_INTEGER", "Int32"},
+    {"SQL_BIGINT", "Int64"},
+    {"SQL_REAL", "Float32"},
+    {"SQL_DOUBLE", "Float64"},
+    {"SQL_CHAR", "String"},
+    {"SQL_VARCHAR", "String"},
+    {"SQL_TIME", "Time"},
+    {"SQL_TYPE_TIME", "Time"},
+    {"SQL_DATE", "Date"},
+    {"SQL_TYPE_DATE", "Date"},
+    {"SQL_TIMESTAMP", "DateTime"},
+    {"SQL_TYPE_TIMESTAMP", "DateTime"},
 };
 
 #define DECLARE2(TOKEN, NAME) \
@@ -204,7 +206,7 @@ std::optional<std::string> processFunction(const StringView seq, Lexer & lex) {
         }
         if (!lex.Match(Token::RPARENT))
             return std::nullopt;
-        return func_it->second + "(" + result + ")";
+        return "CAST(" + result + " AS " + func_it->second + ")";
     } else if (fn.type == Token::FN_BIT_LENGTH) {
         if (!lex.Match(Token::LPARENT))
             return std::nullopt;
@@ -406,6 +408,15 @@ std::optional<std::string> processFunction(const StringView seq, Lexer & lex) {
     return seq.to_string();
 }
 
+std::optional<std::string> processTime(const StringView seq, Lexer & lex) {
+    Token data = lex.Consume(Token::STRING);
+    if (data.isInvalid()) {
+        return std::nullopt;
+    } else {
+        return std::string("cast(") + data.literal.to_string() + " as Time)";
+    }
+}
+
 std::optional<std::string> processDate(const StringView seq, Lexer & lex) {
     Token data = lex.Consume(Token::STRING);
     if (data.isInvalid()) {
@@ -462,6 +473,14 @@ std::optional<std::string> processEscapeSequencesImpl(const StringView seq, Lexe
                 break;
             }
 
+            case Token::T: {
+                auto processed = processTime(seq, lex);
+                if (!processed)
+                    return std::nullopt;
+                result += *processed;
+                break;
+            }
+
             case Token::D: {
                 auto processed = processDate(seq, lex);
                 if (!processed)
@@ -481,10 +500,6 @@ std::optional<std::string> processEscapeSequencesImpl(const StringView seq, Lexe
             case Token::RCURLY:
                 // End of escape sequence
                 return result;
-
-            case Token::T:
-                // Unimplemented
-                return std::nullopt;
 
             default:
                 // Positional query parameters, just like ODBC escape sequences, also wrapped in
