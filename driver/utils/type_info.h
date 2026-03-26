@@ -77,6 +77,7 @@ struct TypeInfo {
     std::optional<SQLSMALLINT> sql_datetime_sub{std::nullopt};
     std::optional<SQLSMALLINT> num_prec_radix{std::nullopt};
     int32_t octet_length; // max binary size of value in memory.
+    bool hidden{false}; // hide it from SQLGetTypeInfo
 
     static constexpr auto string_max_size = 0xFFFFFF;
 
@@ -178,11 +179,11 @@ public:
             .create_params="precision,scale", .unsigned_attribute=Signed,
             .minimum_scale=1, .maximum_scale=76, .num_prec_radix=10, .octet_length=32}, // -0.
         {.type_id=Decimal32, .type_name="Decimal32", .data_type=SQL_DECIMAL, .column_size=1 + 2 + 38,
-            .unsigned_attribute=Signed, .num_prec_radix=10, .octet_length=32},
+            .unsigned_attribute=Signed, .num_prec_radix=10, .octet_length=32, .hidden=true},
         {.type_id=Decimal64, .type_name="Decimal64", .data_type=SQL_DECIMAL, .column_size=1 + 2 + 38,
-            .unsigned_attribute=Signed, .num_prec_radix=10,.octet_length=64},
+            .unsigned_attribute=Signed, .num_prec_radix=10,.octet_length=64, .hidden=true},
         {.type_id=Decimal128, .type_name="Decimal128", .data_type=SQL_DECIMAL, .column_size=1 + 2 + 38,
-            .unsigned_attribute=Signed, .octet_length=128},
+            .unsigned_attribute=Signed, .octet_length=128, .hidden=true},
         {.type_id=String, .type_name="String", .data_type=SQL_VARCHAR, .column_size=string_max_size,
             .literal_wrapper="'", .octet_length=string_max_size},
         {.type_id=FixedString, .type_name="FixedString", .data_type=SQL_VARCHAR, .column_size=string_max_size,
