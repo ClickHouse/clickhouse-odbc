@@ -405,7 +405,7 @@ std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info) {
 
         case SQL_C_DATE:
         case SQL_C_TYPE_DATE:
-            type_name = set_nullability("Date");
+            type_name = set_nullability("Date32");
             break;
 
         case SQL_C_TIME:
@@ -519,7 +519,7 @@ std::string convertSQLTypeToDataSourceType(const BoundTypeInfo & type_info) {
             break;
 
         case SQL_TYPE_DATE:
-            type_name = set_nullability("Date");
+            type_name = set_nullability("Date32");
             break;
 
         case SQL_TYPE_TIME:

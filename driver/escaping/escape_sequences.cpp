@@ -30,8 +30,8 @@ const std::map<const std::string, const std::string> fn_convert_map {
     {"SQL_VARCHAR", "String"},
     {"SQL_TIME", "Time"},
     {"SQL_TYPE_TIME", "Time"},
-    {"SQL_DATE", "Date"},
-    {"SQL_TYPE_DATE", "Date"},
+    {"SQL_DATE", "Date32"},
+    {"SQL_TYPE_DATE", "Date32"},
     {"SQL_TIMESTAMP", "DateTime"},
     {"SQL_TYPE_TIMESTAMP", "DateTime"},
 };
@@ -422,7 +422,7 @@ std::optional<std::string> processDate(const StringView seq, Lexer & lex) {
     if (data.isInvalid()) {
         return std::nullopt;
     } else {
-        return std::string("toDate(") + data.literal.to_string() + ")";
+        return std::string("toDate32(") + data.literal.to_string() + ")";
     }
 }
 

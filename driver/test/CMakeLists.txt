@@ -19,6 +19,7 @@ function (declare_odbc_test_targets libname UNICODE)
         connection_string_ut.cpp
         performance_ut.cpp
         statement_parameter_binding_ut.cpp
+        type_info_ut.cpp
     )
 
     if (CH_ODBC_ENABLE_CODE_COVERAGE)

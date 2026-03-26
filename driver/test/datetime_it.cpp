@@ -155,6 +155,10 @@ INSTANTIATE_TEST_SUITE_P(
             "toDate('2020-03-25')", SQL_TYPE_DATE,
             "2020-03-25", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 0, 0, 0, 0}
         },
+        DateTimeParams{"Date32", "ODBCDriver2", "UTC",
+            "toDate32('2299-12-31')", SQL_TYPE_DATE,
+            "2299-12-31", SQL_TIMESTAMP_STRUCT{2299, 12, 31, 0, 0, 0, 0}
+        },
         DateTimeParams{"DateTime", "ODBCDriver2", "UTC",
             "toDateTime('2020-03-25 12:11:22')", SQL_TYPE_TIMESTAMP,
             "2020-03-25 12:11:22", SQL_TIMESTAMP_STRUCT{2020, 3, 25, 12, 11, 22, 0}
@@ -209,6 +213,31 @@ INSTANTIATE_TEST_SUITE_P(
         return param_info.param.name + "_over_" + param_info.param.format;
     }
 );
+
+TEST_F(DateTime, DateAndDate32Compatibility)
+{
+    auto query = fromUTF8<PTChar>(R"""(
+        SELECT date FROM (
+            SELECT CAST('2006-01-02' AS Date) AS date
+        )
+        WHERE date = ?
+    )""");
+    STMT_OK(SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
+    SQL_DATE_STRUCT expect = {
+        .year = 2006,
+        .month = 1,
+        .day = 2,
+    };
+    SQLLEN indicator = sizeof(expect);
+    STMT_OK(SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT, SQL_C_TYPE_DATE, SQL_TYPE_DATE, 0, 0, &expect, 0, &indicator));
+    STMT_OK(SQLExecute(hstmt));
+    STMT_OK(SQLFetch(hstmt));
+
+    SQL_DATE_STRUCT date = {0};
+    indicator = 0;
+    STMT_OK(SQLGetData(hstmt, 1, SQL_C_TYPE_DATE, &date, sizeof(date), &indicator));
+    EXPECT_EQ(date, expect);
+}
 
 TEST_F(DateTime, TimeAsTimestamp)
 {
