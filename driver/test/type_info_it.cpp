@@ -540,6 +540,8 @@ TEST_F(TypeInfoTest, TimestampTypes)
     //
     // ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
     //    hstmt, 4, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 29, 9, &time64, sizeof(time64), nullptr));
+    // Additional Note: This is fixed in https://github.com/ClickHouse/ClickHouse/pull/99267, when it is completely rolled
+    // out on the ext environment, the commented parts of the test can be enabled back.
 
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 
