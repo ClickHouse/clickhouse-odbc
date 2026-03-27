@@ -55,7 +55,7 @@ TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
         {"String", "0", SQL_VARCHAR},
         {"FixedString(1)", "'0'", SQL_VARCHAR},
         {"Date", "0", SQL_TYPE_DATE},
-        {"Date32", "0", SQL_VARCHAR},
+        {"Date32", "0", SQL_TYPE_DATE},
         {"DateTime", "0", SQL_TYPE_TIMESTAMP},
         {"DateTime64", "0", SQL_TYPE_TIMESTAMP},
         {"UUID", "'00000000-0000-0000-0000-000000000000'", SQL_GUID},
@@ -238,6 +238,7 @@ TEST_F(TypeInfoTest, SQLGetTypeInfoResultSet)
         {{"FixedString",SQL_VARCHAR       }, {max_size, "'", "'",  length, na,    na, na,  SQL_VARCHAR,   na,  na,  }},
         {{"Time",       SQL_TYPE_TIME     }, {8,        na,  na,   na,     na,    na, na,  SQL_DATE,      2,   na,  }},
         {{"Date",       SQL_TYPE_DATE     }, {10,       na,  na,   na,     na,    na, na,  SQL_DATE,      1,   na,  }},
+        {{"Date32",     SQL_TYPE_DATE     }, {10,       na,  na,   na,     na,    na, na,  SQL_DATE,      1,   na,  }},
         {{"DateTime64", SQL_TYPE_TIMESTAMP}, {29,       na,  na,   scale,  na,    0,  9,   SQL_DATE,      3,   na,  }},
         {{"DateTime",   SQL_TYPE_TIMESTAMP}, {19,       na,  na,   na,     na,    na, na,  SQL_DATE,      3,   na,  }},
         {{"UUID",       SQL_GUID          }, {35,       na,  na,   na,     na,    na, na,  SQL_GUID,      na,  na,  }},
@@ -396,6 +397,7 @@ TEST_F(TypeInfoTest, AllTypesColumns)
     {"FixedString(42)",{SQL_VARCHAR,       "FixedString", 42,  0,   na,   na,    false, SQL_VARCHAR,  na,  msz }},
     {"Time",           {SQL_TYPE_TIME,     "Time",        8,   0,   na,   na,    false, SQL_DATE,     2,   6   }},
     {"Date",           {SQL_TYPE_DATE,     "Date",        10,  0,   na,   na,    false, SQL_DATE,     1,   6   }},
+    {"Date32",         {SQL_TYPE_DATE,     "Date32",      10,  0,   na,   na,    false, SQL_DATE,     1,   6   }},
     {"DateTime",       {SQL_TYPE_TIMESTAMP,"DateTime",    19,  0,   0,    na,    false, SQL_DATE,     3,   16  }},
     {"DateTime64",     {SQL_TYPE_TIMESTAMP,"DateTime64",  29,  0,   3,    na,    false, SQL_DATE,     3,   16  }},
     {"DateTime64(9)",  {SQL_TYPE_TIMESTAMP,"DateTime64",  29,  0,   9,    na,    false, SQL_DATE,     3,   16  }},
@@ -540,6 +542,8 @@ TEST_F(TypeInfoTest, TimestampTypes)
     //
     // ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
     //    hstmt, 4, SQL_PARAM_INPUT, SQL_C_TYPE_TIMESTAMP, SQL_TYPE_TIMESTAMP, 29, 9, &time64, sizeof(time64), nullptr));
+    // Additional Note: This is fixed in https://github.com/ClickHouse/ClickHouse/pull/99267, when it is completely rolled
+    // out on the ext environment, the commented parts of the test can be enabled back.
 
     ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
 

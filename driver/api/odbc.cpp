@@ -1096,10 +1096,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLGetTypeInfo)(
             if (type != SQL_ALL_TYPES && type != info.data_type)
                 continue;
 
-            // TODO(slabko): DecimalXXX will be removed in near future, only plain Decimal will remain.
-            // For now we do not even want the clients to know of DecimalXXX existence.
-            // This piece of code should be deleted when deleting DecimalXXX.
-            if (info.isFixedPrecisionType() && info.type_id != DataSourceTypeId::Decimal)
+            if (info.hidden)
                 continue;
 
             if (!first)
