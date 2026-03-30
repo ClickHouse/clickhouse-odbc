@@ -102,6 +102,16 @@ TEST(EscapeSequencesCase, ParseConvert6) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONVERT({fn ROUND(1.1 + 2.4, 1)}, SQL_BIGINT)}"), "SELECT CAST(round(1.1 + 2.4, 1) AS Int64)");
 }
 
+TEST(EscapeSequencesCase, ParseConvertSqlDate) {
+  ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONVERT(col, SQL_DATE)}"),
+            "SELECT CAST(col AS Date32)");
+}
+
+TEST(EscapeSequencesCase, ParseConvertSqlTypeDate) {
+  ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONVERT(col, SQL_TYPE_DATE)}"),
+            "SELECT CAST(col AS Date32)");
+}
+
 TEST(EscapeSequencesCase, ParseConcat) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {fn CONCAT('a', 'b')}"), "SELECT concat('a', 'b')");
 
@@ -287,7 +297,7 @@ TEST(EscapeSequencesCase, ParameterizedFunctionCalls) {
 TEST(EscapeSequencesCase, DateTime) {
     ASSERT_EQ(replaceEscapeSequences("SELECT {t '15:04:05'}"), "SELECT cast('15:04:05' as Time)");
 
-    ASSERT_EQ(replaceEscapeSequences("SELECT {d '2017-01-01'}"), "SELECT toDate('2017-01-01')");
+    ASSERT_EQ(replaceEscapeSequences("SELECT {d '2017-01-01'}"), "SELECT toDate32('2017-01-01')");
 
     ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017-01-01 10:01:01'}"), "SELECT toDateTime64('2017-01-01 10:01:01', 9)");
     ASSERT_EQ(replaceEscapeSequences("SELECT {ts '2017-01-01 10:01:01.555'}"), "SELECT toDateTime64('2017-01-01 10:01:01.555', 9)");

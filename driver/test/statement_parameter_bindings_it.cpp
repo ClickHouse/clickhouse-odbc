@@ -360,6 +360,43 @@ TEST_F(StatementParameterBindingsTest, DISABLED_UTFCharacters)
     STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
 }
 
+TEST_F(StatementParameterBindingsTest, DateParameterRoundtripsAsDate32) {
+    // Verifies that date parameters are sent to ClickHouse as Date32, not Date.
+    // A date beyond the Date max (2149-06-06) but within Date32 range is used:
+    // if the driver incorrectly maps SQL_C_TYPE_DATE/SQL_TYPE_DATE to Date, the
+    // value would be corrupted or the query would fail.
+    SQL_DATE_STRUCT param = {2250, 1, 1};
+    SQLLEN param_ind = 0;
+
+    auto query = fromUTF8<PTChar>("SELECT ?");
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindParameter(
+            hstmt,
+            1,
+            SQL_PARAM_INPUT,
+            SQL_C_TYPE_DATE,
+            SQL_TYPE_DATE,
+            0,
+            0,
+            &param,
+            sizeof(param),
+            &param_ind
+        )
+    );
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLFetch(hstmt));
+
+    PTChar col[64] = {};
+    SQLLEN col_ind = 0;
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLGetData(hstmt, 1, getCTypeFor<decltype(&col[0])>(), &col, sizeof(col), &col_ind)
+    );
+
+    EXPECT_EQ(toUTF8(col), "2250-01-01");
+    ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
+}
 class StringParameterBindingTest
     : public ClientTestWithParamBase<std::string>
 {
