@@ -59,9 +59,7 @@ jobs:
     - name: Install dependencies - Common
       run: |
         cd "$(brew --repo)" && git fetch && git reset --hard origin/master && cd -
-        brew update
         brew remove -f --ignore-dependencies -q libiodbc unixodbc freetds php node composer
-        brew upgrade
         brew install git cmake perl python openssl poco icu4c binutils curl
         pip3 install --break-system-packages --user 'testflows==1.6.56'
 
