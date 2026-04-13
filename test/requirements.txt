@@ -1,2 +1,2 @@
 pyodbc==5.1.0
-pytest==8.3.3
+pytest==9.0.3
