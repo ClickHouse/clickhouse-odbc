@@ -102,10 +102,10 @@ The list of DSN parameters recognized by the driver is as follows:
 |       `Database`        |                                                        `default`                                                         | Database name to connect to                                                                                                                                                                                                                                                                                                                                                                                                  |
 |        `Timeout`        |                                                           `30`                                                           | Connection timeout                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `VerifyConnectionEarly` |                                                          `off`                                                           | Verify the connection and credentials during `SQLConnect` and similar calls (adds a typical overhead of one trivial remote query execution), otherwise, possible connection-related failures will be detected later, during `SQLExecute` and similar calls                                                                                                                                                                   |
-|        `SSLMode`        |                                                          empty                                                           | Certificate verification method (used by TLS/SSL connections, ignored in Windows), one of: `allow`, `prefer`, `require`, use `allow` to enable [`SSL_VERIFY_PEER`](https://www.openssl.org/docs/manmaster/man3/SSL_CTX_set_verify.html) TLS/SSL certificate verification mode, [`SSL_VERIFY_PEER \| SSL_VERIFY_FAIL_IF_NO_PEER_CERT`](https://www.openssl.org/docs/manmaster/man3/SSL_CTX_set_verify.html) is used otherwise |
+|        `SSLMode`        |                                                          empty                                                           | Certificate verification method used by TLS/SSL connections, one of: `allow`, `prefer`, `require`, use `allow` to enable [`SSL_VERIFY_PEER`](https://www.openssl.org/docs/manmaster/man3/SSL_CTX_set_verify.html) TLS/SSL certificate verification mode, [`SSL_VERIFY_PEER \| SSL_VERIFY_FAIL_IF_NO_PEER_CERT`](https://www.openssl.org/docs/manmaster/man3/SSL_CTX_set_verify.html) is used otherwise |
 |    `PrivateKeyFile`     |                                                          empty                                                           | Path to private key file (used by TLS/SSL connections), can be empty if no private key file is used                                                                                                                                                                                                                                                                                                                          |
-|    `CertificateFile`    |                                                          empty                                                           | Path to certificate file (used by TLS/SSL connections, ignored in Windows), if the private key and the certificate are stored in the same file, this can be empty if `PrivateKeyFile` is specified                                                                                                                                                                                                                           |
-|      `CALocation`       |                                                          empty                                                           | Path to the file or directory containing the CA/root certificates (used by TLS/SSL connections, ignored in Windows)                                                                                                                                                                                                                                                                                                          |
+|    `CertificateFile`    |                                                          empty                                                           | Path to certificate file used by TLS/SSL connections; if the private key and the certificate are stored in the same file, this can be empty if `PrivateKeyFile` is specified                                                                                                                                                                                                                                               |
+|      `CALocation`       |                                                          empty                                                           | Path to the file or directory containing the CA/root certificates used by TLS/SSL connections                                                                                                                                                                                                                                                                                                                               |
 |    `HugeIntAsString`    |                                                          `off`                                                           | Report integer column types that may underflow or overflow 64-bit signed integer (`SQL_BIGINT`) as a `String`/`SQL_VARCHAR`                                                                                                                                                                                                                                                                                                  |
 |       `DriverLog`       |                                  `on` if `CMAKE_BUILD_TYPE` is `Debug`, `off` otherwise                                  | Enable or disable the extended driver logging                                                                                                                                                                                                                                                                                                                                                                                |
 |     `DriverLogFile`     |               `\temp\clickhouse-odbc-driver.log`  on Windows, `/tmp/clickhouse-odbc-driver.log` otherwise                | Path to the extended driver log file (used when `DriverLog` is `on`)                                                                                                                                                                                                                                                                                                                                                         |
@@ -187,6 +187,8 @@ Configuration options above can be specified in the first `cmake` command (gener
 All modern Windows systems come with preinstalled MDAC driver manager.
 
 Another run-time dependecies are `C++ Redistributable for Visual Studio 2017` or same for `2019`, etc., depending on the package being installed, however the required DLL's are redistributed with the `.msi` installer, and you can choose to install them from there, if you don't have them installed in your system already.
+
+If the driver is built on Windows with external shared OpenSSL libraries, the resulting binaries also depend on OpenSSL runtime DLLs such as `libssl-3-x64.dll` and `libcrypto-3-x64.dll`. The generated `.msi` package includes these DLLs in that configuration.
 
 ### Run-time dependencies: macOS
 
@@ -364,6 +366,38 @@ cmake -A Win32 -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 # Use the following command for 64-bit build only.
 cmake -A x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 ```
+
+#### Building with OpenSSL on Windows <!-- omit in toc -->
+
+Special build is required for TLS in Windows environment.
+When building the Windows driver with TLS support backed by OpenSSL, install a Windows OpenSSL distribution first and point CMake at it explicitly.
+
+One workable source for prebuilt Windows binaries is FireDaemon OpenSSL:
+
+- [FireDaemon OpenSSL](https://www.firedaemon.com/firedaemon-openssl)
+- [FireDaemon OpenSSL downloads](https://www.firedaemon.com/download-firedaemon-openssl)
+
+The configuration below was tested with `openssl-3.6.2`.
+
+Example for a 64-bit build with external shared OpenSSL:
+
+```sh
+cd clickhouse-odbc
+mkdir build
+cd build
+
+cmake -A x64 -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
+  -DCH_ODBC_ENABLE_SSL=ON ^
+  -DCH_ODBC_PREFER_BUNDLED_POCO=ON ^
+  -DCH_ODBC_PREFER_BUNDLED_SSL=OFF ^
+  -DCH_ODBC_THIRD_PARTY_LINK_STATIC=OFF ^
+  -DOPENSSL_ROOT_DIR="C:/openssl-3.6.2-x86_64" ^
+  -DOPENSSL_INCLUDE_DIR="C:/openssl-3.6.2-x86_64/include" ^
+  -DOPENSSL_SSL_LIBRARY="C:/openssl-3.6.2-x86_64/lib/VC/x64/MD/libssl.lib" ^
+  -DOPENSSL_CRYPTO_LIBRARY="C:/openssl-3.6.2-x86_64/lib/VC/x64/MD/libcrypto.lib" ..
+```
+
+Adjust the paths above to match the exact OpenSSL package layout installed on your machine.
 
 Build the generated solution in-place:
 
