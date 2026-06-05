@@ -119,6 +119,20 @@ jobs:
     - name: Build
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --parallel $(nproc)
 
+    - name: Check driver has a non-executable stack
+      working-directory: ${{ github.workspace }}/build/driver
+      run: |
+        rc=0
+        for f in libclickhouseodbc.so libclickhouseodbcw.so; do
+          flags=$(readelf -lW "$f" | awk '$1=="GNU_STACK"{print $7; found=1} END{if(!found) print "MISSING"}')
+          case "$flags" in
+            *E*)     echo "FAIL (executable stack):  $f"; rc=1 ;;
+            MISSING) echo "FAIL (no GNU_STACK hdr):   $f"; rc=1 ;;
+            *)       echo "ok (non-exec stack):       $f" ;;
+          esac
+        done
+        exit $rc
+
     - name: Package
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target package
 
