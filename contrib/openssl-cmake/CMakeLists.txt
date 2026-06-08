@@ -1457,6 +1457,8 @@ else()
     add_library(ssl ${SSL_SRC})
 endif()
 
+target_compile_options(crypto PRIVATE $<$<COMPILE_LANGUAGE:ASM>:-Wa,--noexecstack>)
+
 target_include_directories(crypto
     SYSTEM PUBLIC "${PLATFORM_DIRECTORY}/include"
     PRIVATE "${PLATFORM_DIRECTORY}/include_private")
