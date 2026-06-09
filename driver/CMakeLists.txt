@@ -157,31 +157,22 @@ target_include_directories (${libname}-impl
     PUBLIC ${PROJECT_SOURCE_DIR}
 )
 
-if (CH_ODBC_ENABLE_SSL)
-    if (MSVC)
-        set (_poco_net Poco::NetSSLWin)
-    else ()
-        set (_poco_net Poco::Net Poco::Net::SSL Poco::Util)
-    endif ()
-else ()
-    set (_poco_net Poco::Net)
-endif ()
-
 target_link_libraries (${libname}-impl
     PUBLIC Poco::Net
     PUBLIC Poco::Util
     PUBLIC Poco::Foundation
     PUBLIC Threads::Threads
 )
+if (CH_ODBC_ENABLE_SSL)
+    target_link_libraries (${libname}-impl
+        PUBLIC Poco::Net::SSL
+    )
+endif()
+
 if (OS_LINUX OR OS_DARWIN)
     target_link_libraries (${libname}-impl
         PUBLIC OpenSSL::SSL
         PUBLIC OpenSSL::Crypto
-        PUBLIC Poco::Net::SSL
-    )
-elseif(OS_WINDOWS)
-    target_link_libraries (${libname}-impl
-        PUBLIC Poco::Net::WinSSL
     )
 endif()
 
