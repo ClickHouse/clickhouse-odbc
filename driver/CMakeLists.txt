@@ -84,7 +84,6 @@ add_library (${libname}-impl STATIC
     utils/utils.h
     utils/iostream_debug_helpers.h
     utils/amortized_istream_reader.h
-    utils/resize_without_initialization.h
     utils/object_pool.h
     utils/string_pool.h
     utils/unicode_converter.h
@@ -152,7 +151,6 @@ if (UNICODE)
 endif ()
 
 target_include_directories (${libname}-impl
-    PUBLIC ${FOLLY_INLUDE_DIR}      # TODO: switch to linking with folly lib target?
     PUBLIC ${PROJECT_BINARY_DIR}
     PUBLIC ${PROJECT_SOURCE_DIR}
 )

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "driver/platform/platform.h"
-#include "driver/utils/resize_without_initialization.h"
 
 #include <algorithm>
 #include <istream>
@@ -97,23 +96,23 @@ private:
                 if (free_capacity < to_read) { // Reallocation is unavoidable. Compact the buffer while doing it.
                     if (avail > 0) {
                         decltype(buffer_) tmp;
-                        resize_without_initialization(tmp, avail + to_read);
+                        tmp.resize(avail + to_read);
                         std::memcpy(&tmp[0], &buffer_[offset_], avail);
                         buffer_.swap(tmp);
                     }
                     else {
                         buffer_.clear();
-                        resize_without_initialization(buffer_, to_read);
+                        buffer_.resize(to_read);
                     }
                 }
                 else { // Compacting the buffer is enough.
                     std::memmove(&buffer_[0], &buffer_[offset_], avail);
-                    resize_without_initialization(buffer_, avail + to_read);
+                    buffer_.resize(avail + to_read);
                 }
                 offset_ = 0;
             }
             else {
-                resize_without_initialization(buffer_, buffer_.size() + to_read);
+                buffer_.resize(buffer_.size() + to_read);
             }
 
             raw_stream_.read(&buffer_[offset_ + avail], to_read);

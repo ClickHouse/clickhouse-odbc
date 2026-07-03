@@ -1,5 +1,4 @@
 #include "driver/format/ODBCDriver2.h"
-#include "driver/utils/resize_without_initialization.h"
 
 ODBCDriver2ResultSet::ODBCDriver2ResultSet(
     const std::string & timezone,
@@ -86,7 +85,7 @@ void ODBCDriver2ResultSet::readValue(std::string & dest, bool * is_null) {
     readSize(size);
 
     if (size >= 0) {
-        resize_without_initialization(dest, size);
+        dest.resize(size);
 
         if (is_null)
             *is_null = false;

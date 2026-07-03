@@ -1,5 +1,4 @@
 #include "driver/format/RowBinaryWithNamesAndTypes.h"
-#include "driver/utils/resize_without_initialization.h"
 
 #include <ctime>
 
@@ -88,7 +87,7 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(std::string & res) {
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(std::string & dest, const std::uint64_t size) {
-    resize_without_initialization(dest, size);
+    dest.resize(size);
 
     try {
         stream.read(dest.data(), dest.size());
