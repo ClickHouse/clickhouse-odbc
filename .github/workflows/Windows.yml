@@ -73,7 +73,7 @@ jobs:
 
         cmake -S ${{ github.workspace }}/source -B ${{ github.workspace }}/build `
           -A ${{ fromJSON('{"x86": "Win32", "x64": "x64"}')[matrix.architecture] }} `
-          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 `
+          -DCMAKE_POLICY_VERSION_MINIMUM="3.5" `
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
           -DODBC_PROVIDER=${{ matrix.odbc_provider }} `
           -DCH_ODBC_RUNTIME_LINK_STATIC=OFF `
@@ -246,7 +246,7 @@ jobs:
       env:
         GTEST_FILTER: -AuthenticationTest.PasswordEncoding:PerformanceTest*:DateTime*:ScalarFunctionsTest.CONVERT
       run: |
-        ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '-dsn-[45]'
+        ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-dsn-[45]$'
 
     - name: Prepare Pythons dependencies
       if: ${{ matrix.architecture == 'x64' }}
