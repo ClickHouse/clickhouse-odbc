@@ -232,7 +232,7 @@ inline void UnicodeConverter::convertToPivot(
         constexpr std::size_t conservative_target_write_increment = 16;
 
         const auto initial_new_size = std::min(encoded.size() + extra_size_reserve, min_size_increment);
-        resize_without_initialization(pivot, initial_new_size);
+        pivot.resize(initial_new_size);
 
         auto * source = reinterpret_cast<const char *>(encoded.data());
         auto * source_end = reinterpret_cast<const char *>(encoded.data() + encoded.size());
@@ -297,7 +297,7 @@ inline void UnicodeConverter::convertToPivot(
                 const std::size_t target_new_size = target_symbols_written + source_pending_symbols;
                 const std::size_t final_new_size = std::max(target_new_size + extra_size_reserve, pivot.size() + min_size_increment);
 
-                resize_without_initialization(pivot, final_new_size);
+                pivot.resize(final_new_size);
 
                 target = const_cast<ConverterPivotWideCharType *>(reinterpret_cast<const ConverterPivotWideCharType *>(pivot.c_str())) + target_symbols_written;
                 target_end = reinterpret_cast<const ConverterPivotWideCharType *>(pivot.c_str() + pivot.size());
@@ -362,7 +362,7 @@ inline void UnicodeConverter::convertFromPivot(
         constexpr std::size_t conservative_target_write_increment = 16;
 
         const auto initial_new_size = std::min(pivot.size() + extra_size_reserve, min_size_increment);
-        resize_without_initialization(encoded, initial_new_size);
+        encoded.resize(initial_new_size);
 
         auto * source = reinterpret_cast<const ConverterPivotWideCharType *>(pivot.data());
         auto * source_end = reinterpret_cast<const ConverterPivotWideCharType *>(pivot.data() + pivot.size());
@@ -436,7 +436,7 @@ inline void UnicodeConverter::convertFromPivot(
                 const std::size_t target_new_size = target_symbols_written + source_pending_symbols;
                 const std::size_t final_new_size = std::max(target_new_size + extra_size_reserve, encoded.size() + min_size_increment);
 
-                resize_without_initialization(encoded, final_new_size);
+                encoded.resize(final_new_size);
 
                 target = const_cast<char *>(reinterpret_cast<const char *>(encoded.c_str() + target_symbols_written));
                 target_end = reinterpret_cast<const char *>(encoded.c_str() + encoded.size());
@@ -502,10 +502,10 @@ inline void convertEncoding(
         constexpr std::size_t conservative_target_write_increment = 16;
 
         const auto initial_new_size = std::min(src.size() + extra_size_reserve, min_size_increment);
-        resize_without_initialization(dest, initial_new_size);
+        dest.resize(initial_new_size);
 
         constexpr std::size_t pivot_size = 1024;
-        resize_without_initialization(pivot, pivot_size);
+        pivot.resize(pivot_size);
 
         auto * source = reinterpret_cast<const char *>(src.data());
         auto * source_end = reinterpret_cast<const char *>(src.data() + src.size());
@@ -584,7 +584,7 @@ inline void convertEncoding(
                 const std::size_t target_new_size = target_symbols_written + source_pending_symbols;
                 const std::size_t final_new_size = std::max(target_new_size + extra_size_reserve, dest.size() + min_size_increment);
 
-                resize_without_initialization(dest, final_new_size);
+                dest.resize(final_new_size);
 
                 target = const_cast<char *>(reinterpret_cast<const char *>(dest.c_str() + target_symbols_written));
                 target_end = reinterpret_cast<const char *>(dest.c_str() + dest.size());

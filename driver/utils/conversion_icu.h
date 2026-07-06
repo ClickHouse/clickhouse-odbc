@@ -1,6 +1,5 @@
 #pragma once
 
-#include "driver/utils/resize_without_initialization.h"
 #include "driver/utils/conversion_context.h"
 
 #include <unicode/ustring.h>
@@ -80,7 +79,7 @@ namespace value_manip {
                         sizeof(SourceCharType) == sizeof(DriverPivotNarrowCharType)
                     ) {
                         auto src_no_sig = context.driver_pivot_narrow_char_converter.consumeEncodedSignature(src);
-                        resize_without_initialization(dest, src_no_sig.size());
+                        dest.resize(src_no_sig.size());
                         std::memcpy(&dest[0], &src_no_sig[0], src_no_sig.size() * sizeof(SourceCharType));
                     }
                     else {
@@ -168,7 +167,7 @@ namespace value_manip {
                     sizeof(DestinationCharType) == sizeof(DriverPivotNarrowCharType)
                 ) {
                     auto src_no_sig = context.application_narrow_char_converter.consumeEncodedSignature(src);
-                    resize_without_initialization(dest, src_no_sig.size());
+                    dest.resize(src_no_sig.size());
                     std::memcpy(&dest[0], &src_no_sig[0], src_no_sig.size() * sizeof(DriverPivotNarrowCharType));
                 }
                 else {
