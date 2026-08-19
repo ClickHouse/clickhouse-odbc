@@ -33,8 +33,8 @@ void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::str
         ptrHandler = new Poco::Net::AcceptCertificateHandler(false);
     Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(Poco::Net::Context::TLS_CLIENT_USE,
         privateKeyFile
-#    if !defined(SECURITY_WIN32)
-        // Do not work with poco/NetSSL_Win:
+#    if !defined(POCO_NETSSL_WIN)
+        // Only the OpenSSL backend accepts certificate path, CA location and cipher settings here.
         ,
         certificateFile,
         caLocation,
