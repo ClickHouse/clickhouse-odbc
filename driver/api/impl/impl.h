@@ -1,4 +1,6 @@
-#include "driver/platform/platform.h"
+#pragma once
+
+#include "driver/result_set.h"
 
 class Statement;
 struct BindingInfo;
@@ -210,5 +212,11 @@ namespace impl {
          SQLSMALLINT     buffer_len,
          SQLSMALLINT *   string_length_ptr
     );
+
+SQLLEN getColumnDisplaySize(const ColumnInfo & column_info, const TypeInfo & type_info, const Statement & statement);
+SQLLEN getColumnLength(const ColumnInfo & column_info, const TypeInfo & type_info, const Statement & statement);
+SQLLEN getColumnOctetLength(const ColumnInfo & column_info, const TypeInfo & type_info, const Statement & statement);
+SQLLEN getColumnPrecision(const ColumnInfo & column_info, const TypeInfo & type_info, const Statement & statement);
+SQLLEN getColumnScale(const ColumnInfo & column_info, const TypeInfo & type_info, const Statement & statement);
 
 } // namespace impl

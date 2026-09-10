@@ -29,56 +29,65 @@ TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
         std::string type;
         std::string input;
         SQLSMALLINT sql_type;
+        SQLULEN column_size;
+        SQLSMALLINT column_scale;
     };
 
+    constexpr SQLULEN max_string_size = 0xFFFFFF;
+
     std::vector<TypeMappingTestEntry> types = {
-        {"Bool", "0", SQL_BIT},
-        {"Int8", "0", SQL_TINYINT},
-        {"UInt8", "0", SQL_TINYINT},
-        {"Int16", "0", SQL_SMALLINT},
-        {"UInt16", "0", SQL_SMALLINT},
-        {"Int32", "0", SQL_INTEGER},
-        {"UInt32", "0", SQL_BIGINT},
-        {"Int64", "0", SQL_BIGINT},
-        {"UInt64", "0", SQL_BIGINT},
-        {"Int128", "0", SQL_VARCHAR},
-        {"UInt128", "0", SQL_VARCHAR},
-        {"Int256", "0", SQL_VARCHAR},
-        {"UInt256", "0", SQL_VARCHAR},
-        {"Float32", "0", SQL_REAL},
-        {"Float64", "0", SQL_DOUBLE},
-        {"Decimal(5)", "0", SQL_DECIMAL},
-        {"Decimal32(5)", "0", SQL_DECIMAL},
-        {"Decimal64(12)", "0", SQL_DECIMAL},
-        {"Decimal128(24)", "0", SQL_DECIMAL},
-        {"Decimal256(72)", "0", SQL_DECIMAL},
-        {"String", "0", SQL_VARCHAR},
-        {"FixedString(1)", "'0'", SQL_VARCHAR},
-        {"Date", "0", SQL_TYPE_DATE},
-        {"Date32", "0", SQL_TYPE_DATE},
-        {"DateTime", "0", SQL_TYPE_TIMESTAMP},
-        {"DateTime64", "0", SQL_TYPE_TIMESTAMP},
-        {"UUID", "'00000000-0000-0000-0000-000000000000'", SQL_GUID},
-        {"IPv4", "'0.0.0.0'", SQL_VARCHAR},
-        {"IPv6", "'::'", SQL_VARCHAR},
-        {"Array(Int32)", "[1,2,3]", SQL_VARCHAR},
-        {"Tuple(Int32, Int32)", "(1,2)", SQL_VARCHAR},
-        {"LowCardinality(String)", "'0'", SQL_VARCHAR},
-        {"Enum('hello' = 0, 'world' = 1)", "'hello'", SQL_VARCHAR},
+    //   type                 value          ODBC type     column size      column scale
+        {"Bool",                "0",         SQL_BIT,             1,               0},
+        {"Int8",                "0",         SQL_TINYINT,         4,               0},
+        {"UInt8",               "0",         SQL_TINYINT,         3,               0},
+        {"Int16",               "0",         SQL_SMALLINT,        6,               0},
+        {"UInt16",              "0",         SQL_SMALLINT,        5,               0},
+        {"Int32",               "0",         SQL_INTEGER,         11,              0},
+        {"UInt32",              "0",         SQL_BIGINT,          10,              0},
+        {"Int64",               "0",         SQL_BIGINT,          20,              0},
+        {"UInt64",              "0",         SQL_BIGINT,          20,              0},
+        {"Int128",              "0",         SQL_VARCHAR,         max_string_size, 0},
+        {"UInt128",             "0",         SQL_VARCHAR,         max_string_size, 0},
+        {"Int256",              "0",         SQL_VARCHAR,         max_string_size, 0},
+        {"UInt256",             "0",         SQL_VARCHAR,         max_string_size, 0},
+        {"Float32",             "0",         SQL_REAL,            24,              0},
+        {"Float64",             "0",         SQL_DOUBLE,          53,              0},
+        {"Decimal(5)",          "0",         SQL_DECIMAL,         5,               0},
+        {"Decimal(9, 2)",       "0",         SQL_DECIMAL,         9,               2},
+        {"Decimal32(5)",        "0",         SQL_DECIMAL,         9,               5},
+        {"Decimal64(12)",       "0",         SQL_DECIMAL,         18,              12},
+        {"Decimal128(24)",      "0",         SQL_DECIMAL,         38,              24},
+        {"Decimal256(72)",      "0",         SQL_DECIMAL,         76,              72},
+        {"String",              "''",        SQL_VARCHAR,         max_string_size, 0},
+        {"FixedString(1)",      "'0'",       SQL_VARCHAR,         1,               0},
+        {"Date",                "0",         SQL_TYPE_DATE,       10,              0},
+        {"Date32",              "0",         SQL_TYPE_DATE,       10,              0},
+        {"DateTime",            "0",         SQL_TYPE_TIMESTAMP,  19,              0},
+        {"DateTime64",          "0",         SQL_TYPE_TIMESTAMP,  29,              3},
+        {"UUID",                "'00000000-0000-0000-0000-000000000000'",
+                                             SQL_GUID,            36,              0},
+        {"IPv4",                "'0.0.0.0'", SQL_VARCHAR,         max_string_size, 0},
+        {"IPv6",                "'::'",      SQL_VARCHAR,         max_string_size, 0},
+        {"Array(Int32)",        "[1,2,3]",   SQL_VARCHAR,         max_string_size, 0},
+        {"Tuple(Int32, Int32)", "(1,2)",     SQL_VARCHAR,         max_string_size, 0},
+        {"LowCardinality(String)",
+                                "'0'",       SQL_VARCHAR,         max_string_size, 0},
+        {"Enum('hello' = 0, 'world' = 1)",
+                                "'hello'",   SQL_VARCHAR,         max_string_size, 0},
     };
 
     if (allow_suspicious_low_cardinality_types) {
-        types.push_back({"LowCardinality(Int32)", "0", SQL_INTEGER});
-        types.push_back({"LowCardinality(DateTime)", "0", SQL_TYPE_TIMESTAMP});
+        types.push_back({"LowCardinality(Int32)", "0", SQL_INTEGER, 11, 0});
+        types.push_back({"LowCardinality(DateTime)", "0", SQL_TYPE_TIMESTAMP, 19, 0});
     }
 
-    std::unordered_map<std::string, SQLSMALLINT> sql_types{};
+    std::unordered_map<std::string, TypeMappingTestEntry> expected_types{};
     std::stringstream query_stream;
     query_stream << "SELECT";
-    for(const auto& [type, input, sql_type] : types) {
-        auto type_escaped = Poco::replace(type, "'", "\\'");
-        sql_types[std::string(type)] = sql_type;
-        query_stream << " CAST(" + input + ", '" + type_escaped + "') as `" + type + "`,";
+    for(const auto& entry : types) {
+        auto type_escaped = Poco::replace(entry.type, "'", "\\'");
+        expected_types.emplace(entry.type, entry);
+        query_stream << " CAST(" + entry.input + ", '" + type_escaped + "') as `" + entry.type + "`,";
     }
     query_stream.seekp(-1, std::stringstream::cur) << " ";
     if (allow_suspicious_low_cardinality_types) {
@@ -95,6 +104,8 @@ TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
 
     SQLSMALLINT name_length = 0;
     SQLSMALLINT data_type = 0;
+    SQLULEN column_size = 0;
+    SQLSMALLINT column_scale = 0;
 
     std::basic_string<PTChar> input_name(256, '\0');
     for (SQLSMALLINT column = 1; column <= num_columns; ++column) {
@@ -105,11 +116,98 @@ TEST_F(TypeInfoTest, ClickhouseToSQLTypeMapping)
             static_cast<SQLSMALLINT>(input_name.size()),
             &name_length,
             &data_type,
-            nullptr,
-            nullptr,
+            &column_size,
+            &column_scale,
             nullptr));
         std::string name(input_name.begin(), input_name.begin() + name_length);
-        ASSERT_EQ(sql_types[name], data_type) << "type: " << name;
+        const auto& expected = expected_types.at(name);
+        EXPECT_EQ(expected.sql_type, data_type) << "type: " << name;
+        EXPECT_EQ(expected.column_size, column_size) << "type: " << name;
+        EXPECT_EQ(expected.column_scale, column_scale) << "type: " << name;
+    }
+}
+
+TEST_F(TypeInfoTest, SQLColAttributePrecisionAndScale)
+{
+    constexpr SQLULEN max_string_size = 0xFFFFFF;
+
+    struct PrecisionScaleTestEntry
+    {
+        std::string type;
+        std::string input;
+        SQLLEN length;
+        SQLLEN octet_length;
+        SQLLEN precision;
+        SQLLEN scale;
+    };
+
+
+    constexpr SQLULEN ms = max_string_size;
+    std::vector<PrecisionScaleTestEntry> types = {
+    //   type                  input   length   octet length  precision         scale
+        {"Bool",                 "0",  1,       1,            1,              0},
+        {"Int8",                 "0",  4,       1,            4,              0},
+        {"UInt8",                "0",  3,       1,            3,              0},
+        {"Int16",                "0",  6,       2,            6,              0},
+        {"UInt16",               "0",  5,       2,            5,              0},
+        {"Int32",                "0",  11,      4,            11,             0},
+        {"UInt32",               "0",  10,      4,            10,             0},
+        {"Int64",                "0",  20,      8,            20,             0},
+        {"UInt64",               "0",  20,      8,            20,             0},
+        {"Int128",               "0",  ms,      ms,           ms,             0},
+        {"UInt128",              "0",  ms,      ms,           ms,             0},
+        {"Int256",               "0",  ms,      ms,           ms,             0},
+        {"UInt256",              "0",  ms,      ms,           ms,             0},
+        {"Float32",              "0",  24,      4,            24,             0},
+        {"Float64",              "0",  53,      8,            53,             0},
+        {"Decimal(5)",           "0",  5,       5,            5,              0},
+        {"Decimal(9, 2)",        "0",  9,       9,            9,              2},
+        {"Decimal32(5)",         "0",  9,       9,            9,              5},
+        {"Decimal64(12)",        "0",  18,      18,           18,             12},
+        {"Decimal128(24)",       "0",  38,      38,           38,             24},
+        {"Decimal256(72)",       "0",  76,      76,           76,             72},
+        {"String",              "''",  ms,      ms,           ms,             0},
+        {"FixedString(1)",     "'0'",  1,       1,            1,              0},
+        {"Date",                 "0",  10,      6,            0,              0},
+        {"Date32",               "0",  10,      6,            0,              0},
+        {"DateTime",             "0",  19,      16,           0,              0},
+        {"DateTime64",           "0",  29,      16,           3,              3},
+        {"DateTime64(6)",        "0",  29,      16,           6,              6},
+        {"IPv4",         "'0.0.0.0'",  ms,      ms,           ms,             0},
+        {"IPv6",              "'::'",  ms,      ms,           ms,             0},
+    };
+
+    std::stringstream query_stream;
+    query_stream << "SELECT";
+    for (const auto& entry : types) {
+        auto type_escaped = Poco::replace(entry.type, "'", "\\'");
+        query_stream << " CAST(" + entry.input + ", '" + type_escaped + "') as `" + entry.type + "`,";
+    }
+    query_stream.seekp(-1, std::stringstream::cur) << " ";
+
+    auto query = fromUTF8<PTChar>(query_stream.str());
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+
+    SQLSMALLINT num_columns{};
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLNumResultCols(hstmt, &num_columns));
+    ASSERT_EQ(types.size(), num_columns);
+
+    for (SQLSMALLINT column = 1; column <= num_columns; ++column) {
+        const auto& expected = types[column - 1];
+
+        SQLLEN length = 0;
+        SQLLEN octet_length = 0;
+        SQLLEN precision = 0;
+        SQLLEN scale = 0;
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLColAttribute(hstmt, column, SQL_DESC_OCTET_LENGTH, nullptr, 0, nullptr, &octet_length));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLColAttribute(hstmt, column, SQL_DESC_LENGTH, nullptr, 0, nullptr, &length));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLColAttribute(hstmt, column, SQL_DESC_PRECISION, nullptr, 0, nullptr, &precision));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLColAttribute(hstmt, column, SQL_DESC_SCALE, nullptr, 0, nullptr, &scale));
+        EXPECT_EQ(expected.length, length) << expected.type;
+        EXPECT_EQ(expected.octet_length, octet_length) << expected.type;
+        EXPECT_EQ(expected.precision, precision) << expected.type;
+        EXPECT_EQ(expected.scale, scale) << expected.type;
     }
 }
 
@@ -230,8 +328,8 @@ TEST_F(TypeInfoTest, SQLGetTypeInfoResultSet)
         {{"UInt32",     SQL_BIGINT        }, {10,       na,  na,   na,     true,  na, na,  SQL_BIGINT,    na,  10,  }},
         {{"Int64",      SQL_BIGINT        }, {20,       na,  na,   na,     false, na, na,  SQL_BIGINT,    na,  10,  }},
         {{"UInt64",     SQL_BIGINT        }, {20,       na,  na,   na,     true,  na, na,  SQL_BIGINT,    na,  10,  }},
-        {{"Float32",    SQL_REAL          }, {7,        na,  na,   na,     false, na, na,  SQL_REAL,      na,  2,   }},
-        {{"Float64",    SQL_DOUBLE        }, {15,       na,  na,   na,     false, na, na,  SQL_DOUBLE,    na,  2,   }},
+        {{"Float32",    SQL_REAL          }, {24,       na,  na,   na,     false, na, na,  SQL_REAL,      na,  2,   }},
+        {{"Float64",    SQL_DOUBLE        }, {53,       na,  na,   na,     false, na, na,  SQL_DOUBLE,    na,  2,   }},
         {{"Decimal",    SQL_DECIMAL       }, {41,       na,  na,   pre_sc, false, 1,  76,  SQL_DECIMAL,   na,  10,  }},
         {{"String",     SQL_VARCHAR       }, {max_size, "'", "'",  na,     na,    na, na,  SQL_VARCHAR,   na,  na,  }},
         {{"String",     SQL_WVARCHAR      }, {max_size, "'", "'",  na,     na,    na, na,  SQL_VARCHAR,   na,  na,  }},
@@ -241,7 +339,7 @@ TEST_F(TypeInfoTest, SQLGetTypeInfoResultSet)
         {{"Date32",     SQL_TYPE_DATE     }, {10,       na,  na,   na,     na,    na, na,  SQL_DATE,      1,   na,  }},
         {{"DateTime64", SQL_TYPE_TIMESTAMP}, {29,       na,  na,   scale,  na,    0,  9,   SQL_DATE,      3,   na,  }},
         {{"DateTime",   SQL_TYPE_TIMESTAMP}, {19,       na,  na,   na,     na,    na, na,  SQL_DATE,      3,   na,  }},
-        {{"UUID",       SQL_GUID          }, {35,       na,  na,   na,     na,    na, na,  SQL_GUID,      na,  na,  }},
+        {{"UUID",       SQL_GUID          }, {36,       na,  na,   na,     na,    na, na,  SQL_GUID,      na,  na,  }},
         {{"Array",      SQL_VARCHAR       }, {max_size, na,  na,   na,     na,    na, na,  SQL_VARCHAR,   na,  na,  }},
     };
     // clang-format on
@@ -388,8 +486,8 @@ TEST_F(TypeInfoTest, AllTypesColumns)
     {"UInt32",         {SQL_BIGINT,        "UInt32",      10,  0,   na,   10,    false, SQL_BIGINT,   na,  4   }},
     {"Int64",          {SQL_BIGINT,        "Int64",       20,  0,   na,   10,    false, SQL_BIGINT,   na,  8   }},
     {"UInt64",         {SQL_BIGINT,        "UInt64",      20,  0,   na,   10,    false, SQL_BIGINT,   na,  8   }},
-    {"Float32",        {SQL_REAL,          "Float32",     7,   0,   na,   2,     false, SQL_REAL,     na,  4   }},
-    {"Float64",        {SQL_DOUBLE,        "Float64",     15,  0,   na,   2,     false, SQL_DOUBLE,   na,  8   }},
+    {"Float32",        {SQL_REAL,          "Float32",     24,  0,   na,   2,     false, SQL_REAL,     na,  4   }},
+    {"Float64",        {SQL_DOUBLE,        "Float64",     53,  0,   na,   2,     false, SQL_DOUBLE,   na,  8   }},
     {"Decimal",        {SQL_DECIMAL,       "Decimal",     10,  0,   0,    10,    false, SQL_DECIMAL,  na,  32  }},
     {"Decimal(2)",     {SQL_DECIMAL,       "Decimal",     2,   0,   0,    10,    false, SQL_DECIMAL,  na,  32  }},
     {"Decimal(12,5)",  {SQL_DECIMAL,       "Decimal",     12,  0,   5,    10,    false, SQL_DECIMAL,  na,  32  }},
@@ -401,7 +499,7 @@ TEST_F(TypeInfoTest, AllTypesColumns)
     {"DateTime",       {SQL_TYPE_TIMESTAMP,"DateTime",    19,  0,   0,    na,    false, SQL_DATE,     3,   16  }},
     {"DateTime64",     {SQL_TYPE_TIMESTAMP,"DateTime64",  29,  0,   3,    na,    false, SQL_DATE,     3,   16  }},
     {"DateTime64(9)",  {SQL_TYPE_TIMESTAMP,"DateTime64",  29,  0,   9,    na,    false, SQL_DATE,     3,   16  }},
-    {"UUID",           {SQL_GUID,          "UUID",        35,  0,   na,   na,    false, SQL_GUID,     na,  16  }},
+    {"UUID",           {SQL_GUID,          "UUID",        36,  0,   na,   na,    false, SQL_GUID,     na,  16  }},
     {"Bool",           {SQL_BIT,           "Bool",        1,   0,   na,   na,    false, SQL_BIT,      na,  1   }},
     };
     // clang-format on

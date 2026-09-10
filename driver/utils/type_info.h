@@ -156,8 +156,8 @@ public:
         {.type_id=Nothing, .type_name="Nothing", .column_size=1, .octet_length=1},
         {.type_id=Bool, .type_name="Bool", .data_type=SQL_BIT, .column_size=1,
             .case_sensitive=false, .octet_length=1},
-        {.type_id=Int8, .type_name="Int8", .data_type=SQL_TINYINT, .column_size=1 + 3,
-            .unsigned_attribute=Signed, .num_prec_radix=10, .octet_length=1}, // one char for sign
+        {.type_id=Int8, .type_name="Int8", .data_type=SQL_TINYINT, .column_size=1 + 3, // one char for sign
+            .unsigned_attribute=Signed, .num_prec_radix=10, .octet_length=1},
         {.type_id=UInt8, .type_name="UInt8", .data_type=SQL_TINYINT, .column_size=3,
             .unsigned_attribute=Unsigned, .num_prec_radix=10, .octet_length=1},
         {.type_id=Int16, .type_name="Int16", .data_type=SQL_SMALLINT, .column_size=1 + 5,
@@ -172,9 +172,9 @@ public:
             .unsigned_attribute=Signed, .num_prec_radix=10,.octet_length=8},
         {.type_id=UInt64, .type_name="UInt64", .data_type=SQL_BIGINT, .column_size=20,
             .unsigned_attribute=Unsigned, .num_prec_radix=10, .octet_length=8},
-        {.type_id=Float32, .type_name="Float32", .data_type=SQL_REAL, .column_size=7,
+        {.type_id=Float32, .type_name="Float32", .data_type=SQL_REAL, .column_size=24,
             .unsigned_attribute=Signed, .num_prec_radix=2, .octet_length=4},
-        {.type_id=Float64, .type_name="Float64", .data_type=SQL_DOUBLE, .column_size=15,
+        {.type_id=Float64, .type_name="Float64", .data_type=SQL_DOUBLE, .column_size=53,
             .unsigned_attribute=Signed, .num_prec_radix=2, .octet_length=8},
         {.type_id=Decimal, .type_name="Decimal", .data_type=SQL_DECIMAL, .column_size=1 + 2 + 38,
             .create_params="precision,scale", .unsigned_attribute=Signed,
@@ -201,7 +201,7 @@ public:
         {.type_id=DateTime, .type_name="DateTime", .data_type=SQL_TYPE_TIMESTAMP, .column_size=19,
             .sql_data_type=SQL_DATE, .sql_datetime_sub=SQL_CODE_TIMESTAMP, .octet_length=16},
 
-        {.type_id=UUID, .type_name="UUID", .data_type=SQL_GUID, .column_size=8 + 1 + 4 + 1 + 4 + 1 + 4 + 12,
+        {.type_id=UUID, .type_name="UUID", .data_type=SQL_GUID, .column_size=8 + 1 + 4 + 1 + 4 + 1 + 4 + 1 + 12,
             .octet_length=sizeof(SQLGUID)},
         {.type_id=Array, .type_name="Array", .data_type=SQL_VARCHAR, .column_size=string_max_size,
             .octet_length=string_max_size},
