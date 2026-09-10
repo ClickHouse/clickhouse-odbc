@@ -581,25 +581,6 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
         const auto & column_info = result_set.getColumnInfo(column_idx);
         const auto & type_info = statement.getTypeInfo(column_info.type, column_info.type_without_parameters);
 
-        std::int32_t SQL_DESC_LENGTH_value = 0;
-        if (type_info.isBufferType()) {
-            if (column_info.display_size > 0)
-                SQL_DESC_LENGTH_value = column_info.display_size;
-            else if (column_info.fixed_size > 0)
-                SQL_DESC_LENGTH_value = column_info.fixed_size;
-
-            if (SQL_DESC_LENGTH_value <= 0 || SQL_DESC_LENGTH_value > statement.getParent().stringmaxlength)
-                SQL_DESC_LENGTH_value = statement.getParent().stringmaxlength;
-        }
-
-        std::int32_t SQL_DESC_OCTET_LENGTH_value = type_info.octet_length;
-        if (type_info.isBufferType()) {
-            if (type_info.isWideCharStringType())
-                SQL_DESC_OCTET_LENGTH_value = SQL_DESC_LENGTH_value * sizeof(SQLWCHAR);
-            else
-                SQL_DESC_OCTET_LENGTH_value = SQL_DESC_LENGTH_value * sizeof(SQLCHAR);
-        }
-
         switch (field_identifier) {
 
 #define CASE_FIELD_NUM(NAME, VALUE)                                     \
@@ -623,12 +604,12 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
             case SQL_COLUMN_COUNT: /* fallthrough */
             CASE_FIELD_NUM(SQL_DESC_COUNT, result_set.getColumnCount());
 
-            CASE_FIELD_NUM(SQL_DESC_DISPLAY_SIZE, column_info.display_size);
+            CASE_FIELD_NUM(SQL_DESC_DISPLAY_SIZE, impl::getColumnDisplaySize(column_info, type_info, statement));
             CASE_FIELD_NUM(SQL_DESC_FIXED_PREC_SCALE, SQL_FALSE);
             CASE_FIELD_STR(SQL_DESC_LABEL, column_info.name);
 
-            case SQL_COLUMN_LENGTH: /* fallthrough */ // TODO: alight with ODBCv2 semantics!
-            CASE_FIELD_NUM(SQL_DESC_LENGTH, SQL_DESC_LENGTH_value);
+            case SQL_COLUMN_LENGTH: /* fallthrough */
+            CASE_FIELD_NUM(SQL_DESC_LENGTH, impl::getColumnLength(column_info, type_info, statement));
 
             CASE_FIELD_STR(SQL_DESC_LITERAL_PREFIX, "");
             CASE_FIELD_STR(SQL_DESC_LITERAL_SUFFIX, "");
@@ -640,14 +621,14 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLColAttribute)(
             case SQL_COLUMN_NULLABLE: /* fallthrough */
             CASE_FIELD_NUM(SQL_DESC_NULLABLE, (column_info.is_nullable ? SQL_NULLABLE : SQL_NO_NULLS));
 
-            CASE_FIELD_NUM(SQL_DESC_NUM_PREC_RADIX, (type_info.isIntegerType() ? 10 : 0));
-            CASE_FIELD_NUM(SQL_DESC_OCTET_LENGTH, SQL_DESC_OCTET_LENGTH_value);
+            CASE_FIELD_NUM(SQL_DESC_NUM_PREC_RADIX, type_info.num_prec_radix.value_or(0));
+            CASE_FIELD_NUM(SQL_DESC_OCTET_LENGTH, impl::getColumnOctetLength(column_info, type_info, statement));
 
-            case SQL_COLUMN_PRECISION: /* fallthrough */ // TODO: alight with ODBCv2 semantics!
-            CASE_FIELD_NUM(SQL_DESC_PRECISION, 0);
+            case SQL_COLUMN_PRECISION: /* fallthrough */
+            CASE_FIELD_NUM(SQL_DESC_PRECISION, impl::getColumnPrecision(column_info, type_info, statement));
 
-            case SQL_COLUMN_SCALE: /* fallthrough */ // TODO: alight with ODBCv2 semantics!
-            CASE_FIELD_NUM(SQL_DESC_SCALE, 0);
+            case SQL_COLUMN_SCALE: /* fallthrough */
+            CASE_FIELD_NUM(SQL_DESC_SCALE, impl::getColumnScale(column_info, type_info, statement));
 
             CASE_FIELD_STR(SQL_DESC_SCHEMA_NAME, "");
             CASE_FIELD_NUM(SQL_DESC_SEARCHABLE, SQL_SEARCHABLE);
@@ -702,11 +683,12 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLDescribeCol)(HSTMT statement_hand
 
         if (out_type)
             *out_type = type_info.data_type;
-        if (out_column_size)
-            *out_column_size = std::min<int32_t>(
-                statement.getParent().stringmaxlength, column_info.fixed_size ? column_info.fixed_size : type_info.column_size);
-        if (out_decimal_digits)
-            *out_decimal_digits = 0;
+        if (out_column_size) {
+            *out_column_size = impl::getColumnLength(column_info, type_info, statement);
+        }
+        if (out_decimal_digits) {
+            *out_decimal_digits = impl::getColumnScale(column_info, type_info, statement);
+        }
         if (out_is_nullable)
             *out_is_nullable = column_info.is_nullable ? SQL_NULLABLE : SQL_NO_NULLS;
 

@@ -8,6 +8,7 @@
 
 #include <Poco/Net/HTTPClientSession.h>
 
+#include <algorithm>
 #include <exception>
 #include <type_traits>
 #include <new>
@@ -295,6 +296,89 @@ SQLRETURN GetConnectAttr(
     };
 
     return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, connection_handle, func);
+}
+
+SQLLEN getColumnDisplaySize(const ColumnInfo & column_info, const TypeInfo & type_info, const Statement & statement) {
+    // Represents SQLColAttribute(SQL_DESC_DISPLAY_SIZE)
+    return column_info.display_size;
+}
+
+SQLLEN getColumnLength(const ColumnInfo & column_info, const TypeInfo & type_info, const Statement & statement)
+{
+    // Represents SQLColAttribute(SQL_DESC_LENGTH)
+    switch (type_info.type_id) {
+        case DataSourceTypeId::Decimal:
+        case DataSourceTypeId::Decimal32:
+        case DataSourceTypeId::Decimal64:
+        case DataSourceTypeId::Decimal128:
+            return column_info.precision;
+        case DataSourceTypeId::String:
+            return std::min<SQLLEN>(type_info.column_size, statement.getParent().stringmaxlength);
+        case DataSourceTypeId::FixedString:
+            return std::min<SQLLEN>(column_info.fixed_size, statement.getParent().stringmaxlength);
+        default:
+            return type_info.column_size;
+    }
+}
+
+SQLLEN getColumnOctetLength(const ColumnInfo & column_info, const TypeInfo & type_info, const Statement & statement)
+{
+    // Represents SQLColAttribute(SQL_DESC_OCTET_LENGTH)
+    switch (type_info.type_id) {
+        case DataSourceTypeId::Decimal:
+        case DataSourceTypeId::Decimal32:
+        case DataSourceTypeId::Decimal64:
+        case DataSourceTypeId::Decimal128:
+            return column_info.precision;
+        case DataSourceTypeId::FixedString:
+        case DataSourceTypeId::String:
+            if (type_info.isWideCharStringType()) {
+                return getColumnLength(column_info, type_info, statement) * sizeof(SQLWCHAR);
+            } else {
+                return getColumnLength(column_info, type_info, statement) * sizeof(SQLCHAR);
+            }
+        default:
+            return type_info.octet_length;
+    }
+}
+
+
+SQLLEN getColumnPrecision(const ColumnInfo & column_info, const TypeInfo & type_info, const Statement & statement)
+{
+    // Represents SQLColAttribute(SQL_DESC_PRECISION)
+    switch (type_info.type_id) {
+        case DataSourceTypeId::Decimal:
+        case DataSourceTypeId::Decimal32:
+        case DataSourceTypeId::Decimal64:
+        case DataSourceTypeId::Decimal128:
+        case DataSourceTypeId::Date:
+        case DataSourceTypeId::Date32:
+        case DataSourceTypeId::DateTime:
+        case DataSourceTypeId::Time:
+        case DataSourceTypeId::DateTime64:
+            return column_info.precision;
+        default:
+            return getColumnLength(column_info, type_info, statement);
+    }
+}
+
+SQLLEN getColumnScale(const ColumnInfo & column_info, const TypeInfo & type_info, const Statement & statement)
+{
+    // Represents SQLColAttribute(SQL_DESC_SCALE)
+    switch (type_info.type_id) {
+        case DataSourceTypeId::Decimal:
+        case DataSourceTypeId::Decimal32:
+        case DataSourceTypeId::Decimal64:
+        case DataSourceTypeId::Decimal128:
+            return column_info.scale;
+        case DataSourceTypeId::Date32:
+        case DataSourceTypeId::DateTime:
+        case DataSourceTypeId::Time:
+        case DataSourceTypeId::DateTime64:
+            return getColumnPrecision(column_info, type_info, statement);
+        default:
+            return 0;
+    }
 }
 
 namespace  {
