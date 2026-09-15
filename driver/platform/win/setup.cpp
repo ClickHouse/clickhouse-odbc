@@ -15,6 +15,7 @@
 
 #if defined(_win_)
 
+#    include <commdlg.h>
 #    include <strsafe.h>
 
 /// Saved module handle.
@@ -32,6 +33,30 @@ INT_PTR CALLBACK ConfigDlgProc(
 } // extern "C"
 
 namespace { namespace impl {
+
+bool browseForFile(HWND hdlg, int edit_control_id) {
+    std::basic_string<PTChar> value;
+    value.resize(MAX_DSN_VALUE_LEN);
+
+    const auto read = GetDlgItemText(hdlg, edit_control_id, arrayPtrCast<WinTChar>(value.data()), value.size());
+    if (read <= 0 || read >= value.size())
+        value[0] = 0;
+
+    OPENFILENAME ofn{};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hdlg;
+    ofn.lpstrFile = arrayPtrCast<WinTChar>(value.data());
+    ofn.nMaxFile = static_cast<DWORD>(value.size());
+    ofn.lpstrFilter = TEXT("All files\0*.*\0PEM/CRT/KEY files\0*.pem;*.crt;*.key;*.cer;*.p12;*.pfx\0");
+    ofn.nFilterIndex = 1;
+    ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_PATHMUSTEXIST;
+
+    if (!GetOpenFileName(&ofn))
+        return false;
+
+    SetDlgItemText(hdlg, edit_control_id, ofn.lpstrFile);
+    return true;
+}
 
 void readDSNinfo(ConnInfo * ci, bool overwrite) {
     std::basic_string<PTChar> dsn;
@@ -162,7 +187,11 @@ inline BOOL copyAttributes(ConnInfo * ci, LPCTSTR attribute, LPCTSTR value) {
     COPY_ATTR_IF(password,   INI_PASSWORD);
     COPY_ATTR_IF(password,   INI_PWD);
     COPY_ATTR_IF(timeout,    INI_TIMEOUT);
+    COPY_ATTR_IF(verify_connection_early, INI_VERIFY_CONNECTION_EARLY);
     COPY_ATTR_IF(sslmode,    INI_SSLMODE);
+    COPY_ATTR_IF(privateKeyFile, INI_PRIVATEKEYFILE);
+    COPY_ATTR_IF(certificateFile, INI_CERTIFICATEFILE);
+    COPY_ATTR_IF(caLocation, INI_CALOCATION);
     COPY_ATTR_IF(database,   INI_DATABASE);
 
 #undef COPY_ATTR_IF
@@ -335,6 +364,12 @@ inline INT_PTR ConfigDlgProc_(
             SET_DLG_ITEM(password, IDC_PASSWORD);
             SET_DLG_ITEM(timeout, IDC_TIMEOUT);
             SET_DLG_ITEM(sslmode, IDC_SSLMODE);
+            SET_DLG_ITEM(privateKeyFile, IDC_PRIVATE_KEY_FILE);
+            SET_DLG_ITEM(certificateFile, IDC_CERTIFICATE_FILE);
+            SET_DLG_ITEM(caLocation, IDC_CA_LOCATION);
+
+            bool verify_connection_early = isYes(ci.verify_connection_early);
+            CheckDlgButton(hdlg, IDC_VERIFY_CONNECTION_EARLY, verify_connection_early ? BST_CHECKED : BST_UNCHECKED);
 
             bool compression = (ci.compression == "1");
             CheckDlgButton(hdlg, IDC_COMPRESSION, compression ? BST_CHECKED : BST_UNCHECKED);
@@ -374,6 +409,10 @@ inline INT_PTR ConfigDlgProc_(
                     GET_DLG_ITEM(password, IDC_PASSWORD);
                     GET_DLG_ITEM(timeout, IDC_TIMEOUT);
                     GET_DLG_ITEM(sslmode, IDC_SSLMODE);
+                    GET_DLG_ITEM(privateKeyFile, IDC_PRIVATE_KEY_FILE);
+                    GET_DLG_ITEM(certificateFile, IDC_CERTIFICATE_FILE);
+                    GET_DLG_ITEM(caLocation, IDC_CA_LOCATION);
+                    ci.verify_connection_early = IsDlgButtonChecked(hdlg, IDC_VERIFY_CONNECTION_EARLY) ? "on" : "off";
                     ci.compression = IsDlgButtonChecked(hdlg, IDC_COMPRESSION) ? "1" : "0";
                     ci.sql_compatibility_settings = IsDlgButtonChecked(hdlg, IDC_SQL_COMPATIBILITY_SETTINGS) ? "1" : "0";
 
@@ -381,6 +420,18 @@ inline INT_PTR ConfigDlgProc_(
 
                     /* Return to caller */
                 }
+
+                case IDC_BROWSE_PRIVATE_KEY_FILE:
+                    browseForFile(hdlg, IDC_PRIVATE_KEY_FILE);
+                    return TRUE;
+
+                case IDC_BROWSE_CERTIFICATE_FILE:
+                    browseForFile(hdlg, IDC_CERTIFICATE_FILE);
+                    return TRUE;
+
+                case IDC_BROWSE_CA_LOCATION:
+                    browseForFile(hdlg, IDC_CA_LOCATION);
+                    return TRUE;
 
                 case IDCANCEL: {
                     EndDialog(hdlg, cmd);

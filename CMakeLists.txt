@@ -135,7 +135,6 @@ if (OS_WINDOWS)
     find_package(ODBC REQUIRED)
     find_package(Threads REQUIRED)
 endif()
-add_subdirectory (contrib EXCLUDE_FROM_ALL)
 
 if (CH_ODBC_ENABLE_SSL)
     if (NOT CH_ODBC_PREFER_BUNDLED_SSL)
@@ -147,9 +146,10 @@ if (CH_ODBC_ENABLE_SSL)
             set (OPENSSL_MSVC_STATIC_RT TRUE)
         endif ()
 
-        find_package (OpenSSL)
+        find_package (OpenSSL REQUIRED)
     endif ()
 endif ()
+add_subdirectory (contrib EXCLUDE_FROM_ALL)
 
 if (NOT CH_ODBC_USE_ICU)
     message (WARNING "Not using ICU")
@@ -210,6 +210,18 @@ add_subdirectory (driver)
 
 
 if (CH_ODBC_ENABLE_INSTALL)
+    if (WIN32 AND NOT UNIX)
+        if (CH_ODBC_ENABLE_SSL AND NOT CH_ODBC_PREFER_BUNDLED_SSL AND NOT CH_ODBC_THIRD_PARTY_LINK_STATIC)
+            install(
+                FILES
+                    $<TARGET_FILE:OpenSSL::SSL>
+                    $<TARGET_FILE:OpenSSL::Crypto>
+                DESTINATION ${CMAKE_INSTALL_BINDIR}
+                COMPONENT RuntimeLibraries
+            )
+        endif ()
+    endif ()
+
     if (NOT WIN32)
         install (
             FILES packaging/odbcinst.ini.sample packaging/odbc.ini.sample

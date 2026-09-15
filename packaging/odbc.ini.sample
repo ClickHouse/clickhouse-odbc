@@ -31,11 +31,11 @@ Description = DSN (localhost) for ClickHouse ODBC Driver (ANSI)
 # Database = default            # Database name.
 # Timeout = 30                  # Connection timeout in seconds.
 # VerifyConnectionEarly = off   # Verify the connection and credentials during SQLConnect and similar calls, otherwise it is done when querying the data.
-# SSLMode =                     # Certificate verification method (for TLS/SSL connections, ignored in Windows), use `allow` to ignore self-signed and bad certificates.
+# SSLMode =                     # Certificate verification method for TLS/SSL connections, use `allow` to ignore self-signed and bad certificates.
 #                               # Other values, including empty, enable strict verification
-# PrivateKeyFile =              # Path to private key file (for TLS/SSL connections, ignored in Windows)
-# CertificateFile =             # Path to certificate file (for TLS/SSL connections, ignored in Windows)
-# CALocation =                  # Path to the file or directory containing the CA/root certificates (used by TLS/SSL connections, ignored in Windows)
+# PrivateKeyFile =              # Path to private key file used by TLS/SSL connections
+# CertificateFile =             # Path to certificate file used by TLS/SSL connections
+# CALocation =                  # Path to the file or directory containing the CA/root certificates used by TLS/SSL connections
 # HugeIntAsString =             # Report integer column types that may underflow or overflow 64-bit signed integer (SQL_BIGINT) as a String/SQL_VARCHAR
 # DriverLog = off               # Enable or disable the extended driver logging (enabled by default for Debug builds)
 # DriverLogFile = \temp\clickhouse-odbc-driver.log # or /tmp/clickhouse-odbc-driver.log on Linux and macOS.
