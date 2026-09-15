@@ -112,7 +112,7 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     if (next_param_set_idx >= param_set_array_size)
         return;
 
-    getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, 0);
+    getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, -1);
 
     auto & connection = getParent();
 
@@ -386,7 +386,7 @@ bool Statement::advanceToNextResultSet() {
     if (!is_executed)
         return false;
 
-    getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, 0);
+    getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, -1);
 
     std::unique_ptr<ResultMutator> mutator;
 

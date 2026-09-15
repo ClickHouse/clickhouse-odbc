@@ -75,6 +75,21 @@ TEST_F(MiscellaneousTest, RowArraySizeAttribute) {
     }
 }
 
+TEST_F(MiscellaneousTest, SQLRowCountAfterInsert) {
+    auto create_table_query = fromUTF8<PTChar>(
+        "CREATE OR REPLACE TABLE row_count_test (value Int32) ENGINE = Memory");
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(create_table_query.data()), SQL_NTS));
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+
+    auto insert_query = fromUTF8<PTChar>(
+        "INSERT INTO row_count_test VALUES (1), (2), (3)");
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(insert_query.data()), SQL_NTS));
+
+    SQLLEN row_count = 0;
+    STMT_OK(SQLRowCount(hstmt, &row_count));
+    EXPECT_EQ(row_count, SQLLEN{-1});
+}
+
 TEST_F(MiscellaneousTest, SQLGetData_ZeroOutputBufferSize) {
     const std::string col_str = "1234567890";
     const std::string query_orig = "SELECT CAST('" + col_str + "', 'String') AS col";
