@@ -763,7 +763,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLRowCount)(HSTMT statement_handle, SQLLEN 
 
     return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_STMT, statement_handle, [&](Statement & statement) {
         if (out_row_count) {
-            *out_row_count = statement.getDiagHeader().getAttrAs<SQLLEN>(SQL_DIAG_ROW_COUNT, 0);
+            *out_row_count = statement.getDiagHeader().getAttrAs<SQLLEN>(SQL_DIAG_ROW_COUNT, -1);
             LOG("getNumRows=" << *out_row_count);
         }
         return SQL_SUCCESS;
