@@ -186,6 +186,96 @@ TEST_F(StatementParameterBindingsTest, NullValueForString) {
     ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
 }
 
+TEST_F(StatementParameterBindingsTest, NullValueForIntegerWithBoundBuffer) {
+    auto query = fromUTF8<PTChar>("SELECT isNull(?)");
+
+    SQLINTEGER param = 12345;
+    SQLLEN param_ind = SQL_NULL_DATA;
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindParameter(
+            hstmt,
+            1,
+            SQL_PARAM_INPUT,
+            getCTypeFor<decltype(param)>(),
+            SQL_INTEGER,
+            0,
+            0,
+            &param, // N.B.: the value buffer stays bound, the indicator says NULL.
+            sizeof(param),
+            &param_ind
+        )
+    );
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLFetch(hstmt));
+
+    SQLINTEGER col = 0;
+    SQLLEN col_ind = 0;
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLGetData(
+            hstmt,
+            1,
+            getCTypeFor<decltype(col)>(),
+            &col,
+            sizeof(col),
+            &col_ind
+        )
+    );
+
+    ASSERT_TRUE(col_ind >= 0 || col_ind == SQL_NTS);
+    ASSERT_EQ(col, 1);
+
+    ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
+}
+
+TEST_F(StatementParameterBindingsTest, NullValueForStringWithBoundBuffer) {
+    auto query = fromUTF8<PTChar>("SELECT isNull(?)");
+
+    auto param = fromUTF8<PTChar>("Test String");
+    SQLLEN param_ind = SQL_NULL_DATA;
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query.data()), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLBindParameter(
+            hstmt,
+            1,
+            SQL_PARAM_INPUT,
+            SQL_C_TCHAR,
+            SQL_VARCHAR,
+            0,
+            0,
+            ptcharCast(param.data()), // N.B.: the value buffer stays bound, the indicator says NULL.
+            param.size() * sizeof(PTChar),
+            &param_ind
+        )
+    );
+
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLFetch(hstmt));
+
+    SQLINTEGER col = 0;
+    SQLLEN col_ind = 0;
+
+    ODBC_CALL_ON_STMT_THROW(hstmt,
+        SQLGetData(
+            hstmt,
+            1,
+            getCTypeFor<decltype(col)>(),
+            &col,
+            sizeof(col),
+            &col_ind
+        )
+    );
+
+    ASSERT_TRUE(col_ind >= 0 || col_ind == SQL_NTS);
+    ASSERT_EQ(col, 1);
+
+    ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
+}
+
 class StatementParameterArrayBindingsTest
     : public StatementParameterBindingsTest
     , public ::testing::WithParamInterface<std::size_t>

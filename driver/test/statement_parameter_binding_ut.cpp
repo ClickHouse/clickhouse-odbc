@@ -254,7 +254,7 @@ TEST_F(StatementBindingTest, FromCGUID) {
 
 TEST_F(StatementBindingTest, NullValueBinding) {
     prepare("select ?");
-    SQLINTEGER null_value;
+    SQLINTEGER null_value = 12345;
     SQLLEN null_ind = SQL_NULL_DATA;
 
     bind(1, SQL_PARAM_INPUT, SQL_C_SLONG, SQL_INTEGER, 0, 0, &null_value, 0, &null_ind);
@@ -262,7 +262,32 @@ TEST_F(StatementBindingTest, NullValueBinding) {
     auto [query, params] = execute();
     ASSERT_EQ(query, "select {odbc_positional_1:Nullable(Int32)}");
     ASSERT_EQ(params.size(), 1);
-    ASSERT_TRUE(params["param_odbc_positional_1"].empty());
+    ASSERT_EQ(params["param_odbc_positional_1"], "\\N");
+}
+
+TEST_F(StatementBindingTest, NullValueBindingWithoutBuffer) {
+    prepare("select ?");
+    SQLLEN null_ind = SQL_NULL_DATA;
+
+    bind(1, SQL_PARAM_INPUT, SQL_C_SLONG, SQL_INTEGER, 0, 0, nullptr, 0, &null_ind);
+
+    auto [query, params] = execute();
+    ASSERT_EQ(query, "select {odbc_positional_1:Nullable(Int32)}");
+    ASSERT_EQ(params.size(), 1);
+    ASSERT_EQ(params["param_odbc_positional_1"], "\\N");
+}
+
+TEST_F(StatementBindingTest, NullValueBindingForString) {
+    prepare("select ?");
+    char char_value[] = "Test String";
+    SQLLEN null_ind = SQL_NULL_DATA;
+
+    bind(1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 20, 0, char_value, sizeof(char_value), &null_ind);
+
+    auto [query, params] = execute();
+    ASSERT_EQ(query, "select {odbc_positional_1:LowCardinality(Nullable(String))}");
+    ASSERT_EQ(params.size(), 1);
+    ASSERT_EQ(params["param_odbc_positional_1"], "\\N");
 }
 
 TEST_F(StatementBindingTest, FunctionLocate) {
