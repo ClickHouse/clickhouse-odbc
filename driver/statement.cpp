@@ -17,6 +17,16 @@
 
 static const char exception_code_header_name[] = "X-ClickHouse-Exception-Code";
 
+// The length/indicator buffer decides whether the parameter is NULL: an application
+// is free to keep a value buffer bound and signal NULL by setting the indicator to
+// SQL_NULL_DATA, which is what reusing the same buffer for every row amounts to.
+static bool isNullParamValue(const ParamBindingInfo & binding_info) noexcept {
+    return (
+        binding_info.value == nullptr ||
+        (binding_info.indicator != nullptr && *binding_info.indicator == SQL_NULL_DATA)
+    );
+}
+
 Statement::Statement(Connection & connection)
     : ChildType(connection)
 {
@@ -84,7 +94,7 @@ Statement::HttpRequestData Statement::prepareHttpRequest()
             if (!isInputParam(binding_info.io_type) || isStreamParam(binding_info.io_type))
                 throw std::runtime_error("Unable to extract data from bound param buffer: param IO type is not supported");
 
-            if (binding_info.value == nullptr)
+            if (isNullParamValue(binding_info))
                 value = "\\N";
             else {
                 readReadyDataTo(binding_info, value);
@@ -333,7 +343,7 @@ std::string Statement::buildFinalQuery(const std::vector<ParamBindingInfo>& para
             type_info.value_max_size = binding_info.value_max_size;
             type_info.precision = binding_info.precision;
             type_info.scale = binding_info.scale;
-            type_info.is_nullable = (binding_info.is_nullable || binding_info.value == nullptr);
+            type_info.is_nullable = (binding_info.is_nullable || isNullParamValue(binding_info));
 
             param_type = convertSQLOrCTypeToDataSourceType(type_info);
         }
