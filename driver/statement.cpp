@@ -16,6 +16,7 @@
 #include <cstdio>
 
 static const char exception_code_header_name[] = "X-ClickHouse-Exception-Code";
+static const char timezone_header_name[] = "X-ClickHouse-Timezone";
 
 // The length/indicator buffer decides whether the parameter is NULL: an application
 // is free to keep a value buffer bound and signal NULL by setting the indicator to
@@ -39,6 +40,16 @@ Statement::~Statement() {
 
 const TypeInfo & Statement::getTypeInfo(const std::string & type_name, const std::string & type_name_without_parameters) const {
     return getParent().getTypeInfo(type_name, type_name_without_parameters);
+}
+
+std::string Statement::getResponseTimezone(
+    const Poco::Net::HTTPResponse & response,
+    std::string (*get_default_timezone)())
+{
+    if (response.has(timezone_header_name))
+        return response.get(timezone_header_name);
+
+    return get_default_timezone();
 }
 
 void Statement::prepareQuery(const std::string & q) {
@@ -211,9 +222,11 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
         throw std::runtime_error(error_message.str());
     }
 
+    const auto timezone = getResponseTimezone(*response, Poco::Timezone::name);
+
     result_reader = make_result_reader(
         response->get("X-ClickHouse-Format", connection.default_format),
-        response->get("X-ClickHouse-Timezone", Poco::Timezone::name()),
+        timezone,
         *in,
         *connection.session,
         std::move(mutator)
