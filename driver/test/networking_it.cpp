@@ -72,8 +72,13 @@ protected:
         SQLTCHAR final_connection_string[1024];
         SQLSMALLINT final_connection_string_len = 0;
 
-        auto connection_string
-            = fromUTF8<PTChar>("Driver={ClickHouse ODBC Driver (Unicode)};URL=http://127.0.0.1:8124/");
+        auto connection_string = fromUTF8<PTChar>(
+#if defined(UNICODE)
+            "Driver={ClickHouse ODBC Driver (Unicode)};"
+#else
+            "Driver={ClickHouse ODBC Driver (ANSI)};"
+#endif
+            "URL=http://127.0.0.1:" + std::to_string(server.port()) + "/;Timeout=5");
         ODBC_CALL_ON_DBC_THROW(dbc, SQLDriverConnect(
             dbc,
             nullptr,
@@ -99,9 +104,21 @@ protected:
         server.setKeepAlive(keep_alive);
     }
 
+    void executeInserts(bool close_cursor = false) {
+        auto query = fromUTF8<PTChar>("INSERT INTO test VALUES (?)");
+        ODBC_CALL_ON_STMT_THROW(stmt, SQLPrepare(stmt, ptcharCast(query.data()), SQL_NTS));
+        for (SQLINTEGER value = 0; value < 5; ++value) {
+            ODBC_CALL_ON_STMT_THROW(stmt, SQLBindParameter(
+                stmt, 1, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &value, sizeof(value), nullptr));
+            ODBC_CALL_ON_STMT_THROW(stmt, SQLExecute(stmt));
+            if (close_cursor)
+                ODBC_CALL_ON_STMT_THROW(stmt, SQLFreeStmt(stmt, SQL_CLOSE));
+        }
+    }
+
     using KeepAlive = TcpServer::KeepAlive;
 
-    TcpServer server{8124};
+    TcpServer server{0};
     SQLHENV env{nullptr};
     SQLHDBC dbc{nullptr};
     SQLHSTMT stmt{nullptr};
@@ -200,7 +217,7 @@ public:
         ZSTD_initCStream(zstream.get(), 1);
 
         auto input = stream.str();
-        std::vector<char> output(input.size(), '\0');
+        std::vector<char> output(ZSTD_compressBound(input.size()), '\0');
         size_t input_pos = 0;
 
         ZSTD_inBuffer in = {input.data(), input.size(), 0};
@@ -278,7 +295,96 @@ TEST_F(NetworkingTest, PositiveCaseKeepAlive)
     ClickHouseResponseGenerator gen{};
     gen.generate(1024 * 5).chunk(1024).append_last_chunk();
     setResponse(KeepAlive::KeepAlive, gen.make_response());
+    for (int i = 0; i < 3; ++i)
+        ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+    EXPECT_EQ(server.connectionCount(), 1);
+}
+
+TEST_F(NetworkingTest, RepeatedInsertsReuseChunkedConnection)
+{
+    const std::string response = HTTP_HEADER CRLF ZERO_CHUNK;
+    setResponse(KeepAlive::KeepAlive, {response.begin(), response.end()});
+    executeInserts();
+    EXPECT_EQ(server.connectionCount(), 1);
+}
+
+TEST_F(NetworkingTest, RepeatedInsertsReuseContentLengthConnection)
+{
+    const std::string response = "HTTP/1.1 200 OK\r\nConnection: Keep-Alive\r\nContent-Length: 0\r\n\r\n";
+    setResponse(KeepAlive::KeepAlive, {response.begin(), response.end()});
+    executeInserts();
+    EXPECT_EQ(server.connectionCount(), 1);
+}
+
+TEST_F(NetworkingTest, RepeatedInsertsReuseCompressedConnection)
+{
+    ClickHouseResponseGenerator gen{};
+    gen.cut(0).compress().chunk(128).append_last_chunk();
+    setResponse(KeepAlive::KeepAlive, gen.make_response(ZSTD_HEADER));
+    executeInserts();
+    EXPECT_EQ(server.connectionCount(), 1);
+}
+
+TEST_F(NetworkingTest, ClosingInsertCursorPreservesConnection)
+{
+    const std::string response = HTTP_HEADER CRLF ZERO_CHUNK;
+    setResponse(KeepAlive::KeepAlive, {response.begin(), response.end()});
+    executeInserts(true);
+    EXPECT_EQ(server.connectionCount(), 1);
+}
+
+TEST_F(NetworkingTest, RepeatedInsertsReconnectWhenServerCloses)
+{
+    const std::string response = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n\r\n";
+    setResponse(KeepAlive::Close, {response.begin(), response.end()});
+    executeInserts();
+    EXPECT_EQ(server.connectionCount(), 5);
+}
+
+TEST_F(NetworkingTest, ClosingUnreadCursorReconnects)
+{
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 512).chunk(1024).append_last_chunk();
+    setResponse(KeepAlive::KeepAlive, gen.make_response());
+
+    auto query = fromUTF8<PTChar>("SELECT 1");
+    ODBC_CALL_ON_STMT_THROW(stmt, SQLExecDirect(stmt, ptcharCast(query.data()), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(stmt, SQLFreeStmt(stmt, SQL_CLOSE));
     ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+    EXPECT_EQ(server.connectionCount(), 2);
+}
+
+TEST_F(NetworkingTest, ClosingBufferedUnreadCursorReconnects)
+{
+    // This entire response fits in the reader's buffer. Releasing that reader
+    // puts back unread rows, so the stream must be checked after its destruction.
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 5).chunk(1024).append_last_chunk();
+    setResponse(KeepAlive::KeepAlive, gen.make_response());
+
+    auto query = fromUTF8<PTChar>("SELECT 1");
+    ODBC_CALL_ON_STMT_THROW(stmt, SQLExecDirect(stmt, ptcharCast(query.data()), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(stmt, SQLFreeStmt(stmt, SQL_CLOSE));
+    ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+    EXPECT_EQ(server.connectionCount(), 2);
+}
+
+TEST_F(NetworkingTest, IncompleteResponseReconnects)
+{
+    const std::string incomplete_response = HTTP_HEADER CRLF "1\r\n";
+    setResponse(KeepAlive::Close, {incomplete_response.begin(), incomplete_response.end()});
+
+    auto query = fromUTF8<PTChar>("INSERT INTO test SELECT 1");
+    ODBC_CALL_ON_STMT_THROW(stmt, SQLPrepare(stmt, ptcharCast(query.data()), SQL_NTS));
+    EXPECT_THROW_MESSAGE(
+        ODBC_CALL_ON_STMT_THROW(stmt, SQLExecute(stmt)),
+        std::runtime_error, "1:[HY000][1]Unexpected EOF in chunked encoding");
+
+    const std::string response = HTTP_HEADER CRLF ZERO_CHUNK;
+    setResponse(KeepAlive::KeepAlive, {response.begin(), response.end()});
+    ODBC_CALL_ON_STMT_THROW(stmt, SQLExecute(stmt));
+    ODBC_CALL_ON_STMT_THROW(stmt, SQLExecute(stmt));
+    EXPECT_EQ(server.connectionCount(), 2);
 }
 
 /**
@@ -423,7 +529,9 @@ TEST_F(NetworkingTest, PositiveCaseKeepAliveCompressed)
     ClickHouseResponseGenerator gen{};
     gen.generate(1024 * 512).compress().chunk(128).append_last_chunk();
     setResponse(KeepAlive::KeepAlive, gen.make_response(ZSTD_HEADER));
-    ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+    for (int i = 0; i < 3; ++i)
+        ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+    EXPECT_EQ(server.connectionCount(), 1);
 }
 
 TEST_F(NetworkingTest, ClickHouseExceptionCompressed)
