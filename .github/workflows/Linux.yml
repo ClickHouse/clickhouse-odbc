@@ -25,6 +25,7 @@ jobs:
   build_and_test:
 
     env:
+      CLOUD_TESTS_ENABLED: ${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT != '' }}
       TEST_DATABASE: ''
 
     strategy:
@@ -153,7 +154,7 @@ jobs:
       run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
 
     - name: Get ClickHouse Cloud version
-      if: ${{ matrix.build_type == 'Release' }}
+      if: ${{ env.CLOUD_TESTS_ENABLED == 'true' && matrix.build_type == 'Release' }}
       run: |
         curl --fail-with-body -X POST \
           "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" \
@@ -161,7 +162,7 @@ jobs:
           -d "select version()"
 
     - name: Create Test Database
-      if: ${{ matrix.build_type == 'Release' }}
+      if: ${{ env.CLOUD_TESTS_ENABLED == 'true' && matrix.build_type == 'Release' }}
       run: |
         timestamp=$(date +%s%3N)
         database="test${timestamp}_odbc"
@@ -277,7 +278,7 @@ jobs:
 
     - name: Test - Run C++ integration tests in the Cloud
       working-directory: ${{ github.workspace }}/build
-      if: ${{ matrix.build_type == 'Release' }}
+      if: ${{ env.CLOUD_TESTS_ENABLED == 'true' && matrix.build_type == 'Release' }}
       env:
         DSN: "ClickHouse DSN (ANSI)"
         ODBCSYSINI: ""  # Must be set for `ODBCINSTINI` and `ODBCINI` to work
@@ -313,7 +314,7 @@ jobs:
         pytest --log-level=DEBUG -v
 
     - name: Drop Test Database
-      if: always() && env.TEST_DATABASE != ''
+      if: always() && env.CLOUD_TESTS_ENABLED == 'true' && env.TEST_DATABASE != ''
       run: |
         curl -X POST \
           "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" \
