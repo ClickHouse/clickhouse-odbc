@@ -25,6 +25,7 @@ jobs:
   build_and_test:
 
     env:
+      CLOUD_TESTS_ENABLED: ${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT != '' }}
       TEST_DATABASE: ''
 
     strategy:
@@ -103,7 +104,7 @@ jobs:
       run: ctest --output-on-failure --build-config ${{ matrix.build_type }} -R '.*-ut.*'
 
     - name: Create Test Database
-      if: ${{ matrix.build_type == 'Release' && matrix.architecture == 'x64' }}
+      if: ${{ env.CLOUD_TESTS_ENABLED == 'true' && matrix.build_type == 'Release' && matrix.architecture == 'x64' }}
       run: |
         $timestamp = [math]::Round([double](Get-Date -UFormat %s) * 1000)
         $database = "test${timestamp}_odbc_win_${{ matrix.architecture }}_${{ matrix.build_type }}"
@@ -192,6 +193,11 @@ jobs:
           -Platform "$platform" `
           -SetPropertyValue @("Url=http://127.0.0.1:8123/", "User=default", "Compression=1")
 
+    - name: Configure ClickHouse Cloud ODBC DSNs
+      if: ${{ env.CLOUD_TESTS_ENABLED == 'true' && matrix.build_type == 'Release' && matrix.architecture == 'x64' }}
+      run: |
+        $platform = "${{ fromJSON('{"x86": "32-bit", "x64": "64-bit"}')[matrix.architecture] }}"
+
         Add-OdbcDsn `
           -Name "ClickHouse AWS ANSI ZSTD" `
           -DriverName "ClickHouse ODBC Driver (ANSI)" `
@@ -206,6 +212,8 @@ jobs:
           -Platform "$platform" `
           -SetPropertyValue @("Url=https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?database=$env:TEST_DATABASE", "Username=default", "Password=${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}", "Compression=1")
 
+    - name: List enabled ODBC DSNs
+      run: |
         Write-Host "List of enabled DSNs:"
         Get-OdbcDsn -DsnType "System"
 
@@ -241,7 +249,7 @@ jobs:
         ctest --output-on-failure --build-config ${{ matrix.build_type }} -E '(.*-ut.*|-dsn-[45]$)'
 
     - name: Test - Run C++ integration test in the Cloud
-      if: ${{ matrix.build_type == 'Release' && matrix.architecture == 'x64' }}
+      if: ${{ env.CLOUD_TESTS_ENABLED == 'true' && matrix.build_type == 'Release' && matrix.architecture == 'x64' }}
       working-directory: ${{ github.workspace }}/build
       env:
         GTEST_FILTER: -AuthenticationTest.PasswordEncoding:PerformanceTest*:DateTime*:ScalarFunctionsTest.CONVERT
@@ -286,7 +294,7 @@ jobs:
         file_glob: true
 
     - name: Drop Test Database
-      if: always() && env.TEST_DATABASE != ''
+      if: always() && env.CLOUD_TESTS_ENABLED == 'true' && env.TEST_DATABASE != ''
       run: |
         curl.exe --fail-with-body -X POST `
           "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" `
