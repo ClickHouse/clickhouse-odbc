@@ -73,6 +73,32 @@ void Statement::executeQuery(std::unique_ptr<ResultMutator> && mutator) {
 
     next_param_set_idx = 0;
     requestNextPackOfResultSets(std::move(mutator));
+
+    // A parameter array has to be fully processed by this one call.  ODBC has the driver
+    // execute the statement once per parameter set during SQLExecute, and SQLMoreResults then
+    // walks the *result sets* those executions produced.  A statement that returns nothing --
+    // an INSERT, which is what a parameter array is usually for -- produces no result sets, so
+    // a conforming caller has no reason to call SQLMoreResults at all and the remaining sets
+    // were never sent: a five-set array inserted one row, with SQL_SUCCESS and no diagnostic.
+    //
+    // Send the rest here, and stop as soon as a set does produce a result set, so that the
+    // one-result-set-per-SQLMoreResults behaviour a SELECT relies on is unchanged.
+    if (!hasResultSet()) {
+        const auto param_set_array_size =
+            getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
+
+        while (next_param_set_idx < param_set_array_size) {
+            std::unique_ptr<ResultMutator> carried_mutator;
+            if (result_reader)
+                carried_mutator = result_reader->releaseMutator();
+
+            requestNextPackOfResultSets(std::move(carried_mutator));
+
+            if (hasResultSet())
+                break;
+        }
+    }
+
     is_executed = true;
 }
 
@@ -136,11 +162,6 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     for (const auto& [key, value]: query_parameters) {
         uri.addQueryParameter(key, value);
     }
-
-    // TODO: set this only after this single query is fully fetched (when output parameter support is added)
-    auto * param_set_processed_ptr = getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0);
-    if (param_set_processed_ptr)
-        *param_set_processed_ptr = next_param_set_idx;
 
     Poco::Net::HTTPRequest request;
     request.setMethod(Poco::Net::HTTPRequest::HTTP_POST);
@@ -220,6 +241,15 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     );
 
     ++next_param_set_idx;
+
+    // SQL_ATTR_PARAMS_PROCESSED_PTR is the number of parameter sets processed, so it is written
+    // after the set has been sent rather than before: it used to be assigned next_param_set_idx
+    // while that still named the set about to go, which left a five-set array reporting one.
+    // TODO: set this only after this single query is fully fetched (when output parameter
+    // support is added)
+    if (auto * param_set_processed_ptr =
+            getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0))
+        *param_set_processed_ptr = next_param_set_idx;
 }
 
 void Statement::extractParametersinfo() {
