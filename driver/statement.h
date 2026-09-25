@@ -99,6 +99,7 @@ public:
 
 private:
     void requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mutator);
+    void sendParamSet(std::unique_ptr<ResultMutator> && mutator);
 
     /// Drops the keep-alive HTTP connection unless the previous response body was
     /// fully and cleanly consumed.
