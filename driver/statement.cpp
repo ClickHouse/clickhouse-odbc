@@ -72,21 +72,26 @@ void Statement::executeQuery(std::unique_ptr<ResultMutator> && mutator) {
         *param_set_processed_ptr = 0;
 
     next_param_set_idx = 0;
+
+    const auto param_set_array_size =
+        getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
+
+    // A set the driver never reaches is SQL_PARAM_UNUSED; every set that is sent overwrites its
+    // own entry in requestNextPackOfResultSets.
+    if (auto * param_status_ptr = getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC)
+                                      .getAttrAs<SQLUSMALLINT *>(SQL_DESC_ARRAY_STATUS_PTR, 0)) {
+        for (SQLULEN i = 0; i < param_set_array_size; ++i)
+            param_status_ptr[i] = SQL_PARAM_UNUSED;
+    }
+
     requestNextPackOfResultSets(std::move(mutator));
 
-    // A parameter array has to be fully processed by this one call.  ODBC has the driver
-    // execute the statement once per parameter set during SQLExecute, and SQLMoreResults then
-    // walks the *result sets* those executions produced.  A statement that returns nothing --
-    // an INSERT, which is what a parameter array is usually for -- produces no result sets, so
-    // a conforming caller has no reason to call SQLMoreResults at all and the remaining sets
-    // were never sent: a five-set array inserted one row, with SQL_SUCCESS and no diagnostic.
-    //
-    // Send the rest here, and stop as soon as a set does produce a result set, so that the
-    // one-result-set-per-SQLMoreResults behaviour a SELECT relies on is unchanged.
+    // ODBC executes the statement once per parameter set during SQLExecute; SQLMoreResults then
+    // walks the result sets those executions produced.  A statement that returns nothing produces
+    // none, so its remaining sets have to be sent here rather than left to SQLMoreResults.  Stop
+    // as soon as a set produces a result set, so a result-returning statement keeps handing them
+    // back one per SQLMoreResults.
     if (!hasResultSet()) {
-        const auto param_set_array_size =
-            getEffectiveDescriptor(SQL_ATTR_APP_PARAM_DESC).getAttrAs<SQLULEN>(SQL_DESC_ARRAY_SIZE, 1);
-
         while (next_param_set_idx < param_set_array_size) {
             std::unique_ptr<ResultMutator> carried_mutator;
             if (result_reader)
@@ -148,6 +153,30 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     if (next_param_set_idx >= param_set_array_size)
         return;
 
+    const auto param_set_idx = next_param_set_idx;
+    auto & ipd_desc = getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC);
+    auto * param_status_ptr = ipd_desc.getAttrAs<SQLUSMALLINT *>(SQL_DESC_ARRAY_STATUS_PTR, 0);
+
+    // SQL_ATTR_PARAMS_PROCESSED_PTR counts the sets processed including one that fails, so it is
+    // written before the attempt rather than after it.
+    // TODO: set this only after this single query is fully fetched (when output parameter support is added)
+    if (auto * processed_ptr = ipd_desc.getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0))
+        *processed_ptr = param_set_idx + 1;
+
+    try {
+        sendParamSet(std::move(mutator));
+    }
+    catch (...) {
+        if (param_status_ptr)
+            param_status_ptr[param_set_idx] = SQL_PARAM_ERROR;
+        throw;
+    }
+
+    if (param_status_ptr)
+        param_status_ptr[param_set_idx] = SQL_PARAM_SUCCESS;
+}
+
+void Statement::sendParamSet(std::unique_ptr<ResultMutator> && mutator) {
     getDiagHeader().setAttr(SQL_DIAG_ROW_COUNT, -1);
 
     auto & connection = getParent();
@@ -244,15 +273,6 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
     );
 
     ++next_param_set_idx;
-
-    // SQL_ATTR_PARAMS_PROCESSED_PTR is the number of parameter sets processed, so it is written
-    // after the set has been sent rather than before: it used to be assigned next_param_set_idx
-    // while that still named the set about to go, which left a five-set array reporting one.
-    // TODO: set this only after this single query is fully fetched (when output parameter
-    // support is added)
-    if (auto * param_set_processed_ptr =
-            getEffectiveDescriptor(SQL_ATTR_IMP_PARAM_DESC).getAttrAs<SQLULEN *>(SQL_DESC_ROWS_PROCESSED_PTR, 0))
-        *param_set_processed_ptr = next_param_set_idx;
 }
 
 void Statement::extractParametersinfo() {
@@ -519,8 +539,6 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
     if (fully_bound_param_count > 0)
         param_bindings.reserve(fully_bound_param_count);
 
-    auto * array_status_ptr = ipd_desc.getAttrAs<SQLUSMALLINT *>(SQL_DESC_ARRAY_STATUS_PTR, 0);
-
     const auto bind_type = apd_desc.getAttrAs<SQLULEN>(SQL_DESC_BIND_TYPE, SQL_PARAM_BIND_TYPE_DEFAULT);
     const auto * bind_offset_ptr = apd_desc.getAttrAs<SQLULEN *>(SQL_DESC_BIND_OFFSET_PTR, 0);
     const auto bind_offset = (bind_offset_ptr ? *bind_offset_ptr : 0);
@@ -560,9 +578,6 @@ std::vector<ParamBindingInfo> Statement::getParamsBindingInfo(std::size_t param_
 
         param_bindings.emplace_back(binding_info);
     }
-
-    if (array_status_ptr)
-        array_status_ptr[param_set_idx] = SQL_PARAM_SUCCESS; // TODO: elaborate?
 
     return param_bindings;
 }
