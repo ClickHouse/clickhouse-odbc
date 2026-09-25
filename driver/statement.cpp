@@ -152,9 +152,7 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
 
     auto & connection = getParent();
 
-    if (connection.session && response && in)
-        if (in->fail() || !in->eof())
-            connection.session->reset();
+    resetConnectionIfNeeded();
 
     const auto [prepared_query, query_parameters] = prepareHttpRequest();
     Poco::URI uri = connection.getUri();
@@ -186,6 +184,11 @@ void Statement::requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mu
                 response = std::make_unique<Poco::Net::HTTPResponse>();
                 in = &connection.session->receiveResponse(*response);
                 auto status = response->getStatus();
+                LOG("HTTP response: status=" << status << " keep_alive=" << response->getKeepAlive()
+                    << " chunked=" << response->getChunkedTransferEncoding()
+                    << " content_length=" << response->getContentLength64()
+                    << " secure=" << connection.session->secure()
+                    << " local_address=" << connection.session->socket().address().toString());
                 if (status != Poco::Net::HTTPResponse::HTTP_PERMANENT_REDIRECT && status != Poco::Net::HTTPResponse::HTTP_TEMPORARY_REDIRECT) {
                     break;
                 }
@@ -441,14 +444,33 @@ bool Statement::advanceToNextResultSet() {
     return hasResultSet();
 }
 
-void Statement::closeCursor() {
+void Statement::resetConnectionIfNeeded() {
     auto & connection = getParent();
-    if (connection.session && response && in) {
-        if (in->fail() || !in->eof())
-            connection.session->reset();
-    }
+    if (!connection.session || !response || !in)
+        return;
 
+    // std::istream::read() sets eofbit|failbit when it stops short at the end of
+    // the body. That is the normal end-of-response state, not an error, so failbit
+    // is deliberately not checked here.
+    const bool stream_error = in->bad();
+    const bool unread_body = !in->eof();
+    const bool socket_error = connection.session->networkException() != nullptr;
+    const bool reset = stream_error || unread_body || socket_error;
+
+    LOG("HTTP response: eof=" << in->eof() << " fail=" << in->fail() << " bad=" << in->bad()
+        << " socket_error=" << socket_error << " reset_connection=" << reset);
+
+    if (reset)
+        connection.session->reset();
+}
+
+void Statement::closeCursor() {
+    // Must be destroyed before the stream is inspected: its destructor puts back
+    // pre-read bytes, which clears eofbit (and can set badbit).
     result_reader.reset();
+
+    resetConnectionIfNeeded();
+
     query_id.clear();
     content_encoding.clear();
     in = nullptr;

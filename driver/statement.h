@@ -100,6 +100,10 @@ public:
 private:
     void requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mutator);
 
+    /// Drops the keep-alive HTTP connection unless the previous response body was
+    /// fully and cleanly consumed.
+    void resetConnectionIfNeeded();
+
     void extractParametersinfo();
     std::string buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings);
     std::string getParamFinalName(std::size_t param_idx);
