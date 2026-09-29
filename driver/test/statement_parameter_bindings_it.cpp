@@ -562,3 +562,84 @@ TEST_P(StringParameterBindingTest, SpecialCharactersRoundTrip)
 
     STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
 }
+
+TEST_F(StatementParameterBindingsTest, IntArrayInsertProcessesEverySet) {
+    auto create_query = fromUTF8<PTChar>(
+        "CREATE OR REPLACE TABLE param_array_insert (i Int32) engine MergeTree order by i");
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(create_query.data()), SQL_NTS));
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+
+    SQLINTEGER param[] = { 10, 20, 30, 40, 50 };
+    SQLLEN param_ind[] = { 0, 0, 0, 0, 0 };
+    SQLULEN params_processed = 0;
+
+    auto insert_query = fromUTF8<PTChar>("INSERT INTO param_array_insert (i) VALUES (?)");
+    STMT_OK(SQLSetStmtAttr(hstmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER)lengthof(param), 0));
+    STMT_OK(SQLSetStmtAttr(hstmt, SQL_ATTR_PARAMS_PROCESSED_PTR, &params_processed, 0));
+    STMT_OK(SQLPrepare(hstmt, ptcharCast(insert_query.data()), SQL_NTS));
+    STMT_OK(SQLBindParameter(
+        hstmt,
+        1,
+        SQL_PARAM_INPUT,
+        getCTypeFor<std::decay_t<decltype(param[0])>>(),
+        SQL_INTEGER,
+        0,
+        0,
+        param,
+        0,
+        param_ind));
+
+    // An INSERT returns no result sets, so nothing would prompt a caller to call SQLMoreResults:
+    // this one call has to process the whole array.
+    STMT_OK(SQLExecute(hstmt));
+    ASSERT_EQ(params_processed, lengthof(param));
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+
+    auto select_query = fromUTF8<PTChar>("SELECT i FROM param_array_insert ORDER BY i");
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(select_query.data()), SQL_NTS));
+    for (std::size_t i = 0; i < lengthof(param); ++i) {
+        SQLINTEGER value = 0;
+        STMT_OK(SQLFetch(hstmt));
+        STMT_OK(SQLGetData(hstmt, 1, SQL_C_SLONG, &value, sizeof(value), nullptr));
+        ASSERT_EQ(value, param[i]) << "row " << i;
+    }
+    ASSERT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+}
+
+TEST_F(StatementParameterBindingsTest, IntArrayInsertReportsTheFailingSet) {
+    // copy_id is derived from id with accurateCast, so an id that does not fit Int16 makes the
+    // server reject that parameter set and nothing after it is sent.
+    auto create_query = fromUTF8<PTChar>(
+        "CREATE OR REPLACE TABLE param_array_error "
+        "(id Int32, value String, copy_id Int16 DEFAULT accurateCast(id, 'Int16')) "
+        "engine MergeTree order by id");
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(create_query.data()), SQL_NTS));
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+
+    SQLINTEGER ids[] = { 1, 2, 40000, 4, 5 };
+    SQLLEN id_ind[] = { 0, 0, 0, 0, 0 };
+    char values[][2] = { "a", "b", "c", "d", "e" };
+    SQLLEN value_ind[] = { SQL_NTS, SQL_NTS, SQL_NTS, SQL_NTS, SQL_NTS };
+    SQLULEN params_processed = 0;
+    SQLUSMALLINT param_status[lengthof(ids)] = {};
+
+    auto insert_query = fromUTF8<PTChar>("INSERT INTO param_array_error (id, value) VALUES (?, ?)");
+    STMT_OK(SQLSetStmtAttr(hstmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER)lengthof(ids), 0));
+    STMT_OK(SQLSetStmtAttr(hstmt, SQL_ATTR_PARAMS_PROCESSED_PTR, &params_processed, 0));
+    STMT_OK(SQLSetStmtAttr(hstmt, SQL_ATTR_PARAM_STATUS_PTR, param_status, 0));
+    STMT_OK(SQLPrepare(hstmt, ptcharCast(insert_query.data()), SQL_NTS));
+    STMT_OK(SQLBindParameter(hstmt, 1, SQL_PARAM_INPUT, SQL_C_SLONG, SQL_INTEGER, 0, 0, ids, 0, id_ind));
+    STMT_OK(SQLBindParameter(hstmt, 2, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 255, 0, values, sizeof(values[0]), value_ind));
+
+    ASSERT_EQ(SQLExecute(hstmt), SQL_ERROR);
+
+    // The count includes the set that failed, and the status array says which one.
+    ASSERT_EQ(params_processed, 3u);
+    ASSERT_EQ(param_status[0], SQL_PARAM_SUCCESS);
+    ASSERT_EQ(param_status[1], SQL_PARAM_SUCCESS);
+    ASSERT_EQ(param_status[2], SQL_PARAM_ERROR);
+    ASSERT_EQ(param_status[3], SQL_PARAM_UNUSED);
+    ASSERT_EQ(param_status[4], SQL_PARAM_UNUSED);
+    STMT_OK(SQLFreeStmt(hstmt, SQL_CLOSE));
+}
