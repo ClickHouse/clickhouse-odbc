@@ -27,6 +27,7 @@
 #include <ostream>
 #include <optional>
 #include <unordered_map>
+#include <memory>
 
 // --------------------------- WARNING LOCAL CHANGES ------------------------------- //
 // This class has been heavily modified to resolve issues related to incomplete

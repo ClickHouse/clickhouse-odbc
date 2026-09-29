@@ -78,21 +78,15 @@ if (OS_FREEBSD)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
 endif ()
 
-add_library(global-libs INTERFACE)
 include (cmake/arch.cmake)
 include (cmake/sanitize.cmake)
 
 include (GNUInstallDirs)
 
-add_library(global-group INTERFACE)
-if (OS_LINUX)
-    include(cmake/linux/default_libs.cmake)
-elseif(OS_DARWIN)
-    include(cmake/darwin/default_libs.cmake)
-else()
-    link_libraries(global-group)
-endif()
+find_package(Threads REQUIRED)
 
+add_library(global-group INTERFACE)
+link_libraries(global-group)
 
 # Make sure that all optimized builds have NDEBUG macro set.
 foreach (config Release RelWithDebInfo MinSizeRel)
