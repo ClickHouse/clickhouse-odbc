@@ -37,7 +37,6 @@ jobs:
         odbc_provider: [UnixODBC]
         compiler: [AppleClang]
         build_type: [Debug, Release]
-        third_parties: [bundled-third-parties]
 
     runs-on: ${{ matrix.os }}
 
@@ -61,7 +60,7 @@ jobs:
     - name: Install dependencies - Common
       run: |
         brew remove -f --ignore-dependencies -q libiodbc unixodbc freetds php node composer
-        brew install git cmake perl python openssl poco icu4c binutils curl
+        brew install git cmake perl python binutils curl
         pip3 install --break-system-packages --user 'testflows==1.6.56'
 
     - name: Install dependencies - UnixODBC
@@ -106,9 +105,6 @@ jobs:
         -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
         -DODBC_PROVIDER=${{ matrix.odbc_provider }} \
-        -DICU_ROOT="$(brew --prefix icu4c)" \
-        -DOPENSSL_ROOT_DIR="$(brew --prefix openssl)" \
-        -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=${{ fromJSON('{"bundled-third-parties": "ON", "system-third-parties": "OFF"}')[matrix.third_parties] }} \
         -DTEST_DSN_LIST="$dsn_string" \
         -DBUILD_TESTING=YES
 

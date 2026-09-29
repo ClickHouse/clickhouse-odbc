@@ -36,7 +36,6 @@ jobs:
         compiler: [Clang]
         build_type: [Debug, Release]
         architecture: [x86_64]
-        third_parties: [bundled-third-parties, system-third-parties]
         # exclude:
         #   - os: ubuntu-18.04
         #     compiler: Clang
@@ -65,7 +64,7 @@ jobs:
         sudo apt update -q
         sudo apt remove -y php* node* mysql* mssql-tools
         sudo apt upgrade -y
-        sudo apt install -y build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl python-is-python3 python3 python3-pip python3-setuptools libpoco-dev libssl-dev libicu-dev
+        sudo apt install -y build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl python-is-python3 python3 python3-pip python3-setuptools
 
     - name: Install dependencies - UnixODBC
       if: ${{ matrix.odbc_provider == 'UnixODBC' }}
@@ -110,7 +109,6 @@ jobs:
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DODBC_PROVIDER=${{ matrix.odbc_provider }} \
-          -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=${{ fromJSON('{"bundled-third-parties": "ON", "system-third-parties": "OFF"}')[matrix.third_parties] }} \
           -DTEST_DSN_LIST="$dsn_string" \
           -DBUILD_TESTING=YES
 
@@ -156,7 +154,7 @@ jobs:
         ls -lahR ${{ github.workspace }}/build/
 
     - name: Upload the artifacts
-      if:  ${{ matrix.odbc_provider == 'UnixODBC' && matrix.build_type == 'Release' && matrix.third_parties == 'bundled-third-parties' }}
+      if:  ${{ matrix.odbc_provider == 'UnixODBC' && matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v4
       with:
           name: clickhouse-odbc-linux-${{ matrix.compiler }}-${{ matrix.odbc_provider }}-${{ matrix.build_type }}

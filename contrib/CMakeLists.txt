@@ -50,27 +50,21 @@ endif()
 add_contrib (zlib-ng-cmake zlib-ng)
 
 if (CH_ODBC_ENABLE_TESTING)
-    if (CH_ODBC_PREFER_BUNDLED_GOOGLETEST OR NOT GTEST_FOUND)
-        if (NOT GTEST_FOUND AND NOT CH_ODBC_PREFER_BUNDLED_GOOGLETEST)
-            message (WARNING "Google Test: unable to find system Google Test, falling back to using the bundled variant of the library")
-        endif ()
+    # The driver always uses the static CRT on MSVC; make Google Test match it.
+    set (gtest_force_shared_crt OFF CACHE INTERNAL "")
+    set (gtest_hide_internal_symbols ON CACHE INTERNAL "")
+    set (BUILD_GMOCK   ON CACHE BOOL "")
+    set (INSTALL_GTEST OFF CACHE BOOL "")
 
-        # The driver always uses the static CRT on MSVC; make Google Test match it.
-        set (gtest_force_shared_crt OFF CACHE INTERNAL "")
-        set (gtest_hide_internal_symbols ON CACHE INTERNAL "")
-        set (BUILD_GMOCK   ON CACHE BOOL "")
-        set (INSTALL_GTEST OFF CACHE BOOL "")
+    add_subdirectory (googletest)
 
-        add_subdirectory (googletest)
+    mark_as_advanced (BUILD_GMOCK)
+    mark_as_advanced (INSTALL_GTEST)
 
-        mark_as_advanced (BUILD_GMOCK)
-        mark_as_advanced (INSTALL_GTEST)
-
-        set_target_properties (gtest      PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
-        set_target_properties (gtest_main PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
-        set_target_properties (gmock      PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
-        set_target_properties (gmock_main PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
-    endif ()
+    set_target_properties (gtest      PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+    set_target_properties (gtest_main PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+    set_target_properties (gmock      PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+    set_target_properties (gmock_main PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
 endif ()
 
 # Some of the above may define this target.

@@ -77,7 +77,6 @@ jobs:
           -DCMAKE_POLICY_VERSION_MINIMUM="3.5" `
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
           -DODBC_PROVIDER=${{ matrix.odbc_provider }} `
-          -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=ON `
           -DTEST_DSN_LIST="$dsnList" `
           -DBUILD_TESTING=YES
 

@@ -5,24 +5,19 @@
 #include "driver/statement.h"
 
 #include <Poco/Base64Encoder.h>
+#include <Poco/Net/AcceptCertificateHandler.h>
 #include <Poco/Net/HTTPClientSession.h>
+#include <Poco/Net/HTTPSClientSession.h>
+#include <Poco/Net/InvalidCertificateHandler.h>
+#include <Poco/Net/PrivateKeyPassphraseHandler.h>
+#include <Poco/Net/RejectCertificateHandler.h>
+#include <Poco/Net/SSLManager.h>
 #include <Poco/NumberParser.h> // TODO: switch to std
 #include <Poco/URI.h>
 #include <random>
 
-#if !defined(WORKAROUND_DISABLE_SSL)
-#    include <Poco/Net/AcceptCertificateHandler.h>
-#    include <Poco/Net/RejectCertificateHandler.h>
-
-#    include <Poco/Net/HTTPSClientSession.h>
-#    include <Poco/Net/InvalidCertificateHandler.h>
-#    include <Poco/Net/PrivateKeyPassphraseHandler.h>
-#    include <Poco/Net/SSLManager.h>
-#endif
-
 std::once_flag ssl_init_once;
 
-#if !defined(WORKAROUND_DISABLE_SSL)
 void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::string & certificateFile, const std::string & caLocation) {
 // http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
     Poco::Net::initializeSSL();
@@ -46,7 +41,6 @@ void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::str
     );
     Poco::Net::SSLManager::instance().initializeClient(0, ptrHandler, ptrContext);
 }
-#endif
 
 std::string GenerateSessionId() {
     std::mt19937 generator(std::random_device{}());
@@ -205,20 +199,16 @@ void Connection::connect(const std::string & connection_string) {
 
     LOG("Creating session with " << proto << "://" << server << ":" << port);
 
-#if !defined(WORKAROUND_DISABLE_SSL)
     const auto is_ssl = (Poco::UTF8::icompare(proto, "https") == 0);
     if (is_ssl) {
         const auto ssl_strict = (Poco::UTF8::icompare(sslmode, "allow") != 0);
         std::call_once(ssl_init_once, SSLInit, ssl_strict, privateKeyFile, certificateFile, caLocation);
     }
-#endif
 
-    session = (
-#if !defined(WORKAROUND_DISABLE_SSL)
-        is_ssl ? std::make_unique<Poco::Net::HTTPSClientSession>(server, port) :
-#endif
-        std::make_unique<Poco::Net::HTTPClientSession>(server, port)
-    );
+    if (is_ssl)
+        session = std::make_unique<Poco::Net::HTTPSClientSession>(server, port);
+    else
+        session = std::make_unique<Poco::Net::HTTPClientSession>(server, port);
 
     session->setKeepAlive(true);
     session->setTimeout(Poco::Timespan(connection_timeout, 0), Poco::Timespan(timeout, 0), Poco::Timespan(timeout, 0));

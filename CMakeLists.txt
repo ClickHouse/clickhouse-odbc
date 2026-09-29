@@ -48,21 +48,16 @@ include(CMakeDependentOption)
 
 include (cmake/os.cmake)
 option(BUILD_TESTING "Build test targets" OFF)
-option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+
+# All third-party libraries are bundled (contrib/), built as static libraries and linked
+# into the driver. Some of them (OpenSSL, Poco) read BUILD_SHARED_LIBS, so force it off.
+set (BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 option (CH_ODBC_ALLOW_UNSAFE_DISPATCH "Allow unchecked handle dispatching (may slightly increase performance in some scenarios)" ON)
-option (CH_ODBC_ENABLE_SSL "Enable SSL (required for utilizing https:// interface, etc.)" ON)
 option (CH_ODBC_ENABLE_INSTALL "Enable install targets (required for packaging)" ON)
 cmake_dependent_option (CH_ODBC_ENABLE_TESTING "Enable test targets" ON "BUILD_TESTING" OFF)
 option (CH_ODBC_ENABLE_CODE_COVERAGE "Enable Code Coverage" OFF)
 cmake_dependent_option (CH_ODBC_USE_ICU "Use ICU library, instead of C++ STD, for Unicode conversions" ON "NOT MSVC" OFF)
-option (CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES "Prefer bundled over system variants of third party libraries" ON)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_POCO "Prefer bundled over system variants of Poco library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_SSL "Prefer bundled over system variants of SSL library" ON "CH_ODBC_PREFER_BUNDLED_POCO" OFF)
-option (CH_ODBC_PREFER_BUNDLED_ICU "Prefer bundled over system variants of ICU library" ON)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_GOOGLETEST "Prefer bundled over system variants of Google Test library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_NANODBC "Prefer bundled over system variants of nanodbc library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
-option (CH_ODBC_THIRD_PARTY_LINK_STATIC "Link with third party libraries statically" ON)
 
 set (CH_ODBC_DEFAULT_DSN_ANSI "ClickHouse DSN (ANSI)" CACHE STRING "Default ANSI DSN name")
 set (CH_ODBC_DEFAULT_DSN_UNICODE "ClickHouse DSN (Unicode)" CACHE STRING "Default Unicode DSN name")
@@ -147,36 +142,9 @@ if (OS_WINDOWS)
 endif()
 add_subdirectory (contrib EXCLUDE_FROM_ALL)
 
-if (CH_ODBC_ENABLE_SSL)
-    if (NOT CH_ODBC_PREFER_BUNDLED_SSL)
-        if (CH_ODBC_THIRD_PARTY_LINK_STATIC)
-            set (OPENSSL_USE_STATIC_LIBS TRUE)
-        endif ()
-
-        set (OPENSSL_MSVC_STATIC_RT TRUE)
-
-        find_package (OpenSSL)
-    endif ()
-endif ()
-
 if (NOT CH_ODBC_USE_ICU)
     message (WARNING "Not using ICU")
 endif ()
-
-if (CH_ODBC_ENABLE_TESTING)
-    if (NOT CH_ODBC_PREFER_BUNDLED_GOOGLETEST)
-        find_package (GTest)
-    endif ()
-
-    set (GTEST_MSVC_SEARCH "MT")
-
-    if (NOT CH_ODBC_PREFER_BUNDLED_NANODBC)
-        message (WARNING "nanodbc: using system variant of the library currently not supported")
-#       find_package (nanodbc)
-    endif ()
-endif ()
-
-set(ENABLE_SSL 1)
 
 add_subdirectory(contrib/poco)
 
