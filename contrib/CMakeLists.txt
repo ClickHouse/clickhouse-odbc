@@ -55,10 +55,8 @@ if (CH_ODBC_ENABLE_TESTING)
             message (WARNING "Google Test: unable to find system Google Test, falling back to using the bundled variant of the library")
         endif ()
 
-        if (NOT CH_ODBC_RUNTIME_LINK_STATIC)
-            set (gtest_force_shared_crt ON CACHE INTERNAL "")
-        endif ()
-
+        # The driver always uses the static CRT on MSVC; make Google Test match it.
+        set (gtest_force_shared_crt OFF CACHE INTERNAL "")
         set (gtest_hide_internal_symbols ON CACHE INTERNAL "")
         set (BUILD_GMOCK   ON CACHE BOOL "")
         set (INSTALL_GTEST OFF CACHE BOOL "")

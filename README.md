@@ -172,7 +172,6 @@ The list of configuration options recognized during the CMake generation step is
 |      `CH_ODBC_PREFER_BUNDLED_SSL`      |       inherits value of `CH_ODBC_PREFER_BUNDLED_POCO`        | Prefer bundled over system variants of TLS/SSL library                                   |
 |  `CH_ODBC_PREFER_BUNDLED_GOOGLETEST`   |   inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES`   | Prefer bundled over system variants of Google Test library                               |
 |    `CH_ODBC_PREFER_BUNDLED_NANODBC`    |   inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES`   | Prefer bundled over system variants of nanodbc library                                   |
-|     `CH_ODBC_RUNTIME_LINK_STATIC`      |                            `OFF`                             | Link with compiler and language runtime statically                                       |
 |   `CH_ODBC_THIRD_PARTY_LINK_STATIC`    |                             `ON`                             | Link with third party libraries statically                                               |
 |       `CH_ODBC_DEFAULT_DSN_ANSI`       |                   `ClickHouse DSN (ANSI)`                    | Default ANSI DSN name                                                                    |
 |     `CH_ODBC_DEFAULT_DSN_UNICODE`      |                  `ClickHouse DSN (Unicode)`                  | Default Unicode DSN name                                                                 |
@@ -186,7 +185,7 @@ Configuration options above can be specified in the first `cmake` command (gener
 
 All modern Windows systems come with preinstalled MDAC driver manager.
 
-Another run-time dependecies are `C++ Redistributable for Visual Studio 2017` or same for `2019`, etc., depending on the package being installed, however the required DLL's are redistributed with the `.msi` installer, and you can choose to install them from there, if you don't have them installed in your system already.
+The driver links the C/C++ runtime statically, so no Visual C++ Redistributable needs to be installed.
 
 ### Run-time dependencies: macOS
 

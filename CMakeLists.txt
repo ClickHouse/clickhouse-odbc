@@ -62,7 +62,6 @@ cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_SSL "Prefer bundled over system v
 option (CH_ODBC_PREFER_BUNDLED_ICU "Prefer bundled over system variants of ICU library" ON)
 cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_GOOGLETEST "Prefer bundled over system variants of Google Test library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
 cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_NANODBC "Prefer bundled over system variants of nanodbc library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
-option (CH_ODBC_RUNTIME_LINK_STATIC "Link with compiler and language runtime statically" OFF)
 option (CH_ODBC_THIRD_PARTY_LINK_STATIC "Link with third party libraries statically" ON)
 
 set (CH_ODBC_DEFAULT_DSN_ANSI "ClickHouse DSN (ANSI)" CACHE STRING "Default ANSI DSN name")
@@ -88,6 +87,23 @@ find_package(Threads REQUIRED)
 add_library(global-group INTERFACE)
 link_libraries(global-group)
 
+if (OS_LINUX OR OS_FREEBSD)
+    # The driver is dlopen()'ed into arbitrary host processes, so it must not depend on
+    # the host's libstdc++/libgcc_s version. Link the C++ runtime statically instead.
+    # All non-ODBC symbols are hidden by the version script, so the embedded runtime
+    # cannot clash with the host's own copy.
+    include (CheckCXXSourceCompiles)
+    set (CMAKE_REQUIRED_FLAGS "-static-libstdc++ -static-libgcc")
+    check_cxx_source_compiles ("#include <string>\nint main() { return std::string(\"x\").size() - 1; }"
+        CH_ODBC_HAVE_STATIC_CXX_RUNTIME)
+    unset (CMAKE_REQUIRED_FLAGS)
+    if (NOT CH_ODBC_HAVE_STATIC_CXX_RUNTIME)
+        message (FATAL_ERROR "Static libstdc++/libgcc is required to build the driver "
+                             "(on Fedora/RHEL install the libstdc++-static package)")
+    endif ()
+    target_link_options (global-group INTERFACE -static-libstdc++ -static-libgcc)
+endif ()
+
 # Make sure that all optimized builds have NDEBUG macro set.
 foreach (config Release RelWithDebInfo MinSizeRel)
     foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
@@ -106,18 +122,19 @@ foreach (config Debug Release RelWithDebInfo MinSizeRel)
     endforeach ()
 endforeach ()
 
-if (CH_ODBC_RUNTIME_LINK_STATIC)
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-        foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
-            foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
-                set (var "${lang}_${config}")
-                string (REPLACE "/MD" "/MT" ${var} "${${var}}")
-                string (REPLACE "-MD" "-MT" ${var} "${${var}}")
-            endforeach ()
+# Link the C/C++ runtime statically (MSVC: /MT instead of /MD), so that the driver DLL
+# does not require the Visual C++ Redistributable to be installed on the target machine.
+# The ODBC API is a pure C interface and no CRT-owned resources cross the DLL boundary,
+# so a private CRT instance inside the driver is safe.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
+        foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+            set (var "${lang}_${config}")
+            string (REPLACE "/MD" "/MT" ${var} "${${var}}")
+            string (REPLACE "-MD" "-MT" ${var} "${${var}}")
         endforeach ()
-    endif()
+    endforeach ()
 endif ()
-
 
 if (WERROR)
     # Don't pollute CMAKE_CXX_FLAGS with -Werror as it will break some CMake checks.
@@ -127,7 +144,6 @@ if (WERROR)
 endif ()
 if (OS_WINDOWS)
     find_package(ODBC REQUIRED)
-    find_package(Threads REQUIRED)
 endif()
 add_subdirectory (contrib EXCLUDE_FROM_ALL)
 
@@ -137,9 +153,7 @@ if (CH_ODBC_ENABLE_SSL)
             set (OPENSSL_USE_STATIC_LIBS TRUE)
         endif ()
 
-        if (CH_ODBC_RUNTIME_LINK_STATIC)
-            set (OPENSSL_MSVC_STATIC_RT TRUE)
-        endif ()
+        set (OPENSSL_MSVC_STATIC_RT TRUE)
 
         find_package (OpenSSL)
     endif ()
@@ -154,11 +168,7 @@ if (CH_ODBC_ENABLE_TESTING)
         find_package (GTest)
     endif ()
 
-    if (CH_ODBC_RUNTIME_LINK_STATIC)
-        set (GTEST_MSVC_SEARCH "MT")
-    else ()
-        set (GTEST_MSVC_SEARCH "MD")
-    endif ()
+    set (GTEST_MSVC_SEARCH "MT")
 
     if (NOT CH_ODBC_PREFER_BUNDLED_NANODBC)
         message (WARNING "nanodbc: using system variant of the library currently not supported")
@@ -218,9 +228,6 @@ if (CH_ODBC_ENABLE_INSTALL)
         COMPONENT Documentation
     )
 
-    set (CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT RuntimeLibraries)
-    include (InstallRequiredSystemLibraries)
-
     include (CPackComponent)
 
     # Remove empty/irrelevant components, mostly brought by third-party projects.
@@ -267,12 +274,6 @@ if (CH_ODBC_ENABLE_INSTALL)
         DISABLED
         DEPENDS UnicodeDriver
         GROUP UnicodeGroup
-    )
-
-    cpack_add_component (RuntimeLibraries
-        DISPLAY_NAME "Runtime Libraries"
-        DESCRIPTION "System/language redistributable runtime libraries"
-        DEPENDS ANSIDriver
     )
 
     if (WIN32 AND NOT UNIX)

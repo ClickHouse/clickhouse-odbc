@@ -37,7 +37,6 @@ jobs:
         odbc_provider: [UnixODBC]
         compiler: [AppleClang]
         build_type: [Debug, Release]
-        runtime_link: [dynamic-runtime]
         third_parties: [bundled-third-parties]
 
     runs-on: ${{ matrix.os }}
@@ -109,7 +108,6 @@ jobs:
         -DODBC_PROVIDER=${{ matrix.odbc_provider }} \
         -DICU_ROOT="$(brew --prefix icu4c)" \
         -DOPENSSL_ROOT_DIR="$(brew --prefix openssl)" \
-        -DCH_ODBC_RUNTIME_LINK_STATIC=${{ fromJSON('{"static-runtime": "ON", "dynamic-runtime": "OFF"}')[matrix.runtime_link] }} \
         -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=${{ fromJSON('{"bundled-third-parties": "ON", "system-third-parties": "OFF"}')[matrix.third_parties] }} \
         -DTEST_DSN_LIST="$dsn_string" \
         -DBUILD_TESTING=YES
