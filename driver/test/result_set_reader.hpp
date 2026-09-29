@@ -1,6 +1,9 @@
 #include "driver/test/client_utils.h"
 
 #include <cassert>
+#include <optional>
+#include <string>
+#include <type_traits>
 #include <unordered_map>
 
 /**
@@ -73,48 +76,49 @@ public:
         return true;
     }
 
+    // Note: explicit specialization of a member template inside the class body
+    // (`template <> ... getData<std::string>(...)`) is not allowed by the standard
+    // and is rejected by GCC, so the std::string case is handled via `if constexpr`.
     template <typename SqlType>
     std::optional<SqlType> getData(const std::string& column)
     {
-        SqlType buffer{};
         SQLLEN indicator;
-        ODBC_CALL_ON_STMT_THROW(stmt, SQLGetData(
-            stmt,
-            columns_indices.at(column),
-            getCTypeFor<SqlType>(),
-            &buffer,
-            sizeof(SqlType),
-            &indicator
-        ));
 
-        if (indicator == SQL_NULL_DATA) {
-            return std::nullopt;
+        if constexpr (std::is_same_v<SqlType, std::string>) {
+            std::string buffer(max_string_size, '\0');
+            ODBC_CALL_ON_STMT_THROW(stmt, SQLGetData(
+                stmt,
+                columns_indices.at(column),
+                SQL_C_CHAR,
+                buffer.data(),
+                buffer.size(),
+                &indicator
+            ));
+
+            if (indicator == SQL_NULL_DATA) {
+                return std::nullopt;
+            }
+
+            assert(indicator >= 0 && "cannot read size from a negative indicator");
+            buffer.resize(indicator);
+            return buffer;
+        } else {
+            SqlType buffer{};
+            ODBC_CALL_ON_STMT_THROW(stmt, SQLGetData(
+                stmt,
+                columns_indices.at(column),
+                getCTypeFor<SqlType>(),
+                &buffer,
+                sizeof(SqlType),
+                &indicator
+            ));
+
+            if (indicator == SQL_NULL_DATA) {
+                return std::nullopt;
+            }
+
+            return buffer;
         }
-
-        return buffer;
-    }
-
-    template <>
-    std::optional<std::string> getData(const std::string& column)
-    {
-        std::string buffer(max_string_size, '\0');
-        SQLLEN indicator;
-        ODBC_CALL_ON_STMT_THROW(stmt, SQLGetData(
-            stmt,
-            columns_indices.at(column),
-            SQL_C_CHAR,
-            buffer.data(),
-            buffer.size(),
-            &indicator
-        ));
-
-        if (indicator == SQL_NULL_DATA) {
-            return std::nullopt;
-        }
-
-        assert(indicator >= 0 && "cannot read size from a negative indicator");
-        buffer.resize(indicator);
-        return buffer;
     }
 
     // Feel free to extend the class to support other types when you need them

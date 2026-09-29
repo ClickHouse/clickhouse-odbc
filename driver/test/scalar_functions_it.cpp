@@ -2,6 +2,40 @@
 #include "driver/test/client_test_base.h"
 #include "driver/test/date_utils.h"
 
+namespace {
+
+// Map C++ types to SQL bind types (no default - unsupported types won't compile).
+// Declared at namespace scope because explicit specializations are not allowed
+// inside a class body.
+template <typename T>
+struct SqlBindType;
+
+template <>
+struct SqlBindType<const char *> { using type = const char *; };
+
+template <>
+struct SqlBindType<int> { using type = SQLINTEGER; };
+
+template <>
+struct SqlBindType<long> { using type = SQLINTEGER; };
+
+template <>
+struct SqlBindType<float> { using type = SQLDOUBLE; };
+
+template <>
+struct SqlBindType<double> { using type = SQLDOUBLE; };
+
+template <>
+struct SqlBindType<SQL_DATE_STRUCT> { using type = SQL_DATE_STRUCT; };
+
+template <>
+struct SqlBindType<SQL_TIME_STRUCT> { using type = SQL_TIME_STRUCT; };
+
+template <>
+struct SqlBindType<SQL_TIMESTAMP_STRUCT> { using type = SQL_TIMESTAMP_STRUCT; };
+
+} // namespace
+
 class ScalarFunctionsTest
     : public ClientTestBase
 {
@@ -60,73 +94,35 @@ private:
         ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(query_encoded.data()), SQL_NTS));
     }
 
-    // Core getData implementation - returns std::optional, never throws on NULL
+    // Core getData implementation - returns std::optional, never throws on NULL.
+    // Note: explicit specializations are not allowed inside a class body (GCC rejects
+    // them), so the std::string case is handled with `if constexpr`. Other types
+    // (including SQL_DATE_STRUCT & co.) are covered by getCTypeFor<>().
     template <typename SqlType>
     std::optional<SqlType> getDataOptional(SQLUSMALLINT idx)
     {
-        SqlType buffer{};
         SQLLEN indicator;
-        ODBC_CALL_ON_STMT_THROW(
-            hstmt, SQLGetData(hstmt, idx, getCTypeFor<SqlType>(), &buffer, sizeof(SqlType), &indicator));
-        if (indicator == SQL_NULL_DATA) {
-            return std::nullopt;
-        }
-        return buffer;
-    }
 
-    template <>
-    std::optional<std::string> getDataOptional(SQLUSMALLINT idx)
-    {
-        static const size_t max_string_size = 1024;
-        std::string buffer(max_string_size, '\0');
-        SQLLEN indicator;
-        ODBC_CALL_ON_STMT_THROW(
-            hstmt, SQLGetData(hstmt, idx, SQL_C_CHAR, buffer.data(), buffer.size(), &indicator));
-        if (indicator == SQL_NULL_DATA) {
-            return std::nullopt;
+        if constexpr (std::is_same_v<SqlType, std::string>) {
+            static const size_t max_string_size = 1024;
+            std::string buffer(max_string_size, '\0');
+            ODBC_CALL_ON_STMT_THROW(
+                hstmt, SQLGetData(hstmt, idx, SQL_C_CHAR, buffer.data(), buffer.size(), &indicator));
+            if (indicator == SQL_NULL_DATA) {
+                return std::nullopt;
+            }
+            assert(indicator >= 0 && "cannot read size from a negative indicator");
+            buffer.resize(indicator);
+            return buffer;
+        } else {
+            SqlType buffer{};
+            ODBC_CALL_ON_STMT_THROW(
+                hstmt, SQLGetData(hstmt, idx, getCTypeFor<SqlType>(), &buffer, sizeof(SqlType), &indicator));
+            if (indicator == SQL_NULL_DATA) {
+                return std::nullopt;
+            }
+            return buffer;
         }
-        assert(indicator >= 0 && "cannot read size from a negative indicator");
-        buffer.resize(indicator);
-        return buffer;
-    }
-
-    template <>
-    std::optional<SQL_DATE_STRUCT> getDataOptional(SQLUSMALLINT idx)
-    {
-        SQL_DATE_STRUCT buffer{};
-        SQLLEN indicator;
-        ODBC_CALL_ON_STMT_THROW(
-            hstmt, SQLGetData(hstmt, idx, SQL_C_TYPE_DATE, &buffer, sizeof(buffer), &indicator));
-        if (indicator == SQL_NULL_DATA) {
-            return std::nullopt;
-        }
-        return buffer;
-    }
-
-    template <>
-    std::optional<SQL_TIME_STRUCT> getDataOptional(SQLUSMALLINT idx)
-    {
-        SQL_TIME_STRUCT buffer{};
-        SQLLEN indicator;
-        ODBC_CALL_ON_STMT_THROW(
-            hstmt, SQLGetData(hstmt, idx, SQL_C_TYPE_TIME, &buffer, sizeof(buffer), &indicator));
-        if (indicator == SQL_NULL_DATA) {
-            return std::nullopt;
-        }
-        return buffer;
-    }
-
-    template <>
-    std::optional<SQL_TIMESTAMP_STRUCT> getDataOptional(SQLUSMALLINT idx)
-    {
-        SQL_TIMESTAMP_STRUCT buffer{};
-        SQLLEN indicator;
-        ODBC_CALL_ON_STMT_THROW(
-            hstmt, SQLGetData(hstmt, idx, SQL_C_TYPE_TIMESTAMP, &buffer, sizeof(buffer), &indicator));
-        if (indicator == SQL_NULL_DATA) {
-            return std::nullopt;
-        }
-        return buffer;
     }
 
     // Main getData - handles both optional and non-optional types
@@ -245,34 +241,6 @@ private:
             /* StrLen_or_IndPtr  */ nullptr
         ));
     }
-
-    // Map C++ types to SQL bind types (no default - unsupported types won't compile)
-    template <typename T>
-    struct SqlBindType;
-
-    template <>
-    struct SqlBindType<const char *> { using type = const char *; };
-
-    template <>
-    struct SqlBindType<int> { using type = SQLINTEGER; };
-
-    template <>
-    struct SqlBindType<long> { using type = SQLINTEGER; };
-
-    template <>
-    struct SqlBindType<float> { using type = SQLDOUBLE; };
-
-    template <>
-    struct SqlBindType<double> { using type = SQLDOUBLE; };
-
-    template <>
-    struct SqlBindType<SQL_DATE_STRUCT> { using type = SQL_DATE_STRUCT; };
-
-    template <>
-    struct SqlBindType<SQL_TIME_STRUCT> { using type = SQL_TIME_STRUCT; };
-
-    template <>
-    struct SqlBindType<SQL_TIMESTAMP_STRUCT> { using type = SQL_TIMESTAMP_STRUCT; };
 
     template <typename Tuple, size_t... Is>
     void bindFromTuple(Tuple & t, std::index_sequence<Is...>)
