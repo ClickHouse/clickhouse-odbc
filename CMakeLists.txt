@@ -4,6 +4,16 @@ if(POLICY CMP0091)
   cmake_policy(SET CMP0091 NEW)
 endif()
 
+# Link the C/C++ runtime statically on MSVC (/MT instead of /MD), so that the driver DLL
+# does not require the Visual C++ Redistributable to be installed on the target machine.
+# The ODBC API is a pure C interface and no CRT-owned resources cross the DLL boundary,
+# so a private CRT instance inside the driver is safe.
+#
+# With CMP0091 set to NEW the runtime is selected by this variable (which initializes the
+# MSVC_RUNTIME_LIBRARY property of every target, including the bundled third parties),
+# and /MD is no longer present in CMAKE_<LANG>_FLAGS_<CONFIG>. It must be set before project().
+set (CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 set (CMAKE_MODULE_PATH_orig ${CMAKE_MODULE_PATH})
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 include (cmake/prevent_in_source_builds.cmake)
@@ -117,11 +127,9 @@ foreach (config Debug Release RelWithDebInfo MinSizeRel)
     endforeach ()
 endforeach ()
 
-# Link the C/C++ runtime statically (MSVC: /MT instead of /MD), so that the driver DLL
-# does not require the Visual C++ Redistributable to be installed on the target machine.
-# The ODBC API is a pure C interface and no CRT-owned resources cross the DLL boundary,
-# so a private CRT instance inside the driver is safe.
-if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+# Fallback for CMake < 3.15, where CMP0091 does not exist and the runtime selection lives
+# in the per-config flags. See CMAKE_MSVC_RUNTIME_LIBRARY at the top of this file.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT POLICY CMP0091)
     foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
         foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
             set (var "${lang}_${config}")
