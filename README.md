@@ -468,7 +468,7 @@ sudo yum install epel-release
 sudo yum groupinstall "Development Tools"
 sudo yum install centos-release-scl
 sudo yum install devtoolset-11
-sudo yum install git cmake3 rpm-build unixODBC-devel
+sudo yum install git cmake3 rpm-build libstdc++-static unixODBC-devel
 ```
 
 #### Build-time dependencies: iODBC <!-- omit in toc -->
@@ -480,7 +480,7 @@ sudo yum install epel-release
 sudo yum groupinstall "Development Tools"
 sudo yum install centos-release-scl
 sudo yum install devtoolset-11
-sudo yum install git cmake3 rpm-build libiodbc-devel
+sudo yum install git cmake3 rpm-build libstdc++-static libiodbc-devel
 ```
 
 #### Build steps <!-- omit in toc -->
