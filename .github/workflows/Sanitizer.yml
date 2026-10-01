@@ -29,7 +29,12 @@ jobs:
       matrix:
         os: [ubuntu-24.04]
         build_type: [RelWithDebInfo]
-        sanitizer: [address, memory, undefined]
+        # MemorySanitizer is deliberately absent: it requires every library in the process
+        # (C++ standard library, OpenSSL, ICU, ...) to be MSan-instrumented, which is not
+        # the case since the driver uses the system C++ standard library. Uninitialized
+        # memory reads are covered by Valgrind's Memcheck instead, which needs no
+        # instrumentation and runs against a regular build.
+        checker: [address, undefined, valgrind]
 
     runs-on: ${{ matrix.os }}
 
@@ -56,6 +61,10 @@ jobs:
         chmod +x llvm.sh
         sudo ./llvm.sh 20 all
 
+    - name: Install dependencies - Valgrind
+      if: ${{ matrix.checker == 'valgrind' }}
+      run: sudo apt install -y valgrind
+
     - name: Clone the repo
       uses: actions/checkout@v4
       with:
@@ -70,7 +79,7 @@ jobs:
         -DCMAKE_POLICY_VERSION_MINIMUM=3.5
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DTEST_DSN_LIST="ClickHouse DSN (ANSI);ClickHouse DSN (Unicode);ClickHouse DSN (ANSI) ZSTD;ClickHouse DSN (Unicode) ZSTD"
-        -DSANITIZE=${{ matrix.sanitizer }}
+        -DSANITIZE=${{ matrix.checker != 'valgrind' && matrix.checker || '' }}
         -DBUILD_TESTING=YES
 
     - name: Build
@@ -145,9 +154,31 @@ jobs:
         EOF
 
     - name: Test - Run C++ integration tests
+      if: ${{ matrix.checker != 'valgrind' }}
       working-directory: ${{ github.workspace }}/build
       run: |
         export ODBCSYSINI=
         export ODBCINSTINI="${{ github.workspace }}/run/.odbcinst.ini"
         export ODBCINI="${{ github.workspace }}/run/.odbc.ini"
         ctest --output-on-failure --build-config ${{ matrix.build_type }}
+
+    - name: Test - Run C++ integration tests under Valgrind
+      if: ${{ matrix.checker == 'valgrind' }}
+      working-directory: ${{ github.workspace }}/build/driver/test
+      timeout-minutes: 60
+      run: |
+        export ODBCSYSINI=
+        export ODBCINSTINI="${{ github.workspace }}/run/.odbcinst.ini"
+        export ODBCINI="${{ github.workspace }}/run/.odbc.ini"
+        rc=0
+        for dsn in "ClickHouse DSN (ANSI)" "ClickHouse DSN (Unicode)" "ClickHouse DSN (ANSI) ZSTD" "ClickHouse DSN (Unicode) ZSTD"; do
+          case "$dsn" in
+            *Unicode*) exe=./clickhouse-odbcw-client-it ;;
+            *)         exe=./clickhouse-odbc-client-it ;;
+          esac
+          echo "::group::$dsn"
+          valgrind --tool=memcheck --error-exitcode=1 --track-origins=yes --gen-suppressions=all \
+            "$exe" "$dsn" --gtest_filter='-*PerformanceTest*' || rc=1
+          echo "::endgroup::"
+        done
+        exit $rc
