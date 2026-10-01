@@ -144,6 +144,15 @@ endif ()
 if (OS_WINDOWS)
     find_package(ODBC REQUIRED)
 endif()
+
+# Must be set before the bundled third parties are added, so that their symbols are
+# compiled with hidden visibility too. In particular, the unixODBC Driver Manager that
+# the driver links for odbcinst defines its own SQL* functions, and those must not
+# leak out of the driver library, where the version script would otherwise export them.
+set (CMAKE_C_VISIBILITY_PRESET hidden)
+set (CMAKE_CXX_VISIBILITY_PRESET hidden)
+set (CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+
 add_subdirectory (contrib EXCLUDE_FROM_ALL)
 
 if (NOT CH_ODBC_USE_ICU)
@@ -166,10 +175,6 @@ endif ()
 foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
     set (CMAKE_${config}_POSTFIX "" CACHE STRING "" FORCE) # Don't append "d" or "md" to output lib name
 endforeach ()
-
-set (CMAKE_C_VISIBILITY_PRESET hidden)
-set (CMAKE_CXX_VISIBILITY_PRESET hidden)
-set (CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 
 include (cmake/packages.cmake)
 

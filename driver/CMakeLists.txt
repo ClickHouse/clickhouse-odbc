@@ -168,9 +168,11 @@ elseif(OS_WINDOWS)
 endif()
 
 if (OS_LINUX OR OS_DARWIN)
+    # Only the odbcinst part of unixODBC (SQLGetPrivateProfileString & co.) is needed.
+    # Do not link nanodbc here: it is an ODBC *client* library, referencing the Driver
+    # Manager's SQL* entry points, and would drag the whole Driver Manager into the driver.
     target_link_libraries (${libname}-impl
         PUBLIC ch_contrib::unixodbc
-        PRIVATE ch_contrib::nanodbc
     )
 elseif (OS_WINDOWS)
     target_link_libraries (${libname}-impl
@@ -204,16 +206,17 @@ set_target_properties (${libname} PROPERTIES
     OUTPUT_NAME "clickhouseodbc${WIDECHAR_SUFFIX}"
 )
 
-if (NOT SANITIZE)
-    if (OS_LINUX)
-        set_target_properties(${libname} PROPERTIES
-            LINK_FLAGS "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_linux.txt"
-        )
-    elseif (OS_DARWIN)
-        #set_target_properties(${libname} PROPERTIES
-        #    LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_darwin.txt"
-        #)
-    endif()
+# Export only the ODBC API from the driver library, so that nothing from the statically
+# linked C++ runtime and third parties can be interposed by, or interpose, symbols of the
+# host process. This applies to sanitizer builds as well.
+if (OS_LINUX)
+    set_target_properties(${libname} PROPERTIES
+        LINK_FLAGS "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_linux.txt"
+    )
+elseif (OS_DARWIN)
+    #set_target_properties(${libname} PROPERTIES
+    #    LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_darwin.txt"
+    #)
 endif()
 
 

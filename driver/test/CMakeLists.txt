@@ -104,10 +104,12 @@ function (declare_odbc_test_targets libname UNICODE)
         PRIVATE ${libname}-impl
     )
 
+    # The Driver Manager (and nanodbc) must be linked into the test executable only,
+    # never into ${libname}-impl, which is also what the driver library is built from.
     if (OS_LINUX OR OS_DARWIN)
-        target_link_libraries (${libname}-impl PUBLIC ch_contrib::unixodbc ch_contrib::nanodbc)
+        target_link_libraries (${libname}-client-it PRIVATE ch_contrib::unixodbc ch_contrib::nanodbc)
     else()
-        target_link_libraries (${libname}-impl PUBLIC ODBC::App)
+        target_link_libraries (${libname}-client-it PRIVATE ODBC::App)
     endif()
 
     if (CH_ODBC_USE_ICU)
