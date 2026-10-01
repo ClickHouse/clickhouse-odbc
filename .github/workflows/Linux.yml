@@ -33,11 +33,9 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         odbc_provider: [UnixODBC]
-        compiler: [Clang]
+        compiler: [Clang, GCC]
         build_type: [Debug, Release]
         architecture: [x86_64]
-        runtime_link: [static-runtime, dynamic-runtime]
-        third_parties: [bundled-third-parties, system-third-parties]
         # exclude:
         #   - os: ubuntu-18.04
         #     compiler: Clang
@@ -66,7 +64,7 @@ jobs:
         sudo apt update -q
         sudo apt remove -y php* node* mysql* mssql-tools
         sudo apt upgrade -y
-        sudo apt install -y build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl python-is-python3 python3 python3-pip python3-setuptools libpoco-dev libssl-dev libicu-dev
+        sudo apt install -y build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl python-is-python3 python3 python3-pip python3-setuptools
 
     - name: Install dependencies - UnixODBC
       if: ${{ matrix.odbc_provider == 'UnixODBC' }}
@@ -82,7 +80,8 @@ jobs:
 
     - name: Install dependencies - GCC
       if: ${{ matrix.compiler == 'GCC' }}
-      run: sudo apt install -y gcc g++ gdb
+      # GCC 12 is the oldest GCC with adequate C++23 support; Ubuntu 22.04 defaults to GCC 11.
+      run: sudo apt install -y gcc-12 g++-12 gdb
 
     - name: Install dependencies - Cleanup
       run: sudo apt autoremove -y
@@ -105,14 +104,12 @@ jobs:
         )
         dsn_string=$(IFS=';'; echo "${dsn_list[*]}")
 
-        CC=${{ fromJSON('{"Clang": "clang", "GCC": "gcc"}')[matrix.compiler] }} \
-        CXX=${{ fromJSON('{"Clang": "clang++", "GCC": "g++"}')[matrix.compiler] }} \
+        CC=${{ fromJSON('{"Clang": "clang", "GCC": "gcc-12"}')[matrix.compiler] }} \
+        CXX=${{ fromJSON('{"Clang": "clang++", "GCC": "g++-12"}')[matrix.compiler] }} \
         cmake -S ${{ github.workspace }}/source -B ${{ github.workspace }}/build \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DODBC_PROVIDER=${{ matrix.odbc_provider }} \
-          -DCH_ODBC_RUNTIME_LINK_STATIC=${{ fromJSON('{"static-runtime": "ON", "dynamic-runtime": "OFF"}')[matrix.runtime_link] }} \
-          -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=${{ fromJSON('{"bundled-third-parties": "ON", "system-third-parties": "OFF"}')[matrix.third_parties] }} \
           -DTEST_DSN_LIST="$dsn_string" \
           -DBUILD_TESTING=YES
 
@@ -134,6 +131,21 @@ jobs:
         done
         exit $rc
 
+    - name: Check driver does not depend on a shared C++ runtime
+      working-directory: ${{ github.workspace }}/build/driver
+      run: |
+        rc=0
+        for f in libclickhouseodbc.so libclickhouseodbcw.so; do
+          if readelf -dW "$f" | grep -E 'NEEDED.*\b(libstdc\+\+|libgcc_s)\b'; then
+            echo "FAIL (shared C++ runtime dependency): $f"; rc=1
+          elif readelf -VW "$f" | grep -qE 'GLIBCXX_|CXXABI_'; then
+            echo "FAIL (libstdc++ symbol version requirement): $f"; rc=1
+          else
+            echo "ok (static C++ runtime):              $f"
+          fi
+        done
+        exit $rc
+
     - name: Package
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target package
 
@@ -143,7 +155,7 @@ jobs:
         ls -lahR ${{ github.workspace }}/build/
 
     - name: Upload the artifacts
-      if:  ${{ matrix.odbc_provider == 'UnixODBC' && matrix.build_type == 'Release' && matrix.runtime_link == 'dynamic-runtime' && matrix.third_parties == 'bundled-third-parties' }}
+      if:  ${{ matrix.odbc_provider == 'UnixODBC' && matrix.build_type == 'Release' }}
       uses: actions/upload-artifact@v4
       with:
           name: clickhouse-odbc-linux-${{ matrix.compiler }}-${{ matrix.odbc_provider }}-${{ matrix.build_type }}

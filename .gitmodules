@@ -14,9 +14,6 @@
 [submodule "contrib/nanodbc"]
 	path = contrib/nanodbc
 	url = https://github.com/ClickHouse/nanodbc.git
-[submodule "contrib/llvm-project"]
-	path = contrib/llvm-project
-	url = https://github.com/ClickHouse/llvm-project
 [submodule "contrib/zlib-ng"]
 	path = contrib/zlib-ng
 	url = https://github.com/ClickHouse/zlib-ng.git
@@ -29,9 +26,6 @@
 [submodule "contrib/double-conversion"]
 	path = contrib/double-conversion
 	url = https://github.com/ClickHouse/double-conversion
-[submodule "contrib/libunwind"]
-	path = contrib/libunwind
-	url = https://github.com/ClickHouse/libunwind
 [submodule "contrib/asio"]
 	path = contrib/asio
 	url = https://github.com/chriskohlhoff/asio

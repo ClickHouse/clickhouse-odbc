@@ -77,13 +77,27 @@ jobs:
           -DCMAKE_POLICY_VERSION_MINIMUM="3.5" `
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
           -DODBC_PROVIDER=${{ matrix.odbc_provider }} `
-          -DCH_ODBC_RUNTIME_LINK_STATIC=OFF `
-          -DCH_ODBC_PREFER_BUNDLED_THIRD_PARTIES=ON `
           -DTEST_DSN_LIST="$dsnList" `
           -DBUILD_TESTING=YES
 
     - name: Build
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }}
+
+    - name: Check driver does not depend on the Visual C++ Redistributable
+      working-directory: ${{ github.workspace }}/build/driver/${{ matrix.build_type }}
+      run: |
+        $failed = $false
+        foreach ($f in @("clickhouseodbc.dll", "clickhouseodbcw.dll")) {
+          $deps = (dumpbin /dependents $f) -join "`n"
+          if ($deps -match '(?i)\b(vcruntime|msvcp|ucrtbase|api-ms-win-crt)[^\s]*\.dll') {
+            Write-Host "FAIL (shared CRT dependency): $f"
+            Write-Host $deps
+            $failed = $true
+          } else {
+            Write-Host "ok (static CRT): $f"
+          }
+        }
+        if ($failed) { exit 1 }
 
     - name: Package
       run: cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }} --target package

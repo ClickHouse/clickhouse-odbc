@@ -1,9 +1,12 @@
 # Possible values:
 # - `address` (ASan)
-# - `memory` (MSan)
 # - `thread` (TSan)
 # - `undefined` (UBSan)
 # - "" (no sanitizing)
+#
+# MemorySanitizer is not supported: it requires every library in the process, including
+# the C++ standard library, to be MSan-instrumented, and the driver uses the system one.
+# Use Valgrind's Memcheck on a regular build for uninitialized memory checks instead.
 option (SANITIZE "Enable one of the code sanitizers" "")
 
 set (SAN_FLAGS "${SAN_FLAGS} -g -fno-omit-frame-pointer -DSANITIZER")
@@ -13,11 +16,6 @@ if (SANITIZE)
         set (ASAN_FLAGS "-fsanitize=address -fsanitize-address-use-after-scope")
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SAN_FLAGS} ${ASAN_FLAGS}")
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SAN_FLAGS} ${ASAN_FLAGS}")
-
-    elseif (SANITIZE STREQUAL "memory")
-        set (MSAN_FLAGS "-fsanitize=memory -fsanitize-memory-use-after-dtor -fsanitize-memory-track-origins -fno-optimize-sibling-calls")
-        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SAN_FLAGS} ${MSAN_FLAGS}")
-        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SAN_FLAGS} ${MSAN_FLAGS}")
 
     elseif (SANITIZE STREQUAL "thread")
         set (TSAN_FLAGS "-fsanitize=thread")
@@ -29,6 +27,9 @@ if (SANITIZE)
         set (UBSAN_FLAGS "${UBSAN_FLAGS} -fsanitize-ignorelist=${PROJECT_SOURCE_DIR}/ubsan_ignorelist.txt")
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SAN_FLAGS} ${UBSAN_FLAGS}")
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SAN_FLAGS} ${UBSAN_FLAGS}")
+        # Clang links the UBSan runtime statically into executables only. The driver
+        # library is dlopen()'ed and resolves its __ubsan_handle_* references against
+        # the executable, so the test executables must export their dynamic symbols.
         set (CMAKE_ENABLE_EXPORTS 1)
 
     else ()

@@ -70,7 +70,6 @@ RUN apt-get update -y \
 #    && yum install -y ./*.rpm
 #ENV CC=/opt/rh/devtoolset-8/root/usr/bin/gcc
 #ENV CXX=/opt/rh/devtoolset-8/root/usr/bin/g++
-#ENV CMAKE_ADDITIONAL_FLAGS="-DCH_ODBC_RUNTIME_LINK_STATIC=ON"
 #
 #RUN pip3 install \
 #    'testflows==1.6.56'
