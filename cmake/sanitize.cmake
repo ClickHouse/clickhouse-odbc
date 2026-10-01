@@ -29,6 +29,9 @@ if (SANITIZE)
         set (UBSAN_FLAGS "${UBSAN_FLAGS} -fsanitize-ignorelist=${PROJECT_SOURCE_DIR}/ubsan_ignorelist.txt")
         set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SAN_FLAGS} ${UBSAN_FLAGS}")
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SAN_FLAGS} ${UBSAN_FLAGS}")
+        # Clang links the UBSan runtime statically into executables only. The driver
+        # library is dlopen()'ed and resolves its __ubsan_handle_* references against
+        # the executable, so the test executables must export their dynamic symbols.
         set (CMAKE_ENABLE_EXPORTS 1)
 
     else ()

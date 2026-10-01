@@ -88,11 +88,16 @@ find_package(Threads REQUIRED)
 add_library(global-group INTERFACE)
 link_libraries(global-group)
 
-if (OS_LINUX)
+if (OS_LINUX AND NOT SANITIZE)
     # The driver is dlopen()'ed into arbitrary host processes, so it must not depend on
     # the host's libstdc++/libgcc_s version. Link the C++ runtime statically instead.
     # The version script applied to the driver library (see driver/CMakeLists.txt) hides
     # all non-ODBC symbols, so the embedded runtime cannot clash with the host's own copy.
+    #
+    # Sanitizer builds are exempt and use the shared system runtime instead: they are never
+    # distributed, and the sanitizer-instrumented test executables export their symbols
+    # (--export-dynamic), so a second, static copy of the runtime in the driver would be
+    # partially interposed by the one in the executable, breaking exception unwinding.
     include (CheckCXXSourceCompiles)
     set (CMAKE_REQUIRED_FLAGS "-static-libstdc++ -static-libgcc")
     check_cxx_source_compiles ("#include <string>\nint main() { return std::string(\"x\").size() - 1; }"
