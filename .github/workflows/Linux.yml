@@ -33,7 +33,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         odbc_provider: [UnixODBC]
-        compiler: [Clang]
+        compiler: [Clang, GCC]
         build_type: [Debug, Release]
         architecture: [x86_64]
         # exclude:
@@ -80,7 +80,8 @@ jobs:
 
     - name: Install dependencies - GCC
       if: ${{ matrix.compiler == 'GCC' }}
-      run: sudo apt install -y gcc g++ gdb
+      # GCC 12 is the oldest GCC with adequate C++23 support; Ubuntu 22.04 defaults to GCC 11.
+      run: sudo apt install -y gcc-12 g++-12 gdb
 
     - name: Install dependencies - Cleanup
       run: sudo apt autoremove -y
@@ -103,8 +104,8 @@ jobs:
         )
         dsn_string=$(IFS=';'; echo "${dsn_list[*]}")
 
-        CC=${{ fromJSON('{"Clang": "clang", "GCC": "gcc"}')[matrix.compiler] }} \
-        CXX=${{ fromJSON('{"Clang": "clang++", "GCC": "g++"}')[matrix.compiler] }} \
+        CC=${{ fromJSON('{"Clang": "clang", "GCC": "gcc-12"}')[matrix.compiler] }} \
+        CXX=${{ fromJSON('{"Clang": "clang++", "GCC": "g++-12"}')[matrix.compiler] }} \
         cmake -S ${{ github.workspace }}/source -B ${{ github.workspace }}/build \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
