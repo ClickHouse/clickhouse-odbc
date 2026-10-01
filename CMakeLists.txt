@@ -78,10 +78,6 @@ if (MSVC)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
 endif ()
 
-if (OS_FREEBSD)
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
-endif ()
-
 include (cmake/arch.cmake)
 include (cmake/sanitize.cmake)
 
@@ -92,11 +88,11 @@ find_package(Threads REQUIRED)
 add_library(global-group INTERFACE)
 link_libraries(global-group)
 
-if (OS_LINUX OR OS_FREEBSD)
+if (OS_LINUX)
     # The driver is dlopen()'ed into arbitrary host processes, so it must not depend on
     # the host's libstdc++/libgcc_s version. Link the C++ runtime statically instead.
-    # All non-ODBC symbols are hidden by the version script, so the embedded runtime
-    # cannot clash with the host's own copy.
+    # The version script applied to the driver library (see driver/CMakeLists.txt) hides
+    # all non-ODBC symbols, so the embedded runtime cannot clash with the host's own copy.
     include (CheckCXXSourceCompiles)
     set (CMAKE_REQUIRED_FLAGS "-static-libstdc++ -static-libgcc")
     check_cxx_source_compiles ("#include <string>\nint main() { return std::string(\"x\").size() - 1; }"
