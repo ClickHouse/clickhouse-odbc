@@ -16,8 +16,13 @@ struct DateTimeParams {
     SQLSMALLINT expected_sql_type;               // expected reported column type
     std::string expected_str_val;                // value, when retrieved as string
     SQL_TIMESTAMP_STRUCT expected_timestamp_val; // value, when retrieved as SQL_TIMESTAMP_STRUCT
-
 };
+
+// Without this, Google Test prints the raw bytes of the parameter object, including its
+// uninitialized padding, which Valgrind reports as a use of uninitialized values.
+inline void PrintTo(const DateTimeParams & params, std::ostream * os) {
+    *os << params.name;
+}
 
 class DateTime
     : public ClientTestWithParamBase<DateTimeParams>

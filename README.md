@@ -164,16 +164,8 @@ The list of configuration options recognized during the CMake generation step is
 | :------------------------------------: | :----------------------------------------------------------: | :--------------------------------------------------------------------------------------- |
 |           `CMAKE_BUILD_TYPE`           |                       `RelWithDebInfo`                       | Build type, one of: `Debug`, `Release`, `RelWithDebInfo`                                 |
 |    `CH_ODBC_ALLOW_UNSAFE_DISPATCH`     |                             `ON`                             | Allow unchecked handle dispatching (may slightly increase performance in some scenarios) |
-|          `CH_ODBC_ENABLE_SSL`          |                             `ON`                             | Enable TLS/SSL (required for utilizing `https://` interface, etc.)                       |
 |        `CH_ODBC_ENABLE_INSTALL`        |                             `ON`                             | Enable install targets (required for packaging)                                          |
 |        `CH_ODBC_ENABLE_TESTING`        |              inherits value of `BUILD_TESTING`               | Enable test targets                                                                      |
-| `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES` |                             `ON`                             | Prefer bundled over system variants of third party libraries                             |
-|     `CH_ODBC_PREFER_BUNDLED_POCO`      |   inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES`   | Prefer bundled over system variants of Poco library                                      |
-|      `CH_ODBC_PREFER_BUNDLED_SSL`      |       inherits value of `CH_ODBC_PREFER_BUNDLED_POCO`        | Prefer bundled over system variants of TLS/SSL library                                   |
-|  `CH_ODBC_PREFER_BUNDLED_GOOGLETEST`   |   inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES`   | Prefer bundled over system variants of Google Test library                               |
-|    `CH_ODBC_PREFER_BUNDLED_NANODBC`    |   inherits value of `CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES`   | Prefer bundled over system variants of nanodbc library                                   |
-|     `CH_ODBC_RUNTIME_LINK_STATIC`      |                            `OFF`                             | Link with compiler and language runtime statically                                       |
-|   `CH_ODBC_THIRD_PARTY_LINK_STATIC`    |                             `ON`                             | Link with third party libraries statically                                               |
 |       `CH_ODBC_DEFAULT_DSN_ANSI`       |                   `ClickHouse DSN (ANSI)`                    | Default ANSI DSN name                                                                    |
 |     `CH_ODBC_DEFAULT_DSN_UNICODE`      |                  `ClickHouse DSN (Unicode)`                  | Default Unicode DSN name                                                                 |
 |            `TEST_DSN_LIST`             | `${CH_ODBC_DEFAULT_DSN_ANSI};${CH_ODBC_DEFAULT_DSN_UNICODE}` | `;`-separated list of DSNs, each test will be executed with each of these DSNs           |
@@ -186,7 +178,7 @@ Configuration options above can be specified in the first `cmake` command (gener
 
 All modern Windows systems come with preinstalled MDAC driver manager.
 
-Another run-time dependecies are `C++ Redistributable for Visual Studio 2017` or same for `2019`, etc., depending on the package being installed, however the required DLL's are redistributed with the `.msi` installer, and you can choose to install them from there, if you don't have them installed in your system already.
+The driver links the C/C++ runtime statically, so no Visual C++ Redistributable needs to be installed.
 
 ### Run-time dependencies: macOS
 
@@ -196,7 +188,7 @@ Execute the following in the terminal (assuming you have [Homebrew](https://brew
 
 ```sh
 brew update
-brew install poco openssl icu4c libiodbc
+brew install libiodbc
 ```
 
 #### UnixODBC <!-- omit in toc -->
@@ -205,7 +197,7 @@ Execute the following in the terminal (assuming you have [Homebrew](https://brew
 
 ```sh
 brew update
-brew install poco openssl icu4c unixodbc
+brew install unixodbc
 ```
 
 ### Run-time dependencies: Red Hat/CentOS
@@ -215,7 +207,7 @@ brew install poco openssl icu4c unixodbc
 Execute the following in the terminal:
 
 ```sh
-sudo yum install openssl libicu unixODBC
+sudo yum install unixODBC
 ```
 
 #### iODBC <!-- omit in toc -->
@@ -223,7 +215,7 @@ sudo yum install openssl libicu unixODBC
 Execute the following in the terminal:
 
 ```sh
-sudo yum install openssl libicu libiodbc
+sudo yum install libiodbc
 ```
 
 ### Run-time dependencies: Debian/Ubuntu
@@ -233,7 +225,7 @@ sudo yum install openssl libicu libiodbc
 Execute the following in the terminal:
 
 ```sh
-sudo apt install openssl libicu unixodbc
+sudo apt install unixodbc
 ```
 
 #### iODBC <!-- omit in toc -->
@@ -241,7 +233,7 @@ sudo apt install openssl libicu unixodbc
 Execute the following in the terminal:
 
 ```sh
-sudo apt install openssl libicu libiodbc2
+sudo apt install libiodbc2
 ```
 
 ### Configuration: MDAC/WDAC (Microsoft/Windows Data Access Components)
@@ -413,7 +405,7 @@ Execute the following in the terminal:
 
 ```sh
 brew update
-brew install git cmake make poco openssl icu4c libiodbc
+brew install git cmake make libiodbc
 ```
 
 #### Build-time dependencies: UnixODBC <!-- omit in toc -->
@@ -422,7 +414,7 @@ Execute the following in the terminal:
 
 ```sh
 brew update
-brew install git cmake make poco openssl icu4c unixodbc
+brew install git cmake make unixodbc
 ```
 
 #### Build steps <!-- omit in toc -->
@@ -443,7 +435,7 @@ cd build
 # Configuration options for the project can be specified in the next command in a form of '-Dopt=val'.
 
 # You may also add '-G Xcode' to the next command, in order to use Xcode as a build system or IDE, and generate the solution and project files instead of Makefile.
-cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DOPENSSL_ROOT_DIR=$(brew --prefix)/opt/openssl -DICU_ROOT=$(brew --prefix)/opt/icu4c ..
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 ```
 
 Build the generated solution in-place:
@@ -476,7 +468,7 @@ sudo yum install epel-release
 sudo yum groupinstall "Development Tools"
 sudo yum install centos-release-scl
 sudo yum install devtoolset-11
-sudo yum install git cmake3 rpm-build openssl-devel libicu-devel unixODBC-devel
+sudo yum install git cmake3 rpm-build libstdc++-static unixODBC-devel
 ```
 
 #### Build-time dependencies: iODBC <!-- omit in toc -->
@@ -488,7 +480,7 @@ sudo yum install epel-release
 sudo yum groupinstall "Development Tools"
 sudo yum install centos-release-scl
 sudo yum install devtoolset-11
-sudo yum install git cmake3 rpm-build openssl-devel libicu-devel libiodbc-devel
+sudo yum install git cmake3 rpm-build libstdc++-static libiodbc-devel
 ```
 
 #### Build steps <!-- omit in toc -->
@@ -537,7 +529,7 @@ cmake3 --build . --config RelWithDebInfo --target test
 Execute the following in the terminal:
 
 ```sh
-sudo apt install build-essential git cmake libpoco-dev libssl-dev libicu-dev unixodbc-dev
+sudo apt install build-essential git cmake unixodbc-dev
 ```
 
 #### Build-time dependencies: iODBC <!-- omit in toc -->
@@ -545,7 +537,7 @@ sudo apt install build-essential git cmake libpoco-dev libssl-dev libicu-dev uni
 Execute the following in the terminal:
 
 ```sh
-sudo apt install build-essential git cmake libpoco-dev libssl-dev libicu-dev libiodbc2-dev
+sudo apt install build-essential git cmake libiodbc2-dev
 ```
 
 #### Build steps <!-- omit in toc -->

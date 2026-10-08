@@ -4,6 +4,16 @@ if(POLICY CMP0091)
   cmake_policy(SET CMP0091 NEW)
 endif()
 
+# Link the C/C++ runtime statically on MSVC (/MT instead of /MD), so that the driver DLL
+# does not require the Visual C++ Redistributable to be installed on the target machine.
+# The ODBC API is a pure C interface and no CRT-owned resources cross the DLL boundary,
+# so a private CRT instance inside the driver is safe.
+#
+# With CMP0091 set to NEW the runtime is selected by this variable (which initializes the
+# MSVC_RUNTIME_LIBRARY property of every target, including the bundled third parties),
+# and /MD is no longer present in CMAKE_<LANG>_FLAGS_<CONFIG>. It must be set before project().
+set (CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 set (CMAKE_MODULE_PATH_orig ${CMAKE_MODULE_PATH})
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 include (cmake/prevent_in_source_builds.cmake)
@@ -48,22 +58,16 @@ include(CMakeDependentOption)
 
 include (cmake/os.cmake)
 option(BUILD_TESTING "Build test targets" OFF)
-option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+
+# All third-party libraries are bundled (contrib/), built as static libraries and linked
+# into the driver. Some of them (OpenSSL, Poco) read BUILD_SHARED_LIBS, so force it off.
+set (BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 option (CH_ODBC_ALLOW_UNSAFE_DISPATCH "Allow unchecked handle dispatching (may slightly increase performance in some scenarios)" ON)
-option (CH_ODBC_ENABLE_SSL "Enable SSL (required for utilizing https:// interface, etc.)" ON)
 option (CH_ODBC_ENABLE_INSTALL "Enable install targets (required for packaging)" ON)
 cmake_dependent_option (CH_ODBC_ENABLE_TESTING "Enable test targets" ON "BUILD_TESTING" OFF)
 option (CH_ODBC_ENABLE_CODE_COVERAGE "Enable Code Coverage" OFF)
 cmake_dependent_option (CH_ODBC_USE_ICU "Use ICU library, instead of C++ STD, for Unicode conversions" ON "NOT MSVC" OFF)
-option (CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES "Prefer bundled over system variants of third party libraries" ON)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_POCO "Prefer bundled over system variants of Poco library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_SSL "Prefer bundled over system variants of SSL library" ON "CH_ODBC_PREFER_BUNDLED_POCO" OFF)
-option (CH_ODBC_PREFER_BUNDLED_ICU "Prefer bundled over system variants of ICU library" ON)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_GOOGLETEST "Prefer bundled over system variants of Google Test library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
-cmake_dependent_option (CH_ODBC_PREFER_BUNDLED_NANODBC "Prefer bundled over system variants of nanodbc library" ON "CH_ODBC_PREFER_BUNDLED_THIRD_PARTIES" OFF)
-option (CH_ODBC_RUNTIME_LINK_STATIC "Link with compiler and language runtime statically" OFF)
-option (CH_ODBC_THIRD_PARTY_LINK_STATIC "Link with third party libraries statically" ON)
 
 set (CH_ODBC_DEFAULT_DSN_ANSI "ClickHouse DSN (ANSI)" CACHE STRING "Default ANSI DSN name")
 set (CH_ODBC_DEFAULT_DSN_UNICODE "ClickHouse DSN (Unicode)" CACHE STRING "Default Unicode DSN name")
@@ -74,25 +78,37 @@ if (MSVC)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
 endif ()
 
-if (OS_FREEBSD)
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_XOPEN_SOURCE -UPOCO_HAVE_FD_EPOLL")
-endif ()
-
-add_library(global-libs INTERFACE)
 include (cmake/arch.cmake)
 include (cmake/sanitize.cmake)
 
 include (GNUInstallDirs)
 
-add_library(global-group INTERFACE)
-if (OS_LINUX)
-    include(cmake/linux/default_libs.cmake)
-elseif(OS_DARWIN)
-    include(cmake/darwin/default_libs.cmake)
-else()
-    link_libraries(global-group)
-endif()
+find_package(Threads REQUIRED)
 
+add_library(global-group INTERFACE)
+link_libraries(global-group)
+
+if (OS_LINUX AND NOT SANITIZE)
+    # The driver is dlopen()'ed into arbitrary host processes, so it must not depend on
+    # the host's libstdc++/libgcc_s version. Link the C++ runtime statically instead.
+    # The version script applied to the driver library (see driver/CMakeLists.txt) hides
+    # all non-ODBC symbols, so the embedded runtime cannot clash with the host's own copy.
+    #
+    # Sanitizer builds are exempt and use the shared system runtime instead: they are never
+    # distributed, and the sanitizer-instrumented test executables export their symbols
+    # (--export-dynamic), so a second, static copy of the runtime in the driver would be
+    # partially interposed by the one in the executable, breaking exception unwinding.
+    include (CheckCXXSourceCompiles)
+    set (CMAKE_REQUIRED_FLAGS "-static-libstdc++ -static-libgcc")
+    check_cxx_source_compiles ("#include <string>\nint main() { return std::string(\"x\").size() - 1; }"
+        CH_ODBC_HAVE_STATIC_CXX_RUNTIME)
+    unset (CMAKE_REQUIRED_FLAGS)
+    if (NOT CH_ODBC_HAVE_STATIC_CXX_RUNTIME)
+        message (FATAL_ERROR "Static libstdc++/libgcc is required to build the driver "
+                             "(on Fedora/RHEL install the libstdc++-static package)")
+    endif ()
+    target_link_options (global-group INTERFACE -static-libstdc++ -static-libgcc)
+endif ()
 
 # Make sure that all optimized builds have NDEBUG macro set.
 foreach (config Release RelWithDebInfo MinSizeRel)
@@ -112,18 +128,17 @@ foreach (config Debug Release RelWithDebInfo MinSizeRel)
     endforeach ()
 endforeach ()
 
-if (CH_ODBC_RUNTIME_LINK_STATIC)
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-        foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
-            foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
-                set (var "${lang}_${config}")
-                string (REPLACE "/MD" "/MT" ${var} "${${var}}")
-                string (REPLACE "-MD" "-MT" ${var} "${${var}}")
-            endforeach ()
+# Fallback for CMake < 3.15, where CMP0091 does not exist and the runtime selection lives
+# in the per-config flags. See CMAKE_MSVC_RUNTIME_LIBRARY at the top of this file.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT POLICY CMP0091)
+    foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
+        foreach (lang CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+            set (var "${lang}_${config}")
+            string (REPLACE "/MD" "/MT" ${var} "${${var}}")
+            string (REPLACE "-MD" "-MT" ${var} "${${var}}")
         endforeach ()
-    endif()
+    endforeach ()
 endif ()
-
 
 if (WERROR)
     # Don't pollute CMAKE_CXX_FLAGS with -Werror as it will break some CMake checks.
@@ -133,46 +148,21 @@ if (WERROR)
 endif ()
 if (OS_WINDOWS)
     find_package(ODBC REQUIRED)
-    find_package(Threads REQUIRED)
 endif()
+
+# Must be set before the bundled third parties are added, so that their symbols are
+# compiled with hidden visibility too. In particular, the unixODBC Driver Manager that
+# the driver links for odbcinst defines its own SQL* functions, and those must not
+# leak out of the driver library, where the version script would otherwise export them.
+set (CMAKE_C_VISIBILITY_PRESET hidden)
+set (CMAKE_CXX_VISIBILITY_PRESET hidden)
+set (CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+
 add_subdirectory (contrib EXCLUDE_FROM_ALL)
-
-if (CH_ODBC_ENABLE_SSL)
-    if (NOT CH_ODBC_PREFER_BUNDLED_SSL)
-        if (CH_ODBC_THIRD_PARTY_LINK_STATIC)
-            set (OPENSSL_USE_STATIC_LIBS TRUE)
-        endif ()
-
-        if (CH_ODBC_RUNTIME_LINK_STATIC)
-            set (OPENSSL_MSVC_STATIC_RT TRUE)
-        endif ()
-
-        find_package (OpenSSL)
-    endif ()
-endif ()
 
 if (NOT CH_ODBC_USE_ICU)
     message (WARNING "Not using ICU")
 endif ()
-
-if (CH_ODBC_ENABLE_TESTING)
-    if (NOT CH_ODBC_PREFER_BUNDLED_GOOGLETEST)
-        find_package (GTest)
-    endif ()
-
-    if (CH_ODBC_RUNTIME_LINK_STATIC)
-        set (GTEST_MSVC_SEARCH "MT")
-    else ()
-        set (GTEST_MSVC_SEARCH "MD")
-    endif ()
-
-    if (NOT CH_ODBC_PREFER_BUNDLED_NANODBC)
-        message (WARNING "nanodbc: using system variant of the library currently not supported")
-#       find_package (nanodbc)
-    endif ()
-endif ()
-
-set(ENABLE_SSL 1)
 
 add_subdirectory(contrib/poco)
 
@@ -190,10 +180,6 @@ endif ()
 foreach (config ${CMAKE_CONFIGURATION_TYPES_UC})
     set (CMAKE_${config}_POSTFIX "" CACHE STRING "" FORCE) # Don't append "d" or "md" to output lib name
 endforeach ()
-
-set (CMAKE_C_VISIBILITY_PRESET hidden)
-set (CMAKE_CXX_VISIBILITY_PRESET hidden)
-set (CMAKE_VISIBILITY_INLINES_HIDDEN 1)
 
 include (cmake/packages.cmake)
 
@@ -223,9 +209,6 @@ if (CH_ODBC_ENABLE_INSTALL)
         DESTINATION ${CMAKE_INSTALL_DOCDIR}/config
         COMPONENT Documentation
     )
-
-    set (CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT RuntimeLibraries)
-    include (InstallRequiredSystemLibraries)
 
     include (CPackComponent)
 
@@ -273,12 +256,6 @@ if (CH_ODBC_ENABLE_INSTALL)
         DISABLED
         DEPENDS UnicodeDriver
         GROUP UnicodeGroup
-    )
-
-    cpack_add_component (RuntimeLibraries
-        DISPLAY_NAME "Runtime Libraries"
-        DESCRIPTION "System/language redistributable runtime libraries"
-        DEPENDS ANSIDriver
     )
 
     if (WIN32 AND NOT UNIX)

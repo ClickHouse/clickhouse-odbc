@@ -2,7 +2,6 @@ function (declare_odbc_lib_targets libname UNICODE)
 
 # See the usage of each workaround in the code, for comments.
 unset (WORKAROUND_ALLOW_UNSAFE_DISPATCH)
-unset (WORKAROUND_DISABLE_SSL)
 unset (WORKAROUND_USE_ICU)
 unset (WORKAROUND_ENABLE_TRIM_TRAILING_NULL)
 unset (WORKAROUND_ENABLE_DEFINE_SQLBindParam)
@@ -28,10 +27,6 @@ if (CH_ODBC_ALLOW_UNSAFE_DISPATCH)
     set (WORKAROUND_ALLOW_UNSAFE_DISPATCH 1)
 endif()
 
-if (NOT CH_ODBC_ENABLE_SSL)
-    set (WORKAROUND_DISABLE_SSL 1)
-endif()
-
 if (CH_ODBC_USE_ICU)
     set (WORKAROUND_USE_ICU 1)
 endif ()
@@ -44,7 +39,6 @@ configure_file (
 )
 
 unset (WORKAROUND_ALLOW_UNSAFE_DISPATCH)
-unset (WORKAROUND_DISABLE_SSL)
 unset (WORKAROUND_USE_ICU)
 unset (WORKAROUND_ENABLE_TRIM_TRAILING_NULL)
 unset (WORKAROUND_ENABLE_DEFINE_SQLBindParam)
@@ -155,16 +149,6 @@ target_include_directories (${libname}-impl
     PUBLIC ${PROJECT_SOURCE_DIR}
 )
 
-if (CH_ODBC_ENABLE_SSL)
-    if (MSVC)
-        set (_poco_net Poco::NetSSLWin)
-    else ()
-        set (_poco_net Poco::Net Poco::Net::SSL Poco::Util)
-    endif ()
-else ()
-    set (_poco_net Poco::Net)
-endif ()
-
 target_link_libraries (${libname}-impl
     PUBLIC Poco::Net
     PUBLIC Poco::Util
@@ -184,9 +168,11 @@ elseif(OS_WINDOWS)
 endif()
 
 if (OS_LINUX OR OS_DARWIN)
+    # Only the odbcinst part of unixODBC (SQLGetPrivateProfileString & co.) is needed.
+    # Do not link nanodbc here: it is an ODBC *client* library, referencing the Driver
+    # Manager's SQL* entry points, and would drag the whole Driver Manager into the driver.
     target_link_libraries (${libname}-impl
         PUBLIC ch_contrib::unixodbc
-        PRIVATE ch_contrib::nanodbc
     )
 elseif (OS_WINDOWS)
     target_link_libraries (${libname}-impl
@@ -220,16 +206,17 @@ set_target_properties (${libname} PROPERTIES
     OUTPUT_NAME "clickhouseodbc${WIDECHAR_SUFFIX}"
 )
 
-if (NOT SANITIZE)
-    if (OS_LINUX)
-        set_target_properties(${libname} PROPERTIES
-            LINK_FLAGS "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_linux.txt"
-        )
-    elseif (OS_DARWIN)
-        #set_target_properties(${libname} PROPERTIES
-        #    LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_darwin.txt"
-        #)
-    endif()
+# Export only the ODBC API from the driver library, so that nothing from the statically
+# linked C++ runtime and third parties can be interposed by, or interpose, symbols of the
+# host process. This applies to sanitizer builds as well.
+if (OS_LINUX)
+    set_target_properties(${libname} PROPERTIES
+        LINK_FLAGS "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_linux.txt"
+    )
+elseif (OS_DARWIN)
+    #set_target_properties(${libname} PROPERTIES
+    #    LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_darwin.txt"
+    #)
 endif()
 
 
