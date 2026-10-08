@@ -352,6 +352,68 @@ TEST_F(NetworkingTest, AccessTokenIsSentAsBearerAuthorization)
     }
 }
 
+namespace {
+
+// Builds a non-200 response carrying a ClickHouse exception code header and a plain-text body,
+// the way the server reports errors detected before any result data is sent.
+std::vector<char> makeErrorResponse(std::string_view status_line, std::string_view exception_code, std::string_view body)
+{
+    std::string res = std::string(status_line) + "\r\n"
+        "Connection: Keep-Alive\r\n"
+        "Content-Type: text/plain; charset=UTF-8\r\n"
+        "X-ClickHouse-Exception-Code: " + std::string(exception_code) + "\r\n"
+        "Content-Length: " + std::to_string(body.size()) + "\r\n"
+        "\r\n" + std::string(body);
+    return std::vector<char>(res.begin(), res.end());
+}
+
+// Runs `expr`, expecting it to fail, and returns the diagnostics text it produced.
+template <typename F>
+std::string diagnosticsOf(F && expr)
+{
+    try {
+        expr();
+    } catch (const std::runtime_error & ex) {
+        return ex.what();
+    }
+    ADD_FAILURE() << "expected the call to fail";
+    return {};
+}
+
+} // anonymous namespace
+
+/**
+ * An authentication failure (e.g. an expired or invalid access token) is reported with
+ * SQLSTATE 28000 "Invalid authorization specification", so that applications can detect it
+ * without parsing the message text. The body is the one ClickHouse Cloud returns for an expired JWT.
+ */
+TEST_F(NetworkingTest, AuthenticationFailureIsReportedAs28000)
+{
+    reconnect("AccessToken=expired.jwt.token;");
+
+    setResponse(KeepAlive::KeepAlive, makeErrorResponse(
+        "HTTP/1.1 403 Forbidden", "516",
+        "Code: 516. DB::Exception: JWT::https://idp.example.com/::aud::sub: "
+        "Authentication failed: password is incorrect, or there is no user with such name. (AUTHENTICATION_FAILED)\n"));
+
+    const auto diag = diagnosticsOf([&] { fetch_sum(stmt); });
+    EXPECT_TRUE(diag.starts_with("1:[28000][1]HTTP status code: 403")) << diag;
+    EXPECT_NE(diag.find("(AUTHENTICATION_FAILED)"), std::string::npos) << diag;
+}
+
+/**
+ * Other server-side errors keep the generic SQLSTATE HY000.
+ */
+TEST_F(NetworkingTest, NonAuthenticationServerErrorIsReportedAsHY000)
+{
+    setResponse(KeepAlive::KeepAlive, makeErrorResponse(
+        "HTTP/1.1 400 Bad Request", "62",
+        "Code: 62. DB::Exception: Syntax error: failed at position 1. (SYNTAX_ERROR)\n"));
+
+    const auto diag = diagnosticsOf([&] { fetch_sum(stmt); });
+    EXPECT_TRUE(diag.starts_with("1:[HY000][1]HTTP status code: 400")) << diag;
+}
+
 TEST_F(NetworkingTest, RepeatedInsertsReuseChunkedConnection)
 {
     const std::string response = HTTP_HEADER CRLF ZERO_CHUNK;
