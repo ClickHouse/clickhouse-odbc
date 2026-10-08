@@ -18,6 +18,18 @@
 
 std::once_flag ssl_init_once;
 
+// Returns a value safe to write to the log or to an error message: secrets are masked.
+static std::string loggableValue(const std::string & key, const std::string & value) {
+    if (
+        Poco::UTF8::icompare(key, INI_PWD) == 0 ||
+        Poco::UTF8::icompare(key, INI_PASSWORD) == 0 ||
+        Poco::UTF8::icompare(key, INI_ACCESS_TOKEN) == 0
+    ) {
+        return (value.empty() ? "" : "******");
+    }
+    return value;
+}
+
 void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::string & certificateFile, const std::string & caLocation) {
 // http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
     Poco::Net::initializeSSL();
@@ -237,6 +249,7 @@ void Connection::resetConfiguration() {
     default_format.clear();
     database.clear();
     stringmaxlength = 0;
+    access_token.clear();
 }
 
 void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_value_map_t & dsn_fields) {
@@ -452,6 +465,13 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
                 sql_compatibility_settings = (typed_value == 1 || isYes(value));
             }
         }
+        else if (Poco::UTF8::icompare(key, INI_ACCESS_TOKEN) == 0) {
+            recognized_key = true;
+            valid_value = true;
+            if (valid_value) {
+                access_token = value;
+            }
+        }
 
         return std::make_tuple(recognized_key, valid_value);
     };
@@ -462,7 +482,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
         const auto & value = field.second;
 
         if (cs_fields.find(key) != cs_fields.end()) {
-            LOG("DSN: attribute '" << key << " = " << value << "' unused, overriden by the connection string");
+            LOG("DSN: attribute '" << key << " = " << loggableValue(key, value) << "' unused, overriden by the connection string");
         }
         else {
             const auto res = set_config_value(key, value);
@@ -471,7 +491,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
 
             if (recognized_key) {
                 if (!valid_value)
-                    throw std::runtime_error("DSN: bad value '" + value + "' for attribute '" + key + "'");
+                    throw std::runtime_error("DSN: bad value '" + loggableValue(key, value) + "' for attribute '" + key + "'");
             }
             else {
                 LOG("DSN: unknown attribute '" << key << "', ignoring");
@@ -485,7 +505,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
         const auto & value = field.second;
 
         if (dsn_fields.find(key) != dsn_fields.end()) {
-            LOG("Connection string: attribute '" << key << " = " << value << "' overrides DSN attribute with the same name");
+            LOG("Connection string: attribute '" << key << " = " << loggableValue(key, value) << "' overrides DSN attribute with the same name");
         }
 
         const auto res = set_config_value(key, value);
@@ -494,7 +514,7 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
 
         if (recognized_key) {
             if (!valid_value)
-                throw std::runtime_error("Connection string: bad value '" + value + "' for attribute '" + key + "'");
+                throw std::runtime_error("Connection string: bad value '" + loggableValue(key, value) + "' for attribute '" + key + "'");
         }
         else {
             LOG("Connection string: unknown attribute '" << key << "', ignoring");
@@ -584,6 +604,9 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
 
     if (stringmaxlength == 0)
         stringmaxlength = TypeInfo::string_max_size;
+
+    if (!access_token.empty() && !password.empty())
+        LOG("Both AccessToken and Password are configured, AccessToken will be used and Password ignored");
 }
 
 void Connection::verifyConnection() {
