@@ -195,7 +195,10 @@ void Statement::sendParamSet(std::unique_ptr<ResultMutator> && mutator) {
     request.setVersion(Poco::Net::HTTPRequest::HTTP_1_1);
     request.setKeepAlive(true);
     request.setChunkedTransferEncoding(true);
-    request.setCredentials("Basic", connection.buildCredentialsString());
+    if (connection.access_token.empty())
+        request.setCredentials("Basic", connection.buildCredentialsString());
+    else
+        request.setCredentials("Bearer", connection.access_token);
     request.setHost(uri.getHost());
     request.setURI(uri.getPathEtc());
     request.set("User-Agent", connection.buildUserAgentString());

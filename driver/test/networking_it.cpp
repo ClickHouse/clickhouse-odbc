@@ -69,6 +69,12 @@ protected:
         ODBC_CALL_ON_ENV_THROW(env, SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc));
         ASSERT_TRUE(dbc);
 
+        connect();
+    }
+
+    // Connect to the test server, optionally with additional connection string
+    // attributes (e.g. "AccessToken=abc;"), and allocate a statement.
+    void connect(const std::string & extra_attributes = "") {
         SQLTCHAR final_connection_string[1024];
         SQLSMALLINT final_connection_string_len = 0;
 
@@ -78,7 +84,7 @@ protected:
 #else
             "Driver={ClickHouse ODBC Driver (ANSI)};"
 #endif
-            "URL=http://127.0.0.1:" + std::to_string(server.port()) + "/;Timeout=5");
+            "URL=http://127.0.0.1:" + std::to_string(server.port()) + "/;Timeout=5;" + extra_attributes);
         ODBC_CALL_ON_DBC_THROW(dbc, SQLDriverConnect(
             dbc,
             nullptr,
@@ -91,9 +97,20 @@ protected:
         ASSERT_TRUE(stmt);
     }
 
-    virtual void TearDown() override {
-        ODBC_CALL_ON_STMT_THROW(stmt, SQLFreeStmt(stmt, SQL_CLOSE));
+    // Reconnect with additional connection string attributes.
+    void reconnect(const std::string & extra_attributes) {
         ODBC_CALL_ON_STMT_THROW(stmt, SQLFreeHandle(SQL_HANDLE_STMT, stmt));
+        stmt = nullptr;
+        ODBC_CALL_ON_DBC_THROW(dbc, SQLDisconnect(dbc));
+        connect(extra_attributes);
+    }
+
+    virtual void TearDown() override {
+        // `stmt` can be null if `reconnect()` failed half-way through.
+        if (stmt) {
+            ODBC_CALL_ON_STMT_THROW(stmt, SQLFreeStmt(stmt, SQL_CLOSE));
+            ODBC_CALL_ON_STMT_THROW(stmt, SQLFreeHandle(SQL_HANDLE_STMT, stmt));
+        }
         ODBC_CALL_ON_DBC_THROW(dbc, SQLDisconnect(dbc));
         ODBC_CALL_ON_DBC_THROW(dbc, SQLFreeHandle(SQL_HANDLE_DBC, dbc));
         ODBC_CALL_ON_ENV_THROW(env, SQLFreeHandle(SQL_HANDLE_ENV, env));
@@ -298,6 +315,41 @@ TEST_F(NetworkingTest, PositiveCaseKeepAlive)
     for (int i = 0; i < 3; ++i)
         ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
     EXPECT_EQ(server.connectionCount(), 1);
+}
+
+/**
+ * Without an access token the driver authenticates with HTTP Basic. The URL in
+ * the connection string has no user info, so the credentials are "default:".
+ */
+TEST_F(NetworkingTest, BasicAuthorizationIsSentWithoutAccessToken)
+{
+    ClickHouseResponseGenerator gen{};
+    gen.generate(16).chunk(1024).append_last_chunk();
+    setResponse(KeepAlive::KeepAlive, gen.make_response());
+    ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+    const auto headers = server.lastRequestHeaders();
+    // "default:" in Base64
+    EXPECT_NE(headers.find("Authorization: Basic ZGVmYXVsdDo=\r\n"), std::string::npos) << headers;
+    EXPECT_EQ(headers.find("Authorization: Bearer"), std::string::npos) << headers;
+}
+
+/**
+ * With an access token every request carries it as a bearer credential in the
+ * Authorization header, even when a password is also configured.
+ */
+TEST_F(NetworkingTest, AccessTokenIsSentAsBearerAuthorization)
+{
+    reconnect("PWD=secret;AccessToken=abc.def.ghi;");
+
+    ClickHouseResponseGenerator gen{};
+    gen.generate(16).chunk(1024).append_last_chunk();
+    setResponse(KeepAlive::KeepAlive, gen.make_response());
+    for (int i = 0; i < 3; ++i) {
+        ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+        const auto headers = server.lastRequestHeaders();
+        EXPECT_NE(headers.find("Authorization: Bearer abc.def.ghi\r\n"), std::string::npos) << headers;
+        EXPECT_EQ(headers.find("Authorization: Basic"), std::string::npos) << headers;
+    }
 }
 
 TEST_F(NetworkingTest, RepeatedInsertsReuseChunkedConnection)

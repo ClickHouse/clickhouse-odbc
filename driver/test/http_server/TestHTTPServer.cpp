@@ -85,6 +85,10 @@ asio::awaitable<void> TcpServer::process_connection(tcp::socket socket)
         std::string headers(header_size, '\0');
         std::istream stream(&read_buffer);
         stream.read(headers.data(), headers.size());
+        {
+            std::lock_guard lock(response_mutex);
+            last_request_headers = headers;
+        }
         std::istringstream header_stream(headers);
         const auto content_size = read_content_length(header_stream);
 

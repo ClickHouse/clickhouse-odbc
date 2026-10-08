@@ -46,6 +46,13 @@ public:
         return connection_count.load();
     }
 
+    // Raw header block (request line + headers, up to and including the
+    // terminating empty line) of the most recently received request.
+    std::string lastRequestHeaders() const {
+        std::lock_guard lock(response_mutex);
+        return last_request_headers;
+    }
+
     ip::port_type port() const {
         return acceptor.local_endpoint().port();
     }
@@ -63,7 +70,8 @@ private:
 
     KeepAlive keep_alive{KeepAlive::Close};
     std::vector<char> data{};
-    std::mutex response_mutex;
+    std::string last_request_headers{};
+    mutable std::mutex response_mutex;
     std::atomic<size_t> connection_count{0};
     std::thread thread{};
 };

@@ -604,6 +604,9 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
 
     if (stringmaxlength == 0)
         stringmaxlength = TypeInfo::string_max_size;
+
+    if (!access_token.empty() && !password.empty())
+        LOG("Both AccessToken and Password are configured, AccessToken will be used and Password ignored");
 }
 
 void Connection::verifyConnection() {
