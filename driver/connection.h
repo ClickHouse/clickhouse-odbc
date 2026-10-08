@@ -45,6 +45,7 @@ public: // Configuration fields.
     std::string client_name;
     bool enable_http_compression = true;
     bool sql_compatibility_settings = false;
+    std::string access_token;
 
 public:
     std::unique_ptr<Poco::Net::HTTPClientSession> session;

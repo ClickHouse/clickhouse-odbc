@@ -35,6 +35,7 @@
 #define INI_CLIENT_NAME     "ClientName"
 #define INI_SQL_COMPATIBILITY_SETTINGS "SQLCompatibilitySettings"
 #define INI_COMPRESSION     "Compression"
+#define INI_ACCESS_TOKEN    "AccessToken"
 
 #if defined(UNICODE)
 #   define INI_DSN_DEFAULT          DSN_DEFAULT_UNICODE

@@ -237,6 +237,7 @@ void Connection::resetConfiguration() {
     default_format.clear();
     database.clear();
     stringmaxlength = 0;
+    access_token.clear();
 }
 
 void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_value_map_t & dsn_fields) {
@@ -450,6 +451,13 @@ void Connection::setConfiguration(const key_value_map_t & cs_fields, const key_v
                 isYesOrNo(value));
             if (valid_value) {
                 sql_compatibility_settings = (typed_value == 1 || isYes(value));
+            }
+        }
+        else if (Poco::UTF8::icompare(key, INI_ACCESS_TOKEN) == 0) {
+            recognized_key = true;
+            valid_value = true;
+            if (valid_value) {
+                access_token = value;
             }
         }
 
