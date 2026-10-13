@@ -27,6 +27,7 @@ jobs:
     env:
       CLOUD_TESTS_ENABLED: ${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT != '' }}
       TEST_DATABASE: ''
+      LLVM_VERSION: 18
 
     strategy:
       fail-fast: false
@@ -74,9 +75,15 @@ jobs:
       if: ${{ matrix.odbc_provider == 'iODBC' }}
       run: sudo apt install -y iodbc libiodbc2 libiodbc2-dev
 
-    - name: Install dependencies - Clang
-      if: ${{ matrix.compiler == 'Clang' }}
-      run: sudo apt install -y clang llvm lldb
+    - name: Install dependencies - LLVM
+      # Needed by both compilers: OpenSSL's pre-generated x86_64 assembly uses AVX-IFMA
+      # instructions, which Ubuntu 22.04's assembler (binutils 2.38) and its Clang 14
+      # cannot assemble. The GCC build uses this Clang as the assembler only.
+      # Ubuntu 22.04 itself is kept to keep the released driver's glibc requirement low.
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh "$LLVM_VERSION"
 
     - name: Install dependencies - GCC
       if: ${{ matrix.compiler == 'GCC' }}
@@ -104,10 +111,16 @@ jobs:
         )
         dsn_string=$(IFS=';'; echo "${dsn_list[*]}")
 
-        CC=${{ fromJSON('{"Clang": "clang", "GCC": "gcc-12"}')[matrix.compiler] }} \
-        CXX=${{ fromJSON('{"Clang": "clang++", "GCC": "g++-12"}')[matrix.compiler] }} \
+        if [ "${{ matrix.compiler }}" = "Clang" ]; then
+          export CC="clang-$LLVM_VERSION" CXX="clang++-$LLVM_VERSION"
+        else
+          export CC=gcc-12 CXX=g++-12
+        fi
+
+        # The assembler is always Clang, see "Install dependencies - LLVM".
         cmake -S ${{ github.workspace }}/source -B ${{ github.workspace }}/build \
           -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+          -DCMAKE_ASM_COMPILER="clang-$LLVM_VERSION" \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DODBC_PROVIDER=${{ matrix.odbc_provider }} \
           -DTEST_DSN_LIST="$dsn_string" \
