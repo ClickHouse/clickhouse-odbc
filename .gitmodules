@@ -22,7 +22,7 @@
 	url = https://github.com/ClickHouse/lz4
 [submodule "contrib/openssl"]
 	path = contrib/openssl
-	url = https://github.com/ClickHouse/openssl
+	url = https://github.com/ClickHouse/openssl.git
 [submodule "contrib/double-conversion"]
 	path = contrib/double-conversion
 	url = https://github.com/ClickHouse/double-conversion

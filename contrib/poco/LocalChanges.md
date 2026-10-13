@@ -161,3 +161,26 @@ The amount of data that HTTPChunkStream attempts to read from
 HTTPChunkedStreamBuf depends on the fixed size defined by the
 HTTPBufferAllocator::BUFFER_SIZE constant. This constant was increased to 128 KB
 to match the recommended output buffer size for ZSTD decompression.
+
+--------------------------------------------------------------------------------
+commit 40cecb13196a6b4960482c3648fb1036d36e477e<br/>
+Author: Andrew Slabko<br/>
+Date:   Tue Oct 13 07:44:04 2026 +0200<br/>
+
+The bundled OpenSSL was updated to 3.5.8, using the build description from
+ClickHouse (contrib/openssl-cmake). It builds OpenSSL with
+`OPENSSL_NO_DEPRECATED`, so deprecated functions that are not compiled with
+`internal/deprecated.h` are no longer part of the library, while their
+declarations are still visible to Poco. Two of them were used by
+NetSSL_OpenSSL and left undefined symbols in the driver shared library, which
+would make dlopen() fail:
+
+ - `SSL_CTX_use_RSAPrivateKey()` in `Context::usePrivateKey(const RSAKey&)`
+   was replaced by delegating to `usePrivateKey(const EVPPKey&)`, wrapping the
+   RSA key into an EVP_PKEY.
+ - `SSL_CTX_flush_sessions()` in `Context::flushSessionCache()` was replaced by
+   `SSL_CTX_flush_sessions_ex()`, which takes a `time_t`.
+
+Upstream Poco and ClickHouse's Poco fork made equivalent changes. The driver
+library is now linked with `-Wl,--no-undefined` on Linux, so similar problems
+fail at link time.
