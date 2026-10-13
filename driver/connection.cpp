@@ -3,6 +3,7 @@
 #include "driver/connection.h"
 #include "driver/descriptor.h"
 #include "driver/statement.h"
+#include "driver/tls_context.h"
 
 #include <Poco/Base64Encoder.h>
 #include <Poco/Net/AcceptCertificateHandler.h>
@@ -14,9 +15,51 @@
 #include <Poco/Net/SSLManager.h>
 #include <Poco/NumberParser.h> // TODO: switch to std
 #include <Poco/URI.h>
+#include <mutex>
 #include <random>
 
-std::once_flag ssl_init_once;
+#if !defined(SECURITY_WIN32)
+// TLS settings are applied per-connection on the OpenSSL backend: every
+// Connection::connect() builds its own Poco::Net::Context with this connection's
+// SSLMode/CALocation/PrivateKeyFile/CertificateFile and attaches its own
+// invalid-certificate handler to that context, instead of installing
+// process-global state through SSLManager on the first HTTPS connection. A
+// connection made with SSLMode=allow can no longer downgrade certificate
+// verification for later connections in the same process, and context
+// construction failures (e.g. a missing CALocation file) surface as regular
+// exceptions from Connection::connect() instead of escaping through
+// std::call_once and aborting the host process.
+Poco::Net::Context::Ptr makeClientContext(
+    bool ssl_strict, const std::string & privateKeyFile, const std::string & certificateFile, const std::string & caLocation) {
+// http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
+    Poco::Net::initializeSSL();
+    Poco::SharedPtr<Poco::Net::InvalidCertificateHandler> ptrHandler;
+    if (ssl_strict)
+        ptrHandler = new Poco::Net::RejectCertificateHandler(false);
+    else
+        ptrHandler = new Poco::Net::AcceptCertificateHandler(false);
+    Poco::Net::Context::Ptr ptrContext = new Poco::Net::Context(Poco::Net::Context::TLS_CLIENT_USE,
+        privateKeyFile,
+        certificateFile,
+        caLocation,
+        ssl_strict ? Poco::Net::Context::VERIFY_STRICT : Poco::Net::Context::VERIFY_RELAXED,
+        9,
+        true,
+        "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH"
+    );
+    ptrContext->setInvalidCertificateHandler(ptrHandler);
+    return ptrContext;
+}
+#else
+// On the SECURITY_WIN32 backend verification modes are not implemented yet
+// (see the local note in contrib/poco/NetSSL_Win/src/Context.cpp), so the
+// one-time process-global initialization is kept, but it is guarded by a mutex
+// instead of std::call_once, so that an initialization failure (e.g. a
+// missing CALocation file) propagates as a regular exception from
+// Connection::connect() and is reported as an ODBC error instead of unwinding
+// through pthread_once and aborting the host process.
+std::mutex ssl_init_mutex;
+bool ssl_init_done = false;
 
 void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::string & certificateFile, const std::string & caLocation) {
 // http://stackoverflow.com/questions/18315472/https-request-in-c-using-poco
@@ -41,6 +84,20 @@ void SSLInit(bool ssl_strict, const std::string & privateKeyFile, const std::str
     );
     Poco::Net::SSLManager::instance().initializeClient(0, ptrHandler, ptrContext);
 }
+
+void SSLInitOnce(bool ssl_strict, const std::string & privateKeyFile, const std::string & certificateFile, const std::string & caLocation) {
+    std::lock_guard<std::mutex> lock(ssl_init_mutex);
+    if (ssl_init_done)
+        return;
+    // If SSLInit throws, ssl_init_done stays unset, so a later connection
+    // will retry the initialization with its own settings, and the exception
+    // unwinds through Connection::connect() normally, to be reported as an
+    // ODBC error, instead of escaping through std::call_once/pthread_once and
+    // aborting the host process.
+    SSLInit(ssl_strict, privateKeyFile, certificateFile, caLocation);
+    ssl_init_done = true;
+}
+#endif
 
 std::string GenerateSessionId() {
     std::mt19937 generator(std::random_device{}());
@@ -202,11 +259,19 @@ void Connection::connect(const std::string & connection_string) {
     const auto is_ssl = (Poco::UTF8::icompare(proto, "https") == 0);
     if (is_ssl) {
         const auto ssl_strict = (Poco::UTF8::icompare(sslmode, "allow") != 0);
-        std::call_once(ssl_init_once, SSLInit, ssl_strict, privateKeyFile, certificateFile, caLocation);
-    }
-
-    if (is_ssl)
+#    if !defined(SECURITY_WIN32)
+        // Per-connection TLS settings: the context built here reflects this
+        // connection's own SSLMode and TLS files, so a previous connection
+        // with SSLMode=allow cannot leak its relaxed certificate verification
+        // into this one, and context construction errors propagate as regular
+        // exceptions (reported as ODBC errors) instead of aborting the process.
+        session = std::make_unique<Poco::Net::HTTPSClientSession>(
+            server, port, makeClientContext(ssl_strict, privateKeyFile, certificateFile, caLocation));
+#    else
+        SSLInitOnce(ssl_strict, privateKeyFile, certificateFile, caLocation);
         session = std::make_unique<Poco::Net::HTTPSClientSession>(server, port);
+#    endif
+    }
     else
         session = std::make_unique<Poco::Net::HTTPClientSession>(server, port);
 
