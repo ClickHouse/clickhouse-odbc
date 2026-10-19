@@ -64,6 +64,7 @@ add_library (${libname}-impl STATIC
     attributes.cpp
     connection.cpp
     descriptor.cpp
+    http_client.cpp
     diagnostics.cpp
     driver.cpp
     environment.cpp
@@ -105,6 +106,7 @@ add_library (${libname}-impl STATIC
     connection.h
     descriptor.h
     diagnostics.h
+    http_client.h
     driver.h
     environment.h
     exception.h
@@ -150,20 +152,14 @@ target_include_directories (${libname}-impl
 )
 
 target_link_libraries (${libname}-impl
-    PUBLIC Poco::Net
-    PUBLIC Poco::Util
     PUBLIC Poco::Foundation
+    PUBLIC ch_contrib::curl
+    PUBLIC ch_contrib::zstd
     PUBLIC Threads::Threads
 )
-if (OS_LINUX OR OS_DARWIN)
+if (OS_WINDOWS)
     target_link_libraries (${libname}-impl
-        PUBLIC OpenSSL::SSL
-        PUBLIC OpenSSL::Crypto
-        PUBLIC Poco::Net::SSL
-    )
-elseif(OS_WINDOWS)
-    target_link_libraries (${libname}-impl
-        PUBLIC Poco::Net::WinSSL
+        PUBLIC crypt32 # client certificate lookup, see http_client.cpp
     )
 endif()
 

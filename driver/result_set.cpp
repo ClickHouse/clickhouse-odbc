@@ -304,11 +304,10 @@ void ResultSet::retireRow(Row && row) {
 ResultReader::ResultReader(
     const std::string & timezone_,
     std::istream & raw_stream,
-    Poco::Net::HTTPClientSession & session,
     std::unique_ptr<ResultMutator> && mutator
 )
     : timezone(timezone_)
-    , stream(raw_stream, session)
+    , stream(raw_stream)
     , result_mutator(std::move(mutator))
 {
 }
@@ -332,17 +331,16 @@ std::unique_ptr<ResultReader> make_result_reader(
     const std::string & format,
     const std::string & timezone,
     std::istream & raw_stream,
-    Poco::Net::HTTPClientSession & session,
     std::unique_ptr<ResultMutator> && mutator
 ) {
     if (format == "ODBCDriver2") {
-        return std::make_unique<ODBCDriver2ResultReader>(timezone, raw_stream, session, std::move(mutator));
+        return std::make_unique<ODBCDriver2ResultReader>(timezone, raw_stream, std::move(mutator));
     }
     else if (format == "RowBinaryWithNamesAndTypes") {
         if (!isLittleEndian())
             throw std::runtime_error("'" + format + "' format is supported only on little-endian platforms");
 
-        return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(timezone, raw_stream, session, std::move(mutator));
+        return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(timezone, raw_stream, std::move(mutator));
     }
 
     throw std::runtime_error("'" + format + "' format is not supported");

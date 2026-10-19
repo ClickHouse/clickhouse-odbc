@@ -14,8 +14,6 @@
 #include <variant>
 #include <vector>
 
-#include <Poco/Net/HTTPClientSession.h>
-
 extern const std::string::size_type initial_string_capacity_g;
 
 class ColumnInfo {
@@ -140,7 +138,6 @@ protected:
     explicit ResultReader(
         const std::string & timezone_,
         std::istream & stream,
-        Poco::Net::HTTPClientSession & session,
         std::unique_ptr<ResultMutator> && mutator
     );
 
@@ -165,7 +162,6 @@ std::unique_ptr<ResultReader> make_result_reader(
     const std::string & format,
     const std::string & timezone,
     std::istream & raw_stream,
-    Poco::Net::HTTPClientSession & session,
     std::unique_ptr<ResultMutator> && mutator
 );
 

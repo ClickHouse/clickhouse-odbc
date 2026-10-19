@@ -4,9 +4,6 @@
 #include "driver/escaping/escape_sequences.h"
 #include "driver/statement.h"
 
-#include <Poco/Exception.h>
-#include <Poco/Net/HTTPClientSession.h>
-#include <Poco/Net/HTTPRequest.h>
 #include <Poco/Timezone.h>
 #include <Poco/URI.h>
 #include <Poco/UUID.h>
@@ -181,7 +178,13 @@ void Statement::sendParamSet(std::unique_ptr<ResultMutator> && mutator) {
 
     auto & connection = getParent();
 
-    resetConnectionIfNeeded();
+    if (!connection.session)
+        throw SqlException("Connection does not exist", "08003");
+
+    // Releases the previous response. If it was not read completely, its transfer is aborted
+    // and the connection is closed; otherwise the connection is kept for reuse.
+    result_reader.reset();
+    response.reset();
 
     const auto [prepared_query, query_parameters] = prepareHttpRequest();
     Poco::URI uri = connection.getUri();
@@ -190,85 +193,83 @@ void Statement::sendParamSet(std::unique_ptr<ResultMutator> && mutator) {
         uri.addQueryParameter(key, value);
     }
 
-    Poco::Net::HTTPRequest request;
-    request.setMethod(Poco::Net::HTTPRequest::HTTP_POST);
-    request.setVersion(Poco::Net::HTTPRequest::HTTP_1_1);
-    request.setKeepAlive(true);
-    request.setChunkedTransferEncoding(true);
-    request.setCredentials("Basic", connection.buildCredentialsString());
-    request.setHost(uri.getHost());
-    request.setURI(uri.getPathEtc());
-    request.set("User-Agent", connection.buildUserAgentString());
-    request.set("Accept-Encoding", connection.enable_http_compression ? "zstd" : "none");
+    // The credentials are sent in the Authorization header only, never in the URL (which is logged).
+    uri.setUserInfo("");
+    const auto scheme = uri.getScheme();
 
-    LOG(request.getMethod() << " " << request.getHost() << request.getURI() << " body=" << prepared_query
-                            << " UA=" << request.get("User-Agent"));
+    HttpRequest request;
+    request.url = uri.toString();
+    request.body = std::make_shared<const std::string>(prepared_query);
+    request.headers = {
+        "Authorization: Basic " + connection.buildCredentialsString(),
+        "User-Agent: " + connection.buildUserAgentString(),
+        std::string("Accept-Encoding: ") + (connection.enable_http_compression ? "zstd" : "none"),
+    };
+
+    LOG("POST " << request.url << " body=" << prepared_query << " UA=" << connection.buildUserAgentString());
 
     int redirect_count = 0;
     // Send request to server with finite count of retries.
     for (int i = 1;; ++i) {
         try {
             for (; redirect_count < connection.redirect_limit; ++redirect_count) {
-                connection.session->sendRequest(request) << prepared_query;
-                response = std::make_unique<Poco::Net::HTTPResponse>();
-                in = &connection.session->receiveResponse(*response);
-                auto status = response->getStatus();
-                LOG("HTTP response: status=" << status << " keep_alive=" << response->getKeepAlive()
-                    << " chunked=" << response->getChunkedTransferEncoding()
-                    << " content_length=" << response->getContentLength64()
-                    << " secure=" << connection.session->secure()
-                    << " local_address=" << connection.session->socket().address().toString());
-                if (status != Poco::Net::HTTPResponse::HTTP_PERMANENT_REDIRECT && status != Poco::Net::HTTPResponse::HTTP_TEMPORARY_REDIRECT) {
+                response.reset();
+                response = std::make_unique<HttpResponse>(connection.session, request);
+                const auto status = response->getStatus();
+                LOG("HTTP response: status=" << status
+                    << " transfer_encoding=" << response->getHeader("Transfer-Encoding")
+                    << " content_length=" << response->getHeader("Content-Length")
+                    << " content_encoding=" << response->getHeader("Content-Encoding"));
+                if (status != 307 && status != 308)
                     break;
-                }
-                connection.session->reset(); // reset keepalived connection
-                auto newLocation = response->get("Location");
-                LOG("Redirected to " << newLocation << ", redirect index=" << redirect_count + 1 << "/" << connection.redirect_limit);
-                uri = newLocation;
-                connection.session->setHost(uri.getHost());
-                connection.session->setPort(uri.getPort());
-                request.setHost(uri.getHost());
-                request.setURI(uri.getPathEtc());
+
+                const auto redirect_url = response->getRedirectUrl();
+                if (redirect_url.empty())
+                    throw std::runtime_error("HTTP status code: " + std::to_string(status) + ", but no Location header in the response");
+
+                Poco::URI location(redirect_url);
+                location.setUserInfo("");
+                LOG("Redirected to " << location.toString() << ", redirect index=" << redirect_count + 1 << "/" << connection.redirect_limit);
+
+                // Never follow a redirect to another scheme: e.g. https -> http would send the credentials in clear text.
+                if (Poco::UTF8::icompare(location.getScheme(), scheme) != 0)
+                    throw std::runtime_error("Redirect to a different scheme is not allowed: " + location.toString());
+
+                request.url = location.toString();
             }
             break;
-        } catch (const Poco::IOException & e) {
-            connection.session->reset(); // reset keepalived connection
-            LOG("Http request try=" << i << "/" << connection.retry_count << " failed: " << e.what() << ": " << e.message());
-            if (i > connection.retry_count)
+        } catch (const HttpTransportError & e) {
+            response.reset();
+            LOG("Http request try=" << i << "/" << connection.retry_count << " failed: " << e.what());
+            if (i > connection.retry_count || !e.retryable)
                 throw;
         }
     }
 
-    // response->get accepts default value as `const std::string &`
-    // and so we cannot pass an rvalue to it (e.g.`std::string()`),
-    // it will be deleted when the function returns.
-    // We use a static variable that will never be deleted.
-    static const std::string empty_string{};
-    query_id = response->get("X-ClickHouse-Query-Id", empty_string);
-    content_encoding = response->get("Content-Encoding", empty_string);
+    query_id = response->getHeader("X-ClickHouse-Query-Id");
+    content_encoding = response->getHeader("Content-Encoding");
 
-    Poco::Net::HTTPResponse::HTTPStatus status = response->getStatus();
-    if (status != Poco::Net::HTTPResponse::HTTP_OK) {
+    const auto status = response->getStatus();
+    if (status != 200) {
         std::stringstream error_message;
-        if (status == Poco::Net::HTTPResponse::HTTP_TEMPORARY_REDIRECT || status == Poco::Net::HTTPResponse::HTTP_PERMANENT_REDIRECT) {
+        if (status == 307 || status == 308) {
             error_message << "Redirect count exceeded" << std::endl << "Redirect limit: " << connection.redirect_limit << std::endl;
         } else {
-            error_message << "HTTP status code: " << status << std::endl << "Received error:" << std::endl << in->rdbuf() << std::endl;
+            error_message << "HTTP status code: " << status << std::endl << "Received error:" << std::endl << response->readAll(1 << 20) << std::endl;
         }
         LOG(error_message.str());
 
-        if (response->has(exception_code_header_name)) {
-            std::string exception_code = response->get(exception_code_header_name);
+        if (response->hasHeader(exception_code_header_name)) {
+            std::string exception_code = response->getHeader(exception_code_header_name);
             throw ClickHouseException(error_message.str(), exception_code);
         }
         throw std::runtime_error(error_message.str());
     }
 
     result_reader = make_result_reader(
-        response->get("X-ClickHouse-Format", connection.default_format),
-        response->get("X-ClickHouse-Timezone", Poco::Timezone::name()),
-        *in,
-        *connection.session,
+        response->getHeader("X-ClickHouse-Format", connection.default_format),
+        response->getHeader("X-ClickHouse-Timezone", Poco::Timezone::name()),
+        *response,
         std::move(mutator)
     );
 
@@ -464,37 +465,14 @@ bool Statement::advanceToNextResultSet() {
     return hasResultSet();
 }
 
-void Statement::resetConnectionIfNeeded() {
-    auto & connection = getParent();
-    if (!connection.session || !response || !in)
-        return;
-
-    // std::istream::read() sets eofbit|failbit when it stops short at the end of
-    // the body. That is the normal end-of-response state, not an error, so failbit
-    // is deliberately not checked here.
-    const bool stream_error = in->bad();
-    const bool unread_body = !in->eof();
-    const bool socket_error = connection.session->networkException() != nullptr;
-    const bool reset = stream_error || unread_body || socket_error;
-
-    LOG("HTTP response: eof=" << in->eof() << " fail=" << in->fail() << " bad=" << in->bad()
-        << " socket_error=" << socket_error << " reset_connection=" << reset);
-
-    if (reset)
-        connection.session->reset();
-}
-
 void Statement::closeCursor() {
-    // Must be destroyed before the stream is inspected: its destructor puts back
-    // pre-read bytes, which clears eofbit (and can set badbit).
+    // The reader reads from the response, so it goes first. Releasing a response that was not
+    // read completely aborts its transfer and closes the connection instead of reusing it.
     result_reader.reset();
-
-    resetConnectionIfNeeded();
+    response.reset();
 
     query_id.clear();
     content_encoding.clear();
-    in = nullptr;
-    response.reset();
 
     is_executed = false;
     is_forward_executed = false;

@@ -264,10 +264,9 @@ void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourc
 ODBCDriver2ResultReader::ODBCDriver2ResultReader(
     const std::string & timezone_,
     std::istream & raw_stream,
-    Poco::Net::HTTPClientSession & session,
     std::unique_ptr<ResultMutator> && mutator
 )
-    : ResultReader(timezone_, raw_stream, session, std::move(mutator))
+    : ResultReader(timezone_, raw_stream, std::move(mutator))
 {
     if (stream.eof())
         return;

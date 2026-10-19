@@ -5,7 +5,7 @@
 #include "driver/descriptor.h"
 #include "driver/result_set.h"
 
-#include <Poco/Net/HTTPResponse.h>
+#include "driver/http_client.h"
 
 #include <memory>
 #include <sstream>
@@ -101,10 +101,6 @@ private:
     void requestNextPackOfResultSets(std::unique_ptr<ResultMutator> && mutator);
     void sendParamSet(std::unique_ptr<ResultMutator> && mutator);
 
-    /// Drops the keep-alive HTTP connection unless the previous response body was
-    /// fully and cleanly consumed.
-    void resetConnectionIfNeeded();
-
     void extractParametersinfo();
     std::string buildFinalQuery(const std::vector<ParamBindingInfo>& param_bindings);
     std::string getParamFinalName(std::size_t param_idx);
@@ -142,9 +138,8 @@ private:
     // into the buffer. This map holds the offsets.
     std::unordered_map<SQLUSMALLINT, size_t> column_offsets;
 
-    std::unique_ptr<Poco::Net::HTTPResponse> response;
-    std::istream* in = nullptr;
-    std::unique_ptr<ResultReader> result_reader;
+    std::unique_ptr<HttpResponse> response;
+    std::unique_ptr<ResultReader> result_reader; // reads from `response`, so must be destroyed first
     std::string query_id;
     std::string content_encoding;
     std::size_t next_param_set_idx = 0;

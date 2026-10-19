@@ -10,6 +10,12 @@ introduce regressions and might even break some functionality.
 Given the number of issues we faced with Poco, we hope there will be enough time
 in the future to replace it with a more suitable alternative, such as libcurl.
 
+UPDATE: The HTTP client has been replaced with libcurl (contrib/curl, unmodified
+upstream sources, see contrib/curl-cmake and driver/http_client.cpp). Only the
+Foundation project is still built and used. The Crypto, Net, NetSSL_OpenSSL,
+NetSSL_Win and Util projects, and the changes to them described below, are no
+longer used and are kept only until they are removed from the repository.
+
 The base version of the library was taken from the Git tag poco-1.14.2-release.
 
 Only a few projects were included from the original distribution:
