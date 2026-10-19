@@ -39,15 +39,11 @@ endfunction()
 add_contrib (icu-cmake icu)
 add_contrib (unixodbc-cmake unixodbc)
 add_contrib (nanodbc-cmake nanodbc)
-add_contrib (lz4-cmake lz4)
-add_contrib (double-conversion-cmake double-conversion)
 add_contrib (zstd-cmake zstd)
 
 if (OS_DARWIN OR OS_LINUX)
     add_contrib (openssl-cmake openssl)
 endif()
-
-add_contrib (zlib-ng-cmake zlib-ng)
 
 # Must come after OpenSSL.
 add_contrib (curl-cmake curl)
