@@ -156,7 +156,13 @@ endif()
 # leak out of the driver library, where the version script would otherwise export them.
 set (CMAKE_C_VISIBILITY_PRESET hidden)
 set (CMAKE_CXX_VISIBILITY_PRESET hidden)
-set (CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+# Not in sanitizer builds: they link the C++ runtime dynamically, and Clang applies
+# -fvisibility-inlines-hidden also to the members of the C++ runtime's explicitly instantiated
+# templates (e.g. std::string). Wherever such a member is not inlined, the result is a hidden
+# reference that cannot be resolved against the shared runtime ("hidden symbol ... isn't defined").
+if (NOT SANITIZE)
+    set (CMAKE_VISIBILITY_INLINES_HIDDEN 1)
+endif ()
 
 add_subdirectory (contrib EXCLUDE_FROM_ALL)
 
