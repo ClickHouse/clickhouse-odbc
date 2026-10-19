@@ -3,8 +3,6 @@
 #include "driver/platform/platform.h"
 #include "driver/result_set.h"
 
-#include <Poco/Net/HTTPClientSession.h>
-
 // Implementation of ResultSet for RowBinaryWithNamesAndTypes wire format of ClickHouse.
 class RowBinaryWithNamesAndTypesResultSet
     : public ResultSet
@@ -80,7 +78,6 @@ public:
     explicit RowBinaryWithNamesAndTypesResultReader(
         const std::string & timezone,
         std::istream & raw_stream,
-        Poco::Net::HTTPClientSession & session,
         std::unique_ptr<ResultMutator> && mutator
     );
     virtual ~RowBinaryWithNamesAndTypesResultReader() override = default;

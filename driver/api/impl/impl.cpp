@@ -6,7 +6,6 @@
 #include "driver/descriptor.h"
 #include "driver/statement.h"
 
-#include <Poco/Net/HTTPClientSession.h>
 
 #include <algorithm>
 #include <exception>
@@ -166,9 +165,7 @@ SQLRETURN SetConnectAttr(
                 LOG("Set connection timeout: " << connection_timeout);
                 connection.connection_timeout = connection.timeout;
                 if (connection.session)
-                    connection.session->setTimeout(Poco::Timespan(connection.connection_timeout, 0),
-                        Poco::Timespan(connection.timeout, 0),
-                        Poco::Timespan(connection.timeout, 0));
+                    connection.session->settings.connection_timeout = connection.connection_timeout;
                 return SQL_SUCCESS;
             }
 
@@ -247,7 +244,7 @@ SQLRETURN GetConnectAttr(
         switch (attribute) {
             CASE_NUM(SQL_ATTR_CONNECTION_DEAD, SQLUINTEGER, SQL_CD_FALSE);
             CASE_FALLTHROUGH(SQL_ATTR_CONNECTION_TIMEOUT);
-            CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.session ? connection.session->getTimeout().seconds() : connection.timeout);
+            CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.timeout);
             CASE_NUM(SQL_ATTR_TXN_ISOLATION, SQLINTEGER, SQL_TXN_SERIALIZABLE); // mssql linked server
             CASE_NUM(SQL_ATTR_AUTOCOMMIT, SQLINTEGER, SQL_AUTOCOMMIT_ON);
 

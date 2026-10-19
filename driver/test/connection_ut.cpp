@@ -10,6 +10,12 @@ class ConnectionConfigurationTest
     : public ::testing::Test
 {
 protected:
+    // Connecting again requires disconnecting first, the way SQLDisconnect does.
+    void reconnect(const std::string & connection_string) {
+        connection.session.reset();
+        connection.connect(connection_string);
+    }
+
     Environment environment{Driver::getInstance()};
     Connection connection{environment};
 };
@@ -28,7 +34,7 @@ TEST_F(ConnectionConfigurationTest, AccessTokenKeyIsCaseInsensitive) {
     connection.connect("Driver=x;accesstoken=abc");
     EXPECT_EQ(connection.access_token, "abc");
 
-    connection.connect("Driver=x;ACCESSTOKEN=def");
+    reconnect("Driver=x;ACCESSTOKEN=def");
     EXPECT_EQ(connection.access_token, "def");
 }
 
@@ -41,7 +47,7 @@ TEST_F(ConnectionConfigurationTest, AccessTokenJwtIsSavedAsIs) {
     connection.connect("Driver=x;AccessToken=" + jwt);
     EXPECT_EQ(connection.access_token, jwt);
 
-    connection.connect("Driver=x;AccessToken={" + jwt + "}");
+    reconnect("Driver=x;AccessToken={" + jwt + "}");
     EXPECT_EQ(connection.access_token, jwt);
 }
 
@@ -49,6 +55,6 @@ TEST_F(ConnectionConfigurationTest, AccessTokenIsResetOnReconnect) {
     connection.connect("Driver=x;AccessToken=abc");
     EXPECT_EQ(connection.access_token, "abc");
 
-    connection.connect("Driver=x");
+    reconnect("Driver=x");
     EXPECT_TRUE(connection.access_token.empty());
 }

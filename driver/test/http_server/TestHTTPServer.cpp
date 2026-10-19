@@ -19,10 +19,12 @@ size_t read_content_length(std::istream & stream)
         while(!stream.eof()) {
             std::getline(stream, header_line);
             if (header_line.starts_with("Content-Length")) {
-                auto size_begin = std::find(header_line.crbegin(), header_line.crend(), ' ');
+                const auto space = header_line.rfind(' ');
                 size_t content_length = 0;
-                auto begin = &*size_begin.base();
-                auto end = &*header_line.end() - 1;
+                const char * begin = header_line.data() + (space == std::string::npos ? 0 : space + 1);
+                const char * end = header_line.data() + header_line.size();
+                if (end > begin && end[-1] == '\r')
+                    --end;
                 auto [ignore, ec] = std::from_chars(begin, end, content_length);
                 if (ec != std::errc{})
                     throw std::runtime_error("failed to parse content length");

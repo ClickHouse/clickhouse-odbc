@@ -8,27 +8,17 @@
 #include <string>
 #include <cstring>
 
-#include <Poco/Net/HTTPClientSession.h>
-
 // A restricted wrapper around std::istream, that tries to reduce the number of std::istream::read() calls at the cost of extra std::memcpy().
 // Maintains internal buffer of pre-read characters making AmortizedIStreamReader::read() calls for small counts more efficient.
 // Handles incomplete reads and terminated std::istream more aggressively, by throwing exceptions.
+// Reads through the stream buffer directly: errors of the underlying stream (e.g. a failed HTTP
+// transfer, see HttpResponse) are thrown from it and propagated as is.
 class AmortizedIStreamReader
 {
 public:
-    explicit AmortizedIStreamReader(std::istream & raw_stream, Poco::Net::HTTPClientSession & session)
-        : raw_stream_(raw_stream), session_(session)
+    explicit AmortizedIStreamReader(std::istream & raw_stream)
+        : raw_stream_(raw_stream)
     {
-    }
-
-    ~AmortizedIStreamReader() {
-        // Put back any pre-read characters, just in case...
-        // (it should be done in reverse order)
-        if (available() > 0) {
-            for (auto it = buffer_.rbegin(); it < buffer_.rend() - offset_; ++it) {
-                raw_stream_.putback(*it);
-            }
-        }
     }
 
     AmortizedIStreamReader(const AmortizedIStreamReader &) = delete;
@@ -40,15 +30,12 @@ public:
         if (available() > 0)
             return false;
 
-        if (raw_stream_.eof() || raw_stream_.fail())
+        if (eof_)
             return true;
 
         tryPrepare(1);
 
-        if (available() > 0)
-            return false;
-
-        return (raw_stream_.eof() || raw_stream_.fail());
+        return (available() == 0);
     }
 
     char get() {
@@ -115,22 +102,29 @@ private:
                 buffer_.resize(buffer_.size() + to_read);
             }
 
-            raw_stream_.read(&buffer_[offset_ + avail], to_read);
+            std::streamsize count = 0;
+            try {
+                auto * buf = raw_stream_.rdbuf();
+                if (!buf)
+                    throw std::runtime_error("Unknown network error");
+                count = buf->sgetn(&buffer_[offset_ + avail], static_cast<std::streamsize>(to_read));
+            }
+            catch (...) {
+                buffer_.resize(offset_ + avail); // drop the space that was reserved for the data
+                throw;
+            }
 
-            if (raw_stream_.gcount() < to_read)
-                buffer_.resize(buffer_.size() - (to_read - raw_stream_.gcount()));
-
-            auto * exception = session_.networkException();
-            if (exception)
-                throw std::runtime_error(exception->displayText());
-            if (raw_stream_.bad())
-                throw std::runtime_error("Unknown network error");
+            // A short read means the end of the stream (std::streambuf::xsgetn() stops only there).
+            if (static_cast<std::size_t>(count) < to_read) {
+                buffer_.resize(buffer_.size() - (to_read - static_cast<std::size_t>(count)));
+                eof_ = true;
+            }
         }
     }
 
 private:
     std::istream & raw_stream_;
-    Poco::Net::HTTPClientSession & session_;
+    bool eof_ = false;
     std::size_t offset_ = 0;
     std::string buffer_;
 };
