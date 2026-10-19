@@ -32,3 +32,6 @@
 [submodule "contrib/zstd"]
 	path = contrib/zstd
 	url = https://github.com/facebook/zstd
+[submodule "contrib/curl"]
+	path = contrib/curl
+	url = https://github.com/curl/curl
