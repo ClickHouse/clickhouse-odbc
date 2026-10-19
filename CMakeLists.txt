@@ -60,7 +60,7 @@ include (cmake/os.cmake)
 option(BUILD_TESTING "Build test targets" OFF)
 
 # All third-party libraries are bundled (contrib/), built as static libraries and linked
-# into the driver. Some of them (OpenSSL, Poco) read BUILD_SHARED_LIBS, so force it off.
+# into the driver. Some of them (OpenSSL, Poco, curl) read BUILD_SHARED_LIBS, so force it off.
 set (BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 option (CH_ODBC_ALLOW_UNSAFE_DISPATCH "Allow unchecked handle dispatching (may slightly increase performance in some scenarios)" ON)

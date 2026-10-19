@@ -49,6 +49,9 @@ endif()
 
 add_contrib (zlib-ng-cmake zlib-ng)
 
+# Must come after OpenSSL.
+add_contrib (curl-cmake curl)
+
 if (CH_ODBC_ENABLE_TESTING)
     # The driver always uses the static CRT on MSVC; make Google Test match it.
     set (gtest_force_shared_crt OFF CACHE INTERNAL "")
