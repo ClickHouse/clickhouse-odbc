@@ -455,20 +455,29 @@ SQLRETURN SQL_API EXPORTED_FUNCTION_MAYBE_W(SQLConnect)(
 ) {
     return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, ConnectionHandle, [&](Connection & connection) {
         std::string connection_string;
-        if (ServerName) {
-            connection_string += "DSN={";
-            connection_string += toUTF8(ServerName, NameLength1);
+
+        // Encloses the value in '{' and '}', escaping '}' as '}}', so that readConnectionString() reads it back as-is.
+        const auto append_value = [&connection_string] (const std::string & value) {
+            connection_string += '{';
+            for (const auto ch : value) {
+                connection_string += ch;
+                if (ch == '}')
+                    connection_string += '}';
+            }
             connection_string += "};";
+        };
+
+        if (ServerName) {
+            connection_string += "DSN=";
+            append_value(toUTF8(ServerName, NameLength1));
         }
         if (UserName) {
-            connection_string += "UID={";
-            connection_string += toUTF8(UserName, NameLength2);
-            connection_string += "};";
+            connection_string += "UID=";
+            append_value(toUTF8(UserName, NameLength2));
         }
         if (Authentication) {
-            connection_string += "PWD={";
-            connection_string += toUTF8(Authentication, NameLength3);
-            connection_string += "};";
+            connection_string += "PWD=";
+            append_value(toUTF8(Authentication, NameLength3));
         }
         connection.connect(connection_string);
         return SQL_SUCCESS;

@@ -24,6 +24,7 @@
 //     - whitespace aroung keys and values is trimmed
 //     - values can be enclosed in '{' and '}', in which case the whitespace at the beginning and/or
 //       at the end of the value, as well as ';' characters anywhere in the value, will be preserved as-is
+//     - '}' in the value enclosed in '{' and '}' should be written as '}}' (without space in between)
 //     - if key is met multiple times, the first value will be used
 //     - some special cases that modify the value visibility behavior for some well-known keys are defined (see the link above)
 key_value_map_t readConnectionString(const std::string & connection_string) {
@@ -105,6 +106,12 @@ key_value_map_t readConnectionString(const std::string & connection_string) {
 
         while (!str.empty()) {
             if (stop_at_closing_brace && str.front() == '}') {
+                if (str.size() > 1 && str[1] == '}') {
+                    value += '}';
+                    str.erase(0, 2);
+                    continue;
+                }
+
                 stopped_at_closing_brace = true;
                 str.erase(0, 1);
                 break;

@@ -58,6 +58,11 @@ INSTANTIATE_TEST_SUITE_P(ConnectionString, ParseToMap,
             { "key1", "value1" },
             { "key2", "value 2" }
         } },
+        { "x={a}}b}; y={}}}; z={ }}}}{ }", {
+            { "x", "a}b" },
+            { "y", "}" },
+            { "z", " }}{ " }
+        } },
         { "key==1=value; ==key2 = value ; key1== = value ;== ===value", {
             { "key=1", "value" },
             { "=key2", "value" },

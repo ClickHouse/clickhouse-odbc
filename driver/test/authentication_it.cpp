@@ -94,18 +94,12 @@ TEST_F(AuthenticationTest, PasswordEncoding)
     std::vector<std::string> passwords {
         "A", "1", " ", "", "+",
         "AB+", "~", "A~A", "AB~", "AB!",
-        "A{A",
-
-        // SQLConnect fails when the password contains a `}` character.
-        // See: https://github.com/ClickHouse/clickhouse-odbc/issues/497
-        // Example: "A}A",
+        "A{A", "A}A", "}", "}}", "A;}A",
     };
 
     // Create passwords of variable length
-    // TODO(slabko): Add `}` to this string once
-    // https://github.com/ClickHouse/clickhouse-odbc/issues/497 is resolved.
     std::string all_chars =
-        "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|~";
+        "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
     // Create a password from a sliding window over `all_chars`.
     // The window starts small, grows to `window_size`, slides forward, and then shrinks at the end.
