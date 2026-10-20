@@ -236,6 +236,30 @@ struct HttpResponse::Handles {
     }
 };
 
+// The zstd-compressed response body is decoded here rather than by curl (which could do it, see
+// CURLOPT_ACCEPT_ENCODING), for these reasons:
+//
+//  - Future request compression: libcurl only decompresses responses, it never compresses request
+//    bodies. Compressing the data sent to ClickHouse (e.g. large INSERTs) has to be done by the
+//    driver anyway, so zstd is a direct dependency of the driver in any case, and keeping both
+//    directions here keeps compression in one place.
+//
+//  - Simpler dependency management: curl is built without any compression support, so the zstd
+//    library is linked only once, directly into the driver. Building curl with zstd would require
+//    making curl's own find_package(Zstd) resolve to the bundled zstd target, another workaround
+//    in contrib/curl-cmake that would have to be re-validated with every curl update.
+//
+//  - Flexibility: the driver has full control over the decoder, e.g. buffer sizes, what is done
+//    with a broken or incomplete stream, or adding other encodings independently of how curl is
+//    built.
+//
+//  - Truncation detection: curl does not report a zstd stream whose last frame is incomplete if
+//    the HTTP message itself ended properly; the data would just silently end early. Here this is
+//    detected and reported as an error (see zstd_frame_complete).
+//
+// Detecting ClickHouse mid-stream exceptions does not depend on this choice: curl passes all the
+// data it has decoded on before it reports a failed transfer, so the exception text could be
+// found in curl's output just as well.
 struct HttpResponse::Zstd {
     ZSTD_DStream * stream = ZSTD_createDStream();
 
@@ -283,7 +307,7 @@ HttpResponse::HttpResponse(std::shared_ptr<HttpSession> session_, HttpRequest re
     curl_easy_setopt(easy, CURLOPT_POSTFIELDSIZE_LARGE, static_cast<curl_off_t>(request.body->size()));
     curl_easy_setopt(easy, CURLOPT_HTTPHEADER, handles->headers);
     curl_easy_setopt(easy, CURLOPT_FOLLOWLOCATION, 0L);       // redirects are handled by the caller
-    curl_easy_setopt(easy, CURLOPT_HTTP_CONTENT_DECODING, 0L); // zstd is decoded here
+    curl_easy_setopt(easy, CURLOPT_HTTP_CONTENT_DECODING, 0L); // zstd is decoded here, see HttpResponse::Zstd
     curl_easy_setopt(easy, CURLOPT_PROXY, "");                 // ignore the *_proxy environment variables
     curl_easy_setopt(easy, CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt(easy, CURLOPT_DNS_CACHE_TIMEOUT, 0L);
