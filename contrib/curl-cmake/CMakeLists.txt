@@ -2,7 +2,8 @@
 #
 # Only HTTP(S) is enabled and all optional third-party dependencies are disabled. TLS is
 # provided by the bundled OpenSSL on Linux/macOS and by the native Schannel on Windows.
-# Content decoding (zstd) is done by the driver itself, see driver/http_client.cpp.
+# Content decoding (zstd) is done by the driver itself, see the motivation at
+# HttpResponse::Zstd in driver/http_client.cpp.
 
 set (CURL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../curl")
 
