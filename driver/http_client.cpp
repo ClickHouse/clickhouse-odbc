@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <mutex>
 #include <optional>
 #include <string_view>
 
@@ -187,8 +188,6 @@ std::string windowsClientCertificate(const std::string & name) {
 HttpSession::HttpSession(HttpSettings settings_)
     : settings(std::move(settings_))
 {
-    static_assert(CURL_LOCK_DATA_LAST <= sizeof(locks) / sizeof(locks[0]));
-
 #if defined(_WIN32)
     if (!settings.private_key_file.empty())
         client_certificate = windowsClientCertificate(settings.private_key_file);
@@ -200,19 +199,9 @@ HttpSession::HttpSession(HttpSettings settings_)
     if (!share)
         throw std::runtime_error("curl_share_init() failed");
 
-    curl_lock_function lock_function = [] (CURL * handle, curl_lock_data data, curl_lock_access access, void * self) {
-        HttpSession::lock(handle, data, access, self);
-    };
-    curl_unlock_function unlock_function = [] (CURL * handle, curl_lock_data data, void * self) {
-        HttpSession::unlock(handle, data, self);
-    };
-
     // DNS results are not shared and not cached (see CURLOPT_DNS_CACHE_TIMEOUT): every new
     // connection resolves the host name again, which matters when the server address changes.
-    if (curl_share_setopt(share, CURLSHOPT_LOCKFUNC, lock_function) != CURLSHE_OK ||
-        curl_share_setopt(share, CURLSHOPT_UNLOCKFUNC, unlock_function) != CURLSHE_OK ||
-        curl_share_setopt(share, CURLSHOPT_USERDATA, this) != CURLSHE_OK ||
-        curl_share_setopt(share, CURLSHOPT_SHARE, CURL_LOCK_DATA_CONNECT) != CURLSHE_OK ||
+    if (curl_share_setopt(share, CURLSHOPT_SHARE, CURL_LOCK_DATA_CONNECT) != CURLSHE_OK ||
         curl_share_setopt(share, CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION) != CURLSHE_OK)
     {
         curl_share_cleanup(share);
@@ -223,14 +212,6 @@ HttpSession::HttpSession(HttpSettings settings_)
 HttpSession::~HttpSession() {
     // Every HttpResponse holds a reference to its session, so no transfer uses the share here.
     curl_share_cleanup(share);
-}
-
-void HttpSession::lock(void *, int data, int, void * self) {
-    static_cast<HttpSession *>(self)->locks[data].lock();
-}
-
-void HttpSession::unlock(void *, int data, void * self) {
-    static_cast<HttpSession *>(self)->locks[data].unlock();
 }
 
 // ------------------------------------------------------------------------------------------------

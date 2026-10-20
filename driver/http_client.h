@@ -6,7 +6,6 @@
 #include <istream>
 #include <map>
 #include <memory>
-#include <mutex>
 #include <stdexcept>
 #include <streambuf>
 #include <string>
@@ -44,7 +43,8 @@ public:
 };
 
 /// Per ODBC connection: settings, connection pool and TLS session cache.
-/// Must not be used by several threads at the same time.
+/// Like the rest of a connection, it must only be used by one thread at a time; the curl share
+/// therefore has no lock callbacks.
 class HttpSession {
 public:
     explicit HttpSession(HttpSettings settings);
@@ -58,11 +58,7 @@ public:
 private:
     friend class HttpResponse;
 
-    static void lock(void * handle, int data, int access, void * self);
-    static void unlock(void * handle, int data, void * self);
-
     void * share = nullptr; // CURLSH
-    std::mutex locks[16];
 
     // Windows: the certificate selected by `PrivateKeyFile`, as "CurrentUser\MY\<thumbprint>".
     std::string client_certificate;
