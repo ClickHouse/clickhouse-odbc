@@ -8,7 +8,7 @@ class RowBinaryWithNamesAndTypesResultSet
     : public ResultSet
 {
 public:
-    explicit RowBinaryWithNamesAndTypesResultSet(const std::string & timezone, AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator);
+    explicit RowBinaryWithNamesAndTypesResultSet(const std::string & timezone, HttpResponse & stream, std::unique_ptr<ResultMutator> && mutator);
     virtual ~RowBinaryWithNamesAndTypesResultSet() override = default;
 
 protected:
@@ -77,7 +77,7 @@ class RowBinaryWithNamesAndTypesResultReader
 public:
     explicit RowBinaryWithNamesAndTypesResultReader(
         const std::string & timezone,
-        std::istream & raw_stream,
+        HttpResponse & stream_,
         std::unique_ptr<ResultMutator> && mutator
     );
     virtual ~RowBinaryWithNamesAndTypesResultReader() override = default;

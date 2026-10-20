@@ -2,7 +2,7 @@
 
 ODBCDriver2ResultSet::ODBCDriver2ResultSet(
     const std::string & timezone,
-    AmortizedIStreamReader & stream,
+    HttpResponse & stream,
     std::unique_ptr<ResultMutator> && mutator
 )
     : ResultSet(stream, std::move(mutator))
@@ -263,10 +263,10 @@ void ODBCDriver2ResultSet::readValue(std::string & src, DataSourceType<DataSourc
 
 ODBCDriver2ResultReader::ODBCDriver2ResultReader(
     const std::string & timezone_,
-    std::istream & raw_stream,
+    HttpResponse & stream_,
     std::unique_ptr<ResultMutator> && mutator
 )
-    : ResultReader(timezone_, raw_stream, std::move(mutator))
+    : ResultReader(timezone_, stream_, std::move(mutator))
 {
     if (stream.eof())
         return;

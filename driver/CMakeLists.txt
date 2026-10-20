@@ -78,7 +78,6 @@ add_library (${libname}-impl STATIC
 
     utils/utils.h
     utils/iostream_debug_helpers.h
-    utils/amortized_istream_reader.h
     utils/object_pool.h
     utils/string_pool.h
     utils/unicode_converter.h

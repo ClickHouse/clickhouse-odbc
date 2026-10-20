@@ -2,19 +2,18 @@
 
 #include <chrono>
 #include <cstdint>
+#include <cstring>
 #include <exception>
-#include <istream>
 #include <map>
 #include <memory>
 #include <stdexcept>
-#include <streambuf>
 #include <string>
 #include <vector>
 
 // HTTP(S) client of the driver, built on libcurl.
 //
 // HttpSession is created per ODBC connection; HttpResponse per request. The response body is
-// read through HttpResponse, which is a std::istream that pulls data from the network lazily.
+// read directly from HttpResponse (eof/get/read), which pulls data from the network lazily.
 //
 // ClickHouse may report an error after it has already started sending a successful response
 // (a "mid-stream exception"): the exception text is appended to the body and the connection is
@@ -71,18 +70,16 @@ struct HttpRequest {
 };
 
 /// A single POST request and its response. The constructor sends the request and blocks until
-/// the response headers are received, throwing HttpTransportError if that fails. The body is
-/// then read through the std::istream interface or directly through rdbuf(). Any failure while
-/// reading the body (transport error, broken compressed data, ClickHouse exception) is thrown from
-/// the read operation itself, and again from every following read. (The stream has std::ios::badbit
-/// set in exceptions(), so std::istream operations rethrow it too, but only once.)
-class HttpResponse
-    : private std::streambuf
-    , public std::istream
-{
+/// the response headers are received, throwing HttpTransportError if that fails. The body is then
+/// read with eof(), get() and read(). Any failure while reading the body (transport error, broken
+/// compressed data, ClickHouse exception) is thrown from these, and again from every later call.
+class HttpResponse {
 public:
     HttpResponse(std::shared_ptr<HttpSession> session, HttpRequest request);
-    ~HttpResponse() override;
+    ~HttpResponse();
+
+    HttpResponse(const HttpResponse &) = delete;
+    HttpResponse & operator=(const HttpResponse &) = delete;
 
     long getStatus() const { return status; }
     bool hasHeader(const std::string & name) const;
@@ -91,15 +88,37 @@ public:
     /// The target of a redirect, resolved against the request URL. Empty if there is none.
     std::string getRedirectUrl() const;
 
+    /// True if the body has no more data. Waits for data, if necessary.
+    bool eof() {
+        return (pos == end && !fill());
+    }
+
+    /// Reads one byte of the body; throws if there is none.
+    char get() {
+        if (pos == end && !fill())
+            throw std::runtime_error("Incomplete input stream, expected at least 1 more byte");
+        return *pos++;
+    }
+
+    /// Reads exactly `count` bytes of the body; throws if there are fewer.
+    void read(char * dest, std::size_t count) {
+        if (static_cast<std::size_t>(end - pos) >= count) { // the common case
+            std::memcpy(dest, pos, count);
+            pos += count;
+            return;
+        }
+        readSlow(dest, count);
+    }
+
     /// Reads the rest of the body (at most `limit` bytes). Never throws because of a failed transfer.
     std::string readAll(std::size_t limit);
 
 private:
-    // std::streambuf, std::istream and std::ios all define these.
-    using traits_type = std::streambuf::traits_type;
-    using int_type = std::streambuf::int_type;
-
-    int_type underflow() override;
+    /// Makes the next part of the body available in [pos, end). Returns false at the end of the
+    /// body, throws if the body cannot be read. Must only be called when [pos, end) is empty: it
+    /// may move or overwrite the data that the window pointed to.
+    bool fill();
+    void readSlow(char * dest, std::size_t count);
 
     void pump();
     void finish();
@@ -125,6 +144,9 @@ private:
     std::exception_ptr error;
     std::string failed_tail; // undelivered (decoded) body bytes, if the transfer failed
     std::string unsupported_encoding;
+
+    const char * pos = nullptr; // the part of the body that can be read now, without waiting
+    const char * end = nullptr;
 
     std::string raw;         // received body bytes, possibly compressed
     std::size_t raw_pos = 0; // first byte of `raw` not yet handed over to the decoder/reader

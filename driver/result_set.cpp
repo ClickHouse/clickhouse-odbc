@@ -122,7 +122,7 @@ void ColumnInfo::updateTypeInfo() {
     }
 }
 
-ResultSet::ResultSet(AmortizedIStreamReader & str, std::unique_ptr<ResultMutator> && mutator)
+ResultSet::ResultSet(HttpResponse & str, std::unique_ptr<ResultMutator> && mutator)
     : stream(str)
     , result_mutator(std::move(mutator))
     , string_pool(1000000)
@@ -303,11 +303,11 @@ void ResultSet::retireRow(Row && row) {
 
 ResultReader::ResultReader(
     const std::string & timezone_,
-    std::istream & raw_stream,
+    HttpResponse & stream_,
     std::unique_ptr<ResultMutator> && mutator
 )
     : timezone(timezone_)
-    , stream(raw_stream)
+    , stream(stream_)
     , result_mutator(std::move(mutator))
 {
 }
@@ -330,17 +330,17 @@ std::unique_ptr<ResultMutator> ResultReader::releaseMutator() {
 std::unique_ptr<ResultReader> make_result_reader(
     const std::string & format,
     const std::string & timezone,
-    std::istream & raw_stream,
+    HttpResponse & stream,
     std::unique_ptr<ResultMutator> && mutator
 ) {
     if (format == "ODBCDriver2") {
-        return std::make_unique<ODBCDriver2ResultReader>(timezone, raw_stream, std::move(mutator));
+        return std::make_unique<ODBCDriver2ResultReader>(timezone, stream, std::move(mutator));
     }
     else if (format == "RowBinaryWithNamesAndTypes") {
         if (!isLittleEndian())
             throw std::runtime_error("'" + format + "' format is supported only on little-endian platforms");
 
-        return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(timezone, raw_stream, std::move(mutator));
+        return std::make_unique<RowBinaryWithNamesAndTypesResultReader>(timezone, stream, std::move(mutator));
     }
 
     throw std::runtime_error("'" + format + "' format is not supported");
