@@ -4,6 +4,7 @@
 #include <curl/curl.h>
 #include <zstd.h>
 
+#include <algorithm>
 #include <cctype>
 #include <charconv>
 #include <cstdio>
@@ -274,13 +275,10 @@ struct HttpResponse::Zstd {
 };
 
 HttpResponse::HttpResponse(std::shared_ptr<HttpSession> session_, HttpRequest request_)
-    : std::istream(static_cast<std::streambuf *>(this))
-    , session(std::move(session_))
+    : session(std::move(session_))
     , request(std::move(request_))
     , handles(std::make_unique<Handles>())
 {
-    exceptions(std::ios::badbit); // failures thrown from underflow() reach the reader
-
     const auto & settings = session->settings;
 
     handles->multi = curl_multi_init();
@@ -391,12 +389,10 @@ std::string HttpResponse::getRedirectUrl() const {
 std::string HttpResponse::readAll(std::size_t limit) {
     std::string res;
     try {
-        char buffer[4096];
-        while (res.size() < limit) {
-            const auto n = sgetn(buffer, sizeof(buffer));
-            if (n <= 0)
-                break;
-            res.append(buffer, static_cast<std::size_t>(n));
+        while (res.size() < limit && (pos < end || fill())) {
+            const auto n = std::min(static_cast<std::size_t>(end - pos), limit - res.size());
+            res.append(pos, n);
+            pos += n;
         }
     }
     catch (...) {
@@ -501,11 +497,24 @@ void HttpResponse::pump() {
         curl_multi_poll(handles->multi, nullptr, 0, 200, nullptr);
 }
 
-HttpResponse::int_type HttpResponse::underflow() {
-    if (gptr() < egptr())
-        return traits_type::to_int_type(*gptr());
+void HttpResponse::readSlow(char * dest, std::size_t count) {
+    const auto requested = count;
+    while (count > 0) {
+        if (pos == end && !fill())
+            throw std::runtime_error("Incomplete input stream, expected at least " + std::to_string(requested) + " more bytes");
+        const auto n = std::min(static_cast<std::size_t>(end - pos), count);
+        std::memcpy(dest, pos, n);
+        dest += n;
+        pos += n;
+        count -= n;
+    }
+}
 
-    setg(nullptr, nullptr, nullptr);
+bool HttpResponse::fill() {
+    if (pos < end)
+        return true;
+
+    pos = end = nullptr;
 
     if (!error && !unsupported_encoding.empty())
         error = std::make_exception_ptr(std::runtime_error("Unsupported Content-Encoding: " + unsupported_encoding));
@@ -530,10 +539,10 @@ HttpResponse::int_type HttpResponse::underflow() {
         if (!done || result == CURLE_OK) {
             if (!zstd) {
                 if (allowed > 0) {
-                    char * begin = raw.data() + raw_pos;
-                    setg(begin, begin, begin + allowed);
+                    pos = raw.data() + raw_pos;
+                    end = pos + allowed;
                     raw_pos += allowed;
-                    return traits_type::to_int_type(*gptr());
+                    return true;
                 }
             }
             else if (allowed > 0 || done) {
@@ -549,8 +558,9 @@ HttpResponse::int_type HttpResponse::underflow() {
                 if (in.pos > 0 || out.pos > 0) // a call without progress returns a size hint, not 0
                     zstd_frame_complete = (rc == 0);
                 if (out.pos > 0) {
-                    setg(decoded.data(), decoded.data(), decoded.data() + out.pos);
-                    return traits_type::to_int_type(*gptr());
+                    pos = decoded.data();
+                    end = pos + out.pos;
+                    return true;
                 }
                 if (in.pos > 0)
                     continue; // input consumed without output yet
@@ -561,7 +571,7 @@ HttpResponse::int_type HttpResponse::underflow() {
             finish();
             if (error)
                 std::rethrow_exception(error);
-            return traits_type::eof();
+            return false;
         }
 
         pump();
