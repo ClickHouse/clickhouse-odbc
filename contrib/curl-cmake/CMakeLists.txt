@@ -1,93 +1,83 @@
-# libcurl, built from the unmodified upstream sources (contrib/curl) with its own CMake.
+# libcurl, built from the unmodified upstream sources (contrib/curl).
 #
-# Only HTTP(S) is enabled and all optional third-party dependencies are disabled. TLS is
-# provided by the bundled OpenSSL on Linux/macOS and by the native Schannel on Windows.
-# Content decoding (zstd) is done by the driver itself, see the motivation at
-# HttpResponse::Zstd in driver/http_client.cpp.
+# curl's own CMake is not used: it probes the build machine with hundreds of configure checks,
+# needs workarounds to find the bundled OpenSSL, and adds many cache options. Instead, the
+# configuration is fixed in config/curl_config.h: HTTP and HTTPS only, no optional dependencies,
+# the bundled OpenSSL on Linux/macOS and the native Schannel on Windows. Content decoding (zstd) is
+# done by the driver itself, see the motivation at HttpResponse::Zstd in driver/http_client.cpp.
+#
+# When updating curl:
+#  - The source list is taken from curl's lib/Makefile.inc, so new or removed files need no change
+#    here.
+#  - config/curl_config.h has to be checked against what curl's own CMake generates on each
+#    platform (Linux, macOS, Windows), configured with the same features: HTTP_ONLY, the
+#    CURL_DISABLE_* options listed in config/curl_config.h, no zlib/brotli/zstd/nghttp2/libidn2/
+#    libpsl/libssh, threaded resolver, OpenSSL (with CURL_CA_BUNDLE=none, CURL_CA_PATH=none,
+#    CURL_CA_FALLBACK=ON) or Schannel. New HAVE_* checks that curl added must be reviewed.
 
 set (CURL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../curl")
 
-# Build options. These are directory-scoped normal variables where possible, cache entries
-# (FORCE) where curl reads them through option()/set(CACHE).
-set (BUILD_SHARED_LIBS OFF)
-set (BUILD_TESTING OFF)
-set (BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
-set (BUILD_CURL_EXE OFF CACHE BOOL "" FORCE)
-set (BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set (BUILD_LIBCURL_DOCS OFF CACHE BOOL "" FORCE)
-set (BUILD_MISC_DOCS OFF CACHE BOOL "" FORCE)
-set (ENABLE_CURL_MANUAL OFF CACHE BOOL "" FORCE)
-set (CURL_DISABLE_INSTALL ON CACHE BOOL "" FORCE)
-set (CURL_ENABLE_EXPORT_TARGET OFF CACHE BOOL "" FORCE)
-set (CURL_USE_PKGCONFIG OFF CACHE BOOL "" FORCE)
-set (PICKY_COMPILER OFF CACHE BOOL "" FORCE)
-set (CURL_HIDDEN_SYMBOLS OFF CACHE BOOL "" FORCE) # do not export curl_* from the driver library
+# Get CSOURCES from lib/Makefile.inc, the way curl's own CMake does it.
+file (READ "${CURL_SOURCE_DIR}/lib/Makefile.inc" _makefile_inc)
+string (REGEX REPLACE "\\\\\n" " " _makefile_inc "${_makefile_inc}")                   # join continued lines
+string (REGEX REPLACE "#[^\n]*" "" _makefile_inc "${_makefile_inc}")                   # drop comments
+string (REGEX REPLACE "([A-Za-z_][A-Za-z0-9_]*)[\t ]*=[\t ]*([^\n]*)" "set(\\1 \\2)" _makefile_inc "${_makefile_inc}")
+string (REGEX REPLACE "\\$\\(([A-Za-z_][A-Za-z0-9_]*)\\)" "\${\\1}" _makefile_inc "${_makefile_inc}")
+file (WRITE "${CMAKE_CURRENT_BINARY_DIR}/Makefile.inc.cmake" "${_makefile_inc}")
+include ("${CMAKE_CURRENT_BINARY_DIR}/Makefile.inc.cmake")
+set_property (DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CURL_SOURCE_DIR}/lib/Makefile.inc")
 
-# Features: HTTP/1.1 only, no auth schemes besides Basic (the driver sets the header itself).
-set (HTTP_ONLY ON CACHE BOOL "" FORCE)
-set (CURL_DISABLE_ALTSVC ON CACHE BOOL "" FORCE)
-set (CURL_DISABLE_AWS ON CACHE BOOL "" FORCE)
-set (CURL_DISABLE_COOKIES ON CACHE BOOL "" FORCE)
-set (CURL_DISABLE_DOH ON CACHE BOOL "" FORCE)
-set (CURL_DISABLE_HSTS ON CACHE BOOL "" FORCE)
-set (CURL_DISABLE_KERBEROS_AUTH ON CACHE BOOL "" FORCE)
-set (CURL_DISABLE_NEGOTIATE_AUTH ON CACHE BOOL "" FORCE)
-set (CURL_DISABLE_NETRC ON CACHE BOOL "" FORCE)
-set (CURL_DISABLE_NTLM ON CACHE BOOL "" FORCE)
-set (CURL_DISABLE_SRP ON CACHE BOOL "" FORCE)
-set (CURL_DISABLE_WEBSOCKETS ON CACHE BOOL "" FORCE)
-set (ENABLE_UNIX_SOCKETS OFF CACHE BOOL "" FORCE)
-set (ENABLE_THREADED_RESOLVER ON CACHE BOOL "" FORCE)
-set (ENABLE_ARES OFF CACHE BOOL "" FORCE)
-
-# No optional dependencies.
-set (CURL_ZLIB OFF CACHE STRING "" FORCE)
-set (CURL_BROTLI OFF CACHE STRING "" FORCE)
-set (CURL_ZSTD OFF CACHE STRING "" FORCE)
-set (USE_NGHTTP2 OFF CACHE BOOL "" FORCE)
-set (USE_LIBIDN2 OFF CACHE BOOL "" FORCE)
-set (CURL_USE_LIBPSL OFF CACHE BOOL "" FORCE)
-set (CURL_USE_LIBSSH2 OFF CACHE BOOL "" FORCE)
-set (CURL_USE_LIBSSH OFF CACHE BOOL "" FORCE)
-set (CURL_USE_GSSAPI OFF CACHE BOOL "" FORCE)
-
-if (OS_WINDOWS)
-    set (CURL_USE_SCHANNEL ON CACHE BOOL "" FORCE)
-    set (CURL_USE_OPENSSL OFF CACHE BOOL "" FORCE)
-    set (CURL_STATIC_CRT ON CACHE BOOL "" FORCE)
-    set (ENABLE_UNICODE ON CACHE BOOL "" FORCE) # file and certificate store paths are UTF-8
-else ()
-    set (CURL_USE_OPENSSL ON CACHE BOOL "" FORCE)
-
-    # Do not bake the CA bundle location of the build machine into the binary: use the
-    # default verify paths of the bundled OpenSSL (OPENSSLDIR), like Poco did.
-    set (CURL_CA_BUNDLE "none" CACHE STRING "" FORCE)
-    set (CURL_CA_PATH "none" CACHE STRING "" FORCE)
-    set (CURL_CA_FALLBACK ON CACHE BOOL "" FORCE)
-
-    # Make curl's find_package(OpenSSL) resolve to the bundled OpenSSL targets
-    # (OpenSSL::SSL and OpenSSL::Crypto are defined by contrib/openssl-cmake).
-    get_target_property (_openssl_include_dirs crypto INTERFACE_INCLUDE_DIRECTORIES)
-    list (GET _openssl_include_dirs 0 _openssl_include_dir)
-    set (OPENSSL_INCLUDE_DIR "${_openssl_include_dir}" CACHE PATH "" FORCE)
-    set (OPENSSL_CRYPTO_LIBRARY OpenSSL::Crypto CACHE STRING "" FORCE)
-    set (OPENSSL_SSL_LIBRARY OpenSSL::SSL CACHE STRING "" FORCE)
-    set (OPENSSL_USE_STATIC_LIBS ON)
-
-    # try_compile() cannot link targets of this build, so the results of curl's OpenSSL
-    # feature checks are provided for the bundled OpenSSL (3.x) here. Re-validate these
-    # when updating contrib/curl or contrib/openssl.
-    set (HAVE_BORINGSSL 0 CACHE INTERNAL "")
-    set (HAVE_AWSLC 0 CACHE INTERNAL "")
-    set (HAVE_LIBRESSL 0 CACHE INTERNAL "")
-    set (HAVE_DES_ECB_ENCRYPT 1 CACHE INTERNAL "")
-    set (HAVE_SSL_SET0_WBIO 1 CACHE INTERNAL "")
+if (NOT CSOURCES)
+    message (FATAL_ERROR "Failed to get the list of curl sources from ${CURL_SOURCE_DIR}/lib/Makefile.inc")
 endif ()
 
-# Like the other contribs: do not propagate the driver's global link options into curl.
-get_directory_property (SAVED_LINK_LIBS LINK_LIBRARIES)
-set_property (DIRECTORY PROPERTY LINK_LIBRARIES "")
-add_subdirectory ("${CURL_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/curl" EXCLUDE_FROM_ALL)
-set_property (DIRECTORY PROPERTY LINK_LIBRARIES ${SAVED_LINK_LIBS})
+list (TRANSFORM CSOURCES PREPEND "${CURL_SOURCE_DIR}/lib/")
 
-add_library (ch_contrib::curl ALIAS libcurl_static)
+add_library (_curl STATIC ${CSOURCES})
+
+target_include_directories (_curl
+    PUBLIC "${CURL_SOURCE_DIR}/include"
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    PRIVATE "${CURL_SOURCE_DIR}/lib"
+)
+
+target_compile_definitions (_curl
+    PUBLIC CURL_STATICLIB
+    PRIVATE BUILDING_LIBCURL
+    PRIVATE HAVE_CONFIG_H
+)
+
+if (OS_WINDOWS)
+    target_compile_definitions (_curl
+        PRIVATE UNICODE  # file and certificate store paths are UTF-8
+        PRIVATE _UNICODE
+    )
+    target_link_libraries (_curl
+        PRIVATE ws2_32
+        PRIVATE iphlpapi
+        PRIVATE bcrypt
+        PRIVATE advapi32
+        PRIVATE crypt32
+        PRIVATE secur32
+    )
+elseif (OS_LINUX OR OS_DARWIN)
+    if (OS_LINUX)
+        target_compile_definitions (_curl PRIVATE _GNU_SOURCE)
+    else ()
+        target_compile_definitions (_curl PRIVATE _DARWIN_C_SOURCE)
+        target_link_libraries (_curl
+            PRIVATE "-framework SystemConfiguration"
+            PRIVATE "-framework CoreFoundation"
+            PRIVATE "-framework CoreServices"
+        )
+    endif ()
+    target_link_libraries (_curl
+        PRIVATE OpenSSL::SSL
+        PRIVATE OpenSSL::Crypto
+        PRIVATE Threads::Threads
+    )
+else ()
+    message (FATAL_ERROR "libcurl is not configured for this platform, see contrib/curl-cmake/config/curl_config.h")
+endif ()
+
+add_library (ch_contrib::curl ALIAS _curl)
