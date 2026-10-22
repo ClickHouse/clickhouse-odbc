@@ -141,6 +141,10 @@ private:
 
     bool done = false;
     int result = 0; // CURLcode of the finished transfer
+    // The failure of the body, once there is one. fill() throws it as soon as it is detected, and
+    // keeps it so that every later read throws the same exception again: retrying would otherwise
+    // run into a decoder (and a tail that was scanned for a ClickHouse exception already) in an
+    // undefined state, and might report another error, or even a clean end of a truncated body.
     std::exception_ptr error;
     std::string failed_tail; // undelivered (decoded) body bytes, if the transfer failed
     std::string unsupported_encoding;
