@@ -19,10 +19,12 @@ size_t read_content_length(std::istream & stream)
         while(!stream.eof()) {
             std::getline(stream, header_line);
             if (header_line.starts_with("Content-Length")) {
-                auto size_begin = std::find(header_line.crbegin(), header_line.crend(), ' ');
+                const auto space = header_line.rfind(' ');
                 size_t content_length = 0;
-                auto begin = &*size_begin.base();
-                auto end = &*header_line.end() - 1;
+                const char * begin = header_line.data() + (space == std::string::npos ? 0 : space + 1);
+                const char * end = header_line.data() + header_line.size();
+                if (end > begin && end[-1] == '\r')
+                    --end;
                 auto [ignore, ec] = std::from_chars(begin, end, content_length);
                 if (ec != std::errc{})
                     throw std::runtime_error("failed to parse content length");
@@ -111,13 +113,16 @@ asio::awaitable<void> TcpServer::process_connection(tcp::socket socket)
         if (write_error)
             throw std::system_error(write_error);
 
+        // The client may have closed the connection already (e.g. after a "Connection: close"
+        // response), then these fail (macOS: ENOTCONN). That must not stop the server.
+        asio::error_code ignored;
         switch (response_keep_alive) {
             case KeepAlive::Drop:
-                socket.set_option(asio::socket_base::linger{true, 0});
-                socket.close();
+                socket.set_option(asio::socket_base::linger{true, 0}, ignored);
+                socket.close(ignored);
                 co_return;
             case KeepAlive::Close:
-                socket.shutdown(tcp::socket::shutdown_both);
+                socket.shutdown(tcp::socket::shutdown_both, ignored);
                 co_return;
             case KeepAlive::KeepAlive:
                 break;

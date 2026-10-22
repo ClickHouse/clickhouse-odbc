@@ -14,21 +14,15 @@
 [submodule "contrib/nanodbc"]
 	path = contrib/nanodbc
 	url = https://github.com/ClickHouse/nanodbc.git
-[submodule "contrib/zlib-ng"]
-	path = contrib/zlib-ng
-	url = https://github.com/ClickHouse/zlib-ng.git
-[submodule "contrib/lz4"]
-	path = contrib/lz4
-	url = https://github.com/ClickHouse/lz4
 [submodule "contrib/openssl"]
 	path = contrib/openssl
 	url = https://github.com/ClickHouse/openssl
-[submodule "contrib/double-conversion"]
-	path = contrib/double-conversion
-	url = https://github.com/ClickHouse/double-conversion
 [submodule "contrib/asio"]
 	path = contrib/asio
 	url = https://github.com/chriskohlhoff/asio
 [submodule "contrib/zstd"]
 	path = contrib/zstd
 	url = https://github.com/facebook/zstd
+[submodule "contrib/curl"]
+	path = contrib/curl
+	url = https://github.com/curl/curl

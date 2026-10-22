@@ -2,7 +2,7 @@
 
 #include <ctime>
 
-RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(const std::string & timezone, AmortizedIStreamReader & stream, std::unique_ptr<ResultMutator> && mutator)
+RowBinaryWithNamesAndTypesResultSet::RowBinaryWithNamesAndTypesResultSet(const std::string & timezone, HttpResponse & stream, std::unique_ptr<ResultMutator> && mutator)
     : ResultSet(stream, std::move(mutator))
 {
     std::uint64_t num_columns = 0;
@@ -306,11 +306,10 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
 
 RowBinaryWithNamesAndTypesResultReader::RowBinaryWithNamesAndTypesResultReader(
     const std::string & timezone_,
-    std::istream & raw_stream,
-    Poco::Net::HTTPClientSession & session,
+    HttpResponse & stream_,
     std::unique_ptr<ResultMutator> && mutator
 )
-    : ResultReader(timezone_, raw_stream, session, std::move(mutator))
+    : ResultReader(timezone_, stream_, std::move(mutator))
 {
     if (stream.eof())
         return;

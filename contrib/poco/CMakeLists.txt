@@ -1,13 +1,4 @@
 include(cmake/PocoMacros.cmake)
 
+# Only Foundation is used. HTTP/TLS is provided by libcurl (see contrib/curl-cmake).
 add_subdirectory(Foundation)
-add_subdirectory(Util)
-add_subdirectory(Net)
-if (OS_LINUX OR OS_DARWIN)
-    add_subdirectory(Crypto)
-    add_subdirectory(NetSSL_OpenSSL)
-    add_library(Poco::Net::SSL ALIAS NetSSL)
-else()
-    add_subdirectory(NetSSL_Win)
-    add_library(Poco::Net::WinSSL ALIAS NetSSLWin)
-endif()

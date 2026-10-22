@@ -3,8 +3,6 @@
 #include "driver/platform/platform.h"
 #include "driver/result_set.h"
 
-#include <Poco/Net/HTTPClientSession.h>
-
 // Implementation of ResultSet for ODBCDriver2 wire format of ClickHouse.
 class ODBCDriver2ResultSet
     : public ResultSet
@@ -12,7 +10,7 @@ class ODBCDriver2ResultSet
 public:
     explicit ODBCDriver2ResultSet(
         const std::string & timezone,
-        AmortizedIStreamReader & stream,
+        HttpResponse & stream,
         std::unique_ptr<ResultMutator> && mutator
     );
     virtual ~ODBCDriver2ResultSet() override = default;
@@ -71,8 +69,7 @@ class ODBCDriver2ResultReader
 public:
     explicit ODBCDriver2ResultReader(
         const std::string & timezone_,
-        std::istream & raw_stream,
-        Poco::Net::HTTPClientSession & session,
+        HttpResponse & stream_,
         std::unique_ptr<ResultMutator> && mutator
     );
     virtual ~ODBCDriver2ResultReader() override = default;

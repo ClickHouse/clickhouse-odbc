@@ -134,6 +134,18 @@ protected:
         } \
     }, type);
 
+// A reset connection is reported by the OS: "Connection reset by peer" (POSIX), "Connection was reset" (Windows).
+#define EXPECT_THROW_RESET(expr) \
+    EXPECT_THROW({ \
+        try { \
+            expr; \
+        } catch (const std::runtime_error & ex) { \
+            const std::string what = ex.what(); \
+            ASSERT_TRUE(what.starts_with("1:[HY000][1]Recv failure: Connection") && what.find("reset") != std::string::npos) << what; \
+            throw; \
+        } \
+    }, std::runtime_error);
+
 /**
  * Small helper that allows generating real testable ODBCDriver2 data,
  * format it in chunks and perform other manipulations to generate different
@@ -354,10 +366,10 @@ TEST_F(NetworkingTest, ClosingUnreadCursorReconnects)
     EXPECT_EQ(server.connectionCount(), 2);
 }
 
-TEST_F(NetworkingTest, ClosingBufferedUnreadCursorReconnects)
+TEST_F(NetworkingTest, ClosingFullyReceivedCursorReusesConnection)
 {
-    // This entire response fits in the reader's buffer. Releasing that reader
-    // puts back unread rows, so the stream must be checked after its destruction.
+    // This entire response is received before the cursor is closed, so the connection
+    // stays usable even though the application did not read all rows.
     ClickHouseResponseGenerator gen{};
     gen.generate(1024 * 5).chunk(1024).append_last_chunk();
     setResponse(KeepAlive::KeepAlive, gen.make_response());
@@ -366,7 +378,7 @@ TEST_F(NetworkingTest, ClosingBufferedUnreadCursorReconnects)
     ODBC_CALL_ON_STMT_THROW(stmt, SQLExecDirect(stmt, ptcharCast(query.data()), SQL_NTS));
     ODBC_CALL_ON_STMT_THROW(stmt, SQLFreeStmt(stmt, SQL_CLOSE));
     ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
-    EXPECT_EQ(server.connectionCount(), 2);
+    EXPECT_EQ(server.connectionCount(), 1);
 }
 
 TEST_F(NetworkingTest, IncompleteResponseReconnects)
@@ -378,7 +390,7 @@ TEST_F(NetworkingTest, IncompleteResponseReconnects)
     ODBC_CALL_ON_STMT_THROW(stmt, SQLPrepare(stmt, ptcharCast(query.data()), SQL_NTS));
     EXPECT_THROW_MESSAGE(
         ODBC_CALL_ON_STMT_THROW(stmt, SQLExecute(stmt)),
-        std::runtime_error, "1:[HY000][1]Unexpected EOF in chunked encoding");
+        std::runtime_error, "1:[HY000][1]transfer closed with outstanding read data remaining");
 
     const std::string response = HTTP_HEADER CRLF ZERO_CHUNK;
     setResponse(KeepAlive::KeepAlive, {response.begin(), response.end()});
@@ -417,12 +429,13 @@ TEST_F(NetworkingTest, PositiveCaseDrop)
         sum = fetch_sum(stmt);
         ASSERT_EQ(sum, gen.expected_sum());
     } catch (const std::runtime_error & ex) {
-       ASSERT_STREQ(ex.what(), "1:[HY000][1]Connection reset by peer");
+       const std::string what = ex.what();
+       ASSERT_TRUE(what.starts_with("1:[HY000][1]Recv failure: Connection")) << what;
     }
 }
 
 /**
- * Verifies that the library throws a "Connection reset by peer" exception when the server
+ * Verifies that the library throws a "connection reset" exception when the server
  * drops the connection in the middle of an incomplete chunk (1024 bytes declared, only 384
  * bytes sent).
  */
@@ -432,10 +445,10 @@ TEST_F(NetworkingTest, ConnectionDropMidStream)
     gen.generate(1024 * 5).chunk(1024).cut(1024 * 4 - 10);
 
     setResponse(KeepAlive::Drop, gen.make_response());
-    EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]Connection reset by peer");
+    EXPECT_THROW_RESET(fetch_sum(stmt));
 }
 /*
- * Verifies that the library throws a "Connection reset by peer" exception when the server
+ * Verifies that the library throws a "connection reset" exception when the server
  * drops the connection after sending complete chunks but without the required zero-length
  * terminating chunk.
  */
@@ -444,11 +457,11 @@ TEST_F(NetworkingTest, ConnectionDropMissingZeroChunk)
     ClickHouseResponseGenerator gen{};
     gen.generate(1024 * 5).chunk(1024).cut(1024 * 4 - 10);
     setResponse(KeepAlive::Drop, gen.make_response());
-    EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]Connection reset by peer");
+    EXPECT_THROW_RESET(fetch_sum(stmt));
 }
 
 /**
- * Verifies that the library throws an "Unexpected EOF in chunked encoding" exception when
+ * Verifies that the library throws an "outstanding read data remaining" exception when
  * the server properly closes the connection mid-stream during an incomplete chunk.
  */
 TEST_F(NetworkingTest, ConnectionCloseMidStream)
@@ -457,11 +470,11 @@ TEST_F(NetworkingTest, ConnectionCloseMidStream)
     gen.generate(1024 * 5).chunk(1024).cut(1024 * 4 - 10);
 
     setResponse(KeepAlive::Close, gen.make_response());
-    EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]Unexpected EOF in chunked encoding");
+    EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]transfer closed with outstanding read data remaining");
 }
 
 /**
- * Verifies that the library throws an "Unexpected EOF in chunked encoding" exception when
+ * Verifies that the library throws an "outstanding read data remaining" exception when
  * the server properly closes the connection after complete chunks but without sending
  * the required zero-length terminating chunk.
  */
@@ -471,7 +484,7 @@ TEST_F(NetworkingTest, ConnectionCloseMissingZeroChunk)
     gen.generate(1024 * 5).chunk(1024);
 
     setResponse(KeepAlive::Close, gen.make_response());
-    EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]Unexpected EOF in chunked encoding");
+    EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, "1:[HY000][1]transfer closed with outstanding read data remaining");
 }
 
 /**
@@ -487,7 +500,7 @@ TEST_F(NetworkingTest, IncorrectEncoding)
     EXPECT_THROW_MESSAGE(
         fetch_sum(stmt),
         std::runtime_error,
-        "1:[HY000][1]Unable to parse the chunk size from the stream");
+        "1:[HY000][1]chunk hex-length char not a hex digit: 0xa");
 }
 
 /**
@@ -562,4 +575,130 @@ TEST_F(NetworkingTest, InterruptedZstdStream)
         std::runtime_error,
         "1:[HY000][1]Failed to decompress the data: "
         "Incomplete data, frame was truncated or connection closed prematurely");
+}
+
+namespace {
+
+std::string taggedException(const std::string & tag, const std::string & message)
+{
+    return "\r\n__exception__\r\n" + tag + "\r\n" + message + std::to_string(message.size()) + " " + tag + "\r\n__exception__\r\n";
+}
+
+const std::string TAGGED_MESSAGE
+    = "Code: 395. DB::Exception: Tagged. (FUNCTION_THROW_IF_VALUE_IS_NON_ZERO) (version 26.9.7.9)\n";
+
+} // anonymous namespace
+
+/**
+ * Verifies the handling of a ClickHouse mid-stream exception in the format with an exception tag
+ * (X-ClickHouse-Exception-Tag).
+ */
+TEST_F(NetworkingTest, ClickHouseExceptionTagged)
+{
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 512).append(taggedException("abcdefgh", TAGGED_MESSAGE)).chunk(1000);
+    setResponse(KeepAlive::Close, gen.make_response("X-ClickHouse-Exception-Tag: abcdefgh\r\n"));
+    EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error,
+        ("1:[HY000][1]ClickHouse exception: " + TAGGED_MESSAGE).c_str());
+}
+
+TEST_F(NetworkingTest, ClickHouseExceptionTaggedCompressed)
+{
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 1024 * 4).append(taggedException("abcdefgh", TAGGED_MESSAGE)).compress(ZSTD_e_flush).chunk(4096);
+    setResponse(KeepAlive::Close, gen.make_response(ZSTD_HEADER "X-ClickHouse-Exception-Tag: abcdefgh\r\n"));
+    EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error,
+        ("1:[HY000][1]ClickHouse exception: " + TAGGED_MESSAGE).c_str());
+}
+
+/**
+ * The server resets the connection (RST) right after the exception. On Linux the data received
+ * before the reset is still delivered, so the ClickHouse exception must be reported. Other systems
+ * (e.g. Windows) may discard unread data when a reset arrives, so a reset error is acceptable there.
+ */
+TEST_F(NetworkingTest, ClickHouseExceptionTaggedDrop)
+{
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 64).append(taggedException("abcdefgh", TAGGED_MESSAGE)).chunk(1000);
+    setResponse(KeepAlive::Drop, gen.make_response("X-ClickHouse-Exception-Tag: abcdefgh\r\n"));
+    try {
+        fetch_sum(stmt);
+        FAIL() << "expected an exception";
+    } catch (const std::runtime_error & ex) {
+        const std::string what = ex.what();
+#if defined(__linux__)
+        EXPECT_EQ(what, "1:[HY000][1]ClickHouse exception: " + TAGGED_MESSAGE);
+#else
+        EXPECT_TRUE(what == "1:[HY000][1]ClickHouse exception: " + TAGGED_MESSAGE
+            || what.starts_with("1:[HY000][1]Recv failure: Connection")) << what;
+#endif
+    }
+}
+
+TEST_F(NetworkingTest, LargeResponseKeepAlive)
+{
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 1024 * 4).chunk(65536).append_last_chunk();
+    setResponse(KeepAlive::KeepAlive, gen.make_response());
+    for (int i = 0; i < 2; ++i)
+        ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+    EXPECT_EQ(server.connectionCount(), 1);
+}
+
+/**
+ * A compressed response framed with Content-Length instead of the chunked encoding.
+ */
+TEST_F(NetworkingTest, ContentLengthCompressedResponse)
+{
+    ClickHouseResponseGenerator gen{};
+    gen.generate(1024 * 64).compress();
+    const auto with_headers = gen.make_response();
+    const std::string body = std::string(with_headers.begin(), with_headers.end()).substr(std::string(HTTP_HEADER CRLF).size());
+    const std::string response = "HTTP/1.1 200 OK\r\nConnection: Keep-Alive\r\n" ZSTD_HEADER
+        "Content-Length: " + std::to_string(body.size()) + "\r\n\r\n" + body;
+    setResponse(KeepAlive::KeepAlive, {response.begin(), response.end()});
+    ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+    ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+    EXPECT_EQ(server.connectionCount(), 1);
+}
+
+TEST_F(NetworkingTest, ErrorStatusWithBody)
+{
+    const std::string body = "Code: 60. DB::Exception: Unknown table. (UNKNOWN_TABLE)\n";
+    const std::string response = "HTTP/1.1 404 Not Found\r\nX-ClickHouse-Exception-Code: 60\r\nContent-Length: "
+        + std::to_string(body.size()) + "\r\n\r\n" + body;
+    setResponse(KeepAlive::KeepAlive, {response.begin(), response.end()});
+    const auto expected = "1:[HY000][1]HTTP status code: 404\nReceived error:\n" + body + "\n";
+    EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, expected.c_str());
+    EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error, expected.c_str());
+    EXPECT_EQ(server.connectionCount(), 1);
+}
+
+TEST_F(NetworkingTest, RedirectLimit)
+{
+    const std::string response = "HTTP/1.1 307 Temporary Redirect\r\nLocation: /elsewhere?x=1\r\nContent-Length: 0\r\n\r\n";
+    setResponse(KeepAlive::KeepAlive, {response.begin(), response.end()});
+    EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error,
+        "1:[HY000][1]Redirect count exceeded\nRedirect limit: 10\n");
+}
+
+TEST_F(NetworkingTest, RedirectWithoutLocation)
+{
+    const std::string response = "HTTP/1.1 307 Temporary Redirect\r\nContent-Length: 0\r\n\r\n";
+    setResponse(KeepAlive::KeepAlive, {response.begin(), response.end()});
+    EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error,
+        "1:[HY000][1]HTTP status code: 307, but no Location header in the response");
+}
+
+/**
+ * Redirects to another scheme are rejected, so that e.g. https -> http cannot expose the credentials.
+ * (The test server speaks plain HTTP only, so http -> https is tested; it is the same check.)
+ */
+TEST_F(NetworkingTest, RedirectSchemeChangeRejected)
+{
+    const auto target = "https://127.0.0.1:" + std::to_string(server.port()) + "/x";
+    const std::string response = "HTTP/1.1 307 Temporary Redirect\r\nLocation: " + target + "\r\nContent-Length: 0\r\n\r\n";
+    setResponse(KeepAlive::KeepAlive, {response.begin(), response.end()});
+    EXPECT_THROW_MESSAGE(fetch_sum(stmt), std::runtime_error,
+        ("1:[HY000][1]Redirect to a different scheme is not allowed: " + target).c_str());
 }
