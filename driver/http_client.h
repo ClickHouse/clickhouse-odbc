@@ -102,6 +102,8 @@ public:
 
     /// Reads exactly `count` bytes of the body; throws if there are fewer.
     void read(char * dest, std::size_t count) {
+        if (count == 0)
+            return; // `pos` may be null here, which memcpy() does not allow even for 0 bytes
         if (static_cast<std::size_t>(end - pos) >= count) { // the common case
             std::memcpy(dest, pos, count);
             pos += count;

@@ -235,6 +235,15 @@ struct HttpResponse::Handles {
         if (headers)
             curl_slist_free_all(headers);
     }
+
+    void addHeader(const char * header) {
+        // On failure curl_slist_append() returns null and leaves the list untouched, so `headers`
+        // keeps pointing to a valid list that the destructor frees.
+        curl_slist * list = curl_slist_append(headers, header);
+        if (!list)
+            throw std::bad_alloc();
+        headers = list;
+    }
 };
 
 // The zstd-compressed response body is decoded here rather than by curl (which could do it, see
@@ -287,12 +296,12 @@ HttpResponse::HttpResponse(std::shared_ptr<HttpSession> session_, HttpRequest re
         throw std::runtime_error("Failed to initialize libcurl handles");
 
     for (const auto & header : request.headers)
-        handles->headers = curl_slist_append(handles->headers, header.c_str());
+        handles->addHeader(header.c_str());
 
     // No implicit Content-Type/Accept headers, and do not wait for "100 Continue".
-    handles->headers = curl_slist_append(handles->headers, "Expect:");
-    handles->headers = curl_slist_append(handles->headers, "Content-Type:");
-    handles->headers = curl_slist_append(handles->headers, "Accept:");
+    handles->addHeader("Expect:");
+    handles->addHeader("Content-Type:");
+    handles->addHeader("Accept:");
 
     CURL * easy = handles->easy;
 
@@ -351,6 +360,13 @@ HttpResponse::HttpResponse(std::shared_ptr<HttpSession> session_, HttpRequest re
         pump();
 
     if (!headers_complete) {
+        // The transfer may also end "successfully" without a final response, e.g. if the server
+        // sent only an interim (1xx) response and then closed the connection.
+        if (result == CURLE_OK) {
+            throw HttpTransportError(
+                "The server closed the connection without sending a response", header_bytes == 0);
+        }
+
         // Once the server has started responding, it may be executing the query already:
         // then retrying could execute it twice.
         const bool retryable = (header_bytes == 0 && isRetryable(static_cast<CURLcode>(result)));
