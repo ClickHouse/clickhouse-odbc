@@ -91,6 +91,10 @@ public:
 
 public:
     // public only for the unit tests
+    static std::string getResponseTimezone(
+        const Poco::Net::HTTPResponse & response,
+        std::string (*get_default_timezone)());
+
     struct HttpRequestData {
         std::string query;
         std::map<std::string, std::string> params;
