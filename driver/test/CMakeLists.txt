@@ -17,6 +17,7 @@ function (declare_odbc_test_targets libname UNICODE)
         type_conversion_ut.cpp
         buffer_filling_ut.cpp
         connection_string_ut.cpp
+        connection_ut.cpp
         performance_ut.cpp
         statement_parameter_binding_ut.cpp
         type_info_ut.cpp

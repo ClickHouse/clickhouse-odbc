@@ -69,6 +69,12 @@ protected:
         ODBC_CALL_ON_ENV_THROW(env, SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc));
         ASSERT_TRUE(dbc);
 
+        connect();
+    }
+
+    // Connect to the test server, optionally with additional connection string
+    // attributes (e.g. "AccessToken=abc;"), and allocate a statement.
+    void connect(const std::string & extra_attributes = "") {
         SQLTCHAR final_connection_string[1024];
         SQLSMALLINT final_connection_string_len = 0;
 
@@ -78,7 +84,7 @@ protected:
 #else
             "Driver={ClickHouse ODBC Driver (ANSI)};"
 #endif
-            "URL=http://127.0.0.1:" + std::to_string(server.port()) + "/;Timeout=5");
+            "URL=http://127.0.0.1:" + std::to_string(server.port()) + "/;Timeout=5;" + extra_attributes);
         ODBC_CALL_ON_DBC_THROW(dbc, SQLDriverConnect(
             dbc,
             nullptr,
@@ -91,9 +97,20 @@ protected:
         ASSERT_TRUE(stmt);
     }
 
-    virtual void TearDown() override {
-        ODBC_CALL_ON_STMT_THROW(stmt, SQLFreeStmt(stmt, SQL_CLOSE));
+    // Reconnect with additional connection string attributes.
+    void reconnect(const std::string & extra_attributes) {
         ODBC_CALL_ON_STMT_THROW(stmt, SQLFreeHandle(SQL_HANDLE_STMT, stmt));
+        stmt = nullptr;
+        ODBC_CALL_ON_DBC_THROW(dbc, SQLDisconnect(dbc));
+        connect(extra_attributes);
+    }
+
+    virtual void TearDown() override {
+        // `stmt` can be null if `reconnect()` failed half-way through.
+        if (stmt) {
+            ODBC_CALL_ON_STMT_THROW(stmt, SQLFreeStmt(stmt, SQL_CLOSE));
+            ODBC_CALL_ON_STMT_THROW(stmt, SQLFreeHandle(SQL_HANDLE_STMT, stmt));
+        }
         ODBC_CALL_ON_DBC_THROW(dbc, SQLDisconnect(dbc));
         ODBC_CALL_ON_DBC_THROW(dbc, SQLFreeHandle(SQL_HANDLE_DBC, dbc));
         ODBC_CALL_ON_ENV_THROW(env, SQLFreeHandle(SQL_HANDLE_ENV, env));
@@ -298,6 +315,103 @@ TEST_F(NetworkingTest, PositiveCaseKeepAlive)
     for (int i = 0; i < 3; ++i)
         ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
     EXPECT_EQ(server.connectionCount(), 1);
+}
+
+/**
+ * Without an access token the driver authenticates with HTTP Basic. The URL in
+ * the connection string has no user info, so the credentials are "default:".
+ */
+TEST_F(NetworkingTest, BasicAuthorizationIsSentWithoutAccessToken)
+{
+    ClickHouseResponseGenerator gen{};
+    gen.generate(16).chunk(1024).append_last_chunk();
+    setResponse(KeepAlive::KeepAlive, gen.make_response());
+    ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+    const auto headers = server.lastRequestHeaders();
+    // "default:" in Base64
+    EXPECT_NE(headers.find("Authorization: Basic ZGVmYXVsdDo=\r\n"), std::string::npos) << headers;
+    EXPECT_EQ(headers.find("Authorization: Bearer"), std::string::npos) << headers;
+}
+
+/**
+ * With an access token every request carries it as a bearer credential in the
+ * Authorization header, even when a password is also configured.
+ */
+TEST_F(NetworkingTest, AccessTokenIsSentAsBearerAuthorization)
+{
+    reconnect("PWD=secret;AccessToken=abc.def.ghi;");
+
+    ClickHouseResponseGenerator gen{};
+    gen.generate(16).chunk(1024).append_last_chunk();
+    setResponse(KeepAlive::KeepAlive, gen.make_response());
+    for (int i = 0; i < 3; ++i) {
+        ASSERT_EQ(fetch_sum(stmt), gen.expected_sum());
+        const auto headers = server.lastRequestHeaders();
+        EXPECT_NE(headers.find("Authorization: Bearer abc.def.ghi\r\n"), std::string::npos) << headers;
+        EXPECT_EQ(headers.find("Authorization: Basic"), std::string::npos) << headers;
+    }
+}
+
+namespace {
+
+// Builds a non-200 response carrying a ClickHouse exception code header and a plain-text body,
+// the way the server reports errors detected before any result data is sent.
+std::vector<char> makeErrorResponse(std::string_view status_line, std::string_view exception_code, std::string_view body)
+{
+    std::string res = std::string(status_line) + "\r\n"
+        "Connection: Keep-Alive\r\n"
+        "Content-Type: text/plain; charset=UTF-8\r\n"
+        "X-ClickHouse-Exception-Code: " + std::string(exception_code) + "\r\n"
+        "Content-Length: " + std::to_string(body.size()) + "\r\n"
+        "\r\n" + std::string(body);
+    return std::vector<char>(res.begin(), res.end());
+}
+
+// Runs `expr`, expecting it to fail, and returns the diagnostics text it produced.
+template <typename F>
+std::string diagnosticsOf(F && expr)
+{
+    try {
+        expr();
+    } catch (const std::runtime_error & ex) {
+        return ex.what();
+    }
+    ADD_FAILURE() << "expected the call to fail";
+    return {};
+}
+
+} // anonymous namespace
+
+/**
+ * An authentication failure (e.g. an expired or invalid access token) is reported with
+ * SQLSTATE 28000 "Invalid authorization specification", so that applications can detect it
+ * without parsing the message text. The body is the one ClickHouse Cloud returns for an expired JWT.
+ */
+TEST_F(NetworkingTest, AuthenticationFailureIsReportedAs28000)
+{
+    reconnect("AccessToken=expired.jwt.token;");
+
+    setResponse(KeepAlive::KeepAlive, makeErrorResponse(
+        "HTTP/1.1 403 Forbidden", "516",
+        "Code: 516. DB::Exception: JWT::https://idp.example.com/::aud::sub: "
+        "Authentication failed: password is incorrect, or there is no user with such name. (AUTHENTICATION_FAILED)\n"));
+
+    const auto diag = diagnosticsOf([&] { fetch_sum(stmt); });
+    EXPECT_TRUE(diag.starts_with("1:[28000][1]HTTP status code: 403")) << diag;
+    EXPECT_NE(diag.find("(AUTHENTICATION_FAILED)"), std::string::npos) << diag;
+}
+
+/**
+ * Other server-side errors keep the generic SQLSTATE HY000.
+ */
+TEST_F(NetworkingTest, NonAuthenticationServerErrorIsReportedAsHY000)
+{
+    setResponse(KeepAlive::KeepAlive, makeErrorResponse(
+        "HTTP/1.1 400 Bad Request", "62",
+        "Code: 62. DB::Exception: Syntax error: failed at position 1. (SYNTAX_ERROR)\n"));
+
+    const auto diag = diagnosticsOf([&] { fetch_sum(stmt); });
+    EXPECT_TRUE(diag.starts_with("1:[HY000][1]HTTP status code: 400")) << diag;
 }
 
 TEST_F(NetworkingTest, RepeatedInsertsReuseChunkedConnection)

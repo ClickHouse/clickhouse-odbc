@@ -246,14 +246,17 @@ inline SQLRETURN Driver::call(Callable && callable, SQLHANDLE handle, SQLSMALLIN
                 try {
                     return doCall(callable, descendant, skip_diagnostics);
                 }
+                // ClickHouseException derives from SqlException, so it must be caught first.
+                catch (const ClickHouseException & ex) {
+                    error_message = ex.what();
+                    sql_state = ex.getSQLState();
+                    return_code = ex.getReturnCode();
+                    clickhouse_exception_code = ex.getExceptionCode();
+                }
                 catch (const SqlException & ex) {
                     error_message = ex.what();
                     sql_state = ex.getSQLState();
                     return_code = ex.getReturnCode();
-                }
-                catch (const ClickHouseException & ex) {
-                    error_message = ex.what();
-                    clickhouse_exception_code = ex.getExceptionCode();
                 }
                 catch (const Poco::Exception & ex) {
                     error_message = ex.displayText();
