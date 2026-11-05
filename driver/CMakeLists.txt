@@ -213,6 +213,11 @@ if (OS_LINUX)
     set_target_properties(${libname} PROPERTIES
         LINK_FLAGS "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_linux.txt"
     )
+    target_link_options (${libname} PRIVATE -Wl,-z,noexecstack)
+    if (NOT SANITIZE)
+        # Sanitizer runtimes live in the executable, so their symbols are undefined here.
+        target_link_options (${libname} PRIVATE -Wl,--no-undefined)
+    endif ()
 elseif (OS_DARWIN)
     #set_target_properties(${libname} PROPERTIES
     #    LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/exported_symbols_darwin.txt"

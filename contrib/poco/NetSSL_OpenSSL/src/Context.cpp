@@ -302,12 +302,9 @@ void Context::addCertificateAuthority(const Crypto::X509Certificate &certificate
 
 void Context::usePrivateKey(const Poco::Crypto::RSAKey& key)
 {
-	int errCode = SSL_CTX_use_RSAPrivateKey(_pSSLContext, key.impl()->getRSA());
-	if (errCode != 1)
-	{
-		std::string msg = Utility::getLastError();
-		throw SSLContextException("Cannot set private key for Context", msg);
-	}
+	// SSL_CTX_use_RSAPrivateKey() is deprecated and not built into the bundled OpenSSL
+	// (OPENSSL_NO_DEPRECATED), so wrap the RSA key into an EVP_PKEY instead.
+	usePrivateKey(Poco::Crypto::EVPPKey(key.impl()->getRSA()));
 }
 
 
@@ -398,7 +395,7 @@ void Context::flushSessionCache()
 	poco_assert (isForServerUse());
 
 	Poco::Timestamp now;
-	SSL_CTX_flush_sessions(_pSSLContext, static_cast<long>(now.epochTime()));
+	SSL_CTX_flush_sessions_ex(_pSSLContext, static_cast<time_t>(now.epochTime()));
 }
 
 

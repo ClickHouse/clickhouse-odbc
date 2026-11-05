@@ -214,7 +214,7 @@ if (CH_ODBC_ENABLE_INSTALL)
 
     # Remove empty/irrelevant components, mostly brought by third-party projects.
     get_cmake_property (CPACK_COMPONENTS_ALL COMPONENTS)
-    list (REMOVE_ITEM CPACK_COMPONENTS_ALL "Devel")
+    list (REMOVE_ITEM CPACK_COMPONENTS_ALL "Devel" "clickhouse")
 
     cpack_add_component_group (ANSIGroup
         DISPLAY_NAME "ANSI ${ARCH_BITS}-bit Driver"

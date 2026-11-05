@@ -18,6 +18,9 @@ concurrency:
 
 env:
   LLVM_PROFILE_FILE: "profile_%p_%m.profraw"
+  # OpenSSL's pre-generated x86_64 assembly needs Clang >= 16, Ubuntu 22.04 has Clang 14.
+  # llvm-profdata and llvm-cov must come from the same LLVM version as the compiler.
+  LLVM_VERSION: 18
 
 defaults:
   run:
@@ -58,8 +61,13 @@ jobs:
           build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl \
           python-is-python3 python3 python3-pip python3-setuptools
         sudo apt install -y unixodbc unixodbc-dev
-        sudo apt install -y clang llvm lldb
         sudo apt autoremove -y
+
+    - name: Install dependencies - LLVM
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh "$LLVM_VERSION"
 
     - name: Start ClickHouse in Docker
       uses: hoverkraft-tech/compose-action@v2.0.1
@@ -69,8 +77,8 @@ jobs:
 
     - name: Configure
       run: >
-        CC=clang
-        CXX=clang++
+        CC=clang-${{ env.LLVM_VERSION }}
+        CXX=clang++-${{ env.LLVM_VERSION }}
         cmake -S ${{ github.workspace }}/source -B ${{ github.workspace }}/build
         -D CMAKE_POLICY_VERSION_MINIMUM=3.5
         -D CMAKE_BUILD_TYPE=Debug
@@ -171,13 +179,13 @@ jobs:
           ls ./driver/test/
           ls ./driver/test/*.profraw
 
-          llvm-profdata merge -sparse ./driver/test/*.profraw -o ./coverage.profdata
+          "llvm-profdata-$LLVM_VERSION" merge -sparse ./driver/test/*.profraw -o ./coverage.profdata
 
-          llvm-cov report ./driver/libclickhouseodbcw.so \
+          "llvm-cov-$LLVM_VERSION" report ./driver/libclickhouseodbcw.so \
             -instr-profile=./coverage.profdata \
             -format=text > ./coverage-report.txt
 
-          llvm-cov show ./driver/libclickhouseodbcw.so \
+          "llvm-cov-$LLVM_VERSION" show ./driver/libclickhouseodbcw.so \
             -instr-profile=./coverage.profdata \
             -Xdemangler=c++filt -format=html \
             -show-regions \

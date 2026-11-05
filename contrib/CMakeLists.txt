@@ -44,7 +44,40 @@ add_contrib (double-conversion-cmake double-conversion)
 add_contrib (zstd-cmake zstd)
 
 if (OS_DARWIN OR OS_LINUX)
+    # contrib/openssl-cmake is a verbatim copy from ClickHouse; keep it that way and
+    # adapt it from here instead.
+    if (OS_LINUX AND ARCH_AMD64 AND NOT OPENSSL_NO_ASM AND NOT CH_ODBC_ASM_HAS_AVXIFMA)
+        # OpenSSL's x86_64 assembly uses AVX-IFMA (`{vex} vpmadd52luq`), which needs
+        # LLVM >= 16 or GNU binutils >= 2.40.
+        enable_language (ASM)
+        set (_probe "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/avxifma_probe.s")
+        file (WRITE "${_probe}" ".text\n{vex} vpmadd52luq 0(%rsi),%ymm1,%ymm3\n")
+        set (CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+        try_compile (CH_ODBC_ASM_HAS_AVXIFMA "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/avxifma_probe"
+            SOURCES "${_probe}" OUTPUT_VARIABLE _probe_output)
+        unset (CMAKE_TRY_COMPILE_TARGET_TYPE)
+        if (NOT CH_ODBC_ASM_HAS_AVXIFMA)
+            unset (CH_ODBC_ASM_HAS_AVXIFMA CACHE)
+            message (FATAL_ERROR
+                "The assembler (CMAKE_ASM_COMPILER=${CMAKE_ASM_COMPILER}) cannot assemble the AVX-IFMA "
+                "instructions used by OpenSSL. Use Clang >= 16 or GNU binutils >= 2.40, or pass "
+                "-DCMAKE_ASM_COMPILER=<clang >= 16> (works with GCC as the C/C++ compiler), or "
+                "build the portable C implementation with -DOPENSSL_NO_ASM=ON (much slower, no AES-NI, "
+                "not constant-time; not for release builds).\n"
+                "Probe output:\n${_probe_output}")
+        endif ()
+        message (STATUS "Assembler supports AVX-IFMA: yes")
+        unset (_probe)
+        unset (_probe_output)
+    endif ()
+    set (ClickHouse_SOURCE_DIR "${PROJECT_SOURCE_DIR}")
     add_contrib (openssl-cmake openssl)
+    unset (ClickHouse_SOURCE_DIR)
+    if (OS_LINUX)
+        # The pre-generated assembly has no .note.GNU-stack section; without this,
+        # older linkers (e.g. binutils 2.38) mark the driver as needing an executable stack.
+        target_compile_options (crypto PRIVATE $<$<COMPILE_LANGUAGE:ASM>:-Wa,--noexecstack>)
+    endif ()
 endif()
 
 add_contrib (zlib-ng-cmake zlib-ng)

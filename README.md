@@ -142,7 +142,11 @@ To debug issues with the driver, first things that need to be done are:
 
 The general requirements for building the driver from sources are as follows:
 
-- CMake 3.13.5 and later
+- CMake 3.13.5 and later on Windows, CMake 3.25 and later on macOS and Linux (required by the bundled OpenSSL)
+- On x86_64 Linux, an assembler that supports the AVX-IFMA instructions used by the bundled OpenSSL:
+  Clang 16 and later, or GNU binutils 2.40 and later. With an older binutils (e.g. Ubuntu 22.04, RHEL 9),
+  GCC can still be used for C and C++ if a recent Clang is used as the assembler: `-DCMAKE_ASM_COMPILER=clang-18`.
+  The configuration step checks this and stops with an explanation if the assembler is too old.
 - C++17 and C11 capable compiler toolchain:
   - Clang 4 and later
   - GCC 7 and later
@@ -548,6 +552,8 @@ If the version of `cmake` is not recent enough, you can install a newer version 
 
 - [Kitware APT Repository](https://apt.kitware.com/)
 - [Installing CMake](https://cmake.org/install/)
+
+On Ubuntu 22.04 and older, the system assembler and Clang are too old for the bundled OpenSSL (see [Building from sources](#building-from-sources)). Install a recent Clang from [apt.llvm.org](https://apt.llvm.org/) and either use it as the compiler, or pass `-DCMAKE_ASM_COMPILER=clang-18` to the configuration step to keep GCC for C and C++.
 
 Clone the repo with submodules:
 
