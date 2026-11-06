@@ -136,11 +136,71 @@ jobs:
         --fingerprint ${{ secrets.DIGICERT_FINGERPRINT }}
         --input (Get-ChildItem -Path "${{ github.workspace }}/build" -Filter "clickhouse-odbc-*.msi" | Select-Object -First 1).FullName
 
+    # Build a zip archive for manual (non-MSI) installation. The payload is extracted from the signed MSI
+    # via an administrative install, so the zip ships exactly the same binaries as the installer.
+    - name: Create manual-install zip
+      run: |
+        $msi = Get-ChildItem -Path "${{ github.workspace }}\build" -Filter "clickhouse-odbc-*.msi" | Select-Object -First 1
+        if (-not $msi) { throw "MSI package not found" }
+
+        $versionMatch = Select-String -Path "${{ github.workspace }}\build\CMakeCache.txt" -Pattern '^CMAKE_PROJECT_VERSION:\w+=(.+)$' | Select-Object -First 1
+        if (-not $versionMatch) { throw "CMAKE_PROJECT_VERSION not found in CMakeCache.txt" }
+        $version = $versionMatch.Matches[0].Groups[1].Value.Trim()
+
+        $extractDir = "${{ github.workspace }}\run\msi-extract"
+        $stagingDir = "${{ github.workspace }}\run\zip-staging"
+        $templateDir = "${{ github.workspace }}\source\packaging\windows-zip"
+        $zipPath = "${{ github.workspace }}\package\$($msi.BaseName)-manual-install.zip"
+
+        # Administrative install only unpacks the files, it does not register anything on the runner.
+        $proc = Start-Process msiexec.exe -ArgumentList "/a `"$($msi.FullName)`" /qn TARGETDIR=`"$extractDir`"" -Wait -PassThru
+        if ($proc.ExitCode -ne 0) { throw "msiexec /a failed with exit code $($proc.ExitCode)" }
+
+        $driverDll = Get-ChildItem -Path $extractDir -Recurse -Filter "clickhouseodbc.dll" | Select-Object -First 1
+        if (-not $driverDll) { throw "clickhouseodbc.dll not found in the extracted MSI" }
+
+        New-Item -ItemType Directory -Path "$stagingDir\bin" -Force | Out-Null
+        Copy-Item -Path "$($driverDll.DirectoryName)\*.dll" -Destination "$stagingDir\bin"
+        foreach ($required in @("clickhouseodbc.dll", "clickhouseodbcw.dll")) {
+          if (-not (Test-Path "$stagingDir\bin\$required")) { throw "$required is missing from the package" }
+        }
+
+        # Normalize line endings to CRLF and write the text files without BOM.
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        $install = [System.IO.File]::ReadAllText("$templateDir\INSTALL.md", $utf8NoBom).Replace("@VERSION@", $version)
+        $install = ($install -replace "`r?`n", "`r`n")
+        [System.IO.File]::WriteAllText("$stagingDir\INSTALL.md", $install, $utf8NoBom)
+        $reg = [System.IO.File]::ReadAllText("$templateDir\clickhouse-odbc.reg", $utf8NoBom)
+        $reg = ($reg -replace "`r?`n", "`r`n")
+        [System.IO.File]::WriteAllText("$stagingDir\clickhouse-odbc.reg", $reg, [System.Text.Encoding]::ASCII)
+
+        # SHA256SUMS in the `sha256sum -c` compatible format.
+        $sums = Get-ChildItem -Path $stagingDir -Recurse -File | Sort-Object FullName | ForEach-Object {
+          $relative = $_.FullName.Substring($stagingDir.Length + 1).Replace("\", "/")
+          "$((Get-FileHash -Algorithm SHA256 -Path $_.FullName).Hash.ToLower())  ./$relative"
+        }
+        [System.IO.File]::WriteAllText("$stagingDir\SHA256SUMS", (($sums -join "`n") + "`n"), [System.Text.Encoding]::ASCII)
+
+        # ZipFile (unlike Compress-Archive in Windows PowerShell 5.1) uses forward slashes in entry names,
+        # so the archive can be extracted correctly on any platform.
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        if (Test-Path $zipPath) { Remove-Item $zipPath }
+        [System.IO.Compression.ZipFile]::CreateFromDirectory($stagingDir, $zipPath, [System.IO.Compression.CompressionLevel]::Optimal, $false)
+
+        Write-Host "Created $zipPath"
+        Get-Content "$stagingDir\SHA256SUMS"
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
           name: clickhouse-odbc-windows-${{ matrix.architecture }}-${{ matrix.build_type }}
           path: ${{ github.workspace }}/build/clickhouse-odbc-*
+
+    - name: Upload manual-install zip artifact
+      uses: actions/upload-artifact@v4
+      with:
+          name: clickhouse-odbc-windows-${{ matrix.architecture }}-${{ matrix.build_type }}-manual-install
+          path: ${{ github.workspace }}/package/clickhouse-odbc-*-manual-install.zip
 
     - name: Upload artifacts as release assets
       if: ${{ github.event_name == 'release' && matrix.build_type == 'Release' }}
@@ -148,6 +208,16 @@ jobs:
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: ${{ github.workspace }}/build/clickhouse-odbc-*.msi
+        overwrite: true
+        tag: ${{ github.ref }}
+        file_glob: true
+
+    - name: Upload manual-install zip as release asset
+      if: ${{ github.event_name == 'release' && matrix.build_type == 'Release' }}
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{ github.workspace }}/package/clickhouse-odbc-*-manual-install.zip
         overwrite: true
         tag: ${{ github.ref }}
         file_glob: true

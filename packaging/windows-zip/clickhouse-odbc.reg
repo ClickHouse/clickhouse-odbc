@@ -1,0 +1,31 @@
+Windows Registry Editor Version 5.00
+
+; If you copied the contents of the archive to a location other than
+; "C:\Program Files\clickhouse-odbc\",
+; replace the path in this file accordingly before applying it.
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBCINST.INI\ODBC Drivers]
+"ClickHouse ODBC Driver (ANSI)"="Installed"
+"ClickHouse ODBC Driver (Unicode)"="Installed"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBCINST.INI\ClickHouse ODBC Driver (ANSI)]
+"Description"="ODBC Driver (ANSI) for ClickHouse"
+"Driver"="C:\\Program Files\\clickhouse-odbc\\bin\\clickhouseodbc.dll"
+"Setup"="C:\\Program Files\\clickhouse-odbc\\bin\\clickhouseodbc.dll"
+"DriverODBCVer"="03.80"
+"ConnectFunctions"="YYN"
+"APILevel"="1"
+"SQLLevel"="1"
+"FileUsage"="0"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBCINST.INI\ClickHouse ODBC Driver (Unicode)]
+"Description"="ODBC Driver (Unicode) for ClickHouse"
+"Driver"="C:\\Program Files\\clickhouse-odbc\\bin\\clickhouseodbcw.dll"
+"Setup"="C:\\Program Files\\clickhouse-odbc\\bin\\clickhouseodbcw.dll"
+"DriverODBCVer"="03.80"
+"ConnectFunctions"="YYN"
+"APILevel"="1"
+"SQLLevel"="1"
+"FileUsage"="0"
+
+
