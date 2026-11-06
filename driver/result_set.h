@@ -1,9 +1,9 @@
 #pragma once
 
 #include "driver/platform/platform.h"
+#include "driver/http_client.h"
 #include "driver/utils/utils.h"
 #include "driver/utils/object_pool.h"
-#include "driver/utils/amortized_istream_reader.h"
 #include "driver/utils/type_parser.h"
 #include "driver/utils/type_info.h"
 
@@ -13,8 +13,6 @@
 #include <string>
 #include <variant>
 #include <vector>
-
-#include <Poco/Net/HTTPClientSession.h>
 
 extern const std::string::size_type initial_string_capacity_g;
 
@@ -95,7 +93,7 @@ public:
 
 class ResultSet {
 public:
-    explicit ResultSet(AmortizedIStreamReader & str, std::unique_ptr<ResultMutator> && mutator);
+    explicit ResultSet(HttpResponse & str, std::unique_ptr<ResultMutator> && mutator);
 
     virtual ~ResultSet();
 
@@ -121,7 +119,7 @@ protected:
     virtual bool readNextRow(Row & row) = 0;
 
 protected:
-    AmortizedIStreamReader & stream;
+    HttpResponse & stream;
     std::unique_ptr<ResultMutator> result_mutator;
     DefaultConversionContext conversion_context;
     std::vector<ColumnInfo> columns_info;
@@ -139,8 +137,7 @@ class ResultReader {
 protected:
     explicit ResultReader(
         const std::string & timezone_,
-        std::istream & stream,
-        Poco::Net::HTTPClientSession & session,
+        HttpResponse & stream,
         std::unique_ptr<ResultMutator> && mutator
     );
 
@@ -156,7 +153,7 @@ public:
 
 protected:
     const std::string timezone;
-    AmortizedIStreamReader stream;
+    HttpResponse & stream;
     std::unique_ptr<ResultMutator> result_mutator;
     std::unique_ptr<ResultSet> result_set;
 };
@@ -164,8 +161,7 @@ protected:
 std::unique_ptr<ResultReader> make_result_reader(
     const std::string & format,
     const std::string & timezone,
-    std::istream & raw_stream,
-    Poco::Net::HTTPClientSession & session,
+    HttpResponse & stream,
     std::unique_ptr<ResultMutator> && mutator
 );
 

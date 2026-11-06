@@ -13,7 +13,6 @@
 #include "driver/statement.h"
 #include "driver/result_set.h"
 
-#include <Poco/Net/HTTPClientSession.h>
 #include <Poco/NumberFormatter.h>
 #include <Poco/Timezone.h>
 
@@ -790,7 +789,7 @@ SQLRETURN SQL_API EXPORTED_FUNCTION(SQLMoreResults)(HSTMT statement_handle) {
 SQLRETURN SQL_API EXPORTED_FUNCTION(SQLDisconnect)(HDBC connection_handle) {
     LOG(__FUNCTION__);
     return CALL_WITH_TYPED_HANDLE(SQL_HANDLE_DBC, connection_handle, [&](Connection & connection) {
-        connection.session->reset();
+        connection.session.reset();
         return SQL_SUCCESS;
     });
 }

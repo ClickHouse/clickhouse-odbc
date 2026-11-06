@@ -4,7 +4,8 @@
 #include "driver/environment.h"
 #include "driver/config/config.h"
 
-#include <Poco/Net/HTTPClientSession.h>
+#include "driver/http_client.h"
+
 #include <Poco/URI.h>
 
 #include <memory>
@@ -48,8 +49,7 @@ public: // Configuration fields.
     std::string access_token;
 
 public:
-    std::unique_ptr<Poco::Net::HTTPClientSession> session;
-    int retry_count = 3;
+    std::shared_ptr<HttpSession> session;
     int redirect_limit = 10;
 
 public:
