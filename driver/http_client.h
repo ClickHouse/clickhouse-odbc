@@ -30,17 +30,6 @@ struct HttpSettings {
     std::string private_key_file;          // Linux/macOS: client key (PEM); Windows: client certificate, see below
 };
 
-/// A transport-level failure that happened before the response headers were received.
-class HttpTransportError
-    : public std::runtime_error
-{
-public:
-    HttpTransportError(const std::string & message, bool retryable_)
-        : std::runtime_error(message), retryable(retryable_) {}
-
-    const bool retryable;
-};
-
 /// Per ODBC connection: settings, connection pool and TLS session cache.
 /// Like the rest of a connection, it must only be used by one thread at a time; the curl share
 /// therefore has no lock callbacks.
@@ -70,7 +59,7 @@ struct HttpRequest {
 };
 
 /// A single POST request and its response. The constructor sends the request and blocks until
-/// the response headers are received, throwing HttpTransportError if that fails. The body is then
+/// the response headers are received, and throws if that fails. The body is then
 /// read with eof(), get() and read(). Any failure while reading the body (transport error, broken
 /// compressed data, ClickHouse exception) is thrown from these, and again from every later call.
 class HttpResponse {

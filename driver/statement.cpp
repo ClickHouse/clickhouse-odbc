@@ -210,42 +210,35 @@ void Statement::sendParamSet(std::unique_ptr<ResultMutator> && mutator) {
 
     LOG("POST " << request.url << " body=" << prepared_query << " UA=" << connection.buildUserAgentString());
 
+    // Failed requests are not retried here: once the request has been sent, the server may be
+    // executing the query already, and sending it again could execute it twice. curl itself
+    // re-sends a request only if a reused keep-alive connection turned out to be closed before
+    // any part of the response arrived.
     int redirect_count = 0;
-    // Send request to server with finite count of retries.
-    for (int i = 1;; ++i) {
-        try {
-            for (; redirect_count < connection.redirect_limit; ++redirect_count) {
-                response.reset();
-                response = std::make_unique<HttpResponse>(connection.session, request);
-                const auto status = response->getStatus();
-                LOG("HTTP response: status=" << status
-                    << " transfer_encoding=" << response->getHeader("Transfer-Encoding")
-                    << " content_length=" << response->getHeader("Content-Length")
-                    << " content_encoding=" << response->getHeader("Content-Encoding"));
-                if (status != 307 && status != 308)
-                    break;
-
-                const auto redirect_url = response->getRedirectUrl();
-                if (redirect_url.empty())
-                    throw std::runtime_error("HTTP status code: " + std::to_string(status) + ", but no Location header in the response");
-
-                Poco::URI location(redirect_url);
-                location.setUserInfo("");
-                LOG("Redirected to " << location.toString() << ", redirect index=" << redirect_count + 1 << "/" << connection.redirect_limit);
-
-                // Never follow a redirect to another scheme: e.g. https -> http would send the credentials in clear text.
-                if (Poco::UTF8::icompare(location.getScheme(), scheme) != 0)
-                    throw std::runtime_error("Redirect to a different scheme is not allowed: " + location.toString());
-
-                request.url = location.toString();
-            }
+    for (; redirect_count < connection.redirect_limit; ++redirect_count) {
+        response.reset();
+        response = std::make_unique<HttpResponse>(connection.session, request);
+        const auto status = response->getStatus();
+        LOG("HTTP response: status=" << status
+            << " transfer_encoding=" << response->getHeader("Transfer-Encoding")
+            << " content_length=" << response->getHeader("Content-Length")
+            << " content_encoding=" << response->getHeader("Content-Encoding"));
+        if (status != 307 && status != 308)
             break;
-        } catch (const HttpTransportError & e) {
-            response.reset();
-            LOG("Http request try=" << i << "/" << connection.retry_count << " failed: " << e.what());
-            if (i > connection.retry_count || !e.retryable)
-                throw;
-        }
+
+        const auto redirect_url = response->getRedirectUrl();
+        if (redirect_url.empty())
+            throw std::runtime_error("HTTP status code: " + std::to_string(status) + ", but no Location header in the response");
+
+        Poco::URI location(redirect_url);
+        location.setUserInfo("");
+        LOG("Redirected to " << location.toString() << ", redirect index=" << redirect_count + 1 << "/" << connection.redirect_limit);
+
+        // Never follow a redirect to another scheme: e.g. https -> http would send the credentials in clear text.
+        if (Poco::UTF8::icompare(location.getScheme(), scheme) != 0)
+            throw std::runtime_error("Redirect to a different scheme is not allowed: " + location.toString());
+
+        request.url = location.toString();
     }
 
     query_id = response->getHeader("X-ClickHouse-Query-Id");

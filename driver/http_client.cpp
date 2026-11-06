@@ -57,28 +57,6 @@ std::string_view trim(std::string_view s) {
     return s;
 }
 
-bool isRetryable(CURLcode code) {
-    switch (code) {
-        case CURLE_UNSUPPORTED_PROTOCOL:
-        case CURLE_URL_MALFORMAT:
-        case CURLE_OUT_OF_MEMORY:
-        case CURLE_BAD_FUNCTION_ARGUMENT:
-        case CURLE_PEER_FAILED_VERIFICATION:
-        case CURLE_SSL_CERTPROBLEM:
-        case CURLE_SSL_CIPHER:
-        case CURLE_SSL_CACERT_BADFILE:
-        case CURLE_SSL_ISSUER_ERROR:
-        case CURLE_SSL_CRL_BADFILE:
-        case CURLE_WRITE_ERROR:
-        case CURLE_ABORTED_BY_CALLBACK:
-        // Timeouts are not retried: the server may still be executing the query.
-        case CURLE_OPERATION_TIMEDOUT:
-            return false;
-        default:
-            return true;
-    }
-}
-
 /// Finds the message of a ClickHouse mid-stream exception at the end of the body.
 std::optional<std::string> findClickHouseExceptionMessage(const std::string & exception_tag, std::string_view buffer) {
     if (!exception_tag.empty()) {
@@ -362,15 +340,10 @@ HttpResponse::HttpResponse(std::shared_ptr<HttpSession> session_, HttpRequest re
     if (!headers_complete) {
         // The transfer may also end "successfully" without a final response, e.g. if the server
         // sent only an interim (1xx) response and then closed the connection.
-        if (result == CURLE_OK) {
-            throw HttpTransportError(
-                "The server closed the connection without sending a response", header_bytes == 0);
-        }
+        if (result == CURLE_OK)
+            throw std::runtime_error("The server closed the connection without sending a response");
 
-        // Once the server has started responding, it may be executing the query already:
-        // then retrying could execute it twice.
-        const bool retryable = (header_bytes == 0 && isRetryable(static_cast<CURLcode>(result)));
-        throw HttpTransportError(transportErrorText(), retryable);
+        throw std::runtime_error(transportErrorText());
     }
 
     const auto encoding = toLower(getHeader("Content-Encoding"));

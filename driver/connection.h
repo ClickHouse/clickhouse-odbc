@@ -50,7 +50,6 @@ public: // Configuration fields.
 
 public:
     std::shared_ptr<HttpSession> session;
-    int retry_count = 3;
     int redirect_limit = 10;
 
 public:
