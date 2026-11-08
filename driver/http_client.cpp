@@ -475,7 +475,8 @@ void HttpResponse::pump() {
         activity = new_activity;
         last_activity = now;
     }
-    else if (now - last_activity >= std::chrono::seconds(session->settings.timeout)) {
+    else if (session->settings.timeout != 0 &&
+             now - last_activity >= std::chrono::seconds(session->settings.timeout)) {
         done = true;
         result = CURLE_OPERATION_TIMEDOUT;
         std::snprintf(handles->error_buffer, sizeof(handles->error_buffer), "Timeout");

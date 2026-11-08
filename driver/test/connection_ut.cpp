@@ -1,5 +1,6 @@
 #include "driver/connection.h"
 #include "driver/environment.h"
+#include "driver/api/impl/impl.h"
 
 #include <gtest/gtest.h>
 
@@ -57,4 +58,52 @@ TEST_F(ConnectionConfigurationTest, AccessTokenIsResetOnReconnect) {
 
     reconnect("Driver=x");
     EXPECT_TRUE(connection.access_token.empty());
+}
+
+TEST_F(ConnectionConfigurationTest, TimeoutAttributesAreIndependentUnsignedIntegers) {
+    const auto handle = connection.getHandle();
+    for (const auto attribute : {SQL_ATTR_CONNECTION_TIMEOUT, SQL_ATTR_LOGIN_TIMEOUT}) {
+        for (const SQLUINTEGER value : {0u, 17u, 70000u, 0xffffffffu}) {
+            ASSERT_EQ(impl::SetConnectAttr(handle, attribute,
+                reinterpret_cast<SQLPOINTER>(static_cast<uintptr_t>(value)), 0), SQL_SUCCESS);
+            SQLUINTEGER actual = 0xdeadbeef;
+            SQLINTEGER length = 0;
+            ASSERT_EQ(impl::GetConnectAttr(handle, attribute, &actual, sizeof(actual), &length), SQL_SUCCESS);
+            EXPECT_EQ(actual, value);
+            EXPECT_EQ(length, sizeof(SQLUINTEGER));
+        }
+    }
+    EXPECT_EQ(connection.connection_timeout, 0xffffffffu);
+    EXPECT_EQ(connection.timeout, 0xffffffffu);
+}
+
+TEST_F(ConnectionConfigurationTest, TimeoutOverridesSurviveConnectionAndReconnection) {
+    const auto handle = connection.getHandle();
+    ASSERT_EQ(impl::SetConnectAttr(handle, SQL_ATTR_CONNECTION_TIMEOUT,
+        reinterpret_cast<SQLPOINTER>(7), 0), SQL_SUCCESS);
+    ASSERT_EQ(impl::SetConnectAttr(handle, SQL_ATTR_LOGIN_TIMEOUT, nullptr, 0), SQL_SUCCESS);
+    for (int i = 0; i < 2; ++i) {
+        reconnect("Driver=x;Timeout=42");
+        EXPECT_EQ(connection.connection_timeout, 7u);
+        EXPECT_EQ(connection.timeout, 0u);
+        EXPECT_EQ(connection.session->settings.connection_timeout, 7u);
+        EXPECT_EQ(connection.session->settings.timeout, 0u);
+    }
+    ASSERT_EQ(impl::SetConnectAttr(handle, SQL_ATTR_CONNECTION_TIMEOUT, nullptr, 0), SQL_SUCCESS);
+    ASSERT_EQ(impl::SetConnectAttr(handle, SQL_ATTR_LOGIN_TIMEOUT,
+        reinterpret_cast<SQLPOINTER>(70000), 0), SQL_SUCCESS);
+    EXPECT_EQ(connection.session->settings.connection_timeout, 0u);
+    EXPECT_EQ(connection.session->settings.timeout, 70000u);
+    reconnect("Driver=x;Timeout=10");
+    EXPECT_EQ(connection.connection_timeout, 0u);
+    EXPECT_EQ(connection.timeout, 70000u);
+}
+
+TEST_F(ConnectionConfigurationTest, TimeoutConfigurationStillAppliesWithoutOverrides) {
+    connection.connect("Driver=x;Timeout=42");
+    EXPECT_EQ(connection.connection_timeout, 42u);
+    EXPECT_EQ(connection.timeout, 42u);
+    reconnect("Driver=x");
+    EXPECT_EQ(connection.connection_timeout, 30u);
+    EXPECT_EQ(connection.timeout, 30u);
 }

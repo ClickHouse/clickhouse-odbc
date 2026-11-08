@@ -160,14 +160,13 @@ SQLRETURN SetConnectAttr(
         LOG("SetConnectAttr: " << attribute << " = " << value << " (" << value_length << ")");
 
         switch (attribute) {
-            case SQL_ATTR_CONNECTION_TIMEOUT: {
-                auto connection_timeout = static_cast<SQLUSMALLINT>(reinterpret_cast<intptr_t>(value));
-                LOG("Set connection timeout: " << connection_timeout);
-                connection.connection_timeout = connection.timeout;
-                if (connection.session)
-                    connection.session->settings.connection_timeout = connection.connection_timeout;
+            case SQL_ATTR_CONNECTION_TIMEOUT:
+                connection.setConnectionTimeout(static_cast<SQLUINTEGER>(reinterpret_cast<uintptr_t>(value)));
                 return SQL_SUCCESS;
-            }
+
+            case SQL_ATTR_LOGIN_TIMEOUT:
+                connection.setTimeout(static_cast<SQLUINTEGER>(reinterpret_cast<uintptr_t>(value)));
+                return SQL_SUCCESS;
 
             case SQL_ATTR_CURRENT_CATALOG:
                 connection.database = toUTF8(static_cast<PTChar*>(value), value_length / sizeof(PTChar));
@@ -210,7 +209,6 @@ SQLRETURN SetConnectAttr(
             case SQL_ATTR_AUTO_IPD:
             case SQL_ATTR_AUTOCOMMIT:
             case SQL_ATTR_CONNECTION_DEAD:
-            case SQL_ATTR_LOGIN_TIMEOUT: // We have no special login procedure - cant set login timeout separately
             case SQL_ATTR_ODBC_CURSORS:
             case SQL_ATTR_PACKET_SIZE:
             case SQL_ATTR_QUIET_MODE:
@@ -243,8 +241,8 @@ SQLRETURN GetConnectAttr(
 
         switch (attribute) {
             CASE_NUM(SQL_ATTR_CONNECTION_DEAD, SQLUINTEGER, SQL_CD_FALSE);
-            CASE_FALLTHROUGH(SQL_ATTR_CONNECTION_TIMEOUT);
-            CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUSMALLINT, connection.timeout);
+            CASE_NUM(SQL_ATTR_CONNECTION_TIMEOUT, SQLUINTEGER, connection.connection_timeout);
+            CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUINTEGER, connection.timeout);
             CASE_NUM(SQL_ATTR_TXN_ISOLATION, SQLINTEGER, SQL_TXN_SERIALIZABLE); // mssql linked server
             CASE_NUM(SQL_ATTR_AUTOCOMMIT, SQLINTEGER, SQL_AUTOCOMMIT_ON);
 
