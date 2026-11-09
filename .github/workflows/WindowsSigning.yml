@@ -175,10 +175,17 @@ jobs:
         [System.IO.File]::WriteAllText("$stagingDir\clickhouse-odbc.reg", $reg, [System.Text.Encoding]::ASCII)
 
         # SHA256SUMS in the `sha256sum -c` compatible format.
+        # Hash via .NET directly: Get-FileHash is unavailable in Windows PowerShell 5.1 on the runner,
+        # because PSModulePath there resolves Microsoft.PowerShell.Utility to the PowerShell 7 module.
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
         $sums = Get-ChildItem -Path $stagingDir -Recurse -File | Sort-Object FullName | ForEach-Object {
           $relative = $_.FullName.Substring($stagingDir.Length + 1).Replace("\", "/")
-          "$((Get-FileHash -Algorithm SHA256 -Path $_.FullName).Hash.ToLower())  ./$relative"
+          $stream = [System.IO.File]::OpenRead($_.FullName)
+          try { $hash = [System.BitConverter]::ToString($sha256.ComputeHash($stream)).Replace("-", "").ToLower() }
+          finally { $stream.Dispose() }
+          "$hash  ./$relative"
         }
+        $sha256.Dispose()
         [System.IO.File]::WriteAllText("$stagingDir\SHA256SUMS", (($sums -join "`n") + "`n"), [System.Text.Encoding]::ASCII)
 
         # ZipFile (unlike Compress-Archive in Windows PowerShell 5.1) uses forward slashes in entry names,
