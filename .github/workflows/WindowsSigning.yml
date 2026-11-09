@@ -188,11 +188,28 @@ jobs:
         $sha256.Dispose()
         [System.IO.File]::WriteAllText("$stagingDir\SHA256SUMS", (($sums -join "`n") + "`n"), [System.Text.Encoding]::ASCII)
 
-        # ZipFile (unlike Compress-Archive in Windows PowerShell 5.1) uses forward slashes in entry names,
-        # so the archive can be extracted correctly on any platform.
+        # Add the entries one by one with explicit forward-slash names. In Windows PowerShell 5.1 both
+        # Compress-Archive and ZipFile.CreateFromDirectory write backslashes, which non-Windows extractors
+        # keep as part of the file name (e.g. a single file literally named `bin\clickhouseodbc.dll`).
+        Add-Type -AssemblyName System.IO.Compression
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         if (Test-Path $zipPath) { Remove-Item $zipPath }
-        [System.IO.Compression.ZipFile]::CreateFromDirectory($stagingDir, $zipPath, [System.IO.Compression.CompressionLevel]::Optimal, $false)
+        $zip = [System.IO.Compression.ZipFile]::Open($zipPath, [System.IO.Compression.ZipArchiveMode]::Create)
+        try {
+          Get-ChildItem -Path $stagingDir -Recurse -File | Sort-Object FullName | ForEach-Object {
+            $entryName = $_.FullName.Substring($stagingDir.Length + 1).Replace("\", "/")
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $entryName, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+          }
+        }
+        finally { $zip.Dispose() }
+
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+        try {
+          $badEntries = @($zip.Entries | Where-Object { $_.FullName.Contains("\") } | ForEach-Object { $_.FullName })
+          if ($badEntries.Count -gt 0) { throw "Zip entries contain backslashes: $($badEntries -join ', ')" }
+          $zip.Entries | ForEach-Object { Write-Host "  $($_.FullName)" }
+        }
+        finally { $zip.Dispose() }
 
         Write-Host "Created $zipPath"
         Get-Content "$stagingDir\SHA256SUMS"
