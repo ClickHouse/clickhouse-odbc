@@ -71,6 +71,10 @@ elseif (OS_LINUX OR OS_DARWIN)
             PRIVATE "-framework CoreServices"
         )
     endif ()
+    # The bundled OpenSSL is built without the (deprecated) ENGINE API, but contrib/openssl-cmake
+    # only defines OPENSSL_NO_ENGINE for its own targets, not in the installed headers. Without it,
+    # curl compiles its engine support and references ENGINE_* functions that do not exist.
+    target_compile_definitions (_curl PRIVATE OPENSSL_NO_ENGINE)
     target_link_libraries (_curl
         PRIVATE OpenSSL::SSL
         PRIVATE OpenSSL::Crypto
