@@ -161,11 +161,11 @@ SQLRETURN SetConnectAttr(
 
         switch (attribute) {
             case SQL_ATTR_CONNECTION_TIMEOUT:
-                connection.setConnectionTimeout(static_cast<SQLUINTEGER>(reinterpret_cast<uintptr_t>(value)));
+                connection.setTimeout(static_cast<SQLUINTEGER>(reinterpret_cast<uintptr_t>(value)));
                 return SQL_SUCCESS;
 
             case SQL_ATTR_LOGIN_TIMEOUT:
-                connection.setTimeout(static_cast<SQLUINTEGER>(reinterpret_cast<uintptr_t>(value)));
+                connection.setConnectionTimeout(static_cast<SQLUINTEGER>(reinterpret_cast<uintptr_t>(value)));
                 return SQL_SUCCESS;
 
             case SQL_ATTR_CURRENT_CATALOG:
@@ -241,8 +241,8 @@ SQLRETURN GetConnectAttr(
 
         switch (attribute) {
             CASE_NUM(SQL_ATTR_CONNECTION_DEAD, SQLUINTEGER, SQL_CD_FALSE);
-            CASE_NUM(SQL_ATTR_CONNECTION_TIMEOUT, SQLUINTEGER, connection.connection_timeout);
-            CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUINTEGER, connection.timeout);
+            CASE_NUM(SQL_ATTR_CONNECTION_TIMEOUT, SQLUINTEGER, connection.timeout);
+            CASE_NUM(SQL_ATTR_LOGIN_TIMEOUT, SQLUINTEGER, connection.connection_timeout);
             CASE_NUM(SQL_ATTR_TXN_ISOLATION, SQLINTEGER, SQL_TXN_SERIALIZABLE); // mssql linked server
             CASE_NUM(SQL_ATTR_AUTOCOMMIT, SQLINTEGER, SQL_AUTOCOMMIT_ON);
 

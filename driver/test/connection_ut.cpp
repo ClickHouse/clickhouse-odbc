@@ -81,9 +81,9 @@ TEST_F(ConnectionConfigurationTest, TimeoutAttributesAreIndependentUnsignedInteg
 
 TEST_F(ConnectionConfigurationTest, TimeoutOverridesSurviveConnectionAndReconnection) {
     const auto handle = connection.getHandle();
-    ASSERT_EQ(impl::SetConnectAttr(handle, SQL_ATTR_CONNECTION_TIMEOUT,
+    ASSERT_EQ(impl::SetConnectAttr(handle, SQL_ATTR_LOGIN_TIMEOUT,
         reinterpret_cast<SQLPOINTER>(7), 0), SQL_SUCCESS);
-    ASSERT_EQ(impl::SetConnectAttr(handle, SQL_ATTR_LOGIN_TIMEOUT, nullptr, 0), SQL_SUCCESS);
+    ASSERT_EQ(impl::SetConnectAttr(handle, SQL_ATTR_CONNECTION_TIMEOUT, nullptr, 0), SQL_SUCCESS);
     for (int i = 0; i < 2; ++i) {
         reconnect("Driver=x;Timeout=42");
         EXPECT_EQ(connection.connection_timeout, 7u);
@@ -91,8 +91,8 @@ TEST_F(ConnectionConfigurationTest, TimeoutOverridesSurviveConnectionAndReconnec
         EXPECT_EQ(connection.session->settings.connection_timeout, 7u);
         EXPECT_EQ(connection.session->settings.timeout, 0u);
     }
-    ASSERT_EQ(impl::SetConnectAttr(handle, SQL_ATTR_CONNECTION_TIMEOUT, nullptr, 0), SQL_SUCCESS);
-    ASSERT_EQ(impl::SetConnectAttr(handle, SQL_ATTR_LOGIN_TIMEOUT,
+    ASSERT_EQ(impl::SetConnectAttr(handle, SQL_ATTR_LOGIN_TIMEOUT, nullptr, 0), SQL_SUCCESS);
+    ASSERT_EQ(impl::SetConnectAttr(handle, SQL_ATTR_CONNECTION_TIMEOUT,
         reinterpret_cast<SQLPOINTER>(70000), 0), SQL_SUCCESS);
     EXPECT_EQ(connection.session->settings.connection_timeout, 0u);
     EXPECT_EQ(connection.session->settings.timeout, 70000u);
