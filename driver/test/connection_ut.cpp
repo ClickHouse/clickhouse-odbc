@@ -3,6 +3,8 @@
 #include "driver/api/impl/impl.h"
 
 #include <gtest/gtest.h>
+#include <algorithm>
+#include "driver/test/http_server/TestHTTPServer.h"
 
 // These tests only check how the connection string is parsed into the Connection configuration fields.
 // Because `Driver=` is specified, no DSN lookup is performed, and because `VerifyConnectionEarly` is off
@@ -106,4 +108,43 @@ TEST_F(ConnectionConfigurationTest, TimeoutConfigurationStillAppliesWithoutOverr
     reconnect("Driver=x");
     EXPECT_EQ(connection.connection_timeout, 30u);
     EXPECT_EQ(connection.timeout, 30u);
+}
+
+TEST(HttpTimeoutTest, DisabledInactivityTimeoutAllowsDelayedResponse) {
+    TcpServer server(0);
+    const std::string reply = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK";
+    server.setResponse({reply.begin(), reply.end()});
+    server.setResponseDelay(std::chrono::milliseconds(1500));
+    HttpSettings settings;
+    settings.connection_timeout = 0;
+    settings.timeout = 0;
+    auto session = std::make_shared<HttpSession>(settings);
+    HttpResponse response(session, {"http://127.0.0.1:" + std::to_string(server.port()) + "/",
+        std::make_shared<const std::string>("query"), {}});
+    EXPECT_EQ(response.getStatus(), 200);
+    EXPECT_EQ(response.readAll(100), "OK");
+}
+
+TEST(HttpTimeoutTest, FiniteInactivityTimeoutRejectsDelayedResponse) {
+    TcpServer server(0);
+    const std::string reply = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+    server.setResponse({reply.begin(), reply.end()});
+    server.setResponseDelay(std::chrono::milliseconds(2000));
+    HttpSettings settings;
+    settings.connection_timeout = 0;
+    settings.timeout = 1;
+    auto session = std::make_shared<HttpSession>(settings);
+    EXPECT_THROW((HttpResponse(session, {"http://127.0.0.1:" + std::to_string(server.port()) + "/",
+        std::make_shared<const std::string>("query"), {}})), std::runtime_error);
+}
+
+TEST(HttpTimeoutTest, ConnectionTimeoutUsesCurlRange) {
+    HttpSettings settings;
+    settings.connection_timeout = 0;
+    EXPECT_EQ(settings.connectionTimeoutSeconds(), std::numeric_limits<long>::max());
+    settings.connection_timeout = 7;
+    EXPECT_EQ(settings.connectionTimeoutSeconds(), 7);
+    settings.connection_timeout = std::numeric_limits<std::uint32_t>::max();
+    EXPECT_EQ(settings.connectionTimeoutSeconds(), static_cast<long>(std::min<std::uint64_t>(
+        std::numeric_limits<std::uint32_t>::max(), std::numeric_limits<long>::max())));
 }

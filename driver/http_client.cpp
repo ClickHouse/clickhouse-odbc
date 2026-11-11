@@ -305,7 +305,7 @@ HttpResponse::HttpResponse(std::shared_ptr<HttpSession> session_, HttpRequest re
     // The connect phase is limited by CURLOPT_CONNECTTIMEOUT; after that `settings.timeout` is an
     // inactivity timeout, implemented in pump() (CURLOPT_LOW_SPEED_* averages over a time window,
     // which is not the same).
-    curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT, static_cast<long>(settings.connection_timeout));
+    curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT, settings.connectionTimeoutSeconds());
 
     curl_easy_setopt(easy, CURLOPT_SSL_VERIFYPEER, settings.tls_verify ? 1L : 0L);
     curl_easy_setopt(easy, CURLOPT_SSL_VERIFYHOST, settings.tls_verify ? 2L : 0L);
