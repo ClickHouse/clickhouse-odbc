@@ -16,7 +16,7 @@
 	url = https://github.com/ClickHouse/nanodbc.git
 [submodule "contrib/openssl"]
 	path = contrib/openssl
-	url = https://github.com/ClickHouse/openssl
+	url = https://github.com/ClickHouse/openssl.git
 [submodule "contrib/asio"]
 	path = contrib/asio
 	url = https://github.com/chriskohlhoff/asio
