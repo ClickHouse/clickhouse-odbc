@@ -10,10 +10,15 @@ on:
     branches: [ '**' ]
   release:
     types:
-      - created
+      - published
+      - prereleased
+
+permissions:
+  contents: read
 
 concurrency:
-  group: linux-${{ github.head_ref }}
+  # Publishing a pre-release triggers both `published` and `prereleased`, only one run is needed.
+  group: linux-${{ github.head_ref || (github.event_name == 'release' && github.ref) || github.run_id }}
   cancel-in-progress: true
 
 defaults:
@@ -59,6 +64,7 @@ jobs:
       with:
         path: source
         submodules: true
+        persist-credentials: false
 
     - name: Install dependencies - Common
       run: |
@@ -349,3 +355,36 @@ jobs:
           "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" \
           -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" \
           -d "drop database if exists $TEST_DATABASE"
+
+  # Publishing is kept out of `build_and_test`, so the build, the tests and all the third-party code
+  # they pull in never hold a token that can modify the release. This job runs no repository code.
+  publish:
+    needs: build_and_test
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      PACKAGE_NAME: clickhouse-odbc-linux-Clang-UnixODBC-Release
+
+    steps:
+    - name: Download the release build artifact
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      with:
+        name: ${{ env.PACKAGE_NAME }}
+        path: ${{ github.workspace }}/artifact
+
+    # Bundle the CPack outputs (tarballs and their .sha256 files) into a single flat zip,
+    # with the same name and layout as the assets of previous releases.
+    - name: Create release zip
+      working-directory: ${{ github.workspace }}
+      run: |
+        zip -j "$PACKAGE_NAME.zip" artifact/clickhouse-odbc-*
+        unzip -l "$PACKAGE_NAME.zip"
+
+    - name: Upload release zip as release asset
+      working-directory: ${{ github.workspace }}
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ github.event.release.tag_name }}
+      run: gh release upload "$TAG" "$PACKAGE_NAME.zip" --clobber --repo "$GITHUB_REPOSITORY"

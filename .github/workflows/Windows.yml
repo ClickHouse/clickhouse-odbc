@@ -8,12 +8,9 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ '**' ]
-  release:
-    types:
-      - created
 
 concurrency:
-  group: windows-${{ github.head_ref }}
+  group: windows-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 defaults:
@@ -296,16 +293,6 @@ jobs:
         DSN: "ClickHouse DSN Unicode"
       run: |
         python -m pytest --log-level=DEBUG -v
-
-    - name: Upload artifacts as release assets
-      if: ${{ github.event_name == 'release' && matrix.build_type == 'Release' }}
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ github.workspace }}/build/clickhouse-odbc-*
-        overwrite: true
-        tag: ${{ github.ref }}
-        file_glob: true
 
     - name: Drop Test Database
       if: always() && env.CLOUD_TESTS_ENABLED == 'true' && env.TEST_DATABASE != ''
