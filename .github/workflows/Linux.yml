@@ -67,21 +67,26 @@ jobs:
         persist-credentials: false
 
     - name: Install dependencies - Common
+      timeout-minutes: 15
+      # No `apt upgrade`: on Ubuntu 22.04 it updates snap-based packages such as firefox, which then
+      # install from the Snap Store and regularly hang. `apt install` already fetches current versions.
       run: |
         sudo apt update -q
         sudo apt remove -y php* node* mysql* mssql-tools
-        sudo apt upgrade -y
-        sudo apt install -y build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl python-is-python3 python3 python3-pip python3-setuptools
+        sudo apt install -y build-essential git cmake perl libdbi-perl libdbd-odbc-perl python-is-python3 python3 python3-pip python3-setuptools
 
     - name: Install dependencies - UnixODBC
+      timeout-minutes: 15
       if: ${{ matrix.odbc_provider == 'UnixODBC' }}
       run: sudo apt install -y unixodbc unixodbc-dev
 
     - name: Install dependencies - iODBC
+      timeout-minutes: 15
       if: ${{ matrix.odbc_provider == 'iODBC' }}
       run: sudo apt install -y iodbc libiodbc2 libiodbc2-dev
 
     - name: Install dependencies - LLVM
+      timeout-minutes: 15
       # Needed by both compilers: OpenSSL's pre-generated x86_64 assembly uses AVX-IFMA
       # instructions, which Ubuntu 22.04's assembler (binutils 2.38) and its Clang 14
       # cannot assemble. The GCC build uses this Clang as the assembler only.
@@ -92,11 +97,13 @@ jobs:
         sudo ./llvm.sh "$LLVM_VERSION"
 
     - name: Install dependencies - GCC
+      timeout-minutes: 15
       if: ${{ matrix.compiler == 'GCC' }}
       # GCC 12 is the oldest GCC with adequate C++23 support; Ubuntu 22.04 defaults to GCC 11.
       run: sudo apt install -y gcc-12 g++-12 gdb
 
     - name: Install dependencies - Cleanup
+      timeout-minutes: 15
       run: sudo apt autoremove -y
 
     - name: Start ClickHouse in Docker
