@@ -8,10 +8,10 @@ on:
       - prereleased
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: windows-sign-${{ github.head_ref }}
+  group: windows-sign-${{ github.ref }}
   cancel-in-progress: true
 
 defaults:
@@ -49,6 +49,7 @@ jobs:
       with:
         path: source
         submodules: true
+        persist-credentials: false
 
     - name: Set up Visual Studio shell
       uses: egor-tensin/vs-shell@v2
@@ -226,23 +227,40 @@ jobs:
           name: clickhouse-odbc-windows-${{ matrix.architecture }}-${{ matrix.build_type }}-manual-install
           path: ${{ github.workspace }}/package/clickhouse-odbc-*-manual-install.zip
 
-    - name: Upload artifacts as release assets
-      if: ${{ github.event_name == 'release' && matrix.build_type == 'Release' }}
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ github.workspace }}/build/clickhouse-odbc-*.msi
-        overwrite: true
-        tag: ${{ github.ref }}
-        file_glob: true
+  # Publishing is kept out of `build_and_test`, so the build and the signing tools it downloads never
+  # hold a token that can modify the release. This job runs no repository code.
+  publish:
+    needs: build_and_test
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ github.workspace }}
+    env:
+      PACKAGE_NAME: clickhouse-odbc-windows-x64-Release
 
-    - name: Upload manual-install zip as release asset
-      if: ${{ github.event_name == 'release' && matrix.build_type == 'Release' }}
-      uses: svenstaro/upload-release-action@v2
+    steps:
+    - name: Download the signed installer
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ github.workspace }}/package/clickhouse-odbc-*-manual-install.zip
-        overwrite: true
-        tag: ${{ github.ref }}
-        file_glob: true
+        name: ${{ env.PACKAGE_NAME }}
+        path: ${{ github.workspace }}/installer
 
+    - name: Download the manual-install zip
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      with:
+        name: ${{ env.PACKAGE_NAME }}-manual-install
+        path: ${{ github.workspace }}/manual-install
+
+    - name: Upload release assets
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ github.event.release.tag_name }}
+      run: |
+        shopt -s failglob
+        ls -la installer manual-install
+        gh release upload "$TAG" installer/clickhouse-odbc-*.msi manual-install/clickhouse-odbc-*-manual-install.zip \
+          --clobber --repo "$GITHUB_REPOSITORY"

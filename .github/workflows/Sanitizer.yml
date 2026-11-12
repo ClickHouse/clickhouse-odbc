@@ -50,18 +50,22 @@ jobs:
         mkdir -p ${{ github.workspace }}/package
 
     - name: Install dependencies - Common
+      timeout-minutes: 15
+      # No `apt upgrade`: on Ubuntu 22.04 it updates snap-based packages such as firefox, which then
+      # install from the Snap Store and regularly hang. `apt install` already fetches current versions.
       run: |
         sudo apt update -q
-        sudo apt upgrade -y
         sudo apt install -y build-essential lsb-release software-properties-common gnupg
 
     - name: Install dependencies - LLVM
+      timeout-minutes: 15
       run: |
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
         sudo ./llvm.sh 20 all
 
     - name: Install dependencies - Valgrind
+      timeout-minutes: 15
       if: ${{ matrix.checker == 'valgrind' }}
       run: sudo apt install -y valgrind
 

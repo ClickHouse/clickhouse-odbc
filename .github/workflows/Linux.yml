@@ -10,10 +10,15 @@ on:
     branches: [ '**' ]
   release:
     types:
-      - created
+      - published
+      - prereleased
+
+permissions:
+  contents: read
 
 concurrency:
-  group: linux-${{ github.head_ref }}
+  # Publishing a pre-release triggers both `published` and `prereleased`, only one run is needed.
+  group: linux-${{ github.head_ref || (github.event_name == 'release' && github.ref) || github.run_id }}
   cancel-in-progress: true
 
 defaults:
@@ -59,23 +64,29 @@ jobs:
       with:
         path: source
         submodules: true
+        persist-credentials: false
 
     - name: Install dependencies - Common
+      timeout-minutes: 15
+      # No `apt upgrade`: on Ubuntu 22.04 it updates snap-based packages such as firefox, which then
+      # install from the Snap Store and regularly hang. `apt install` already fetches current versions.
       run: |
         sudo apt update -q
         sudo apt remove -y php* node* mysql* mssql-tools
-        sudo apt upgrade -y
-        sudo apt install -y build-essential git cmake docker perl libdbi-perl libdbd-odbc-perl python-is-python3 python3 python3-pip python3-setuptools
+        sudo apt install -y build-essential git cmake perl libdbi-perl libdbd-odbc-perl python-is-python3 python3 python3-pip python3-setuptools
 
     - name: Install dependencies - UnixODBC
+      timeout-minutes: 15
       if: ${{ matrix.odbc_provider == 'UnixODBC' }}
       run: sudo apt install -y unixodbc unixodbc-dev
 
     - name: Install dependencies - iODBC
+      timeout-minutes: 15
       if: ${{ matrix.odbc_provider == 'iODBC' }}
       run: sudo apt install -y iodbc libiodbc2 libiodbc2-dev
 
     - name: Install dependencies - LLVM
+      timeout-minutes: 15
       # Needed by both compilers: OpenSSL's pre-generated x86_64 assembly uses AVX-IFMA
       # instructions, which Ubuntu 22.04's assembler (binutils 2.38) and its Clang 14
       # cannot assemble. The GCC build uses this Clang as the assembler only.
@@ -86,11 +97,13 @@ jobs:
         sudo ./llvm.sh "$LLVM_VERSION"
 
     - name: Install dependencies - GCC
+      timeout-minutes: 15
       if: ${{ matrix.compiler == 'GCC' }}
       # GCC 12 is the oldest GCC with adequate C++23 support; Ubuntu 22.04 defaults to GCC 11.
       run: sudo apt install -y gcc-12 g++-12 gdb
 
     - name: Install dependencies - Cleanup
+      timeout-minutes: 15
       run: sudo apt autoremove -y
 
     - name: Start ClickHouse in Docker
@@ -349,3 +362,36 @@ jobs:
           "https://${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_HOST_SMT }}:8443/?query=" \
           -u "default:${{ secrets.INTEGRATIONS_TEAM_TESTS_CLOUD_PASSWORD_SMT }}" \
           -d "drop database if exists $TEST_DATABASE"
+
+  # Publishing is kept out of `build_and_test`, so the build, the tests and all the third-party code
+  # they pull in never hold a token that can modify the release. This job runs no repository code.
+  publish:
+    needs: build_and_test
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      PACKAGE_NAME: clickhouse-odbc-linux-Clang-UnixODBC-Release
+
+    steps:
+    - name: Download the release build artifact
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      with:
+        name: ${{ env.PACKAGE_NAME }}
+        path: ${{ github.workspace }}/artifact
+
+    # Bundle the CPack outputs (tarballs and their .sha256 files) into a single flat zip,
+    # with the same name and layout as the assets of previous releases.
+    - name: Create release zip
+      working-directory: ${{ github.workspace }}
+      run: |
+        zip -j "$PACKAGE_NAME.zip" artifact/clickhouse-odbc-*
+        unzip -l "$PACKAGE_NAME.zip"
+
+    - name: Upload release zip as release asset
+      working-directory: ${{ github.workspace }}
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ github.event.release.tag_name }}
+      run: gh release upload "$TAG" "$PACKAGE_NAME.zip" --clobber --repo "$GITHUB_REPOSITORY"
