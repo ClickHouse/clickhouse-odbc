@@ -10,6 +10,7 @@
 
 #include <memory>
 #include <mutex>
+#include <optional>
 
 class DescriptorRecord;
 class Descriptor;
@@ -62,6 +63,9 @@ public:
 
     void connect(const std::string & connection_string);
 
+    void setConnectionTimeout(SQLUINTEGER value);
+    void setTimeout(SQLUINTEGER value);
+
     // Return a Base64 encoded string of "user:password".
     std::string buildCredentialsString() const;
 
@@ -87,6 +91,10 @@ public:
     template <typename T> void deallocateChild(SQLHANDLE) noexcept;
 
 private:
+    // Explicit ODBC attributes survive configuration resets, including a value of zero.
+    std::optional<SQLUINTEGER> connection_timeout_override;
+    std::optional<SQLUINTEGER> timeout_override;
+
     // Reset all configuration fields to their default/unintialized values.
     void resetConfiguration();
 

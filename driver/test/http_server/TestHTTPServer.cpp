@@ -105,11 +105,15 @@ asio::awaitable<void> TcpServer::process_connection(tcp::socket socket)
 
         std::vector<char> response;
         KeepAlive response_keep_alive;
+        std::chrono::milliseconds delay;
         {
             std::lock_guard lock(response_mutex);
+            delay = response_delay;
             response = data;
             response_keep_alive = keep_alive;
         }
+        asio::steady_timer timer(io_context, delay);
+        co_await timer.async_wait(asio::use_awaitable);
         auto [write_error, bytes_written] = co_await asio::async_write(socket, asio::buffer(response), asio::as_tuple);
         // Closing an unread cursor can disconnect while the response is still being sent.
         if (write_error == asio::error::connection_reset || write_error == asio::error::broken_pipe)

@@ -18,10 +18,13 @@ function (declare_odbc_test_targets libname UNICODE)
         buffer_filling_ut.cpp
         connection_string_ut.cpp
         connection_ut.cpp
+        http_server/TestHTTPServer.cpp
         performance_ut.cpp
         statement_parameter_binding_ut.cpp
         type_info_ut.cpp
     )
+
+    target_include_directories(${libname}-ut SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/contrib/asio/asio/include)
 
     if (CH_ODBC_ENABLE_CODE_COVERAGE)
         target_compile_options(${libname}-ut PRIVATE -fprofile-instr-generate -fcoverage-mapping)
