@@ -84,6 +84,9 @@ void ColumnInfo::assignTypeInfo(const TypeAst & ast, const std::string & default
         is_nullable = true;
         assignTypeInfo(ast.elements.front(), default_timezone);
     }
+    else if (ast.meta == TypeAst::LowCardinality) {
+        assignTypeInfo(ast.elements.front(), default_timezone);
+    }
     else {
         // Interpret all types with unrecognized ASTs as String.
         type_without_parameters = "String";
