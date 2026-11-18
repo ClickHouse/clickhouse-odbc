@@ -74,7 +74,7 @@ every ClickHouse client repository. An issue has none, one, or more of them:
 
 | Impact         | Use when |
 | -------------- | -------- |
-| Security       | a defect makes the protection weaker: it exposes credentials or data, lets a value change the meaning of a query, skips or weakens a TLS or identity check, or lets a remote party stop the client; also an authentication method that does not work or is missing |
+| Security       | a **vulnerability**: a defect makes the protection weaker: it exposes credentials or data, lets a value change the meaning of a query, skips or weakens a TLS or identity check, or lets a remote party stop the client. Also **authentication**: an authentication method that does not work or is missing |
 | Data integrity | data that the caller wrote, or a result that the caller reads, is missing, incomplete, or different from the value given or stored, and the client reports no error; this includes a failed operation that the client reports as a success |
 | Stability      | the process stops in a way that the caller cannot handle as a normal error, a call does not return, or a resource leaks until none is left |
 | Performance    | the result is correct, but the operation is too slow, or uses too much memory or CPU |
@@ -87,10 +87,16 @@ highest row applies:
 
 | Severity                | Use when |
 | ----------------------- | -------- |
-| Wrong data or security  | impact **Data integrity**: the driver returns or stores wrong or incomplete data with no error, or reports success for a query that failed; or impact **Security**: a security defect (a request for an authentication method is a feature request) |
+| Wrong data or security  | impact **Data integrity**: the driver returns or stores wrong or incomplete data with no error, or reports success for a query that failed; or impact **Security** with a vulnerability: a security defect |
 | Broken, no workaround   | the feature fails (an error, a hang, a crash, a leak that ends in a crash or in exhausted connections), and the caller has no reasonable workaround; also a wrong or incomplete error with no workaround: the failure is reported, but its SQLSTATE, native code, or message is wrong or lost. The impact **Stability** (a hang, a crash, such a leak) uses this row when the caller has no reasonable workaround |
 | Workaround exists       | the feature fails, but the caller can avoid the failure with a small change (name the workaround in the reason); also impact **Performance**: a result that is correct but slow or uses too much memory |
 | Cosmetic, docs, feature | wrong log or message text, documentation, a feature request |
+
+An issue that has the impact Security with no vulnerability (an authentication
+method that does not work or is missing) does not use the first row. Rate an
+authentication method that does not work by its failure ("Broken, no
+workaround" or "Workaround exists"), and a request for a missing method as a
+feature request.
 
 Rules for the driver:
 
