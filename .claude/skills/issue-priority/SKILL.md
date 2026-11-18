@@ -37,6 +37,26 @@ Set no priority when one of these is true:
 - The issue is a question, or it is about CI, the release process, or a
   discussion.
 
+## Vulnerabilities that are not public yet
+
+A security issue must not stay public with a description of how to reproduce
+it. When a reproduction confirms a vulnerability that is not public yet
+(credentials or data are exposed, a value changes the meaning of a query, a TLS
+or identity check is skipped or weakened, or input that an untrusted party
+controls stops the client):
+
+- Report it in a private GitHub vulnerability report for this repository
+  (**Security** → **Report a vulnerability**), not in a public issue or
+  comment.
+- Set no Priority on the public issue. The issue is closed with a comment that
+  gives no details, and a repository administrator can delete it.
+- Rate the vulnerability with the rules below, and put the level and its reason
+  into the private report as the proposed severity.
+
+A vulnerability that is already public (a published CVE or GHSA, for example in
+a dependency), and an authentication method that does not work or is missing,
+get a Priority on the issue as usual.
+
 ## 1. Reach
 
 The reach has two parts: the **path** (the driver function or feature) and the
@@ -130,10 +150,11 @@ Apply them in this order:
 1. **Security with a shown path from untrusted input.** The issue or a
    reproduction shows how a value that an application takes from its users
    reaches the defect: `Urgent` at any reach. Skip the other modifiers. A
-   defect that puts a parameter value into SQL without quoting or escaping is
-   a candidate: look for such a path. If none is shown, rate the defect by the
-   failure that it shows. A report that discloses a vulnerability goes to a
-   private channel, not to a public issue.
+   defect that puts a parameter value into SQL without quoting or escaping is a
+   candidate: look for such a path. If none is shown, rate the defect by the
+   failure that it shows. A vulnerability that is not public yet goes to a
+   private vulnerability report, not to a public issue (see "Vulnerabilities
+   that are not public yet").
 2. **Regression in the latest published release**: up one level. This can
    give `Urgent`. It is a regression only when the latest release shows the
    problem and the release before it does not. Use releases, not
