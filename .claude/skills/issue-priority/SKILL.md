@@ -27,13 +27,10 @@ Set no priority when one of these is true:
 - A maintainer can close the issue with no further action: it is already fixed
   on `master`, a duplicate, works as intended, already supported, answered, or
   obsolete.
-- The driver is not involved. Two frequent cases:
-  - `clickhouse-odbc-bridge`, the `odbc()` table function, and ODBC
-    dictionaries: the ClickHouse server reads from another database through
-    the ODBC driver of that database. That code is in `ClickHouse/ClickHouse`.
-  - The root cause is in the Power BI connector
-    (`ClickHouse/power-bi-clickhouse`), for example in the SQL that the
-    connector generates.
+- The driver is not involved: `clickhouse-odbc-bridge`, the `odbc()` table
+  function, and ODBC dictionaries. There, the ClickHouse server reads from
+  another database through the ODBC driver of that database. That code is in
+  `ClickHouse/ClickHouse`.
 - The issue is a question, or it is about CI, the release process, or a
   discussion.
 
@@ -70,16 +67,16 @@ get a Priority on the issue as usual.
 The reach has two parts: the **path** (the driver function or feature) and the
 **platform**. Take the tier of the most-used path that reaches the defect, and
 the tier of the most-used platform that shows it. The reach is the narrower of
-the two. Examples: a `SQLFetch` defect that shows only on macOS is Common. A
+the two. Examples: a `SQLFetch` defect that shows only on macOS is Narrow. A
 defect in a Narrow path is Narrow on every platform.
 
 ### Path
 
 | Tier      | Public paths |
 | --------- | ------------ |
-| Core      | connect (`SQLDriverConnect`, `SQLConnect`, DSN and connection-string parsing of `Url`, `Server`/`Host`, `Port`, `UID`, `PWD`, `Database`, `SSLMode`); authentication (password, `AccessToken`); the HTTP and TLS transport (`driver/http_client.cpp`, `driver/connection.cpp`, the request code in `driver/statement.cpp`); `SQLExecDirect`, `SQLPrepare`, and `SQLExecute` with the default `ODBCDriver2` format; input parameters (`SQLBindParameter`); ODBC escape sequences (`{fn …}`, `{d …}`, `{ts …}`, `{oj …}`, `driver/escaping/`); `SQLFetch`, `SQLGetData`, `SQLBindCol`, and the conversion of common types (integers, `Float32`/`Float64`, `Decimal`, `String`, `FixedString`, `Enum8`/`Enum16`, `Bool`, `UUID`, `Date`, `DateTime`, `DateTime64`, also in `Nullable` and `LowCardinality`); column metadata (`SQLNumResultCols`, `SQLDescribeCol`, `SQLColAttribute`); `SQLTables`, `SQLColumns`, `SQLGetTypeInfo`, `SQLGetInfo`; errors and diagnostics (`SQLGetDiagRec`, `SQLGetDiagField`); the ANSI and the Unicode driver; the Windows MSI installer |
+| Core      | connect (`SQLDriverConnect`, `SQLConnect`, DSN and connection-string parsing of `Url`, `Server`/`Host`, `Port`, `UID`, `PWD`, `Database`, `SSLMode`); authentication (password, `AccessToken`); the HTTP and TLS transport (`driver/http_client.cpp`, `driver/connection.cpp`, the request code in `driver/statement.cpp`); `SQLExecDirect`, `SQLPrepare`, and `SQLExecute` with the default `ODBCDriver2` format; input parameters (`SQLBindParameter`); ODBC escape sequences (`{fn …}`, `{d …}`, `{ts …}`, `{oj …}`, `driver/escaping/`); `SQLFetch`, `SQLGetData`, `SQLBindCol`, and the conversion of common types (integers, `Float32`/`Float64`, `Decimal` (also `Decimal256`), `String`, `FixedString`, `Enum8`/`Enum16`, `Bool`, `UUID`, `Date`, `DateTime`, `DateTime64`, also in `Nullable` and `LowCardinality`); column metadata (`SQLNumResultCols`, `SQLDescribeCol`, `SQLColAttribute`); `SQLTables`, `SQLColumns`, `SQLGetTypeInfo`, `SQLGetInfo`; errors and diagnostics (`SQLGetDiagRec`, `SQLGetDiagField`); the ANSI and the Unicode driver; the Windows MSI installer |
 | Common    | parameter arrays and data at execution (`SQL_ATTR_PARAMSET_SIZE`, `SQLPutData`, `SQLParamData`); `SQLMoreResults`, `SQLRowCount`; the other catalog functions (`SQLPrimaryKeys`, `SQLStatistics`, `SQLSpecialColumns`, `SQLForeignKeys`, `SQLProcedures`, the privilege functions); statement and connection attributes, timeouts, and `SQLCancel`; the optional DSN parameters (`Compression`, `AutoSessionId`, `HugeIntAsString`, `SqlCompatibilitySettings`, `ClientName`, `VerifyConnectionEarly`, `Timeout`, and the client-certificate parameters `PrivateKeyFile`, `CertificateFile`, `CALocation`); the Windows DSN setup dialog (`driver/platform/win/setup.cpp`); SQL that only one application other than Power BI generates (Excel, Tableau through generic ODBC, SQL Server linked servers, MS Access, Qlik, SSIS, Oracle); one connection or statement used from more than one thread |
-| Narrow    | the `RowBinaryWithNamesAndTypes` format (experimental, `default_format` in the `Url`); rare types (`Int128` and wider, `Decimal256`, `Array`, `Map`, `Tuple`, `Nested`, `IPv4`, `IPv6`, Geo, `JSON`, `Dynamic`, `Variant`, `Time`, `Time64`); scrollable cursors and positioned operations (`SQLSetPos`, `SQLBulkOperations`, `SQLExtendedFetch`); driver logging (`DriverLog`, `DriverLogFile`); building the driver from sources; a ClickHouse server version that is no longer supported |
+| Narrow    | the `RowBinaryWithNamesAndTypes` format (experimental, `default_format` in the `Url`); rare types (`Int128` and wider, `Array`, `Map`, `Tuple`, `Nested`, `IPv4`, `IPv6`, Geo, `JSON`, `Dynamic`, `Variant`, `Time`, `Time64`); scrollable cursors and positioned operations (`SQLSetPos`, `SQLBulkOperations`, `SQLExtendedFetch`); driver logging (`DriverLog`, `DriverLogFile`); building the driver from sources; a ClickHouse server version that is no longer supported |
 | Satellite | `test/`, `driver/test/`, `docs/`, `packaging/` samples (`odbc.ini.sample`, `odbcinst.ini.sample`, `clickhouse-odbc.tdc.sample`), `metrics/`, CI workflows |
 
 Power BI, with the ClickHouse connector in DirectQuery mode, is the
@@ -87,13 +84,18 @@ application that sends the most reports. It generates SQL with parameters and
 escape sequences, and it reads the type metadata. A defect that Power BI
 reaches keeps the tier of its path.
 
+A Power BI issue gets a priority, also when its root cause can be in the Power
+BI connector (`ClickHouse/power-bi-clickhouse`): many issues that look like
+connector issues are driver issues. Rate it by the driver path that Power BI
+uses. When the root cause is in the connector, say in the reason that the fix
+belongs in the connector.
+
 ### Platform
 
 | Tier   | Platforms |
 | ------ | --------- |
 | Core   | Windows x64 with the Windows driver manager (MDAC/WDAC): the MSI and most BI tools; Linux x86_64 with UnixODBC: the Linux release package, servers, scripts |
-| Common | macOS (the macOS release package, Homebrew; UnixODBC or iODBC); Linux aarch64 |
-| Narrow | builds that the project does not release: 32-bit Windows, Windows ARM64, iODBC on Linux, Cygwin or MinGW |
+| Narrow | macOS (the macOS release package, Homebrew; UnixODBC or iODBC): support is limited, and the macOS application sandbox stops most applications from loading the driver, so mainly software that its users build themselves uses it; Linux aarch64: not officially supported; builds that the project does not release: 32-bit Windows, Windows ARM64, iODBC on Linux, Cygwin or MinGW |
 
 ## 2. Severity
 
@@ -132,7 +134,10 @@ Rules for the driver:
 - **A workaround must be one that the user can apply.** A BI tool generates its
   own SQL, and its user cannot change it. For a defect in tool-generated SQL,
   a workaround counts only if a user of that tool can apply it: a DSN
-  parameter, a server setting, or another connector mode.
+  parameter that the user can set, a server setting, or another connector
+  mode. A Power BI user cannot change a DSN parameter: only a new version of
+  the connector can, and Microsoft must roll it out. So a DSN parameter is not
+  a workaround for a Power BI user.
 - **A crash ends the host application.** The driver runs inside the
   application (a BI tool, Excel, SQL Server, a script). A crash, an abort, or a
   hang is "Broken, no workaround" unless the user can avoid it with a small
@@ -147,10 +152,14 @@ Rules for the driver:
 
 | Severity ↓ / Reach →    | Core   | Common | Narrow | Satellite |
 | ----------------------- | ------ | ------ | ------ | --------- |
-| Wrong data or security  | Urgent | Urgent | High   | Medium    |
-| Broken, no workaround   | High   | High   | Medium | Low       |
-| Workaround exists       | Medium | Medium | Low    | Low       |
+| Wrong data or security  | Urgent | High   | High   | Medium    |
+| Broken, no workaround   | High   | Medium | Medium | Low       |
+| Workaround exists       | Medium | Low    | Low    | Low       |
 | Cosmetic, docs, feature | Low    | Low    | Low    | Low       |
+
+In this repository the Common column is one level lower than in the other
+client repositories (maintainer decision): only a Core path on a Core platform
+gives `Urgent` without a modifier.
 
 ## 4. Modifiers
 
@@ -170,9 +179,9 @@ Apply them in this order:
    pre-releases: `gh release list --repo ClickHouse/clickhouse-odbc
    --exclude-pre-releases`. The tags are `vX.Y.Z.YYYYMMDD`; some older tags
    have no `v` (for example `1.5.1.20251201`).
-3. **Customer request in Linear.** The issue links (`linear.app`) a Linear
-   issue for a customer request: up one level, but never to `Urgent` (`High`
-   stays `High`).
+
+Customer escalations follow their own process: this skill has no modifier for
+them.
 
 ## 5. Confidence
 
