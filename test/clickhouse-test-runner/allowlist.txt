@@ -6,7 +6,7 @@
 #   # <test>  # [<id>]                     known failure of group <id> (see the end of this
 #                                          file); it does not run
 #
-# Running: 9177 (backend odbcdriver2, protocol http).
+# Running: 9176 (backend odbcdriver2, protocol http).
 # Known failures: 1414 in 15 groups.
 
 00001_select_1
@@ -6043,7 +6043,6 @@
 04101_json_skip_regexp_parentheses_in_type_hint
 04101_parseDateTime64BestEffort_double_dot_fractional
 04101_schema_inference_length_error_no_crash
-04101_variant_adaptor_propagate_exceptions
 04101_variant_dynamic_type_mismatch_settings
 04101_volume_reducing_function_push_down
 04102_lazy_materialization_with_patch_parts

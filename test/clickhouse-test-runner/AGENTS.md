@@ -88,7 +88,10 @@ A test cannot pass through any client on the CI server when it needs one of thes
 - Behavior of the HTTP interface and of the result format itself. The `ODBCDriver2` format has no
   `extremes`, and it writes the `WITH TOTALS` row as one more data row, without a marker. An HTTP
   request fails when the current database of the session was dropped. Some log tables and profile
-  events are different for a query over HTTP.
+  events are different for a query over HTTP. The memory that a query uses over HTTP is different
+  from TCP, and it changes with the output format: a test that expects `MEMORY_LIMIT_EXCEEDED` at a
+  small `max_memory_usage` that is set for the native protocol can pass on one server and fail on
+  another (`04101_variant_adaptor_propagate_exceptions`).
 - Features of `clickhouse-client` itself that are not part of a driver: `INTO OUTFILE`,
   `FROM INFILE`, client-side parsing of `INSERT` data, the progress and the logs that the native
   protocol sends, and client-only settings.
