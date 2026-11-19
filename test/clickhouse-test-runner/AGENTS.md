@@ -19,7 +19,9 @@ information. Do not hide it.
      [Environment causes](#environment-causes)).
 2. **The default for a client bug is a fix in the driver**, in a pull request of its own, with a
    test in `driver/test/` or `test/src/e2e/`. Do not fix a driver bug in a pull request that
-   changes the harness.
+   changes the harness. Such a pull request does not start the workflow of the harness: to check
+   that the fix breaks no test of the allowlist, add the `tests:run-core-sql` label (see the
+   README, CI).
 3. **The default for a shim bug is a fix in the shim.** Make the shim copy `clickhouse-client`
    more exactly. Do not change the shim to hide a client bug, for example with a different C type,
    a guess of the ClickHouse type from the text of a value, or a workaround for a wrong value. The
