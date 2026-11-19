@@ -1,0 +1,6 @@
+# The checkout of the upstream tests (scripts/fetch-upstream.sh).
+/.upstream/
+# The build of the shim, and the `clickhouse` wrappers that the scripts make.
+/.build/
+/.bin/
+/.bin-real-client/

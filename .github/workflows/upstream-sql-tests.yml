@@ -1,0 +1,228 @@
+name: Upstream SQL tests
+
+# Runs a curated subset of the ClickHouse core SQL tests (tests/queries/0_stateless) through the
+# driver, with the ODBC API. See test/clickhouse-test-runner/README.md.
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      clickhouse_version:
+        description: "ClickHouse version to try, for example 26.11.1.10 (default: test/clickhouse-test-runner/clickhouse-version)"
+        required: false
+        default: ""
+        type: string
+  schedule:
+    - cron: "0 3 * * *"
+  push:
+    branches:
+      - master
+    paths:
+      - "test/clickhouse-test-runner/**"
+      - ".github/workflows/upstream-sql-tests.yml"
+  pull_request:
+    paths:
+      - "test/clickhouse-test-runner/**"
+      - ".github/workflows/upstream-sql-tests.yml"
+
+# A new push to a pull request cancels its old run. Other runs (nightly, manual, push to master)
+# have a group of their own, so that two manual runs with different versions both finish.
+concurrency:
+  group: "${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.number || github.run_id }}"
+  cancel-in-progress: true
+
+env:
+  LLVM_VERSION: 18
+
+jobs:
+  # Builds the driver once, as the Release/Clang leg of Linux.yml does, and runs the unit tests of
+  # the shim with Clang and with the runner's g++. The test jobs use the driver library of this job,
+  # and build the shim with g++.
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          persist-credentials: false
+
+      - name: Install dependencies
+        timeout-minutes: 15
+        run: |
+          sudo apt update -q
+          sudo apt install -y build-essential cmake perl unixodbc unixodbc-dev
+          # OpenSSL's pre-generated x86_64 assembly needs a newer assembler than the one of
+          # Ubuntu 22.04; see Linux.yml.
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh "$LLVM_VERSION"
+
+      - name: Build the driver
+        run: |
+          export CC="clang-$LLVM_VERSION" CXX="clang++-$LLVM_VERSION"
+          cmake -S . -B build \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_ASM_COMPILER="clang-$LLVM_VERSION" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DODBC_PROVIDER=UnixODBC
+          cmake --build build --config Release --parallel "$(nproc)" --target clickhouse-odbc
+
+      # The shim is a separate CMake project (C++20), not a part of the driver build. It must build
+      # with Clang (the compiler of the driver and of local builds) and with GCC 11, the default
+      # g++ of the runner, which the test jobs use. A warning fails the build.
+      - name: Build the shim with Clang and run its unit tests
+        run: |
+          export CC="clang-$LLVM_VERSION" CXX="clang++-$LLVM_VERSION"
+          cmake -S test/clickhouse-test-runner -B "${RUNNER_TEMP}/shim-clang" -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build "${RUNNER_TEMP}/shim-clang" --parallel "$(nproc)"
+          "${RUNNER_TEMP}/shim-clang/clickhouse-test-runner-unit-tests"
+
+      - name: Build the shim with g++ and run its unit tests
+        run: |
+          export CC=gcc CXX=g++
+          cmake -S test/clickhouse-test-runner -B "${RUNNER_TEMP}/shim-gcc" -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build "${RUNNER_TEMP}/shim-gcc" --parallel "$(nproc)"
+          "${RUNNER_TEMP}/shim-gcc/clickhouse-test-runner-unit-tests"
+
+      - name: Upload the driver
+        uses: actions/upload-artifact@v4
+        with:
+          name: upstream-sql-tests-driver
+          retention-days: 3
+          path: build/driver/libclickhouseodbc.so
+
+  upstream-sql-tests:
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [odbcdriver2]
+        # Round-robin shards of the allowlist, about 2,300 tests each. A full run takes about
+        # 9 minutes at -j 6 on 32 vCPUs, and one shard about 3 minutes at -j 4 on 4 vCPUs. Change
+        # SHARD_TOTAL below together with this list.
+        shard: [1, 2, 3, 4]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install dependencies
+        timeout-minutes: 15
+        run: |
+          sudo apt update -q
+          sudo apt install -y build-essential cmake unixodbc unixodbc-dev
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies of tests/clickhouse-test
+        run: pip install jinja2
+
+      - name: Download the driver
+        uses: actions/download-artifact@v4
+        with:
+          name: upstream-sql-tests-driver
+          path: build/driver
+
+      # The server version and the upstream tests are pinned together in
+      # test/clickhouse-test-runner/clickhouse-version: the `.reference` files of another release
+      # do not match the output of the server. A new server release changes nothing here until a
+      # pull request bumps the pin. The `clickhouse_version` input of a manual run tries another
+      # version without a commit.
+      - name: Select the ClickHouse version
+        id: version
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.clickhouse_version }}
+        run: |
+          version="${INPUT_VERSION:-$(test/clickhouse-test-runner/scripts/pinned-version.sh)}"
+          if ! [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::clickhouse_version must be a full version such as 26.10.4.207 (got: '${version}')"
+            exit 1
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      # The default configuration of the server image. CLICKHOUSE_SKIP_USER_SETUP=1 keeps the
+      # `default` user of the image's users.xml: network access, access management and
+      # named-collection control (tests create users, roles and named collections). Without it, the
+      # image allows the user without a password only from localhost in the container.
+      #
+      # The server gets the host name of the runner: tests/clickhouse-test replaces its own host
+      # name with `localhost` in the output of each test, and some `.reference` files have
+      # `localhost` for hostName().
+      - name: Start ClickHouse ${{ steps.version.outputs.version }}
+        env:
+          CLICKHOUSE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          docker run -d --name clickhouse -p 8123:8123 -p 9000:9000 \
+            --hostname "$(hostname)" \
+            -e CLICKHOUSE_SKIP_USER_SETUP=1 --ulimit nofile=262144:262144 \
+            "clickhouse/clickhouse-server:${CLICKHOUSE_VERSION}"
+          for _ in $(seq 1 60); do
+            if curl -fsS "http"'://'"localhost:8123/ping" > /dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs clickhouse
+          echo "::error::ClickHouse did not start"
+          exit 1
+
+      # Also generates src/errorcodes.cpp from the same checkout.
+      - name: Get the upstream tests of ClickHouse ${{ steps.version.outputs.version }}
+        id: upstream
+        env:
+          CLICKHOUSE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          test/clickhouse-test-runner/scripts/fetch-upstream.sh "${CLICKHOUSE_VERSION}"
+          # The build job compiles the committed src/errorcodes.cpp. For the pinned version, it must
+          # be the same as the generated one (a version bump commits it).
+          if [[ "${CLICKHOUSE_VERSION}" == "$(test/clickhouse-test-runner/scripts/pinned-version.sh)" ]]; then
+            git diff --exit-code -- test/clickhouse-test-runner/src/errorcodes.cpp
+          fi
+
+      # With the runner's g++ (GCC 11); the build job runs the unit tests with it. The run script
+      # below uses this build directory.
+      - name: Build the shim
+        run: |
+          export CC=gcc CXX=g++
+          cmake -S test/clickhouse-test-runner -B test/clickhouse-test-runner/.build -DCLICKHOUSE_TEST_RUNNER_UNIT_TESTS=OFF
+          cmake --build test/clickhouse-test-runner/.build --parallel "$(nproc)"
+
+      - name: Live tests of the shim
+        if: matrix.shard == 1
+        env:
+          CLICKHOUSE_TEST_RUNNER_BACKEND: ${{ matrix.backend }}
+        run: python3 test/clickhouse-test-runner/live_test.py -v
+
+      - name: Run upstream SQL tests
+        env:
+          CLICKHOUSE_TEST_RUNNER_BACKEND: ${{ matrix.backend }}
+          CLICKHOUSE_CLIENT_CLI_LOG: ${{ github.workspace }}/upstream-run.log
+          SHARD_INDEX: ${{ matrix.shard }}
+          SHARD_TOTAL: 4
+        # The runner shows the diff of each failed test in its output only: keep it for the artifact.
+        run: |
+          set -o pipefail
+          test/clickhouse-test-runner/scripts/run-upstream-tests.sh -j 4 2>&1 | tee upstream-output.log
+
+      - name: Upload test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: upstream-sql-tests-${{ steps.upstream.outputs.ref }}-${{ matrix.backend }}-shard-${{ matrix.shard }}
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            upstream-output.log
+            upstream-run.log
+            test/clickhouse-test-runner/.upstream/ClickHouse/tests/queries/**/*.stdout
+            test/clickhouse-test-runner/.upstream/ClickHouse/tests/queries/**/*.stderr
