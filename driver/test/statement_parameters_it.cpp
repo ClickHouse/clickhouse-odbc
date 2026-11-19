@@ -361,6 +361,10 @@ TEST_P(ParameterColumnRoundTripFloat64Symmetric, Execute) {
     execute<DataType>(GetParam(), GetParam(), typeInfoFor("Float64"));
 }
 
+// The server parses the parameter text. Server 25.6 (test/docker-compose.yml) parses some texts with
+// an error of 1 ULP, for example "9.99e-07", and "3.4028235e+38" as Float32. Server 26.10 parses them
+// exactly. Use only values that the CI server parses exactly, in this list and in the Float32 list.
+// type_conversion_ut checks the driver text of "9.99e-07" and "3.4028235e+38" without a server.
 INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripFloat64Symmetric,
     ::testing::Values(
         "0",
@@ -371,7 +375,7 @@ INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripFloat64Symmetri
         "123.456789123",
         "0.3333333333333333",
         "0.000001",
-        "9.99e-07",
+        "9.5e-07",
         "1e-07",
         "-0.000001234",
         "2.5e-10",
@@ -388,6 +392,7 @@ TEST_P(ParameterColumnRoundTripFloat32Symmetric, Execute) {
     execute<DataType>(GetParam(), GetParam(), typeInfoFor("Float32"));
 }
 
+// See the comment on the Float64 list.
 INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripFloat32Symmetric,
     ::testing::Values(
         "0",
@@ -395,7 +400,7 @@ INSTANTIATE_TEST_SUITE_P(TypeConversion, ParameterColumnRoundTripFloat32Symmetri
         "0.1",
         "123.45679",
         "1e-07",
-        "3.4028235e+38"
+        "3e+38"
     )
 );
 
