@@ -316,7 +316,10 @@ queries of its own for `SQLExecDirect`.
   result, so an error of the output stage occurs. A statement with any other output
   format fails (`[shim-output-format]`). The word `FORMAT` is the clause only at
   the end of a query (before an optional `SETTINGS`), when the word after it is
-  not a SQL keyword: `SELECT format FROM t` has no clause.
+  not a SQL keyword, and not after a keyword or an operator that needs an
+  operand: `SELECT format FROM t`, `SELECT * FROM format f` and
+  `SELECT 2 * format x` have no clause. The same rules tell if `FORMAT` starts
+  the inline data of an `INSERT`.
 - **The command line.** `--port` is the native port of the runner
   (`CLICKHOUSE_PORT_TCP`); the program maps it to `CLICKHOUSE_PORT_HTTP`.
   `clickhouse extract-from-config --key listen_host` prints `127.0.0.1`.

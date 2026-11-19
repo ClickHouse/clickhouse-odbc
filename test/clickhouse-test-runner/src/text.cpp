@@ -119,6 +119,9 @@ std::vector<std::string> topLevelWords(std::string_view sql) {
             i = skipLineComment(sql, i);
         } else if (sql.substr(i).starts_with("/*")) {
             i = skipBlockComment(sql, i);
+        } else if (c == '$') {
+            const auto e = heredocEnd(sql, i);
+            i = (e > 0 ? e : i + 1);
         } else if (c == '(' || c == '[') {
             ++depth;
             ++i;
@@ -137,6 +140,98 @@ std::vector<std::string> topLevelWords(std::string_view sql) {
         }
     }
     return words;
+}
+
+namespace {
+
+    // Keywords that need an operand after them: an expression, a table or an alias.
+    bool needsOperand(std::string_view word) {
+        static const std::unordered_set<std::string> keywords = {
+            "SELECT",
+            "DISTINCT",
+            "FROM",
+            "JOIN",
+            "WHERE",
+            "PREWHERE",
+            "HAVING",
+            "QUALIFY",
+            "BY",
+            "ON",
+            "USING",
+            "AS",
+            "AND",
+            "OR",
+            "NOT",
+            "IN",
+            "LIKE",
+            "ILIKE",
+            "BETWEEN",
+            "CASE",
+            "WHEN",
+            "THEN",
+            "ELSE",
+            "DIV",
+            "MOD",
+            "REGEXP",
+            "LIMIT",
+            "OFFSET",
+        };
+        return keywords.contains(toUpper(word));
+    }
+
+    // Keywords of needsOperand that can also start an operand: `SELECT DISTINCT x`, `AND NOT x`,
+    // `SELECT CASE WHEN x`. Any other word in an operand position is a name (`AS mod`, `BY offset`).
+    bool startsOperand(std::string_view word) {
+        static const std::unordered_set<std::string> keywords = {"SELECT", "DISTINCT", "NOT", "CASE", "WHEN"};
+        return keywords.contains(toUpper(word));
+    }
+
+    // A comma, or a character of an operator. `*` is handled apart: it can be the asterisk.
+    bool needsOperandAfter(char c) {
+        return std::string_view(",=<>!+-/%|&?:^").find(c) != std::string_view::npos;
+    }
+
+} // namespace
+
+bool operandExpected(std::string_view head) {
+    bool expected = false;
+    for (std::size_t i = 0; i < head.size();) {
+        const char c = head[i];
+        if (c == '\'' || c == '"' || c == '`') {
+            i = skipQuoted(head, i);
+            expected = false;
+        } else if (startsLineComment(head, i)) {
+            i = skipLineComment(head, i);
+        } else if (head.substr(i).starts_with("/*")) {
+            i = skipBlockComment(head, i);
+        } else if (c == '$') {
+            const auto e = heredocEnd(head, i);
+            i = (e > 0 ? e : i + 1);
+            expected = false;
+        } else if (isWordByte(c)) {
+            auto j = i;
+            while (j < head.size() && isWordByte(head[j]))
+                ++j;
+            // A word after a dot is a part of a qualified name (`db.table`), not a keyword.
+            const auto w = head.substr(i, j - i);
+            expected = (i == 0 || head[i - 1] != '.') && needsOperand(w) && (!expected || startsOperand(w));
+            i = j;
+        } else {
+            if (c == '*') {
+                // After an operand, `*` is the multiplication. Otherwise it is the asterisk:
+                // `SELECT *`, `t.*`.
+                expected = !expected && !(i > 0 && head[i - 1] == '.');
+            } else if (c == '(' || c == '[') {
+                expected = true;
+            } else if (c == ')' || c == ']') {
+                expected = false;
+            } else if (!isSpace(c)) {
+                expected = needsOperandAfter(c);
+            }
+            ++i;
+        }
+    }
+    return expected;
 }
 
 bool isClauseKeyword(std::string_view word) {

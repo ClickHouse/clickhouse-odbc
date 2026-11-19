@@ -40,7 +40,9 @@ namespace {
         const auto name = text.substr(i, j - i);
         if (j == i || equalsIgnoreCase(name, "Values") || isClauseKeyword(name))
             return false;
-        if (!formatAfterSelectFrom(text.substr(start, format_end - 6 - start)))
+        // `INSERT INTO t SELECT * FROM format f`: a table named `format`.
+        const auto head = text.substr(start, format_end - 6 - start);
+        if (operandExpected(head) || !formatAfterSelectFrom(head))
             return false;
         data_start = j;
         return true;

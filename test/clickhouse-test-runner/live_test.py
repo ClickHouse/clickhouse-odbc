@@ -55,6 +55,8 @@ EXPRESSIONS = [
     "1 AS format ORDER BY format ASC",
     "format FROM (SELECT 1 AS format)",
     "1 AS format FROM numbers(1)",
+    "1 AS format, format x",
+    "3 AS format, 2 * format x",
 ]
 
 # Expressions that show a known client bug (the group ID of allowlist.txt). They must still differ
@@ -125,6 +127,10 @@ class LiveTest(unittest.TestCase):
         got, stderr, code = run_shim("SELECT 1 AS x, 'a' AS y FORMAT TSVWithNames; SELECT 'a\\tb' FORMAT TSVRaw; SELECT 1 FORMAT Null; SELECT 2")
         self.assertEqual(0, code, stderr)
         self.assertEqual("x\ty\n1\ta\na\tb\n2\n", got)
+        # A name that is also a keyword ends an operand: FORMAT after it is the clause.
+        got, stderr, code = run_shim("SELECT 7 % 3 AS mod FORMAT TSVWithNames; SELECT number AS offset FROM numbers(1) ORDER BY offset FORMAT TSV")
+        self.assertEqual(0, code, stderr)
+        self.assertEqual("mod\n1\n0\n", got)
         _, stderr, code = run_shim("SELECT 1 FORMAT JSONEachRow")
         self.assertEqual(1, code)
         self.assertIn("output format JSONEachRow is not supported", stderr)

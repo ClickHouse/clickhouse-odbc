@@ -85,7 +85,8 @@ namespace {
                 auto j = i;
                 while (j < sql.size() && isWordByte(sql[j]))
                     ++j;
-                if (depth == 0 && equalsIgnoreCase(sql.substr(i, j - i), "FORMAT") && (i == 0 || sql[i - 1] != '.')) {
+                if (depth == 0 && equalsIgnoreCase(sql.substr(i, j - i), "FORMAT") && (i == 0 || sql[i - 1] != '.')
+                    && !operandExpected(sql.substr(0, i))) {
                     // `ORDER BY format DESC` ends the query too: a clause keyword after FORMAT shows an
                     // identifier named `format`.
                     std::size_t m = 0;

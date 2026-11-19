@@ -33,8 +33,13 @@ bool hasSignificantToken(std::string_view text);
 // parentheses.
 std::string leadingKeyword(std::string_view sql);
 
-// The words of sql outside quotes, comments and parentheses.
+// The words of sql outside quotes, heredocs, comments and parentheses.
 std::vector<std::string> topLevelWords(std::string_view sql);
+
+// Tells if the token after head is in an operand position, because head ends with a keyword or an
+// operator that needs an operand after it: `SELECT`, `FROM`, `AS`, `,`, `=`. A `format` there is a
+// name, not the FORMAT clause: `SELECT format x`, `FROM format f`, `2 * format x`.
+bool operandExpected(std::string_view head);
 
 // SQL words that can follow a column or an alias named `format`. No format has such a name.
 bool isClauseKeyword(std::string_view word);
