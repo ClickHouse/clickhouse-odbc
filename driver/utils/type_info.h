@@ -8,9 +8,13 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
+#include <cmath>
+#include <concepts>
 #include <cstring>
 #include <limits>
 #include <string>
+#include <system_error>
 
 #define lengthof(a) (sizeof(a) / sizeof(a[0]))
 
@@ -1480,6 +1484,31 @@ namespace value_manip {
         };
     };
 
+    // Writes the shortest text that converts back to the same value, in the given notation.
+    // Unlike printf-based conversions, std::to_chars does not depend on the locale.
+    template <std::floating_point T>
+    inline std::string floatToChars(T src, std::chars_format format) {
+        std::string dest(32, '\0');
+        while (true) {
+            const auto [ptr, ec] = std::to_chars(dest.data(), dest.data() + dest.size(), src, format);
+            if (ec == std::errc()) {
+                dest.resize(ptr - dest.data());
+                return dest;
+            }
+            if (ec != std::errc::value_too_large)
+                throw std::runtime_error("Cannot convert floating-point value to string");
+            dest.resize(dest.size() * 2);
+        }
+    }
+
+    // Uses the notation of the server: fixed for 1e-6 <= |src| < 1e21, scientific for other values.
+    template <std::floating_point T>
+    inline std::string floatToChars(T src) {
+        const auto magnitude = std::fabs(src);
+        const bool fixed = (magnitude == 0 || (magnitude >= T(1e-6) && magnitude < T(1e21)));
+        return floatToChars(src, fixed ? std::chars_format::fixed : std::chars_format::scientific);
+    }
+
     template <>
     struct from_value<float> {
         using SourceType = float;
@@ -1502,7 +1531,17 @@ namespace value_manip {
         using DestinationType = std::string;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
-            dest = std::to_string(src);
+            dest = floatToChars(src);
+        }
+    };
+
+    template <>
+    struct from_value<float>::to_value<SQL_NUMERIC_STRUCT> {
+        using DestinationType = SQL_NUMERIC_STRUCT;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            // The Decimal/Numeric text parser does not accept an exponent.
+            from_value<std::string>::to_value<DestinationType>::convert(floatToChars(src, std::chars_format::fixed), dest);
         }
     };
 
@@ -1528,7 +1567,17 @@ namespace value_manip {
         using DestinationType = std::string;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
-            dest = std::to_string(src);
+            dest = floatToChars(src);
+        }
+    };
+
+    template <>
+    struct from_value<double>::to_value<SQL_NUMERIC_STRUCT> {
+        using DestinationType = SQL_NUMERIC_STRUCT;
+
+        static inline void convert(const SourceType & src, DestinationType & dest) {
+            // The Decimal/Numeric text parser does not accept an exponent.
+            from_value<std::string>::to_value<DestinationType>::convert(floatToChars(src, std::chars_format::fixed), dest);
         }
     };
 

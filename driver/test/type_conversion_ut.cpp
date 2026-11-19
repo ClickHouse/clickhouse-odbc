@@ -100,3 +100,57 @@ INSTANTIATE_TEST_SUITE_P(TypeConversion, StringPongNumericAsymmetric,
         { "000000.123", ".123" }
     })
 );
+
+using StringPongFloat32Symmetric = StringPongSymmetric<float>;
+using StringPongFloat64Symmetric = StringPongSymmetric<double>;
+
+TEST_P(StringPongFloat32Symmetric, Compare) { compare<DataType>(GetParam(), GetParam()); }
+TEST_P(StringPongFloat64Symmetric, Compare) { compare<DataType>(GetParam(), GetParam()); }
+
+INSTANTIATE_TEST_SUITE_P(TypeConversion, StringPongFloat32Symmetric,
+    ::testing::Values(
+        "0.1",
+        "123.45679",
+        "1e-07",
+        "16777216",
+        "3.4028235e+38"
+    )
+);
+
+INSTANTIATE_TEST_SUITE_P(TypeConversion, StringPongFloat64Symmetric,
+    ::testing::Values(
+        "0",
+        "-0",
+        "42",
+        "0.1",
+        "123.456789123",
+        "0.000001",
+        "9.99e-07",
+        "1e-07",
+        "999000000000000000000",
+        "1e+21",
+        "1.7976931348623157e+308",
+        "inf",
+        "-inf"
+    )
+);
+
+TEST(FloatToNumeric, Convert) {
+    const auto convert = [] (auto value, SQLSCHAR scale) {
+        SQL_NUMERIC_STRUCT numeric;
+        value_manip::to_null(numeric);
+        numeric.precision = 38;
+        numeric.scale = scale;
+        value_manip::from_value<decltype(value)>::template to_value<SQL_NUMERIC_STRUCT>::convert(value, numeric);
+
+        std::string resulting_str;
+        value_manip::to_null(resulting_str);
+        value_manip::from_value<SQL_NUMERIC_STRUCT>::template to_value<std::string>::convert(numeric, resulting_str);
+        return resulting_str;
+    };
+
+    EXPECT_EQ(convert(1e-7, 9), ".000000100");
+    EXPECT_EQ(convert(1e-7f, 9), ".000000100");
+    EXPECT_EQ(convert(1000000.0, 0), "1000000");
+    EXPECT_EQ(convert(1e-300, 0), "0");
+}
