@@ -168,6 +168,35 @@ TEST_F(StatementBindingTest, FromCFloatTypes) {
     ASSERT_DOUBLE_EQ(std::stod(params["param_odbc_positional_6"]), double_value);
 }
 
+TEST_F(StatementBindingTest, FromCFloatTypesShortestRoundTrip) {
+    prepare("select ?, ?, ?, ?, ?, ?, ?, ?");
+
+    double double_values[] = {1e-7, 123.456789123, 1e20, 1e21, 42.0, -1.234e-6};
+    float float_values[] = {1e-7f, 0.1f};
+    SQLLEN double_len = sizeof(double);
+    SQLLEN float_len = sizeof(float);
+
+    bind(1, SQL_PARAM_INPUT, SQL_C_DOUBLE, SQL_DOUBLE, 0, 0, &double_values[0], 0, &double_len);
+    bind(2, SQL_PARAM_INPUT, SQL_C_DOUBLE, SQL_DOUBLE, 0, 0, &double_values[1], 0, &double_len);
+    bind(3, SQL_PARAM_INPUT, SQL_C_DOUBLE, SQL_DOUBLE, 0, 0, &double_values[2], 0, &double_len);
+    bind(4, SQL_PARAM_INPUT, SQL_C_DOUBLE, SQL_DOUBLE, 0, 0, &double_values[3], 0, &double_len);
+    bind(5, SQL_PARAM_INPUT, SQL_C_DOUBLE, SQL_INTEGER, 0, 0, &double_values[4], 0, &double_len);
+    bind(6, SQL_PARAM_INPUT, SQL_C_DOUBLE, SQL_DECIMAL, 15, 10, &double_values[5], 0, &double_len);
+    bind(7, SQL_PARAM_INPUT, SQL_C_FLOAT, SQL_REAL, 0, 0, &float_values[0], 0, &float_len);
+    bind(8, SQL_PARAM_INPUT, SQL_C_FLOAT, SQL_DOUBLE, 0, 0, &float_values[1], 0, &float_len);
+
+    auto [query, params] = execute();
+    ASSERT_EQ(params.size(), 8);
+    ASSERT_EQ(params["param_odbc_positional_1"], "1e-07");
+    ASSERT_EQ(params["param_odbc_positional_2"], "123.456789123");
+    ASSERT_EQ(params["param_odbc_positional_3"], "100000000000000000000");
+    ASSERT_EQ(params["param_odbc_positional_4"], "1e+21");
+    ASSERT_EQ(params["param_odbc_positional_5"], "42");
+    ASSERT_EQ(params["param_odbc_positional_6"], "-0.000001234");
+    ASSERT_EQ(params["param_odbc_positional_7"], "1e-07");
+    ASSERT_EQ(params["param_odbc_positional_8"], "0.1");
+}
+
 TEST_F(StatementBindingTest, FromCDateTime) {
     prepare("select ?, ?, ?");
     SQL_DATE_STRUCT date_value = {2024, 2, 13};
