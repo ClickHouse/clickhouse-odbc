@@ -408,11 +408,15 @@ void Runner::writeRows(SQLHSTMT stmt, SQLSMALLINT column_count, const OutputForm
         }
     }
 
+    // A Raw format writes the header without escapes, as its rows (TabSeparatedRowOutputFormat::writeLine).
     auto header = [&](auto get) {
         for (std::size_t i = 0; i < columns.size(); ++i) {
             if (i > 0)
                 result += '\t';
-            writeEscaped(result, get(columns[i]));
+            if (format.raw)
+                result += get(columns[i]);
+            else
+                writeEscaped(result, get(columns[i]));
         }
         result += '\n';
     };

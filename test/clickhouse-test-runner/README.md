@@ -435,7 +435,8 @@ requests that change this directory or the workflow.
   A shard is about 2,300 tests and takes about 3 minutes on a 4-vCPU runner. If a shard takes much more than a few minutes, increase
   the number of shards: change the `shard` list and `SHARD_TOTAL` together.
 - CI does not run failed tests again (`RETRY_FAILED`). No known bug makes
-  random tests fail.
+  random tests fail. The script also turns off the runner's own retries
+  (`--dont_retry_failures`).
 - The server version and the upstream tests are pinned together in
   [`clickhouse-version`](clickhouse-version). A new ClickHouse release
   changes nothing in CI, so a pull request never fails because of a release

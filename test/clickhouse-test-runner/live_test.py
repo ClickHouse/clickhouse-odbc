@@ -135,6 +135,15 @@ class LiveTest(unittest.TestCase):
         self.assertEqual(1, code)
         self.assertIn("output format JSONEachRow is not supported", stderr)
 
+    def test_header_of_format_matches_server(self):
+        # The header of a Raw format has no escapes, as its rows. Contrast: TSVWithNames escapes the header.
+        for fmt in ["TSVWithNames", "TSVWithNamesAndTypes", "TSVRawWithNames", "TabSeparatedRawWithNamesAndTypes"]:
+            with self.subTest(format=fmt):
+                query = f"SELECT 1 AS `a\\tb\\\\c'd`, 'x' AS `é\\nf` FORMAT {fmt}"
+                got, stderr, code = run_shim(query)
+                self.assertEqual(0, code, stderr)
+                self.assertEqual(server_tsv(query), got)
+
     def test_format_null(self):
         # The statement goes to the server unchanged: the server logs its text, and decides about
         # `FORMAT Null` of an EXPLAIN (ignore_format_null_for_explain).
