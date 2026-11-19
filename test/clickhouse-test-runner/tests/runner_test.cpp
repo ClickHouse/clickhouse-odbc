@@ -55,6 +55,27 @@ TEST(Runner, ConnectionString) {
     EXPECT_NE(std::string::npos, rb.url().find("&default_format=RowBinaryWithNamesAndTypes&log_comment="));
 }
 
+TEST(Runner, ConnectionStringForTheLog) {
+    Options opts;
+    opts.host = "127.0.0.1";
+    opts.port = 8123;
+    opts.password = "s;cret";
+    InvocationLog log;
+    Runner r(opts, Backend::ODBCDriver2, "/x/libclickhouseodbc.so", log, stdout);
+    const auto cs = r.connectionString();
+    ASSERT_TRUE(cs.ends_with(";UID=default;PWD={s;cret};Database=default;Timeout=300")) << cs;
+    // Only the password changes.
+    auto want = cs;
+    want.replace(want.find("{s;cret}"), 8, "<redacted>");
+    EXPECT_EQ(want, r.connectionString(/* redact_password */ true));
+
+    // An empty password stays empty.
+    opts.password.clear();
+    Runner empty(opts, Backend::ODBCDriver2, "/x/libclickhouseodbc.so", log, stdout);
+    const auto redacted = empty.connectionString(/* redact_password */ true);
+    EXPECT_TRUE(redacted.ends_with(";PWD=;Database=default;Timeout=300")) << redacted;
+}
+
 TEST(Runner, ParseServerCode) {
     std::string text;
     const auto code = parseServerCode("[HY000] Error while processing query 9c69: HTTP status code: 404\nReceived error:\n"

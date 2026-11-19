@@ -142,7 +142,7 @@ which is in the build directory of the repository.
 | `SHARD_INDEX`, `SHARD_TOTAL` | `1`, `1` | Run only shard `SHARD_INDEX` of `SHARD_TOTAL` round-robin shards of the list. |
 | `RETRY_FAILED` | `0` | Run the failed tests again, at most this number of times. CI does not use it. |
 | `ALLOW_VERSION_MISMATCH` | `0` | `1` runs the tests also when the server and the tests are of different versions. |
-| `CLICKHOUSE_CLIENT_CLI_LOG` | (none) | A file. Each invocation of the program adds its arguments, the connection string, the statements and the errors to it. |
+| `CLICKHOUSE_CLIENT_CLI_LOG` | (none) | A file. Each invocation of the program adds its arguments, the connection string, the statements and the errors to it. The password is `<redacted>` in the arguments and in the connection string. |
 | `CLICKHOUSE_HOST` | `localhost` | The server host for the runner, the version check and the live tests. |
 | `CLICKHOUSE_PORT_TCP`, `CLICKHOUSE_PORT_HTTP` | `9000`, `8123` | The ports of the server. When `CLICKHOUSE_PORT_TCP` is set, the runner gives `--port=$CLICKHOUSE_PORT_TCP`; the program uses `CLICKHOUSE_PORT_HTTP` for that port and when there is no `--port`. |
 | `CLICKHOUSE_CONTAINER` | `clickhouse` | The server container for `run-with-real-client.sh`. |

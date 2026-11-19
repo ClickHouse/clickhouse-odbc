@@ -55,7 +55,8 @@ public:
     // its test hint, like clickhouse-client. Throws OdbcError, HintError or std::runtime_error.
     void run(const std::vector<Statement> & statements);
 
-    std::string connectionString() const;
+    // With redact_password, a password that is not empty is `<redacted>`: the text for the log.
+    std::string connectionString(bool redact_password = false) const;
     std::string url() const;
 
 private:

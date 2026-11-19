@@ -100,13 +100,13 @@ std::string Runner::url() const {
     return u;
 }
 
-std::string Runner::connectionString() const {
+std::string Runner::connectionString(bool redact_password) const {
     // Driver= names the driver library that this repository builds; no DSN is needed.
     // Timeout: clickhouse-client waits 300 s for a response (receive_timeout); the driver's default
     // is 30 s, and some test queries take longer on the server.
+    const auto password = (redact_password && !opts.password.empty()) ? std::string("<redacted>") : connectionStringValue(opts.password);
     return "Driver=" + connectionStringValue(driver_path) + ";Url=" + connectionStringValue(url())
-        + ";UID=" + connectionStringValue(opts.user) + ";PWD=" + connectionStringValue(opts.password)
-        + ";Database=" + connectionStringValue(database) + ";Timeout=300";
+        + ";UID=" + connectionStringValue(opts.user) + ";PWD=" + password + ";Database=" + connectionStringValue(database) + ";Timeout=300";
 }
 
 bool isKustoLet(std::string_view dialect, std::string_view sql) {
@@ -177,7 +177,8 @@ void Runner::connect() {
         connected = false;
     }
     const auto cs = connectionString();
-    log.add("connect", cs);
+    // CI uploads the log as an artifact of a failed job.
+    log.add("connect", connectionString(/* redact_password */ true));
     SQLCHAR out_cs[4096];
     SQLSMALLINT out_len = 0;
     check(SQLDriverConnect(dbc,

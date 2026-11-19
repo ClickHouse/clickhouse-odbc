@@ -50,6 +50,19 @@ TEST(Args, SettingValues) {
     EXPECT_EQ(settings, opts.settings);
 }
 
+TEST(Args, RedactedCommandLine) {
+    EXPECT_EQ("--host=h --password <redacted> --user u --password=<redacted> -q SELECT 1",
+        redactedCommandLine({"--host=h", "--password", "p1", "--user", "u", "--password=p2", "-q", "SELECT 1"}));
+    // The value of an option is the next argument, also when it looks like an option, as in parseArgs.
+    EXPECT_EQ("--password <redacted> --port=9000", redactedCommandLine({"--password", "--password", "--port=9000"}));
+    EXPECT_EQ("-q --password --password <redacted>", redactedCommandLine({"-q", "--password", "--password", "p"}));
+    EXPECT_EQ("p", parseArgs({"-q", "--password", "--password", "p"}).password);
+    // An empty password stays empty. After `--`, no argument is an option.
+    EXPECT_EQ("--password= --password  --password", redactedCommandLine({"--password=", "--password", "", "--password"}));
+    EXPECT_EQ("-- --password p", redactedCommandLine({"--", "--password", "p"}));
+    EXPECT_EQ("", redactedCommandLine({}));
+}
+
 TEST(Args, Errors) {
     EXPECT_THROW(parseArgs({"--port=abc"}), std::invalid_argument);
     EXPECT_THROW(parseArgs({"--query"}), std::invalid_argument);

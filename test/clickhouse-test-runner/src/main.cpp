@@ -78,12 +78,8 @@ int run(const std::vector<std::string> & argv) {
         return extractFromConfig({argv.begin() + 1, argv.end()});
 
     InvocationLog log;
-    {
-        std::string joined;
-        for (const auto & a : argv)
-            joined += (joined.empty() ? "" : " ") + a;
-        log.add("argv", joined);
-    }
+    // CI uploads the log as an artifact of a failed job.
+    log.add("argv", redactedCommandLine(argv));
 
     Options opts;
     Backend backend = Backend::ODBCDriver2;

@@ -27,6 +27,10 @@ struct Options {
 // Parses argv (without the program name). Throws std::invalid_argument on a bad command line.
 Options parseArgs(const std::vector<std::string> & argv);
 
+// The arguments joined with spaces, with the value of `--password` replaced by `<redacted>`: the
+// text for the log.
+std::string redactedCommandLine(const std::vector<std::string> & argv);
+
 // Maps the port that `tests/clickhouse-test` gives (the native TCP port, CLICKHOUSE_PORT_TCP) to
 // the HTTP port of the server (CLICKHOUSE_PORT_HTTP). Any other port is used as given.
 int httpPort(int port, bool secure);

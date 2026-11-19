@@ -162,6 +162,38 @@ Options parseArgs(const std::vector<std::string> & argv) {
     return opts;
 }
 
+std::string redactedCommandLine(const std::vector<std::string> & argv) {
+    // Reads the options as parseArgs does, so that the value of each option is known.
+    std::string joined;
+    const auto add = [&](const std::string & s) { joined += (joined.empty() ? "" : " ") + s; };
+    const auto redact = [](const std::string & value) { return value.empty() ? value : std::string("<redacted>"); };
+    for (std::size_t i = 0; i < argv.size(); ++i) {
+        const auto & arg = argv[i];
+        const OptionSpec * o = nullptr;
+        if (arg == "--") {
+            for (; i < argv.size(); ++i)
+                add(argv[i]);
+            break;
+        } else if (arg.starts_with("--")) {
+            const auto eq = arg.find('=');
+            if (eq != std::string::npos) {
+                const bool password = (arg.substr(2, eq - 2) == "password");
+                add(password ? "--password=" + redact(arg.substr(eq + 1)) : arg);
+                continue;
+            }
+            o = findOption(arg.substr(2), "");
+        } else if (arg.starts_with("-") && arg.size() > 1) {
+            o = findOption("", arg.substr(1));
+        }
+        add(arg);
+        if (o && o->has_arg && i + 1 < argv.size()) {
+            ++i;
+            add(std::string_view(o->long_name) == "password" ? redact(argv[i]) : argv[i]);
+        }
+    }
+    return joined;
+}
+
 namespace {
 
     int envInt(const char * name, int def) {
