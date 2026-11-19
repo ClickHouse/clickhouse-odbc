@@ -42,6 +42,11 @@ public:
         keep_alive = keep_alive_;
     }
 
+    void setResponseDelay(std::chrono::milliseconds delay) {
+        std::lock_guard lock(response_mutex);
+        response_delay = delay;
+    }
+
     size_t connectionCount() const {
         return connection_count.load();
     }
@@ -70,6 +75,7 @@ private:
 
     KeepAlive keep_alive{KeepAlive::Close};
     std::vector<char> data{};
+    std::chrono::milliseconds response_delay{0};
     std::string last_request_headers{};
     mutable std::mutex response_mutex;
     std::atomic<size_t> connection_count{0};

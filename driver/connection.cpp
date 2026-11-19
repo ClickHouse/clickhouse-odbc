@@ -175,6 +175,10 @@ void Connection::connect(const std::string & connection_string) {
 
     resetConfiguration();
     setConfiguration(cs_fields, dsn_fields);
+    if (connection_timeout_override)
+        connection_timeout = *connection_timeout_override;
+    if (timeout_override)
+        timeout = *timeout_override;
 
     LOG("Creating session with " << proto << "://" << server << ":" << port);
 
@@ -196,6 +200,20 @@ void Connection::connect(const std::string & connection_string) {
             throw;
         }
     }
+}
+
+void Connection::setConnectionTimeout(SQLUINTEGER value) {
+    connection_timeout_override = value;
+    connection_timeout = value;
+    if (session)
+        session->settings.connection_timeout = value;
+}
+
+void Connection::setTimeout(SQLUINTEGER value) {
+    timeout_override = value;
+    timeout = value;
+    if (session)
+        session->settings.timeout = value;
 }
 
 void Connection::resetConfiguration() {

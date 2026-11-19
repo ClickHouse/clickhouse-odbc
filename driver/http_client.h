@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <limits>
 #include <cstdint>
 #include <cstring>
 #include <exception>
@@ -24,6 +25,15 @@
 struct HttpSettings {
     std::uint32_t connection_timeout = 30; // seconds, for establishing a connection
     std::uint32_t timeout = 30;            // seconds of inactivity while waiting for the server
+    // curl treats zero as its 300-second default, so approximate an unlimited
+    // connection timeout with LONG_MAX seconds (finite, at least ~68 years).
+    // Clamp unsigned ODBC values too: long is only 32 bits on Windows.
+    long connectionTimeoutSeconds() const {
+        const auto maximum = std::numeric_limits<long>::max();
+        return connection_timeout == 0 || connection_timeout > static_cast<std::uint64_t>(maximum)
+            ? maximum : static_cast<long>(connection_timeout);
+    }
+
     bool tls_verify = true;
     std::string ca_location;               // Linux/macOS: CA bundle file or directory
     std::string certificate_file;          // Linux/macOS: client certificate (PEM)
