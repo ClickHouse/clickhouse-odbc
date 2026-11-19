@@ -158,6 +158,10 @@ jobs:
       # The server gets the host name of the runner: tests/clickhouse-test replaces its own host
       # name with `localhost` in the output of each test, and some `.reference` files have
       # `localhost` for hostName().
+      #
+      # On a new server, the system log tables (system.query_log and others) exist only after the
+      # first flush of the logs. One SYSTEM FLUSH LOGS creates them before the first test, as on a
+      # server that has run queries (04409_system_documentation_source_and_entities reads them).
       - name: Start ClickHouse ${{ steps.version.outputs.version }}
         env:
           CLICKHOUSE_VERSION: ${{ steps.version.outputs.version }}
@@ -168,6 +172,7 @@ jobs:
             "clickhouse/clickhouse-server:${CLICKHOUSE_VERSION}"
           for _ in $(seq 1 60); do
             if curl -fsS "http"'://'"localhost:8123/ping" > /dev/null 2>&1; then
+              curl -fsS "http"'://'"localhost:8123/" --data-binary 'SYSTEM FLUSH LOGS'
               exit 0
             fi
             sleep 2

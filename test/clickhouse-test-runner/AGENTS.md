@@ -99,6 +99,10 @@ A test cannot pass through any client on the CI server when it needs one of thes
   leaves behind (failpoints that a failed test did not disable, row policies). Such a test passes
   alone on a fresh server and fails in a full run. A failure message with "Injected failure"
   comes from a failpoint of another test.
+- The state of a new server. The system log tables (`system.query_log` and others) exist only
+  after the first flush of the logs, so a test that reads them fails as one of the first tests of
+  a run. CI and the README flush the logs once after the server starts; do the same before a
+  check on a fresh server.
 - Memory limits of the server, when the test also fails through the real `clickhouse-client`.
 - Results that depend on the number of threads that the server gives a query, which changes under
   load: the width and the steps of `EXPLAIN PIPELINE` and `EXPLAIN ANALYZE`, the number of read

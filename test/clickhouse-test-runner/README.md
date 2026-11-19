@@ -62,6 +62,14 @@ of the repository, on Linux.
    its own host name with `localhost` in the output of each test, and some
    `.reference` files have `localhost` for `hostName()`.
 
+   When the server answers, flush its logs once. On a new server, the system
+   log tables (`system.query_log` and others) exist only after the first
+   flush, and some tests read them:
+
+   ```bash
+   docker exec clickhouse clickhouse-client -q 'SYSTEM FLUSH LOGS'
+   ```
+
 3. Get the upstream tests of the same version:
 
    ```bash
@@ -419,9 +427,9 @@ requests that change this directory or the workflow.
   with the runner's `g++` (GCC 11). A compiler warning fails these builds.
 - The matrix of the test jobs is `{backend: odbcdriver2} × {shard: 1..4}`.
   Each job takes the driver library of the `build` job, builds the program
-  with `g++`, starts the server, and runs its shard at `-j 4`. Shard 1 also
-  runs the live tests. A shard is about 2,300 tests and takes about 3 minutes
-  on a 4-vCPU runner. If a shard takes much more than a few minutes, increase
+  with `g++`, starts the server, flushes its logs once (see "Run the tests
+  locally"), and runs its shard at `-j 4`. Shard 1 also runs the live tests.
+  A shard is about 2,300 tests and takes about 3 minutes on a 4-vCPU runner. If a shard takes much more than a few minutes, increase
   the number of shards: change the `shard` list and `SHARD_TOTAL` together.
 - CI does not run failed tests again (`RETRY_FAILED`). No known bug makes
   random tests fail.
