@@ -149,6 +149,91 @@ TEST_F(MiscellaneousTest, NullableNothing) {
     EXPECT_EQ(nullable, SQL_NULLABLE);
 }
 
+class FloatGetData
+    : public ClientTestWithParamBase<
+        std::tuple<
+            std::string, // format to use
+            std::string, // expression for SELECT
+            std::string  // expected value
+        >
+    >
+{
+protected:
+    void execute(const std::string & format, const std::string & expr) {
+        auto query = fromUTF8<PTChar>("SELECT " + expr + " AS col FORMAT " + format);
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLFetch(hstmt));
+    }
+};
+
+class FloatGetDataAsString
+    : public FloatGetData
+{
+};
+
+TEST_P(FloatGetDataAsString, Check) {
+    const auto & [format, expr, expected] = GetParam();
+    execute(format, expr);
+
+    PTChar col[64] = {};
+    SQLLEN col_ind = 0;
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(hstmt, 1, getCTypeFor<decltype(&col[0])>(), &col, sizeof(col), &col_ind));
+    EXPECT_EQ(toUTF8(col), expected);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    MiscellaneousTest,
+    FloatGetDataAsString,
+    ::testing::Values(
+        std::make_tuple("ODBCDriver2",                "toFloat64(1e-7)",          "1e-7"),
+        std::make_tuple("ODBCDriver2",                "toFloat64(42)",            "42"),
+        std::make_tuple("ODBCDriver2",                "toFloat64(1000000)",       "1000000"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat64(1e-7)",          "1e-07"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat64(123.456789123)", "123.456789123"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat64(42)",            "42"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat64(-2.5)",          "-2.5"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat64(1000000)",       "1000000"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat64(1e20)",          "100000000000000000000"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat64(1e21)",          "1e+21"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat32(0.1)",           "0.1"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat32(1e-40)",         "1e-40"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat32(3.4028235e38)",  "3.4028235e+38")
+    )
+);
+
+// SQL_C_NUMERIC with the default precision and scale (scale 0).
+class FloatGetDataAsNumeric
+    : public FloatGetData
+{
+};
+
+TEST_P(FloatGetDataAsNumeric, Check) {
+    const auto & [format, expr, expected] = GetParam();
+    execute(format, expr);
+
+    SQL_NUMERIC_STRUCT col;
+    value_manip::to_null(col);
+    SQLLEN col_ind = 0;
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(hstmt, 1, SQL_C_NUMERIC, &col, sizeof(col), &col_ind));
+
+    std::string resulting_str;
+    value_manip::from_value<SQL_NUMERIC_STRUCT>::template to_value<std::string>::convert(col, resulting_str);
+    EXPECT_EQ(resulting_str, expected);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    MiscellaneousTest,
+    FloatGetDataAsNumeric,
+    ::testing::Values(
+        std::make_tuple("ODBCDriver2",                "toFloat64(1000000)",       "1000000"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat64(1000000)",       "1000000"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat64(123.456789123)", "123"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat64(-2.5)",          "-2"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat64(1e-7)",          "0"),
+        std::make_tuple("RowBinaryWithNamesAndTypes", "toFloat32(1e-7)",          "0")
+    )
+);
+
 enum class FailOn {
     Connect,
     Execute,
