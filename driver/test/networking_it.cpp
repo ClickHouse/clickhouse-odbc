@@ -84,7 +84,11 @@ protected:
 #else
             "Driver={ClickHouse ODBC Driver (ANSI)};"
 #endif
-            "URL=http://127.0.0.1:" + std::to_string(server.port()) + "/;Timeout=5;" + extra_attributes);
+            // DriverLog=no: Debug builds log every call by default, and some of these tests fetch
+            // hundreds of thousands of rows. Writing that log into the test output captured by
+            // ctest can make the tests time out. It comes after `extra_attributes`, because the
+            // first value of a key wins, so that "DriverLog=yes;" can still enable the log.
+            "URL=http://127.0.0.1:" + std::to_string(server.port()) + "/;Timeout=5;" + extra_attributes + "DriverLog=no;");
         ODBC_CALL_ON_DBC_THROW(dbc, SQLDriverConnect(
             dbc,
             nullptr,
