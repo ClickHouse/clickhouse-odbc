@@ -132,10 +132,16 @@ jobs:
         SM_TLS_SKIP_VERIFY: false
         DIGICERT_KEY_ALIAS: ${{ secrets.DIGICERT_KEY_ALIAS }}
         SM_LOG_LEVEL: TRACE
-      run: >
-        & "C:\Program Files\DigiCert\DigiCert Keylocker Tools\smctl.exe" sign
-        --fingerprint ${{ secrets.DIGICERT_FINGERPRINT }}
-        --input (Get-ChildItem -Path "${{ github.workspace }}/build" -Filter "clickhouse-odbc-*.msi" | Select-Object -First 1).FullName
+        DIGICERT_FINGERPRINT: ${{ secrets.DIGICERT_FINGERPRINT }}
+      # `smctl sign` exits with 0 even when signing fails, so verify the resulting signature instead.
+      run: |
+        $msi = Get-ChildItem -Path "${{ github.workspace }}\build" -Filter "clickhouse-odbc-*.msi" | Select-Object -First 1
+        if (-not $msi) { throw "MSI package not found" }
+
+        & "C:\Program Files\DigiCert\DigiCert Keylocker Tools\smctl.exe" sign --fingerprint $env:DIGICERT_FINGERPRINT --input $msi.FullName
+
+        & signtool.exe verify /pa /v $msi.FullName
+        if ($LASTEXITCODE -ne 0) { throw "$($msi.FullName) is not signed" }
 
     # Build a zip archive for manual (non-MSI) installation. The payload is extracted from the signed MSI
     # via an administrative install, so the zip ships exactly the same binaries as the installer.
