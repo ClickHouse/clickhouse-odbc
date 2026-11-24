@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <chrono>
 #include <limits>
 #include <cstdint>
@@ -30,8 +31,9 @@ struct HttpSettings {
     // Clamp unsigned ODBC values too: long is only 32 bits on Windows.
     long connectionTimeoutSeconds() const {
         const auto maximum = std::numeric_limits<long>::max();
-        return connection_timeout == 0 || connection_timeout > static_cast<std::uint64_t>(maximum)
-            ? maximum : static_cast<long>(connection_timeout);
+        if (connection_timeout == 0)
+            return maximum;
+        return static_cast<long>(std::min<std::uint64_t>(connection_timeout, maximum));
     }
 
     bool tls_verify = true;

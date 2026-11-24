@@ -76,7 +76,7 @@ parameters is available in the project's GitHub page
 - `Password`: The password associated with the specified username. If not provided, the driver connects without password
   authentication.
 - `Database`: The default database to use for the connection.
-- `Timeout`: The maximum time (in seconds) the driver waits for a server response before aborting the request.
+- `Timeout`: The maximum time (in seconds) the driver waits for a server response before aborting the request. The ODBC attributes `SQL_ATTR_LOGIN_TIMEOUT` and `SQL_ATTR_CONNECTION_TIMEOUT` override it when set; through the attributes `0` disables the timeout, while `Timeout=0` in the DSN or connection string gives the default of 30 seconds.
 - `ClientName`: A custom identifier sent to the ClickHouse server as part of the client metadata. Useful for tracing or
   distinguishing traffic from different applications. This parameter will be a part of the User-Agent header in the HTTP
   requests produced by the driver.
