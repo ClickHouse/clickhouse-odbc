@@ -1880,7 +1880,7 @@ namespace value_manip {
 
             while (tmp_src.scale < dest.scale) {
                 if (!tmp_src.value.appendDigit(0))
-                    throw std::runtime_error("Cannot fit source Numeric value into destination Numeric specification: value is too big for internal representation");
+                    throw SqlException("Numeric value exceeds the ODBC numeric buffer", "22003");
                 ++tmp_src.scale;
             }
 
@@ -1889,11 +1889,10 @@ namespace value_manip {
                 --tmp_src.scale;
             }
 
-            for (std::size_t i = 0; i < lengthof(dest.val); ++i) {
-                if (i > dest.precision && tmp_src.value.bytes[i] != 0)
-                    throw std::runtime_error("Cannot fit source Numeric value into destination Numeric specification: value is too big for ODBC Numeric representation");
-                dest.val[i] = tmp_src.value.bytes[i];
-            }
+            if (!tmp_src.value.fitsPrecision(dest.precision))
+                throw SqlException("Numeric value exceeds the requested precision", "22003");
+
+            std::copy(tmp_src.value.bytes.begin(), tmp_src.value.bytes.end(), std::begin(dest.val));
         }
     };
 

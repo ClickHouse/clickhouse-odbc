@@ -152,7 +152,8 @@ Driver={ClickHouse ODBC Driver (Unicode)};Url=https://you-instance-url.gcp.click
 
 With the default `ODBCDriver2` result format, `SQLGetData` can retrieve `Decimal128` values as
 `SQL_C_NUMERIC`. To retain fractional digits, set `SQL_DESC_SCALE` on the application row
-descriptor to the number of decimal places to return.
+descriptor to the number of decimal places to return. If the value at that scale requires
+more digits than `SQL_DESC_PRECISION` allows, the driver reports SQLSTATE `22003`.
 
 ## Microsoft Power BI Integration {#powerbi-integration}
 
