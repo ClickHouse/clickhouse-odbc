@@ -877,11 +877,11 @@ SQLRETURN BindParameter(
         try {
             ipd_record.setAttr(SQL_DESC_PARAMETER_TYPE, input_output_type);
 
+            const auto parameter_c_type = value_type == SQL_C_DEFAULT ? convertSQLTypeToCType(parameter_type) : value_type;
+
             // These two will trigger automatic (re)setting of SQL_DESC_TYPE and SQL_DESC_DATETIME_INTERVAL_CODE,
             // and resetting of SQL_DESC_DATA_PTR.
-            apd_record.setAttr(SQL_DESC_CONCISE_TYPE,
-                (value_type == SQL_C_DEFAULT ? convertSQLTypeToCType(parameter_type) : value_type)
-            );
+            apd_record.setAttr(SQL_DESC_CONCISE_TYPE, parameter_c_type);
             ipd_record.setAttr(SQL_DESC_CONCISE_TYPE, parameter_type);
 
             switch (parameter_type) {
@@ -938,7 +938,6 @@ SQLRETURN BindParameter(
                     break;
             }
 
-            const auto parameter_c_type = convertSQLTypeToCType(parameter_type);
             switch (parameter_c_type) {
                 case SQL_C_CHAR:
                 case SQL_C_WCHAR:

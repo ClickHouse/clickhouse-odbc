@@ -14,6 +14,69 @@ class StatementParametersTest
 {
 };
 
+struct ParameterArrayStrideCase {
+    SQLSMALLINT sql_type;
+    const char * column_type;
+    bool row_wise;
+};
+
+class ParameterArrayStrideTest : public ClientTestWithParamBase<ParameterArrayStrideCase> {};
+
+TEST_P(ParameterArrayStrideTest, InsertsEachBoundValue) {
+    const auto & [sql_type, column_type, row_wise] = GetParam();
+    auto create = fromUTF8<PTChar>(
+        std::string("CREATE OR REPLACE TABLE array_stride (id Int32, v ") +
+        column_type + ") ENGINE = MergeTree ORDER BY id");
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(create.data()), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLFreeStmt(hstmt, SQL_CLOSE));
+
+    SQLINTEGER ids[] = {1, 2, 3, 4};
+    // Four input elements followed by initialized padding.
+    SQLINTEGER values[] = {101, 202, 303, 404, 505, 606, 707, 808};
+    SQLLEN indicators[lengthof(ids)] = {};
+    struct Row {
+        SQLINTEGER id;
+        SQLINTEGER value;
+        SQLLEN id_indicator;
+        SQLLEN value_indicator;
+    } rows[] = {{1, 101, 0, 0}, {2, 202, 0, 0}, {3, 303, 0, 0}, {4, 404, 0, 0}};
+
+    auto insert = fromUTF8<PTChar>("INSERT INTO array_stride (id, v) VALUES (?, ?)");
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLPrepare(hstmt, ptcharCast(insert.data()), SQL_NTS));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(hstmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER)lengthof(ids), 0));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLSetStmtAttr(
+        hstmt, SQL_ATTR_PARAM_BIND_TYPE, (SQLPOINTER)(row_wise ? sizeof(Row) : SQL_PARAM_BIND_BY_COLUMN), 0));
+
+    const auto bind = [&](SQLUSMALLINT number, SQLSMALLINT type, SQLINTEGER * value, SQLLEN * indicator) {
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLBindParameter(
+            hstmt, number, SQL_PARAM_INPUT, SQL_C_SLONG, type, 20, 0, value, 0, indicator));
+    };
+    bind(1, SQL_INTEGER, row_wise ? &rows[0].id : ids, row_wise ? &rows[0].id_indicator : indicators);
+    bind(2, sql_type, row_wise ? &rows[0].value : values, row_wise ? &rows[0].value_indicator : indicators);
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecute(hstmt));
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLFreeStmt(hstmt, SQL_CLOSE));
+
+    auto select = fromUTF8<PTChar>("SELECT id, toInt64(v) FROM array_stride ORDER BY id");
+    ODBC_CALL_ON_STMT_THROW(hstmt, SQLExecDirect(hstmt, ptcharCast(select.data()), SQL_NTS));
+    for (std::size_t i = 0; i < lengthof(ids); ++i) {
+        SQLINTEGER id = 0;
+        SQLBIGINT value = 0;
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLFetch(hstmt));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(hstmt, 1, SQL_C_SLONG, &id, sizeof(id), nullptr));
+        ODBC_CALL_ON_STMT_THROW(hstmt, SQLGetData(hstmt, 2, SQL_C_SBIGINT, &value, sizeof(value), nullptr));
+        EXPECT_EQ(id, ids[i]);
+        EXPECT_EQ(value, values[i]) << "parameter set " << i;
+    }
+    EXPECT_EQ(SQLFetch(hstmt), SQL_NO_DATA);
+}
+
+INSTANTIATE_TEST_SUITE_P(Arrays, ParameterArrayStrideTest, ::testing::Values(
+    ParameterArrayStrideCase{SQL_BIGINT, "Int64", false},
+    ParameterArrayStrideCase{SQL_VARCHAR, "String", false},
+    ParameterArrayStrideCase{SQL_INTEGER, "Int32", false},
+    ParameterArrayStrideCase{SQL_BIGINT, "Int64", true}
+));
+
 class ParameterColumnRoundTrip
     : public StatementParametersTest
 {
