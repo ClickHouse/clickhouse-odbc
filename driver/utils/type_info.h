@@ -4,6 +4,7 @@
 #include "driver/utils/utils.h"
 #include "driver/utils/sql_encoding.h"
 #include "driver/utils/conversion.h"
+#include "driver/utils/decimal_magnitude.h"
 #include "driver/exception.h"
 
 #include <algorithm>
@@ -654,14 +655,7 @@ struct DataSourceType<DataSourceTypeId::DateTime64>
 
 template <>
 struct DataSourceType<DataSourceTypeId::Decimal> {
-    // An integer type big enough to hold the integer value that is built from all
-    // decimal digits of Decimal/Numeric values, as if there is no decimal point.
-    // Size of this integer defines the upper bound of the "info" the internal
-    // representation can carry.
-    // TODO: switch to some 128-bit or even arbitrary-precision unsigned integer type.
-    using ContainerIntType = std::uint_fast64_t;
-
-    ContainerIntType value = 0;
+    DecimalMagnitude value;
     std::int8_t sign = 0;
     std::int16_t precision = 0;
     std::int16_t scale = 0;
@@ -1189,16 +1183,13 @@ namespace value_manip {
         using DestinationType = DataSourceType<DataSourceTypeId::Decimal>;
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
-            constexpr auto dest_value_max = (std::numeric_limits<std::decay_t<decltype(dest.value)>>::max)();
-            constexpr std::uint32_t dec_mult = 10;
-
             std::size_t left_n = 0;
             std::size_t right_n = 0;
             bool sign_met = false;
             bool dot_met = false;
             bool dig_met = false;
 
-            dest.value = 0;
+            dest.value = {};
             dest.sign = 1;
 
             for (auto ch : src) {
@@ -1233,19 +1224,8 @@ namespace value_manip {
                     case '7':
                     case '8':
                     case '9': {
-                        const std::uint32_t next_dec_dig = static_cast<unsigned char>(ch - '0');
-
-                        if (dest.value != 0) {
-                            if ((dest_value_max / dec_mult) < dest.value)
-                                throw std::runtime_error("Cannot interpret '" + src + "' as Decimal/Numeric: value is too big for internal representation");
-                            dest.value *= dec_mult;
-                        }
-
-                        if (next_dec_dig != 0) {
-                            if ((dest_value_max - next_dec_dig) < dest.value)
-                                throw std::runtime_error("Cannot interpret '" + src + "' as Decimal/Numeric: value is too big for internal representation");
-                            dest.value += next_dec_dig;
-                        }
+                        if (!dest.value.appendDigit(static_cast<unsigned char>(ch - '0')))
+                            throw std::runtime_error("Cannot interpret '" + src + "' as Decimal/Numeric: value is too big for internal representation");
 
                         if (dot_met)
                             ++right_n;
@@ -1261,7 +1241,7 @@ namespace value_manip {
                 }
             }
 
-            if (dest.value == 0)
+            if (dest.value.isZero())
                 dest.sign = 1;
 
             dest.precision = left_n + right_n;
@@ -1700,24 +1680,7 @@ namespace value_manip {
             dest.precision = src.precision;
             dest.scale = src.scale;
 
-            constexpr auto dest_max = (std::numeric_limits<decltype(dest.value)>::max)();
-            constexpr std::uint32_t byte_mult = 1 << 8;
-
-            for (std::size_t i = 1; i <= lengthof(src.val); ++i) {
-                const std::uint32_t next_byte_dig = static_cast<unsigned char>(src.val[lengthof(src.val) - i]);
-
-                if (dest.value != 0) {
-                    if ((dest_max / byte_mult) < dest.value)
-                        throw std::runtime_error("Numeric value is too big for internal representation");
-                    dest.value *= byte_mult;
-                }
-
-                if (next_byte_dig != 0) {
-                    if ((dest_max - next_byte_dig) < dest.value)
-                        throw std::runtime_error("Numeric value is too big for internal representation");
-                    dest.value += next_byte_dig;
-                }
-            }
+            std::copy(std::begin(src.val), std::end(src.val), dest.value.bytes.begin());
         }
     };
 
@@ -1875,17 +1838,8 @@ namespace value_manip {
             dest.reserve(128);
 
             auto tmp_value = src.value;
-            constexpr std::uint32_t dec_mult = 10;
-
-            while (tmp_value != 0 || dest.size() < src.scale) {
-                char next_dig = '0';
-
-                if (tmp_value != 0) {
-                    next_dig += tmp_value % dec_mult;
-                    tmp_value /= dec_mult;
-                }
-
-                dest.push_back(next_dig);
+            while (!tmp_value.isZero() || dest.size() < src.scale) {
+                dest.push_back(static_cast<char>('0' + tmp_value.removeDigit()));
 
                 if (dest.size() == src.scale)
                     dest.push_back('.');
@@ -1893,7 +1847,7 @@ namespace value_manip {
 
             if (dest.empty())
                 dest.push_back('0');
-            else if (src.sign == 0 && src.value != 0)
+            else if (src.sign == 0 && !src.value.isZero())
                 dest.push_back('-');
 
             std::reverse(dest.begin(), dest.end());
@@ -1913,10 +1867,6 @@ namespace value_manip {
             if (dest.precision < 0 || dest.precision < dest.scale)
                 throw std::runtime_error("Bad Numeric specification");
 
-            constexpr auto src_value_max = (std::numeric_limits<decltype(src.value)>::max)();
-            constexpr std::uint32_t dec_mult = 10;
-            constexpr std::uint32_t byte_mult = 1 << 8;
-
             dest.sign = src.sign;
 
             if (dest.precision == 0) {
@@ -1929,26 +1879,20 @@ namespace value_manip {
             // Adjust the detected scale if needed.
 
             while (tmp_src.scale < dest.scale) {
-                if ((src_value_max / dec_mult) < tmp_src.value)
+                if (!tmp_src.value.appendDigit(0))
                     throw std::runtime_error("Cannot fit source Numeric value into destination Numeric specification: value is too big for internal representation");
-
-                tmp_src.value *= dec_mult;
                 ++tmp_src.scale;
             }
 
             while (dest.scale < tmp_src.scale) {
-                tmp_src.value /= dec_mult;
+                tmp_src.value.removeDigit();
                 --tmp_src.scale;
             }
 
-            // Transfer the value.
-
-            for (std::size_t i = 0; tmp_src.value != 0; ++i) {
-                if (i >= lengthof(dest.val) || i > dest.precision)
+            for (std::size_t i = 0; i < lengthof(dest.val); ++i) {
+                if (i > dest.precision && tmp_src.value.bytes[i] != 0)
                     throw std::runtime_error("Cannot fit source Numeric value into destination Numeric specification: value is too big for ODBC Numeric representation");
-
-                dest.val[i] = static_cast<std::uint32_t>(tmp_src.value % byte_mult);
-                tmp_src.value /= byte_mult;
+                dest.val[i] = tmp_src.value.bytes[i];
             }
         }
     };

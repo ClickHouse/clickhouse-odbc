@@ -85,9 +85,21 @@ INSTANTIATE_TEST_SUITE_P(TypeConversion, StringPongNumericSymmetric,
         "18446744073709551615",
         "-18446744073709551615",
         ".18446744073709551615",
-        "-.18446744073709551615"
+        "-.18446744073709551615",
+        "18446744073709551616",
+        "-12345678901234567890123456789.012345678",
+        "99999999999999999999999999999999999999"
     )
 );
+
+TEST(DecimalToNumeric, RejectsMagnitudeLargerThanNumericBuffer) {
+    SQL_NUMERIC_STRUCT numeric{};
+    EXPECT_THROW(
+        (value_manip::from_value<std::string>::to_value<SQL_NUMERIC_STRUCT>::convert(
+            "340282366920938463463374607431768211456", numeric)),
+        std::runtime_error
+    );
+}
 
 INSTANTIATE_TEST_SUITE_P(TypeConversion, StringPongNumericAsymmetric,
     ::testing::ValuesIn(std::initializer_list<std::tuple<std::string, std::string>>{

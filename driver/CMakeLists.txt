@@ -87,6 +87,7 @@ add_library (${libname}-impl STATIC
     utils/conversion_icu.h
     utils/type_parser.h
     utils/type_info.h
+    utils/decimal_magnitude.h
 
     config/config.h
     config/ini_defines.h
