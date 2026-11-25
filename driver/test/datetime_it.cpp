@@ -6,7 +6,101 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#include <ctime>
 #include <iostream>
+#include <tuple>
+
+namespace {
+
+SQL_DATE_STRUCT clientDate() {
+    const auto now = std::time(nullptr);
+    const auto local = *std::localtime(&now);
+    return {static_cast<SQLSMALLINT>(local.tm_year + 1900),
+        static_cast<SQLUSMALLINT>(local.tm_mon + 1), static_cast<SQLUSMALLINT>(local.tm_mday)};
+}
+
+void expectTimestampOnClientDate(
+    const SQL_TIMESTAMP_STRUCT & actual,
+    SQL_TIMESTAMP_STRUCT expected,
+    const SQL_DATE_STRUCT & before,
+    const SQL_DATE_STRUCT & after
+) {
+    const SQL_DATE_STRUCT actual_date{actual.year, actual.month, actual.day};
+    EXPECT_THAT(actual_date, ::testing::AnyOf(::testing::Eq(before), ::testing::Eq(after)));
+
+    expected.year = actual.year;
+    expected.month = actual.month;
+    expected.day = actual.day;
+    EXPECT_EQ(actual, expected);
+}
+
+struct TimeOnlyValue {
+    const char * name;
+    const char * expression;
+    const char * date_error;
+    SQLUINTEGER fraction;
+};
+
+void PrintTo(const TimeOnlyValue & value, std::ostream * os) {
+    *os << value.name;
+}
+
+class TimeOnlyFetch : public ClientTestWithParamBase<std::tuple<TimeOnlyValue, bool>> {
+protected:
+    template <typename T>
+    SQLRETURN read(T & value, SQLLEN & indicator) {
+        const auto & [input, bind] = GetParam();
+        auto query = fromUTF8<PTChar>(std::string("SELECT ") + input.expression +
+            " SETTINGS enable_time_time64_type = 1");
+        STMT_OK(SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
+
+        if (bind) {
+            STMT_OK(SQLBindCol(hstmt, 1, getCTypeFor<T>(), &value, sizeof(value), &indicator));
+            return SQLFetch(hstmt);
+        }
+
+        STMT_OK(SQLFetch(hstmt));
+        return SQLGetData(hstmt, 1, getCTypeFor<T>(), &value, sizeof(value), &indicator);
+    }
+};
+
+TEST_P(TimeOnlyFetch, TimestampUsesCurrentClientDate) {
+    SQL_TIMESTAMP_STRUCT value{};
+    SQLLEN indicator = 0;
+    const auto before = clientDate();
+    STMT_OK(read(value, indicator));
+    const auto after = clientDate();
+
+    expectTimestampOnClientDate(value, {0, 0, 0, 12, 34, 56, std::get<0>(GetParam()).fraction}, before, after);
+    EXPECT_EQ(indicator, sizeof(value));
+}
+
+TEST_P(TimeOnlyFetch, DateTargetReportsSourceSpecificError) {
+    SQL_DATE_STRUCT value{};
+    SQLLEN indicator = 0;
+    EXPECT_EQ(read(value, indicator), SQL_ERROR);
+    EXPECT_THAT(extract_diagnostics(hstmt, SQL_HANDLE_STMT),
+        ::testing::HasSubstr(std::string("[") + std::get<0>(GetParam()).date_error + "]"));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    DateTime,
+    TimeOnlyFetch,
+    ::testing::Combine(
+        ::testing::Values(
+            TimeOnlyValue{"Time", "CAST('12:34:56' AS Time)", "07006", 0},
+            TimeOnlyValue{"NullableTime", "CAST('12:34:56' AS Nullable(Time))", "07006", 0},
+            TimeOnlyValue{"Time64", "CAST('12:34:56.123456789' AS Time64(9))", "22018", 123456789},
+            TimeOnlyValue{"String", "'12:34:56'", "22018", 0}
+        ),
+        ::testing::Bool()
+    ),
+    [](const auto & info) {
+        return std::string(std::get<0>(info.param).name) + (std::get<1>(info.param) ? "BindCol" : "GetData");
+    }
+);
+
+}
 
 struct DateTimeParams {
     std::string name;                            // parameter set name
@@ -252,9 +346,9 @@ TEST_F(DateTime, TimeAsTimestamp)
 
     SQL_TIMESTAMP_STRUCT col = {};
     SQLLEN indicator = 0;
+    const auto before = clientDate();
     STMT_OK(SQLGetData( hstmt, 1, SQL_C_TIMESTAMP, &col, sizeof(col), &indicator));
-    SQL_TIMESTAMP_STRUCT expect = {1900, 1, 1, 15, 4, 5};
-    EXPECT_EQ(col, expect);
+    expectTimestampOnClientDate(col, {0, 0, 0, 15, 4, 5, 0}, before, clientDate());
 }
 
 TEST_F(DateTime, Time64AsTimestamp)
@@ -272,9 +366,38 @@ TEST_F(DateTime, Time64AsTimestamp)
 
     SQL_TIMESTAMP_STRUCT col = {};
     SQLLEN indicator = 0;
+    const auto before = clientDate();
     STMT_OK(SQLGetData( hstmt, 1, SQL_C_TIMESTAMP, &col, sizeof(col), &indicator));
-    SQL_TIMESTAMP_STRUCT expect = {1900, 1, 1, 15, 4, 5, 123456789};
-    EXPECT_EQ(col, expect);
+    expectTimestampOnClientDate(col, {0, 0, 0, 15, 4, 5, 123456789}, before, clientDate());
+}
+
+TEST_F(DateTime, CharacterDateAndTimestampKeepExplicitDate)
+{
+    auto query = fromUTF8<PTChar>("SELECT '1900-01-01', '1900-01-01 12:34:56.123'");
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
+    STMT_OK(SQLFetch(hstmt));
+
+    SQL_DATE_STRUCT date{};
+    SQL_TIMESTAMP_STRUCT timestamp{};
+    SQLLEN indicator = 0;
+    STMT_OK(SQLGetData(hstmt, 1, SQL_C_TYPE_DATE, &date, sizeof(date), &indicator));
+    STMT_OK(SQLGetData(hstmt, 2, SQL_C_TYPE_TIMESTAMP, &timestamp, sizeof(timestamp), &indicator));
+    const SQL_DATE_STRUCT expected_date{1900, 1, 1};
+    const SQL_TIMESTAMP_STRUCT expected_timestamp{1900, 1, 1, 12, 34, 56, 123000000};
+    EXPECT_EQ(date, expected_date);
+    EXPECT_EQ(timestamp, expected_timestamp);
+}
+
+TEST_F(DateTime, NullTimeStillReturnsNullWhenFetchedAsDate)
+{
+    auto query = fromUTF8<PTChar>("SELECT CAST(NULL AS Nullable(Time)) SETTINGS enable_time_time64_type = 1");
+    STMT_OK(SQLExecDirect(hstmt, ptcharCast(query.data()), SQL_NTS));
+    STMT_OK(SQLFetch(hstmt));
+
+    SQL_DATE_STRUCT date{};
+    SQLLEN indicator = 0;
+    STMT_OK(SQLGetData(hstmt, 1, SQL_C_TYPE_DATE, &date, sizeof(date), &indicator));
+    EXPECT_EQ(indicator, SQL_NULL_DATA);
 }
 
 TEST_F(DateTime, InsertTimeStructParam)
@@ -346,8 +469,8 @@ TEST_F(DateTime, InsertTimeWithFractionThroughTimestamp)
     STMT_OK(SQLFetch(hstmt));
     SQL_TIMESTAMP_STRUCT col = {};
     SQLLEN col_ind = 0;
+    const auto before = clientDate();
     STMT_OK(SQLGetData(hstmt, 1, SQL_C_TYPE_TIMESTAMP, &col, sizeof(col), &col_ind));
 
-    const SQL_TIMESTAMP_STRUCT expected = {1900, 1, 1, 15, 4, 5, 123456789};
-    EXPECT_EQ(col, expected);
+    expectTimestampOnClientDate(col, {0, 0, 0, 15, 4, 5, 123456789}, before, clientDate());
 }

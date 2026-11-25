@@ -279,11 +279,12 @@ bool isStreamParam(SQLSMALLINT param_io_type) noexcept {
     return false;
 }
 
-std::optional<SQL_TIMESTAMP_STRUCT> parse_datetime(const std::string & src)
+std::optional<ParsedDateTime> parse_datetime(const std::string & src)
 {
     std::tm tm {};
     std::istringstream ss{src};
     size_t fraction_pos = 0;
+    bool has_date = true;
     if (src.size() == 10 && src[4] == '-') {
         ss >> std::get_time(&tm, "%Y-%m-%d");
         fraction_pos = 10;
@@ -291,6 +292,7 @@ std::optional<SQL_TIMESTAMP_STRUCT> parse_datetime(const std::string & src)
     else if (8 <= src.size() && src.size() <= 18) {
         ss >> std::get_time(&tm, "%H:%M:%S");
         fraction_pos = 8;
+        has_date = false;
     }
     else if (19 <= src.size() && src.size() <= 29) {
         ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
@@ -317,7 +319,7 @@ std::optional<SQL_TIMESTAMP_STRUCT> parse_datetime(const std::string & src)
         }
     }
 
-    return SQL_TIMESTAMP_STRUCT{
+    return ParsedDateTime{{
         .year = (SQLSMALLINT)(1900 + tm.tm_year),
         .month = (SQLUSMALLINT)(1 + tm.tm_mon),
         .day = (SQLUSMALLINT)tm.tm_mday,
@@ -325,7 +327,25 @@ std::optional<SQL_TIMESTAMP_STRUCT> parse_datetime(const std::string & src)
         .minute = (SQLUSMALLINT)tm.tm_min,
         .second = (SQLUSMALLINT)tm.tm_sec,
         .fraction = fraction,
-    };
+    }, has_date};
+}
+
+void value_manip::from_value<std::string>::to_value<SQL_TIMESTAMP_STRUCT>::convert(
+    const SourceType & src, DestinationType & dest
+) {
+    const auto parsed = parse_datetime(src);
+    if (!parsed)
+        throw std::runtime_error("Cannot interpret '" + src + "' as TIMESTAMP");
+
+    dest = parsed->value;
+    if (!parsed->has_date) {
+        std::tm today{};
+        toLocalTime(std::time(nullptr), today);
+        dest.year = today.tm_year + 1900;
+        dest.month = today.tm_mon + 1;
+        dest.day = today.tm_mday;
+    }
+    normalize_date(dest);
 }
 
 std::string convertCTypeToDataSourceType(const BoundTypeInfo & type_info) {

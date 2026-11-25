@@ -211,7 +211,13 @@ SQLRETURN ResultSet::extractField(std::size_t row_idx, std::size_t column_idx, B
     if (row_idx >= row_set.size())
         throw SqlException("Invalid cursor position", "HY109");
 
-    return row_set[row_idx].extractField(column_idx, binding_info, conversion_context);
+    const auto & row = row_set[row_idx];
+    if ((binding_info.c_type == SQL_C_TYPE_DATE || binding_info.c_type == SQL_C_DATE)
+        && getColumnInfo(column_idx).type_without_parameters_id == DataSourceTypeId::Time
+        && !std::holds_alternative<DataSourceType<DataSourceTypeId::Nothing>>(row.fields.at(column_idx).data))
+        throw SqlException("Cannot convert SQL_TYPE_TIME to SQL_C_TYPE_DATE", "07006");
+
+    return row.extractField(column_idx, binding_info, conversion_context);
 }
 
 void ResultSet::tryPrefetchRows(std::size_t size) {
