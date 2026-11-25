@@ -148,6 +148,11 @@ Driver={ClickHouse ODBC Driver (Unicode)};Url=http://localhost:8123/;Username=de
 Driver={ClickHouse ODBC Driver (Unicode)};Url=https://you-instance-url.gcp.clickhouse.cloud:8443/;Username=default;Password=your-password
 ```
 
+## Floating-point results {#floating-point-results}
+
+When an application fetches results as `SQL_C_FLOAT` or `SQL_C_DOUBLE`, the driver reads a decimal point (`.`) in
+ClickHouse result text even when the application locale uses a decimal comma.
+
 ## Microsoft Power BI Integration {#powerbi-integration}
 
 You can use the ODBC driver to connect Microsoft Power BI to a ClickHouse server. Power BI provides two connection

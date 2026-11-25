@@ -48,6 +48,7 @@ unset (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
 add_library (${libname}-impl STATIC
     utils/type_parser.cpp
     utils/type_info.cpp
+    utils/floating_point_conversion.cpp
     utils/unicode_converter.cpp
     utils/conversion_context.cpp
 
