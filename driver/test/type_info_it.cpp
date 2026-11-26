@@ -519,10 +519,8 @@ TEST_F(TypeInfoTest, AllTypesColumns)
         SQL_VARCHAR,       "String",      msz, 0,   na,   na,    false, SQL_VARCHAR,  na,  msz }},
     {"LowCardinality(String)", {
         SQL_VARCHAR,       "String",      msz, 0,   na,   na,    false, SQL_VARCHAR,  na,  msz }},
-    // TODO(slabko): Low cardinality nullable types do not detect nullability correctly
-    // Notice `null` is set to `false` here, but must be `true`
     {"LowCardinality(Nullable(String))", {
-        SQL_VARCHAR,       "String",      msz, 0,   na,   na,    false,  SQL_VARCHAR,  na,  msz }},
+        SQL_VARCHAR,       "String",      msz, 0,   na,   na,    true,   SQL_VARCHAR,  na,  msz }},
     });
     // clang-format on
 
