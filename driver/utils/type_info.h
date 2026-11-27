@@ -260,7 +260,12 @@ bool isInputParam(SQLSMALLINT param_io_type) noexcept;
 bool isOutputParam(SQLSMALLINT param_io_type) noexcept;
 bool isStreamParam(SQLSMALLINT param_io_type) noexcept;
 
-std::optional<SQL_TIMESTAMP_STRUCT> parse_datetime(const std::string & src);
+struct ParsedDateTime {
+    SQL_TIMESTAMP_STRUCT value;
+    bool has_date;
+};
+
+std::optional<ParsedDateTime> parse_datetime(const std::string & src);
 
 /// Helper structure that represents information about where and
 /// how to get or put values when reading or writing bound buffers.
@@ -1132,9 +1137,11 @@ namespace value_manip {
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
             if (auto res = parse_datetime(src)) {
-                dest.year = res->year;
-                dest.month = res->month;
-                dest.day = res->day;
+                if (!res->has_date)
+                    throw SqlException("A time-only value has no date", "22018");
+                dest.year = res->value.year;
+                dest.month = res->value.month;
+                dest.day = res->value.day;
                 normalize_date(dest);
                 return;
             }
@@ -1148,9 +1155,9 @@ namespace value_manip {
 
         static inline void convert(const SourceType & src, DestinationType & dest) {
             if (auto res = parse_datetime(src)) {
-                dest.hour = res->hour;
-                dest.minute = res->minute;
-                dest.second = res->second;
+                dest.hour = res->value.hour;
+                dest.minute = res->value.minute;
+                dest.second = res->value.second;
                 return;
             }
             throw std::runtime_error("Cannot interpret '" + src + "' as TIME");
@@ -1161,14 +1168,7 @@ namespace value_manip {
     struct from_value<std::string>::to_value<SQL_TIMESTAMP_STRUCT> {
         using DestinationType = SQL_TIMESTAMP_STRUCT;
 
-        static inline void convert(const SourceType & src, DestinationType & dest) {
-            if (auto res = parse_datetime(src)) {
-                dest = *res;
-                normalize_date(dest);
-                return;
-            }
-            throw std::runtime_error("Cannot interpret '" + src + "' as TIMESTAMP");
-        }
+        static void convert(const SourceType & src, DestinationType & dest);
     };
 
     template <DataSourceTypeId Id>

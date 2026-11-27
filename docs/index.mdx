@@ -304,3 +304,9 @@ effective change is made and the error is avoided.
 This option is also simple, but it requires maintenance: newer driver versions may change the list of settings or add
 new ones for compatibility. If you hard-code these settings on your ODBC user, you may need to update them whenever the
 ODBC driver starts applying additional settings.
+
+## Fetching time-only results {#fetching-time-only-results}
+
+When you fetch a `Time` value or time-only text as `SQL_C_TYPE_TIMESTAMP`, the driver uses the current date on the
+client. It preserves fractional seconds from time-only text, including `Time64` results. Fetching a `Time` value as
+`SQL_C_TYPE_DATE` returns SQLSTATE `07006`. Fetching time-only text as `SQL_C_TYPE_DATE` returns `22018`.
