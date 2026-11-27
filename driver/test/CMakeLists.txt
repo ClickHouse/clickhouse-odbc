@@ -86,6 +86,7 @@ function (declare_odbc_test_targets libname UNICODE)
         statement_parameters_it.cpp
         performance_it.cpp
         type_info_it.cpp
+        scientific_numeric_it.cpp
         authentication_it.cpp
         error_handling_it.cpp
         scalar_functions_it.cpp

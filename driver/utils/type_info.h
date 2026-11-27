@@ -1121,9 +1121,7 @@ namespace value_manip {
     struct from_value<std::string>::to_value<SQL_NUMERIC_STRUCT> {
         using DestinationType = SQL_NUMERIC_STRUCT;
 
-        static inline void convert(const SourceType & src, DestinationType & dest) {
-            convert_via_proxy<DataSourceType<DataSourceTypeId::Decimal>>(src, dest);
-        }
+        static void convert(const SourceType & src, DestinationType & dest);
     };
 
     template <>

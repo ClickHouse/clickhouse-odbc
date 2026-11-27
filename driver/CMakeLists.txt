@@ -46,6 +46,7 @@ unset (WORKAROUND_ENABLE_NO_UNICODE_CHARS_IN_COLUMN_NAMES_IN_TESTS)
 
 # In order to enable testing, put every non-public symbol to a static library (which is then used by shared library and unit-test binary).
 add_library (${libname}-impl STATIC
+    utils/numeric_text.cpp
     utils/type_parser.cpp
     utils/type_info.cpp
     utils/unicode_converter.cpp

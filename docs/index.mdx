@@ -112,6 +112,12 @@ version:
 echo "select version()" | isql -b ClickHouse
 ```
 
+## Reading results as numeric data {#reading-numeric-results}
+
+When you fetch a result as `SQL_C_NUMERIC`, the driver accepts scientific notation in result text, such as `1e-7`.
+Use `SQL_DESC_PRECISION` and `SQL_DESC_SCALE` in the application row descriptor to choose the returned precision
+and scale. With `SQLGetData`, select `SQL_ARD_TYPE` to use those descriptor fields.
+
 ## Configuration parameters {#configuration-parameters}
 
 The parameters below represent the most commonly used settings for establishing a connection with the ClickHouse ODBC
