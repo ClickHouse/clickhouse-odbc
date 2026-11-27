@@ -178,35 +178,22 @@ void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTyp
     dest.precision = column_info.precision;
     dest.scale = column_info.scale;
 
+    std::int64_t value = 0;
     if (dest.precision < 10) {
-        std::int32_t value = 0;
-        readPOD(value);
-
-        if (value < 0) {
-            dest.sign = 0;
-            dest.value = -value;
-        }
-        else {
-            dest.sign = 1;
-            dest.value = value;
-        }
+        std::int32_t narrow_value = 0;
+        readPOD(narrow_value);
+        value = narrow_value;
     }
     else if (dest.precision < 19) {
-        std::int64_t value = 0;
         readPOD(value);
-
-        if (value < 0) {
-            dest.sign = 0;
-            dest.value = -value;
-        }
-        else {
-            dest.sign = 1;
-            dest.value = value;
-        }
     }
     else {
         throw std::runtime_error("Unable to decode value of type 'Decimal' that is represented by 128-bit integer");
     }
+
+    dest.sign = value >= 0;
+    const auto bits = static_cast<std::uint64_t>(value);
+    dest.value = DecimalMagnitude(dest.sign ? bits : std::uint64_t{0} - bits);
 }
 
 void RowBinaryWithNamesAndTypesResultSet::readValue(DataSourceType<DataSourceTypeId::Decimal32> & dest, ColumnInfo & column_info) {
