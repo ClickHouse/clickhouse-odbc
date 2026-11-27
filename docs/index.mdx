@@ -148,6 +148,12 @@ Driver={ClickHouse ODBC Driver (Unicode)};Url=http://localhost:8123/;Username=de
 Driver={ClickHouse ODBC Driver (Unicode)};Url=https://you-instance-url.gcp.clickhouse.cloud:8443/;Username=default;Password=your-password
 ```
 
+## Binding column-wise parameter arrays {#column-wise-parameter-arrays}
+
+With column-wise binding, `SQLBindParameter` uses the bound C type to step through
+fixed-size values. For character and binary buffers, set `BufferLength` to the size
+in bytes of each array element.
+
 ## Microsoft Power BI Integration {#powerbi-integration}
 
 You can use the ODBC driver to connect Microsoft Power BI to a ClickHouse server. Power BI provides two connection
