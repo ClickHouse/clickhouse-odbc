@@ -1055,38 +1055,14 @@ namespace value_manip {
     struct from_value<std::string>::to_value<float> {
         using DestinationType = float;
 
-        static inline void convert(const SourceType & src, DestinationType & dest) {
-            std::size_t pos = 0;
-
-            try {
-                dest = std::stof(src, &pos);
-            }
-            catch (const std::exception & e) {
-                throw std::runtime_error("Cannot interpret '" + src + "' as float: " + e.what());
-            }
-
-            if (pos != src.size())
-                throw std::runtime_error("Cannot interpret '" + src + "' as float: string consumed partially");
-        }
+        static void convert(const SourceType & src, DestinationType & dest);
     };
 
     template <>
     struct from_value<std::string>::to_value<double> {
         using DestinationType = double;
 
-        static inline void convert(const SourceType & src, DestinationType & dest) {
-            std::size_t pos = 0;
-
-            try {
-                dest = std::stod(src, &pos);
-            }
-            catch (const std::exception & e) {
-                throw std::runtime_error("Cannot interpret '" + src + "' as double: " + e.what());
-            }
-
-            if (pos != src.size())
-                throw std::runtime_error("Cannot interpret '" + src + "' as double: string consumed partially");
-        }
+        static void convert(const SourceType & src, DestinationType & dest);
     };
 
     template <>

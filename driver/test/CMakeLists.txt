@@ -82,6 +82,7 @@ function (declare_odbc_test_targets libname UNICODE)
         misc_it.cpp
         datetime_it.cpp
         column_bindings_it.cpp
+        floating_point_fetch_it.cpp
         statement_parameter_bindings_it.cpp
         statement_parameters_it.cpp
         performance_it.cpp

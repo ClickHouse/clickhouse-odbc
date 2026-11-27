@@ -2,8 +2,10 @@
 
 #include <gtest/gtest.h>
 
+#include <stdexcept>
 #include <string>
 #include <tuple>
+#include <type_traits>
 
 class StringPong
     : public ::testing::Test
@@ -134,6 +136,26 @@ INSTANTIATE_TEST_SUITE_P(TypeConversion, StringPongFloat64Symmetric,
         "-inf"
     )
 );
+
+TEST(FloatingPointFromString, AcceptsStandardSyntaxAndRejectsIncompleteOrOutOfRangeValues) {
+    float single = 0;
+    double wide = 0;
+    const auto convert = [](const std::string & text, auto & value) {
+        using Type = std::remove_reference_t<decltype(value)>;
+        value_manip::from_value<std::string>::template to_value<Type>::convert(text, value);
+    };
+
+    convert(" +1.25e-1", single);
+    convert(" -.125", wide);
+    EXPECT_EQ(single, 0.125f);
+    EXPECT_EQ(wide, -0.125);
+    EXPECT_THROW(convert("5 kg", single), std::runtime_error);
+    EXPECT_THROW(convert("5 kg", wide), std::runtime_error);
+    EXPECT_THROW(convert("kg", single), std::runtime_error);
+    EXPECT_THROW(convert("kg", wide), std::runtime_error);
+    EXPECT_THROW(convert("1e50", single), std::runtime_error);
+    EXPECT_THROW(convert("1e400", wide), std::runtime_error);
+}
 
 TEST(FloatToNumeric, Convert) {
     const auto convert = [] (auto value, SQLSCHAR scale) {
